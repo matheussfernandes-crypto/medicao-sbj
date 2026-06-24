@@ -2,6 +2,7 @@
 const nextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "5mb" },
+    serverComponentsExternalPackages: ["@react-pdf/renderer"],
   },
 };
 

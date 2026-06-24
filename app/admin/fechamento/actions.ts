@@ -44,10 +44,11 @@ async function obterMestre(supabase: any, obraId: string) {
   return data?.nome ?? null;
 }
 
-async function obterNomesLancadores(supabase: any, criadoPorIds: string[]) {
+async function obterNomesLancadores(supabase: any, criadoPorIds: string[]): Promise<string[]> {
   if (!criadoPorIds.length) return [];
   const { data } = await supabase.from("perfis").select("id, nome_completo").in("id", criadoPorIds);
-  return Array.from(new Set((data ?? []).map((c: any) => c.nome_completo).filter(Boolean)));
+  const nomes = (data ?? []).map((c: any) => c.nome_completo as string).filter((n: string) => Boolean(n));
+  return Array.from(new Set(nomes));
 }
 
 export async function finalizarFechamentoMedicao(formData: FormData) {

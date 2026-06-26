@@ -5,7 +5,7 @@ import PasswordField from "../components/PasswordField";
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: { erro?: string };
+  searchParams: { erro?: string; sucesso?: string };
 }) {
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
@@ -25,12 +25,20 @@ export default function LoginPage({
             />
           </div>
           <div>
-            <label className="block text-sm mb-1">Senha</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm">Senha</label>
+              <Link href="/esqueci-senha" className="text-xs text-primaryDark font-semibold">
+                Esqueceu sua senha?
+              </Link>
+            </div>
             <PasswordField name="senha" required placeholder="••••••" />
           </div>
 
           {searchParams.erro && (
             <p className="text-sm text-red-600">{searchParams.erro}</p>
+          )}
+          {searchParams.sucesso && (
+            <p className="text-sm text-green-700">{searchParams.sucesso}</p>
           )}
 
           <button

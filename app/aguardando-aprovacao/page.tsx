@@ -12,15 +12,18 @@ export default async function AguardandoAprovacaoPage() {
   }
 
   const rejeitado = status === "rejeitado";
+  const desativado = status === "desativado";
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-sm bg-white rounded-xl shadow p-6 text-center">
         <h1 className="text-xl font-semibold text-primaryDark mb-2">
-          {rejeitado ? "Cadastro rejeitado" : "Cadastro pendente"}
+          {desativado ? "Acesso desativado" : rejeitado ? "Cadastro rejeitado" : "Cadastro pendente"}
         </h1>
         <p className="text-sm text-gray-600 mb-4">
-          {rejeitado
+          {desativado
+            ? "Seu acesso a este sistema foi desativado pelo ADM. Fale com o responsável se acredita que isso é um engano."
+            : rejeitado
             ? "Seu cadastro foi rejeitado pelo ADM. Fale com o responsável se acredita que isso é um engano."
             : "Seu cadastro foi enviado e está aguardando aprovação do ADM. Você receberá acesso assim que for aprovado."}
         </p>

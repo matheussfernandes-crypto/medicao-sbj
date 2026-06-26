@@ -57,6 +57,20 @@ export default async function DashboardPage() {
             <p className="text-sm text-gray-500">Finalizar o mês: gera o PDF assinado e envia por email automaticamente.</p>
           </Link>
         )}
+
+        {(setor === "ADMIN" || setor === "FINANCEIRO") && (
+          <Link href="/financeiro/dashboard" className="block bg-white rounded-xl shadow p-4 hover:shadow-md transition">
+            <h2 className="font-semibold text-primaryDark">Dashboard de gastos</h2>
+            <p className="text-sm text-gray-500">Gasto por obra no mês atual e evolução dos últimos 6 meses.</p>
+          </Link>
+        )}
+
+        {setor === "ADMIN" && (
+          <Link href="/admin/auditoria" className="block bg-white rounded-xl shadow p-4 hover:shadow-md transition">
+            <h2 className="font-semibold text-primaryDark">Log de auditoria</h2>
+            <p className="text-sm text-gray-500">Histórico de quem criou, editou ou excluiu lançamentos, fechamentos e retiradas.</p>
+          </Link>
+        )}
       </div>
     </main>
   );

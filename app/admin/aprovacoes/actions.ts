@@ -31,3 +31,26 @@ export async function rejeitarConta(perfilId: string) {
     .eq("id", perfilId);
   revalidatePath("/admin/aprovacoes");
 }
+
+// Usado quando a pessoa sai da empresa: bloqueia o login dela sem apagar o
+// histórico (lançamentos, fechamentos etc. continuam vinculados ao perfil).
+export async function desativarConta(perfilId: string) {
+  const { supabase, user } = await exigirAdmin();
+  if (perfilId === user.id) {
+    throw new Error("Você não pode desativar o seu próprio acesso.");
+  }
+  await supabase
+    .from("perfis")
+    .update({ status: "desativado", decidido_por: user.id, decidido_em: new Date().toISOString() })
+    .eq("id", perfilId);
+  revalidatePath("/admin/aprovacoes");
+}
+
+export async function reativarConta(perfilId: string) {
+  const { supabase, user } = await exigirAdmin();
+  await supabase
+    .from("perfis")
+    .update({ status: "aprovado", decidido_por: user.id, decidido_em: new Date().toISOString() })
+    .eq("id", perfilId);
+  revalidatePath("/admin/aprovacoes");
+}

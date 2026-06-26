@@ -50,6 +50,13 @@ export default async function DashboardPage() {
             <p className="text-sm text-gray-500">Lançar retiradas, saldo inicial e saldo disponível por pessoa.</p>
           </Link>
         )}
+
+        {setor === "ADMIN" && (
+          <Link href="/admin/fechamento" className="block bg-white rounded-xl shadow p-4 hover:shadow-md transition">
+            <h2 className="font-semibold text-primaryDark">Fechamento mensal — Medição &amp; Vale</h2>
+            <p className="text-sm text-gray-500">Finalizar o mês: gera o PDF assinado e envia por email automaticamente.</p>
+          </Link>
+        )}
       </div>
     </main>
   );

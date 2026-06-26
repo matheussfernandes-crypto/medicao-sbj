@@ -47,6 +47,11 @@ export default async function LancamentosPage({
   const nomesPessoas: Record<string, string> = {};
   for (const p of pessoas ?? []) nomesPessoas[p.id] = p.nome;
 
+  const { data: fechamentosObra } = obraId
+    ? await supabase.from("fechamentos").select("tipo, mes_referencia").eq("obra_id", obraId)
+    : { data: [] };
+  const mesesFechados = new Set((fechamentosObra ?? []).map((f) => `${f.tipo}-${f.mes_referencia}`));
+
   return (
     <main className="min-h-screen">
       <Topbar setor={meuPerfil?.setor} />
@@ -164,7 +169,7 @@ export default async function LancamentosPage({
                         <form action={excluirLancamento} className="inline">
                           <input type="hidden" name="id" value={l.id} />
                           <input type="hidden" name="obraId" value={obraId ?? ""} />
-                          <ConfirmDeleteButton />
+                          <ConfirmDeleteButton jaFechado={mesesFechados.has(`${l.tipo}-${l.mes_referencia}`)} />
                         </form>
                       </td>
                     )}

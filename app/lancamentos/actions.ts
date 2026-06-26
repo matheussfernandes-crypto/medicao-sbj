@@ -115,32 +115,13 @@ export async function rejeitarLancamento(formData: FormData) {
 export async function excluirLancamento(formData: FormData) {
   const { supabase } = await exigirAdmin();
   const id = String(formData.get("id"));
-  const obraId = String(formData.get("obraId") || "");
 
-  const { data: lanc } = await supabase
-    .from("lancamentos")
-    .select("obra_id, tipo, mes_referencia")
-    .eq("id", id)
-    .single();
-
-  if (lanc) {
-    const { data: fechado } = await supabase
-      .from("fechamentos")
-      .select("id")
-      .eq("obra_id", lanc.obra_id)
-      .eq("tipo", lanc.tipo)
-      .eq("mes_referencia", lanc.mes_referencia)
-      .maybeSingle();
-
-    if (fechado) {
-      redirect(
-        `/lancamentos?obra=${obraId}&erro=${encodeURIComponent(
-          "Este lançamento já faz parte de um fechamento mensal (PDF já gerado e enviado) e não pode mais ser excluído."
-        )}`
-      );
-    }
-  }
-
+  // O ADM pode excluir qualquer lançamento, em qualquer status (PENDENTE, APROVADO
+  // ou REJEITADO), inclusive um que já tenha entrado num fechamento mensal já
+  // enviado por PDF/email — por exemplo, para corrigir um clique errado ou um
+  // lançamento de teste. A confirmação na tela (ConfirmDeleteButton) já avisa
+  // o ADM quando o lançamento em questão faz parte de um mês já fechado, para
+  // que ele saiba que o PDF já enviado não será atualizado automaticamente.
   await supabase.from("lancamentos").delete().eq("id", id);
   revalidatePath("/lancamentos");
 }

@@ -2,7 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background: #f5f7f6;
-  color: #1c2a2c;
+:root {
+  --border: #dfe3ea;
+  --muted: #65707d;
+  --green: #1f8a4c;
+  --red: #c0392b;
+  --amber: #b9770e;
 }
+
+body {
+  background: #f4f6f9;
+  color: #1f2733;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 22px;
+}
+
+table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  display: inline-block;
+}
+.badge-pendente { background: #fcefd6; color: var(--amber); }
+.badge-aprovado { background: #e1f3e6; color: var(--green); }
+.badge-rejeitado { background: #fbe4e1; color: var(--red); }
+.badge-desativado { background: #e7e7ea; color: #5b5b66; }

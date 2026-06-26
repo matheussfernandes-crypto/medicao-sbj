@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { solicitarCadastro } from "./actions";
+import PasswordField from "../components/PasswordField";
 
 export default function CadastroPage({
   searchParams,
@@ -23,7 +24,7 @@ export default function CadastroPage({
           </div>
           <div>
             <label className="block text-sm mb-1">Senha</label>
-            <input name="senha" type="password" required minLength={6} className="w-full border rounded px-3 py-2 text-sm" />
+            <PasswordField name="senha" required minLength={6} />
           </div>
           <div>
             <label className="block text-sm mb-1">Qual setor você quer se cadastrar</label>

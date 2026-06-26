@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { salvarConfigNotificacao, finalizarFechamentoMedicao, finalizarFechamentoVale } from "./actions";
+import { salvarConfigNotificacao, finalizarFechamentoMedicao, finalizarFechamentoVale, excluirFechamento } from "./actions";
 import Topbar from "../../components/Topbar";
+import ConfirmDeleteButton from "../../lancamentos/ConfirmDeleteButton";
 
 function mesAtual() {
   return new Date().toISOString().slice(0, 7);
@@ -25,12 +26,23 @@ export default async function FechamentoPage({
 
   const { data: historico } = await supabase
     .from("fechamentos")
-    .select("obra_id, tipo, mes_referencia, fechado_em, email_enviado_para")
+    .select("id, obra_id, tipo, mes_referencia, fechado_em, email_enviado_para, pdf_path")
     .order("fechado_em", { ascending: false })
     .limit(30);
 
   const nomeObra: Record<string, string> = {};
   for (const o of obras ?? []) nomeObra[o.id] = o.nome;
+
+  // Gera links assinados (válidos por 1h) para os PDFs que ficaram salvos no Storage.
+  const linksPdf: Record<string, string> = {};
+  for (const h of historico ?? []) {
+    if (h.pdf_path) {
+      const { data: signed } = await supabase.storage
+        .from("fechamentos-pdfs")
+        .createSignedUrl(h.pdf_path, 3600);
+      if (signed?.signedUrl) linksPdf[h.id] = signed.signedUrl;
+    }
+  }
 
   let previaMedicao: { qtdItens: number; somaPagar: number } | null = null;
   let previaVale: { qtdItens: number; somaGeral: number } | null = null;
@@ -173,6 +185,8 @@ export default async function FechamentoPage({
                   <th className="p-1">Mês</th>
                   <th className="p-1">Fechado em</th>
                   <th className="p-1">Email enviado para</th>
+                  <th className="p-1">PDF</th>
+                  <th className="p-1">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -187,6 +201,26 @@ export default async function FechamentoPage({
                     <td className="p-1">{h.mes_referencia}</td>
                     <td className="p-1">{new Date(h.fechado_em).toLocaleString("pt-BR")}</td>
                     <td className="p-1">{h.email_enviado_para || "—"}</td>
+                    <td className="p-1">
+                      {linksPdf[h.id] ? (
+                        <a
+                          href={linksPdf[h.id]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline text-xs"
+                        >
+                          Baixar PDF
+                        </a>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="p-1 whitespace-nowrap">
+                      <form action={excluirFechamento} className="inline">
+                        <input type="hidden" name="id" value={h.id} />
+                        <ConfirmDeleteButton mensagemPersonalizada="Excluir este registro do histórico de fechamento? Isso NÃO desfaz o PDF já enviado por email, mas libera esse mês/obra/tipo para ser fechado de novo. Deseja continuar?" />
+                      </form>
+                    </td>
                   </tr>
                 ))}
               </tbody>

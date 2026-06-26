@@ -44,11 +44,42 @@ async function obterMestre(supabase: any, obraId: string) {
   return data?.nome ?? null;
 }
 
-async function obterNomesLancadores(supabase: any, criadoPorIds: string[]): Promise<string[]> {
+async function obterNomesLancadores(supabase: any, criadoPorIds: string[]) {
   if (!criadoPorIds.length) return [];
   const { data } = await supabase.from("perfis").select("id, nome_completo").in("id", criadoPorIds);
-  const nomes = (data ?? []).map((c: any) => c.nome_completo as string).filter((n: string) => Boolean(n));
-  return Array.from(new Set(nomes));
+  return Array.from(new Set((data ?? []).map((c: any) => c.nome_completo).filter(Boolean)));
+}
+
+// Salva o PDF já gerado no Storage para poder ser baixado depois pelo site,
+// sem depender só do email enviado na hora do fechamento.
+async function salvarPdfNoStorage(supabase: any, tipo: "medicao" | "vale", obraId: string, mes: string, buffer: Buffer) {
+  const path = `${tipo}/${obraId}/${mes}-${Date.now()}.pdf`;
+  const { error } = await supabase.storage.from("fechamentos-pdfs").upload(path, buffer, {
+    contentType: "application/pdf",
+    upsert: false,
+  });
+  if (error) {
+    console.error("Falha ao salvar PDF no storage:", error.message);
+    return null;
+  }
+  return path;
+}
+
+export async function excluirFechamento(formData: FormData) {
+  const { supabase } = await exigirAdmin();
+  const id = String(formData.get("id"));
+
+  const { data: fechamento } = await supabase.from("fechamentos").select("pdf_path").eq("id", id).single();
+
+  await supabase.from("fechamentos").delete().eq("id", id);
+
+  if (fechamento?.pdf_path) {
+    await supabase.storage.from("fechamentos-pdfs").remove([fechamento.pdf_path]);
+  }
+
+  // Excluir o registro do histórico libera aquele mês/obra/tipo para ser fechado de novo
+  // (o fechamento original verifica se já existe um registro antes de gerar um novo PDF).
+  revalidatePath("/admin/fechamento");
 }
 
 export async function finalizarFechamentoMedicao(formData: FormData) {
@@ -158,12 +189,15 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
     }
   }
 
+  const pdfPath = await salvarPdfNoStorage(supabase, "medicao", obraId, mes, buffer);
+
   await supabase.from("fechamentos").insert({
     obra_id: obraId,
     tipo: "MEDICAO",
     mes_referencia: mes,
     fechado_por: userId,
     email_enviado_para: destinatarios.join(", ") || null,
+    pdf_path: pdfPath,
   });
 
   revalidatePath("/admin/fechamento");
@@ -275,12 +309,15 @@ export async function finalizarFechamentoVale(formData: FormData) {
     }
   }
 
+  const pdfPath = await salvarPdfNoStorage(supabase, "vale", obraId, mes, buffer);
+
   await supabase.from("fechamentos").insert({
     obra_id: obraId,
     tipo: "VALE",
     mes_referencia: mes,
     fechado_por: userId,
     email_enviado_para: destinatarios.join(", ") || null,
+    pdf_path: pdfPath,
   });
 
   revalidatePath("/admin/fechamento");

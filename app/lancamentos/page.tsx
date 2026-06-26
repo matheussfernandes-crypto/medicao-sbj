@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import { criarLancamento, aprovarLancamento, rejeitarLancamento } from "./actions";
+import { criarLancamento, aprovarLancamento, rejeitarLancamento, excluirLancamento } from "./actions";
 import Topbar from "../components/Topbar";
+import ConfirmDeleteButton from "./ConfirmDeleteButton";
 
 const TIPO_LABEL: Record<string, string> = {
   area: "Por m² (comprimento × altura)",
-  linear: "Por metro linear",
+  linear: "Por m",
   unidade: "Por unidade",
   diaria: "Por diária",
 };
@@ -16,7 +17,7 @@ function hojeISO() {
 export default async function LancamentosPage({
   searchParams,
 }: {
-  searchParams: { obra?: string };
+  searchParams: { obra?: string; erro?: string };
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -49,10 +50,10 @@ export default async function LancamentosPage({
   return (
     <main className="min-h-screen">
       <Topbar setor={meuPerfil?.setor} />
-      <div className="max-w-3xl mx-auto p-6 space-y-4">
+      <div className="p-8 space-y-4">
       <h1 className="text-xl font-semibold text-primaryDark">Lançamentos — Medição &amp; Vale</h1>
 
-      <div className="bg-white rounded-xl shadow p-4">
+      <div className="card">
         <form method="get" className="flex gap-2">
           <select name="obra" defaultValue={obraId ?? ""} className="border rounded px-3 py-2 flex-1">
             {(obras ?? []).map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
@@ -62,7 +63,7 @@ export default async function LancamentosPage({
       </div>
 
       {obraId && (
-        <div className="bg-white rounded-xl shadow p-4">
+        <div className="card">
           <h2 className="font-semibold text-primaryDark mb-2">Novo lançamento</h2>
           {pessoas && pessoas.length > 0 ? (
             <form action={criarLancamento} className="space-y-2">
@@ -115,8 +116,14 @@ export default async function LancamentosPage({
         </div>
       )}
 
+      {searchParams.erro && (
+        <div className="card bg-red-50 border border-red-200 text-red-700 text-sm">
+          {searchParams.erro}
+        </div>
+      )}
+
       {obraId && (
-        <div className="bg-white rounded-xl shadow p-4 overflow-x-auto">
+        <div className="card overflow-x-auto">
           <h2 className="font-semibold text-primaryDark mb-2">Histórico de lançamentos</h2>
           {lancamentos && lancamentos.length > 0 ? (
             <table className="w-full text-sm">
@@ -137,11 +144,11 @@ export default async function LancamentosPage({
                     <td className="p-1">R$ {Number(l.total_reais).toFixed(2)}</td>
                     <td className="p-1">
                       <span className={
-                        l.status === "APROVADO" ? "text-green-600" : l.status === "REJEITADO" ? "text-red-500" : "text-amber-600"
+                        "badge " + (l.status === "APROVADO" ? "badge-aprovado" : l.status === "REJEITADO" ? "badge-rejeitado" : "badge-pendente")
                       }>{l.status}</span>
                     </td>
                     {ehAdmin && (
-                      <td className="p-1 space-x-1">
+                      <td className="p-1 space-x-1 whitespace-nowrap">
                         {l.status === "PENDENTE" && (
                           <>
                             <form action={aprovarLancamento} className="inline">
@@ -154,6 +161,11 @@ export default async function LancamentosPage({
                             </form>
                           </>
                         )}
+                        <form action={excluirLancamento} className="inline">
+                          <input type="hidden" name="id" value={l.id} />
+                          <input type="hidden" name="obraId" value={obraId ?? ""} />
+                          <ConfirmDeleteButton />
+                        </form>
                       </td>
                     )}
                   </tr>

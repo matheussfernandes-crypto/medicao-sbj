@@ -13,6 +13,13 @@ async function exigirAprovado() {
   return { supabase, user, nome: perfil.nome_completo as string };
 }
 
+async function exigirAdmin() {
+  const { supabase, user } = await exigirAprovado();
+  const { data: perfil } = await supabase.from("perfis").select("setor").eq("id", user.id).single();
+  if (!perfil || perfil.setor !== "ADMIN") throw new Error("Apenas o ADM pode excluir lançamentos.");
+  return { supabase };
+}
+
 function calcular(tipo: string, comprimento: number, altura: number, qtd: number, adicional: number, valorUnitario: number) {
   if (tipo === "diaria" || tipo === "unidade") {
     return { quantidade: qtd, bruto: qtd * valorUnitario, detalhe: `${qtd} ${tipo === "diaria" ? "diária(s)" : "unidade(s)"}` };
@@ -102,5 +109,38 @@ export async function rejeitarLancamento(formData: FormData) {
   const { supabase } = await exigirAprovado();
   const id = String(formData.get("id"));
   await supabase.from("lancamentos").update({ status: "REJEITADO" }).eq("id", id);
+  revalidatePath("/lancamentos");
+}
+
+export async function excluirLancamento(formData: FormData) {
+  const { supabase } = await exigirAdmin();
+  const id = String(formData.get("id"));
+  const obraId = String(formData.get("obraId") || "");
+
+  const { data: lanc } = await supabase
+    .from("lancamentos")
+    .select("obra_id, tipo, mes_referencia")
+    .eq("id", id)
+    .single();
+
+  if (lanc) {
+    const { data: fechado } = await supabase
+      .from("fechamentos")
+      .select("id")
+      .eq("obra_id", lanc.obra_id)
+      .eq("tipo", lanc.tipo)
+      .eq("mes_referencia", lanc.mes_referencia)
+      .maybeSingle();
+
+    if (fechado) {
+      redirect(
+        `/lancamentos?obra=${obraId}&erro=${encodeURIComponent(
+          "Este lançamento já faz parte de um fechamento mensal (PDF já gerado e enviado) e não pode mais ser excluído."
+        )}`
+      );
+    }
+  }
+
+  await supabase.from("lancamentos").delete().eq("id", id);
   revalidatePath("/lancamentos");
 }

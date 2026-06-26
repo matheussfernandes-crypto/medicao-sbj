@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { login } from "./actions";
+import PasswordField from "../components/PasswordField";
 
 export default function LoginPage({
   searchParams,
@@ -25,13 +26,7 @@ export default function LoginPage({
           </div>
           <div>
             <label className="block text-sm mb-1">Senha</label>
-            <input
-              name="senha"
-              type="password"
-              required
-              placeholder="••••••"
-              className="w-full border rounded px-3 py-2 text-sm"
-            />
+            <PasswordField name="senha" required placeholder="••••••" />
           </div>
 
           {searchParams.erro && (

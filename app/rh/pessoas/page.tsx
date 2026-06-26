@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { criarPessoa, transferirObra, darBaixa, reativarPessoa } from "./actions";
+import { criarPessoa, transferirObra, darBaixa, reativarPessoa, excluirPessoa } from "./actions";
 import Topbar from "../../components/Topbar";
+import ConfirmDeleteButton from "../../lancamentos/ConfirmDeleteButton";
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
@@ -19,11 +20,17 @@ function diffTempo(inicioISO: string, fimISO: string) {
   return `${anos} ano(s) e ${restoMeses} mês(es)`;
 }
 
-export default async function PessoasPage() {
+export default async function PessoasPage({
+  searchParams,
+}: {
+  searchParams: { erro?: string; sucesso?: string };
+}) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const { data: meuPerfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
   if (meuPerfil?.setor !== "RH" && meuPerfil?.setor !== "ADMIN") redirect("/dashboard");
+
+  const souAdmin = meuPerfil?.setor === "ADMIN";
 
   const { data: obras } = await supabase.from("obras").select("id, nome").order("nome");
   const { data: pessoas } = await supabase
@@ -41,6 +48,13 @@ export default async function PessoasPage() {
       <Topbar setor="RH" />
       <div className="max-w-3xl mx-auto p-6 space-y-4">
       <h1 className="text-xl font-semibold text-primaryDark">RH &amp; Pessoas</h1>
+
+      {searchParams.erro && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-3">{searchParams.erro}</div>
+      )}
+      {searchParams.sucesso && (
+        <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl p-3">{searchParams.sucesso}</div>
+      )}
 
       <div className="bg-white rounded-xl shadow p-4">
         <h2 className="font-semibold text-primaryDark mb-2">Cadastrar novo empreiteiro</h2>
@@ -108,11 +122,21 @@ export default async function PessoasPage() {
                           </form>
                         </>
                       ) : (
-                        <form action={reativarPessoa}>
-                          <input type="hidden" name="pessoaId" value={p.id} />
-                          <span className="text-xs text-gray-400 mr-2">Saída em {p.saida || "—"}</span>
-                          <button className="bg-gray-200 rounded px-2 text-xs">Reativar</button>
-                        </form>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <form action={reativarPessoa}>
+                            <input type="hidden" name="pessoaId" value={p.id} />
+                            <span className="text-xs text-gray-400 mr-2">Saída em {p.saida || "—"}</span>
+                            <button className="bg-gray-200 rounded px-2 text-xs">Reativar</button>
+                          </form>
+                          {souAdmin && (
+                            <form action={excluirPessoa}>
+                              <input type="hidden" name="pessoaId" value={p.id} />
+                              <ConfirmDeleteButton
+                                mensagemPersonalizada={`Excluir definitivamente o cadastro de "${p.nome}"? Essa ação não pode ser desfeita. Só funciona se essa pessoa não tiver lançamentos ou retiradas registrados.`}
+                              />
+                            </form>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>

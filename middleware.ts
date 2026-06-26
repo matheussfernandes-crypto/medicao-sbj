@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
-  const rotasPublicas = ["/login", "/cadastro"];
+  const rotasPublicas = ["/login", "/cadastro", "/esqueci-senha", "/redefinir-senha"];
   const isPublica = rotasPublicas.some((r) => path.startsWith(r));
 
   if (!user && !isPublica) {

@@ -256,6 +256,8 @@ export type ItemVale = {
   descricao: string;
   ehCorrecao: boolean;
   total: number;
+  hibrido?: boolean;
+  medicaoComplementarBruto?: number;
 };
 
 export type ResumoVale = {
@@ -313,7 +315,13 @@ export function FolhaValePdf({
             <View style={styles.row} key={i}>
               <Text style={[styles.tdFirst, { flex: 2 }]}>{it.empreiteiro}</Text>
               <Text style={[styles.td, { flex: 2 }]}>{obraNome}</Text>
-              <Text style={[styles.td, { flex: 2.5 }]}>{it.ehCorrecao ? it.descricao : "VALE"}</Text>
+              <Text style={[styles.td, { flex: 2.5 }]}>
+                {it.ehCorrecao
+                  ? it.descricao
+                  : it.hibrido
+                  ? `VALE (+ medição complementar de R$ ${fmt(it.medicaoComplementarBruto)} no mesmo lançamento — ver Fechamento de Medição)`
+                  : "VALE"}
+              </Text>
               <Text style={[styles.td, { flex: 1.3 }]}>R$ {fmt(it.total)}</Text>
             </View>
           ))}

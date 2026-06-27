@@ -48,28 +48,42 @@ export default async function FechamentoPage({
   let previaVale: { qtdItens: number; somaGeral: number } | null = null;
 
   if (obraSelecionada) {
+    // Lançamentos "Vale + Medição" entram nas duas prévias: a Medição Complementar
+    // (total_reais) conta na prévia de Medição; o Vale (valor_vale_hibrido) conta na
+    // prévia de Vale — igual ao que acontece de fato ao finalizar cada fechamento.
     const { data: medicoes } = await supabase
       .from("lancamentos")
-      .select("total_reais, retencao_pct_usado, pessoa_id, vale_real")
-      .eq("obra_id", obraSelecionada).eq("mes_referencia", mes).eq("tipo", "MEDICAO").eq("status", "APROVADO");
+      .select("total_reais, retencao_pct_usado, pessoa_id, vale_real, tipo")
+      .eq("obra_id", obraSelecionada).eq("mes_referencia", mes).in("tipo", ["MEDICAO", "VALE_MEDICAO"]).eq("status", "APROVADO");
     const { data: valesReais } = await supabase
       .from("lancamentos")
-      .select("total_reais")
-      .eq("obra_id", obraSelecionada).eq("mes_referencia", mes).eq("tipo", "VALE").eq("status", "APROVADO").eq("vale_real", true);
+      .select("total_reais, valor_vale_hibrido, tipo")
+      .eq("obra_id", obraSelecionada).eq("mes_referencia", mes).eq("status", "APROVADO")
+      .or("and(tipo.eq.VALE,vale_real.eq.true),tipo.eq.VALE_MEDICAO");
 
     if (medicoes && medicoes.length) {
       const somaTotal = medicoes.reduce((s, l) => s + Number(l.total_reais), 0);
       const somaRetido = medicoes.reduce((s, l) => s + Number(l.total_reais) * Number(l.retencao_pct_usado ?? 0), 0);
-      const somaVale = (valesReais ?? []).reduce((s, l) => s + Number(l.total_reais), 0);
+      const somaVale = (valesReais ?? []).reduce(
+        (s, l) => s + (l.tipo === "VALE_MEDICAO" ? Number(l.valor_vale_hibrido ?? 0) : Number(l.total_reais)),
+        0
+      );
       previaMedicao = { qtdItens: medicoes.length, somaPagar: somaTotal - somaRetido - somaVale };
     }
 
     const { data: vales } = await supabase
       .from("lancamentos")
-      .select("total_reais")
-      .eq("obra_id", obraSelecionada).eq("mes_referencia", mes).eq("tipo", "VALE").eq("status", "APROVADO");
+      .select("total_reais, valor_vale_hibrido, tipo")
+      .eq("obra_id", obraSelecionada).eq("mes_referencia", mes).eq("status", "APROVADO")
+      .in("tipo", ["VALE", "VALE_MEDICAO"]);
     if (vales && vales.length) {
-      previaVale = { qtdItens: vales.length, somaGeral: vales.reduce((s, l) => s + Number(l.total_reais), 0) };
+      previaVale = {
+        qtdItens: vales.length,
+        somaGeral: vales.reduce(
+          (s, l) => s + (l.tipo === "VALE_MEDICAO" ? Number(l.valor_vale_hibrido ?? 0) : Number(l.total_reais)),
+          0
+        ),
+      };
     }
   }
 

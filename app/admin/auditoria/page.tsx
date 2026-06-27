@@ -33,8 +33,12 @@ function resumoLinha(
     case "lancamentos": {
       const pessoa = nomePessoa[dados.pessoa_id] ?? "—";
       const obra = nomeObra[dados.obra_id] ?? "—";
-      const tipo = dados.tipo === "MEDICAO" ? "Medição" : "Vale";
-      return `${tipo} de ${pessoa} (${obra}), ${dados.mes_referencia} — R$ ${Number(dados.total_reais ?? 0).toFixed(2)}, status ${dados.status}`;
+      const tipo = dados.tipo === "MEDICAO" ? "Medição" : dados.tipo === "VALE_MEDICAO" ? "Vale + Medição" : "Vale";
+      const valorTxt =
+        dados.tipo === "VALE_MEDICAO"
+          ? `vale R$ ${Number(dados.valor_vale_hibrido ?? 0).toFixed(2)} + medição compl. R$ ${Number(dados.total_reais ?? 0).toFixed(2)} (bruto)`
+          : `R$ ${Number(dados.total_reais ?? 0).toFixed(2)}`;
+      return `${tipo} de ${pessoa} (${obra}), ${dados.mes_referencia} — ${valorTxt}, status ${dados.status}`;
     }
     case "fechamentos": {
       const obra = nomeObra[dados.obra_id] ?? "—";

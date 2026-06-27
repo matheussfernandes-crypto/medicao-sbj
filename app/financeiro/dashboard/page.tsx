@@ -43,7 +43,7 @@ export default async function DashboardGastosPage({
 
   const { data: lancamentos } = await supabase
     .from("lancamentos")
-    .select("obra_id, mes_referencia, tipo, total_reais, vale_real, status")
+    .select("obra_id, mes_referencia, tipo, total_reais, valor_vale_hibrido, vale_real, status")
     .eq("status", "APROVADO");
 
   const todos = lancamentos ?? [];
@@ -60,14 +60,21 @@ export default async function DashboardGastosPage({
 
   for (const l of todos) {
     const valor = Number(l.total_reais ?? 0);
+    // "Vale + Medição": a parte de medição (valor, = total_reais) entra no balde
+    // "medicao"; a parte de vale (valorValeHibrido) entra no balde "valeReal" — os
+    // dois contam normalmente no total do mês, como qualquer medição/vale aprovado.
+    const valorValeHibrido = l.tipo === "VALE_MEDICAO" ? Number(l.valor_vale_hibrido ?? 0) : 0;
     if (l.mes_referencia === mesSelecionado) {
       if (!porObraMesAtual[l.obra_id]) porObraMesAtual[l.obra_id] = { medicao: 0, valeReal: 0, valeCorrecao: 0 };
       if (l.tipo === "MEDICAO") porObraMesAtual[l.obra_id].medicao += valor;
-      else if (l.vale_real) porObraMesAtual[l.obra_id].valeReal += valor;
+      else if (l.tipo === "VALE_MEDICAO") {
+        porObraMesAtual[l.obra_id].medicao += valor;
+        porObraMesAtual[l.obra_id].valeReal += valorValeHibrido;
+      } else if (l.vale_real) porObraMesAtual[l.obra_id].valeReal += valor;
       else porObraMesAtual[l.obra_id].valeCorrecao += valor;
     }
     if (l.mes_referencia in porMes) {
-      porMes[l.mes_referencia] += valor;
+      porMes[l.mes_referencia] += valor + valorValeHibrido;
     }
   }
 

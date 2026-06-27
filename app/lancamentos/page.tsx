@@ -14,6 +14,12 @@ function hojeISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function rotuloTipo(tipo: string) {
+  if (tipo === "VALE") return "Vale";
+  if (tipo === "VALE_MEDICAO") return "Vale + Medição";
+  return "Medição";
+}
+
 export default async function LancamentosPage({
   searchParams,
 }: {
@@ -38,7 +44,7 @@ export default async function LancamentosPage({
   const { data: lancamentos } = obraId
     ? await supabase
         .from("lancamentos")
-        .select("id, tipo, data, mes_referencia, pessoa_id, servico, detalhe_texto, total_reais, retencao_pct_usado, status, vale_real")
+        .select("id, tipo, data, mes_referencia, pessoa_id, servico, detalhe_texto, total_reais, valor_vale_hibrido, retencao_pct_usado, status, vale_real")
         .eq("obra_id", obraId)
         .order("criado_em", { ascending: false })
         .limit(50)
@@ -80,6 +86,7 @@ export default async function LancamentosPage({
                 <select name="tipoLancamento" className="border rounded px-2 py-1">
                   <option value="MEDICAO">Medição</option>
                   <option value="VALE">Vale</option>
+                  <option value="VALE_MEDICAO">Vale + Medição</option>
                 </select>
                 <input type="date" name="data" defaultValue={hojeISO()} className="border rounded px-2 py-1" />
               </div>
@@ -89,6 +96,21 @@ export default async function LancamentosPage({
                   <input type="checkbox" name="valeReal" value="1" /> Vale real (valor fixo, sem cálculo de serviço)
                 </label>
                 <input type="number" step="0.01" name="valorValeReal" placeholder="Valor do vale (R$)" className="border rounded px-2 py-1 w-40" />
+              </div>
+
+              <div className="bg-primary/5 border border-primary/20 rounded p-2 space-y-2">
+                <p className="text-xs text-gray-500">
+                  Use <b>Vale + Medição</b> quando o empreiteiro recebe um vale referente à próxima medição e, no mesmo
+                  lançamento, há uma medição complementar de um período anterior (correção de diferença, serviço que
+                  ficou de fora, ajuste posterior). Os dois valores ficam separados: o vale só entra no Vale do Mês da
+                  Obra; a medição complementar segue exatamente o fluxo normal de medição (retenção, aprovação, saldo
+                  retido, relatórios). Só preencha os campos abaixo se selecionar este tipo.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <input type="number" step="0.01" name="valorValeHibrido" placeholder="Valor do vale (R$)" className="border rounded px-2 py-1 w-44" />
+                  <input type="number" step="0.01" name="valorBrutoMedicaoComplementar" placeholder="Valor bruto da medição complementar (R$)" className="border rounded px-2 py-1 w-64" />
+                  <input name="observacaoMedicao" placeholder="Observação da correção (opcional)" className="border rounded px-2 py-1 flex-1 min-w-[200px]" />
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -143,10 +165,20 @@ export default async function LancamentosPage({
                 {lancamentos.map((l) => (
                   <tr key={l.id} className="border-t">
                     <td className="p-1">{new Date(l.data).toLocaleDateString("pt-BR")}</td>
-                    <td className="p-1">{l.tipo === "VALE" ? "Vale" : "Medição"}</td>
+                    <td className="p-1">{rotuloTipo(l.tipo)}</td>
                     <td className="p-1">{nomesPessoas[l.pessoa_id] ?? "—"}</td>
-                    <td className="p-1">{l.vale_real ? "Vale real" : `${l.servico ?? ""} ${l.detalhe_texto ?? ""}`}</td>
-                    <td className="p-1">R$ {Number(l.total_reais).toFixed(2)}</td>
+                    <td className="p-1">
+                      {l.tipo === "VALE_MEDICAO"
+                        ? `Vale R$ ${Number(l.valor_vale_hibrido ?? 0).toFixed(2)} + Medição compl. R$ ${Number(l.total_reais).toFixed(2)} (bruto)`
+                        : l.vale_real
+                        ? "Vale real"
+                        : `${l.servico ?? ""} ${l.detalhe_texto ?? ""}`}
+                    </td>
+                    <td className="p-1">
+                      {l.tipo === "VALE_MEDICAO"
+                        ? `R$ ${(Number(l.valor_vale_hibrido ?? 0) + Number(l.total_reais)).toFixed(2)}`
+                        : `R$ ${Number(l.total_reais).toFixed(2)}`}
+                    </td>
                     <td className="p-1">
                       <span className={
                         "badge " + (l.status === "APROVADO" ? "badge-aprovado" : l.status === "REJEITADO" ? "badge-rejeitado" : "badge-pendente")
@@ -169,7 +201,11 @@ export default async function LancamentosPage({
                         <form action={excluirLancamento} className="inline">
                           <input type="hidden" name="id" value={l.id} />
                           <input type="hidden" name="obraId" value={obraId ?? ""} />
-                          <ConfirmDeleteButton jaFechado={mesesFechados.has(`${l.tipo}-${l.mes_referencia}`)} />
+                          <ConfirmDeleteButton jaFechado={
+                            l.tipo === "VALE_MEDICAO"
+                              ? mesesFechados.has(`MEDICAO-${l.mes_referencia}`) || mesesFechados.has(`VALE-${l.mes_referencia}`)
+                              : mesesFechados.has(`${l.tipo}-${l.mes_referencia}`)
+                          } />
                         </form>
                       </td>
                     )}

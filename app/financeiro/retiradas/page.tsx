@@ -20,10 +20,12 @@ export default async function RetiradasPage() {
     .neq("papel", "MESTRE")
     .order("nome");
 
+  // Lançamentos "Vale + Medição" também somam aqui pela parte da Medição Complementar
+  // (total_reais), com a mesma fórmula de retenção de qualquer medição aprovada.
   const { data: medicoesAprovadas } = await supabase
     .from("lancamentos")
     .select("pessoa_id, total_reais, retencao_pct_usado")
-    .eq("tipo", "MEDICAO")
+    .in("tipo", ["MEDICAO", "VALE_MEDICAO"])
     .eq("status", "APROVADO");
 
   const { data: retiradas } = await supabase

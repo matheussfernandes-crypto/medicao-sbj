@@ -38,7 +38,7 @@ export async function criarLancamento(formData: FormData) {
 
   const obraId = String(formData.get("obraId"));
   const pessoaId = String(formData.get("pessoaId"));
-  const tipoLancamento = String(formData.get("tipoLancamento")); // MEDICAO | VALE
+  const tipoLancamento = String(formData.get("tipoLancamento")); // MEDICAO | VALE | VALE_MEDICAO
   const data = String(formData.get("data") || new Date().toISOString().slice(0, 10));
   const mesReferencia = data.slice(0, 7);
   const local = String(formData.get("local") || "(sem local)");
@@ -54,6 +54,28 @@ export async function criarLancamento(formData: FormData) {
     .order("mes", { ascending: false })
     .limit(1);
   const pct = vigente && vigente[0] ? Number(vigente[0].percent) : 0;
+
+  // Vale + Medição: lançamento híbrido — um Vale (adiantamento da próxima medição,
+  // sem retenção) e uma Medição Complementar (regularização de um período anterior)
+  // registrados juntos. A Medição Complementar é gravada nos MESMOS campos que uma
+  // medição normal (total_reais = bruto, retencao_pct_usado = % vigente), para que
+  // ela siga exatamente o mesmo tratamento financeiro de qualquer outra medição
+  // (retenção calculada no fechamento, saldo retido, relatórios). O valor do Vale
+  // fica isolado em valor_vale_hibrido, para entrar só no Vale do Mês da Obra.
+  if (tipoLancamento === "VALE_MEDICAO") {
+    const valorVale = parseFloat(String(formData.get("valorValeHibrido") || "0")) || 0;
+    const valorBrutoMedicao = parseFloat(String(formData.get("valorBrutoMedicaoComplementar") || "0")) || 0;
+    const observacaoMedicao = String(formData.get("observacaoMedicao") || "").trim() || null;
+
+    await supabase.from("lancamentos").insert({
+      obra_id: obraId, pessoa_id: pessoaId, tipo: "VALE_MEDICAO", data, mes_referencia: mesReferencia,
+      servico: "Medição complementar", local, detalhe_texto: observacaoMedicao ?? "Medição complementar (regularização de período anterior)",
+      retencao_pct_usado: pct, total_reais: valorBrutoMedicao, valor_vale_hibrido: valorVale,
+      observacao_medicao: observacaoMedicao, status: "PENDENTE", criado_por: user.id, vale_real: false,
+    });
+    revalidatePath("/lancamentos");
+    return;
+  }
 
   if (tipoLancamento === "VALE" && String(formData.get("valeReal")) === "1") {
     const valor = parseFloat(String(formData.get("valorValeReal") || "0")) || 0;

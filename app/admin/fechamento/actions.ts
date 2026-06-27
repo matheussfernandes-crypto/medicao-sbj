@@ -106,11 +106,13 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
     .eq("obra_id", obraId).eq("mes_referencia", mes).eq("status", "APROVADO");
 
   const todos = lista ?? [];
-  // Lançamentos "Vale + Medição" NÃO entram neste fechamento: a Medição Complementar
-  // deles é pago junto com o vale (fechamento de Vale), no mesmo mês em que o serviço
-  // atrasado é regularizado — por isso só lançamentos "MEDICAO" puros aparecem aqui.
+  // A Medição Complementar de um lançamento "Vale + Medição" NÃO entra como item
+  // aqui: ela já é paga (líquida) junto com o vale, no fechamento de Vale do mês.
+  // Mas a parte do Vale desse mesmo lançamento (valor_vale_hibrido) funciona como
+  // um Vale Real normal — é um adiantamento para a PRÓXIMA medição — e por isso
+  // continua sendo descontada do total a pagar aqui, igual a qualquer Vale Real.
   const medicoes = todos.filter((l) => l.tipo === "MEDICAO");
-  const valesReais = todos.filter((l) => l.tipo === "VALE" && l.vale_real);
+  const valesReais = todos.filter((l) => (l.tipo === "VALE" && l.vale_real) || l.tipo === "VALE_MEDICAO");
 
   if (!medicoes.length) {
     redirect(`/admin/fechamento?obra=${obraId}&mes=${mes}&erro=${encodeURIComponent("Nenhuma medição aprovada nesse mês/obra para fechar.")}`);
@@ -147,7 +149,9 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
   for (const l of valesReais) {
     const pid = l.pessoa_id;
     if (!porPessoa[pid]) porPessoa[pid] = { nome: nomePessoa[pid] ?? "—", total: 0, pct: 0, vale: 0 };
-    porPessoa[pid].vale += Number(l.total_reais);
+    // No lançamento híbrido, total_reais é a Medição Complementar (não entra aqui);
+    // o valor do vale propriamente dito está em valor_vale_hibrido.
+    porPessoa[pid].vale += l.tipo === "VALE_MEDICAO" ? Number(l.valor_vale_hibrido ?? 0) : Number(l.total_reais);
   }
 
   const resumo: ResumoMedicao[] = Object.values(porPessoa).map((p) => {

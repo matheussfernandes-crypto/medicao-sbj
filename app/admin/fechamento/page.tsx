@@ -48,23 +48,27 @@ export default async function FechamentoPage({
   let previaVale: { qtdItens: number; somaGeral: number } | null = null;
 
   if (obraSelecionada) {
-    // Lançamentos "Vale + Medição" entram só na prévia de Vale: o vale (sem retenção)
-    // e a Medição Complementar (líquida, com sua própria retenção) são pagos juntos
-    // no fechamento de Vale do mês — não entram na prévia/fechamento de Medição.
+    // A Medição Complementar de um "Vale + Medição" não entra como item na prévia
+    // de Medição (ela já é paga junto com o vale, no fechamento de Vale). Mas o
+    // valor do vale (valor_vale_hibrido) continua descontando o total a pagar aqui,
+    // como qualquer Vale Real, pois é um adiantamento para a próxima medição.
     const { data: medicoes } = await supabase
       .from("lancamentos")
       .select("total_reais, retencao_pct_usado, pessoa_id, vale_real, tipo")
       .eq("obra_id", obraSelecionada).eq("mes_referencia", mes).eq("tipo", "MEDICAO").eq("status", "APROVADO");
     const { data: valesReais } = await supabase
       .from("lancamentos")
-      .select("total_reais, tipo")
+      .select("total_reais, valor_vale_hibrido, tipo")
       .eq("obra_id", obraSelecionada).eq("mes_referencia", mes).eq("status", "APROVADO")
-      .eq("tipo", "VALE").eq("vale_real", true);
+      .or("and(tipo.eq.VALE,vale_real.eq.true),tipo.eq.VALE_MEDICAO");
 
     if (medicoes && medicoes.length) {
       const somaTotal = medicoes.reduce((s, l) => s + Number(l.total_reais), 0);
       const somaRetido = medicoes.reduce((s, l) => s + Number(l.total_reais) * Number(l.retencao_pct_usado ?? 0), 0);
-      const somaVale = (valesReais ?? []).reduce((s, l) => s + Number(l.total_reais), 0);
+      const somaVale = (valesReais ?? []).reduce(
+        (s, l) => s + (l.tipo === "VALE_MEDICAO" ? Number(l.valor_vale_hibrido ?? 0) : Number(l.total_reais)),
+        0
+      );
       previaMedicao = { qtdItens: medicoes.length, somaPagar: somaTotal - somaRetido - somaVale };
     }
 

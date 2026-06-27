@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { criarLancamento, aprovarLancamento, rejeitarLancamento, excluirLancamento } from "./actions";
 import Topbar from "../components/Topbar";
 import ConfirmDeleteButton from "./ConfirmDeleteButton";
+import NovoLancamentoForm from "./NovoLancamentoForm";
 
 const TIPO_LABEL: Record<string, string> = {
   area: "Por m² (comprimento × altura)",
@@ -9,10 +10,6 @@ const TIPO_LABEL: Record<string, string> = {
   unidade: "Por unidade",
   diaria: "Por diária",
 };
-
-function hojeISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function rotuloTipo(tipo: string) {
   if (tipo === "VALE") return "Vale";
@@ -77,66 +74,12 @@ export default async function LancamentosPage({
         <div className="card">
           <h2 className="font-semibold text-primaryDark mb-2">Novo lançamento</h2>
           {pessoas && pessoas.length > 0 ? (
-            <form action={criarLancamento} className="space-y-2">
-              <input type="hidden" name="obraId" value={obraId} />
-              <div className="flex flex-wrap gap-2">
-                <select name="pessoaId" className="border rounded px-2 py-1 flex-1 min-w-[150px]" required>
-                  {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                </select>
-                <select name="tipoLancamento" className="border rounded px-2 py-1">
-                  <option value="MEDICAO">Medição</option>
-                  <option value="VALE">Vale</option>
-                  <option value="VALE_MEDICAO">Vale + Medição</option>
-                </select>
-                <input type="date" name="data" defaultValue={hojeISO()} className="border rounded px-2 py-1" />
-              </div>
-
-              <div className="flex items-center gap-2 text-sm">
-                <label className="flex items-center gap-1">
-                  <input type="checkbox" name="valeReal" value="1" /> Vale real (valor fixo, sem cálculo de serviço)
-                </label>
-                <input type="number" step="0.01" name="valorValeReal" placeholder="Valor do vale (R$)" className="border rounded px-2 py-1 w-40" />
-              </div>
-
-              <div className="bg-primary/5 border border-primary/20 rounded p-2 space-y-2">
-                <p className="text-xs text-gray-500">
-                  Use <b>Vale + Medição</b> quando o empreiteiro recebe um vale referente à próxima medição e, no mesmo
-                  lançamento, há uma medição complementar de um período anterior (correção de diferença, serviço que
-                  ficou de fora, ajuste posterior). Os dois valores ficam separados: o vale só entra no Vale do Mês da
-                  Obra; a medição complementar segue exatamente o fluxo normal de medição (retenção, aprovação, saldo
-                  retido, relatórios). Só preencha os campos abaixo se selecionar este tipo.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <input type="number" step="0.01" name="valorValeHibrido" placeholder="Valor do vale (R$)" className="border rounded px-2 py-1 w-44" />
-                  <input type="number" step="0.01" name="valorBrutoMedicaoComplementar" placeholder="Valor bruto da medição complementar (R$)" className="border rounded px-2 py-1 w-64" />
-                  <input name="observacaoMedicao" placeholder="Observação da correção (opcional)" className="border rounded px-2 py-1 flex-1 min-w-[200px]" />
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <select name="servicoId" className="border rounded px-2 py-1 flex-1 min-w-[180px]">
-                  {(servicos ?? []).map((s) => (
-                    <option key={s.id} value={s.id} data-tipo={s.tipo}>
-                      {s.nome} — {TIPO_LABEL[s.tipo]} (R$ {Number(s.valor_unitario).toFixed(2)})
-                    </option>
-                  ))}
-                </select>
-                <input name="local" placeholder="Local (ex: bloco A, 3º pavimento)" className="border rounded px-2 py-1 flex-1 min-w-[150px]" />
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <input type="number" step="0.01" name="comprimento" placeholder="Comprimento (m)" className="border rounded px-2 py-1 w-36" />
-                <input type="number" step="0.01" name="altura" placeholder="Altura (m) — só p/ m²" className="border rounded px-2 py-1 w-44" />
-                <input type="number" step="0.01" name="qtd" placeholder="Quantidade — diária/unidade" className="border rounded px-2 py-1 w-52" />
-                <input type="number" step="0.01" name="adicional" placeholder="Adicional R$" className="border rounded px-2 py-1 w-32" />
-              </div>
-
-              <button className="bg-primary text-white rounded px-4 py-2">Lançar</button>
-              <p className="text-xs text-gray-400">
-                Preencha comprimento/altura para serviços por m², só comprimento para metro linear, ou quantidade para diária/unidade.
-                A % de retenção e o valor unitário usados ficam congelados neste lançamento — não mudam se a tabela de preços ou a retenção mudar depois.
-              </p>
-            </form>
+            <NovoLancamentoForm
+              obraId={obraId}
+              pessoas={pessoas}
+              servicos={servicos ?? []}
+              criarLancamento={criarLancamento}
+            />
           ) : (
             <p className="text-sm text-gray-400">Nenhuma pessoa ativa nesta obra. Cadastre em RH &amp; Pessoas.</p>
           )}

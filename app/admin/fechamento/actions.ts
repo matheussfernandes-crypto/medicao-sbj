@@ -106,11 +106,11 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
     .eq("obra_id", obraId).eq("mes_referencia", mes).eq("status", "APROVADO");
 
   const todos = lista ?? [];
-  // Lançamentos "Vale + Medição" entram aqui também: a parte de Medição Complementar
-  // (gravada em total_reais, igual a uma medição normal) segue o mesmo fechamento de
-  // medição — retenção, soma, resumo por empreiteiro — sem nenhum tratamento especial.
-  const medicoes = todos.filter((l) => l.tipo === "MEDICAO" || l.tipo === "VALE_MEDICAO");
-  const valesReais = todos.filter((l) => (l.tipo === "VALE" && l.vale_real) || l.tipo === "VALE_MEDICAO");
+  // Lançamentos "Vale + Medição" NÃO entram neste fechamento: a Medição Complementar
+  // deles é pago junto com o vale (fechamento de Vale), no mesmo mês em que o serviço
+  // atrasado é regularizado — por isso só lançamentos "MEDICAO" puros aparecem aqui.
+  const medicoes = todos.filter((l) => l.tipo === "MEDICAO");
+  const valesReais = todos.filter((l) => l.tipo === "VALE" && l.vale_real);
 
   if (!medicoes.length) {
     redirect(`/admin/fechamento?obra=${obraId}&mes=${mes}&erro=${encodeURIComponent("Nenhuma medição aprovada nesse mês/obra para fechar.")}`);
@@ -147,9 +147,7 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
   for (const l of valesReais) {
     const pid = l.pessoa_id;
     if (!porPessoa[pid]) porPessoa[pid] = { nome: nomePessoa[pid] ?? "—", total: 0, pct: 0, vale: 0 };
-    // Lançamentos "Vale + Medição" guardam o valor do vale em valor_vale_hibrido —
-    // total_reais ali é a Medição Complementar (já somada acima em medicoes).
-    porPessoa[pid].vale += l.tipo === "VALE_MEDICAO" ? Number(l.valor_vale_hibrido ?? 0) : Number(l.total_reais);
+    porPessoa[pid].vale += Number(l.total_reais);
   }
 
   const resumo: ResumoMedicao[] = Object.values(porPessoa).map((p) => {
@@ -229,11 +227,12 @@ export async function finalizarFechamentoVale(formData: FormData) {
 
   const { data: lista } = await supabase
     .from("lancamentos")
-    .select("id, tipo, pessoa_id, servico, detalhe_texto, total_reais, valor_vale_hibrido, valor_bruto, retencao_item, vale_real, criado_por")
+    .select("id, tipo, pessoa_id, servico, detalhe_texto, total_reais, valor_vale_hibrido, valor_bruto, retencao_item, retencao_pct_usado, vale_real, criado_por")
     .eq("obra_id", obraId).eq("mes_referencia", mes).in("tipo", ["VALE", "VALE_MEDICAO"]).eq("status", "APROVADO");
 
-  // Lançamentos "Vale + Medição" entram aqui pela parte do Vale (valor_vale_hibrido) —
-  // a Medição Complementar deles (total_reais) já é tratada no fechamento de medição.
+  // Lançamentos "Vale + Medição" entram aqui inteiros: o vale (valor_vale_hibrido, sem
+  // retenção) e a Medição Complementar (total_reais bruto, com sua própria retenção)
+  // são pagos juntos neste fechamento — é o serviço atrasado sendo regularizado no vale.
   const vales = lista ?? [];
   if (!vales.length) {
     redirect(`/admin/fechamento?obra=${obraId}&mes=${mes}&erro=${encodeURIComponent("Nenhum vale aprovado nesse mês/obra para fechar.")}`);
@@ -252,32 +251,47 @@ export async function finalizarFechamentoVale(formData: FormData) {
   );
   const mestreNome = await obterMestre(supabase, obraId);
 
-  const itens: ItemVale[] = vales.map((l) =>
-    l.tipo === "VALE_MEDICAO"
-      ? {
-          empreiteiro: nomePessoa[l.pessoa_id] ?? "—",
-          descricao: l.detalhe_texto ?? "Vale + Medição",
-          ehCorrecao: false,
-          hibrido: true,
-          medicaoComplementarBruto: Number(l.total_reais),
-          total: Number(l.valor_vale_hibrido ?? 0),
-        }
-      : {
-          empreiteiro: nomePessoa[l.pessoa_id] ?? "—",
-          descricao: l.detalhe_texto ?? l.servico ?? "Vale de correção",
-          ehCorrecao: !l.vale_real,
-          total: Number(l.total_reais),
-        }
-  );
+  const itens: ItemVale[] = vales.map((l) => {
+    if (l.tipo === "VALE_MEDICAO") {
+      const bruto = Number(l.total_reais);
+      const retido = bruto * Number(l.retencao_pct_usado ?? 0);
+      const liquido = bruto - retido;
+      const valorVale = Number(l.valor_vale_hibrido ?? 0);
+      return {
+        empreiteiro: nomePessoa[l.pessoa_id] ?? "—",
+        descricao: l.detalhe_texto ?? "Vale + Medição",
+        ehCorrecao: false,
+        hibrido: true,
+        valorValeHibrido: valorVale,
+        medicaoComplementarBruto: bruto,
+        medicaoComplementarRetido: retido,
+        medicaoComplementarLiquido: liquido,
+        total: valorVale + liquido,
+      };
+    }
+    return {
+      empreiteiro: nomePessoa[l.pessoa_id] ?? "—",
+      descricao: l.detalhe_texto ?? l.servico ?? "Vale de correção",
+      ehCorrecao: !l.vale_real,
+      total: Number(l.total_reais),
+    };
+  });
 
   const porPessoa: Record<string, { nome: string; valeReal: number; correcaoBruto: number; correcaoRetido: number; correcaoLiquido: number }> = {};
   for (const l of vales) {
     const pid = l.pessoa_id;
     if (!porPessoa[pid]) porPessoa[pid] = { nome: nomePessoa[pid] ?? "—", valeReal: 0, correcaoBruto: 0, correcaoRetido: 0, correcaoLiquido: 0 };
     if (l.tipo === "VALE_MEDICAO") {
-      // Só o valor do vale entra aqui. A medição complementar (com sua própria
-      // retenção) é contabilizada no fechamento de medição do mês, não neste.
+      // Vale (sem retenção) entra em valeReal. A Medição Complementar entra nas
+      // colunas de Correção/Med. Compl. (bruto, retenção do item, líquido) — ela é
+      // uma medição normal sendo paga aqui, junto com o vale, e não no fechamento
+      // de medição do mês.
+      const bruto = Number(l.total_reais);
+      const retido = bruto * Number(l.retencao_pct_usado ?? 0);
       porPessoa[pid].valeReal += Number(l.valor_vale_hibrido ?? 0);
+      porPessoa[pid].correcaoBruto += bruto;
+      porPessoa[pid].correcaoRetido += retido;
+      porPessoa[pid].correcaoLiquido += bruto - retido;
     } else if (l.vale_real) {
       porPessoa[pid].valeReal += Number(l.total_reais);
     } else {

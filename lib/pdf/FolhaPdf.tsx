@@ -258,6 +258,9 @@ export type ItemVale = {
   total: number;
   hibrido?: boolean;
   medicaoComplementarBruto?: number;
+  medicaoComplementarRetido?: number;
+  medicaoComplementarLiquido?: number;
+  valorValeHibrido?: number;
 };
 
 export type ResumoVale = {
@@ -319,7 +322,7 @@ export function FolhaValePdf({
                 {it.ehCorrecao
                   ? it.descricao
                   : it.hibrido
-                  ? `VALE (+ medição complementar de R$ ${fmt(it.medicaoComplementarBruto)} no mesmo lançamento — ver Fechamento de Medição)`
+                  ? `VALE (R$ ${fmt(it.valorValeHibrido)}) + MEDIÇÃO COMPLEMENTAR — bruto R$ ${fmt(it.medicaoComplementarBruto)}, retenção R$ ${fmt(it.medicaoComplementarRetido)}, líquido R$ ${fmt(it.medicaoComplementarLiquido)}`
                   : "VALE"}
               </Text>
               <Text style={[styles.td, { flex: 1.3 }]}>R$ {fmt(it.total)}</Text>
@@ -336,9 +339,9 @@ export function FolhaValePdf({
           <View style={styles.row}>
             <Text style={[styles.thResumo, { flex: 2 }]}>Empreiteiro</Text>
             <Text style={[styles.thResumo, { flex: 1.5 }]}>Vale Real</Text>
-            <Text style={[styles.thResumo, { flex: 1.5 }]}>Correção (bruto)</Text>
+            <Text style={[styles.thResumo, { flex: 1.5 }]}>Correção / Med. Compl. (bruto)</Text>
             <Text style={[styles.thResumo, { flex: 1.5 }]}>Retenção do item</Text>
-            <Text style={[styles.thResumo, { flex: 1.5 }]}>Correção (líquido)</Text>
+            <Text style={[styles.thResumo, { flex: 1.5 }]}>Correção / Med. Compl. (líquido)</Text>
             <Text style={[styles.thResumo, { flex: 1.5 }]}>Total do mês</Text>
           </View>
           {resumo.map((r, i) => (
@@ -362,9 +365,9 @@ export function FolhaValePdf({
         </View>
 
         <Text style={styles.note}>
-          "Vale Real" é descontado automaticamente do total a pagar na medição do mesmo mês. Vale de correção já foi
-          pago líquido (valor bruto menos a retenção só deste item) no momento do lançamento — por isso ele não entra
-          de novo no desconto do fechamento da medição.
+          "Vale Real" é descontado automaticamente do total a pagar na medição do mesmo mês. Vale de correção e a
+          Medição Complementar de um lançamento "Vale + Medição" já são pagos líquidos (valor bruto menos a retenção)
+          neste fechamento de vale — por isso eles não entram de novo no fechamento de medição do mês.
         </Text>
 
         <Assinaturas

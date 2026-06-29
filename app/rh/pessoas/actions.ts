@@ -70,6 +70,55 @@ export async function criarPessoa(formData: FormData) {
   revalidatePath("/rh/pessoas");
 }
 
+// Edição completa do cadastro (nome, papel, obra, admissão) — restrita ao ADM,
+// para corrigir erros de cadastro (ex: nome digitado errado, papel trocado)
+// sem precisar dar baixa e recriar a pessoa, o que perderia o histórico ligado
+// a ela (lançamentos, retiradas, retenções).
+export async function editarPessoa(formData: FormData) {
+  const { supabase, user } = await exigirAdmin();
+  const pessoaId = String(formData.get("pessoaId"));
+  const nome = String(formData.get("nome") || "").trim();
+  const papel = String(formData.get("papel") || "EMPREITEIRO");
+  const obraId = String(formData.get("obraId") || "");
+  const admissao = String(formData.get("admissao") || "");
+
+  if (!nome || !obraId || !admissao) {
+    redirect(`/rh/pessoas?erro=${encodeURIComponent("Preencha nome, obra e data de admissão.")}`);
+  }
+
+  // Mesma checagem de nome duplicado usada na criação, mas ignorando a própria
+  // pessoa que está sendo editada.
+  const { data: existentes } = await supabase
+    .from("pessoas")
+    .select("id, status, obras(nome)")
+    .ilike("nome", nome)
+    .neq("id", pessoaId)
+    .limit(1);
+
+  if (existentes && existentes.length > 0) {
+    const existente = existentes[0] as any;
+    const obraTxt = existente.obras?.nome ?? "—";
+    const statusTxt = existente.status === "ATIVO" ? "ativo" : "inativo";
+    redirect(
+      `/rh/pessoas?erro=${encodeURIComponent(
+        `Já existe outra pessoa cadastrada com o nome "${nome}" (obra: ${obraTxt}, status: ${statusTxt}).`
+      )}`
+    );
+  }
+
+  const { error } = await supabase
+    .from("pessoas")
+    .update({ nome, papel, obra_id: obraId, admissao })
+    .eq("id", pessoaId);
+
+  if (error) {
+    redirect(`/rh/pessoas?erro=${encodeURIComponent("Não foi possível salvar a edição: " + error.message)}`);
+  }
+
+  revalidatePath("/rh/pessoas");
+  redirect(`/rh/pessoas?sucesso=${encodeURIComponent("Cadastro atualizado com sucesso.")}`);
+}
+
 export async function transferirObra(formData: FormData) {
   const { supabase } = await exigirRhOuAdmin();
   const pessoaId = String(formData.get("pessoaId"));

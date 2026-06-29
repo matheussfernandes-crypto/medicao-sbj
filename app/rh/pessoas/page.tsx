@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { criarPessoa, transferirObra, darBaixa, reativarPessoa, excluirPessoa } from "./actions";
+import { criarPessoa, transferirObra, darBaixa, reativarPessoa, excluirPessoa, editarPessoa } from "./actions";
 import Topbar from "../../components/Topbar";
-import ConfirmDeleteButton from "../../lancamentos/ConfirmDeleteButton";
+import PessoaLinha from "./PessoaLinha";
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
@@ -64,6 +64,8 @@ export default async function PessoasPage({
             <select name="papel" className="border rounded px-2 py-1">
               <option value="EMPREITEIRO">Empreiteiro</option>
               <option value="MESTRE">Mestre</option>
+              <option value="MESTRE_GERAL">Mestre Geral</option>
+              <option value="CONTRAMESTRE">Contramestre</option>
             </select>
             <select name="obraId" className="border rounded px-2 py-1">
               {obras.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
@@ -94,52 +96,20 @@ export default async function PessoasPage({
               {pessoas.map((p) => {
                 const fim = p.status === "ATIVO" ? hoje : (p.saida || hoje);
                 return (
-                  <tr key={p.id} className="border-t">
-                    <td className="p-1">{p.nome}</td>
-                    <td className="p-1">{p.papel === "MESTRE" ? "Mestre" : "Empreiteiro"}</td>
-                    <td className="p-1">{nomeObra[p.obra_id] ?? "—"}</td>
-                    <td className="p-1">{p.admissao}</td>
-                    <td className="p-1">{diffTempo(p.admissao, fim)}{p.status !== "ATIVO" ? " (até a saída)" : ""}</td>
-                    <td className="p-1">
-                      <span className={p.status === "ATIVO" ? "text-green-600" : "text-red-500"}>
-                        {p.status === "ATIVO" ? "Ativo" : "Inativo"}
-                      </span>
-                    </td>
-                    <td className="p-1 space-y-1">
-                      {p.status === "ATIVO" ? (
-                        <>
-                          <form action={transferirObra} className="flex gap-1 mb-1">
-                            <input type="hidden" name="pessoaId" value={p.id} />
-                            <select name="obraId" defaultValue={p.obra_id} className="border rounded px-1 text-xs">
-                              {(obras ?? []).map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-                            </select>
-                            <button className="bg-gray-200 rounded px-2 text-xs">Transferir</button>
-                          </form>
-                          <form action={darBaixa} className="flex gap-1">
-                            <input type="hidden" name="pessoaId" value={p.id} />
-                            <input type="date" name="saida" defaultValue={hoje} className="border rounded px-1 text-xs" />
-                            <button className="bg-red-100 text-red-700 rounded px-2 text-xs">Dar baixa</button>
-                          </form>
-                        </>
-                      ) : (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <form action={reativarPessoa}>
-                            <input type="hidden" name="pessoaId" value={p.id} />
-                            <span className="text-xs text-gray-400 mr-2">Saída em {p.saida || "—"}</span>
-                            <button className="bg-gray-200 rounded px-2 text-xs">Reativar</button>
-                          </form>
-                          {souAdmin && (
-                            <form action={excluirPessoa}>
-                              <input type="hidden" name="pessoaId" value={p.id} />
-                              <ConfirmDeleteButton
-                                mensagemPersonalizada={`Excluir definitivamente o cadastro de "${p.nome}"? Essa ação não pode ser desfeita. Só funciona se essa pessoa não tiver lançamentos ou retiradas registrados.`}
-                              />
-                            </form>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
+                  <PessoaLinha
+                    key={p.id}
+                    p={p as any}
+                    obras={obras ?? []}
+                    nomeObra={nomeObra[p.obra_id] ?? "—"}
+                    tempoTexto={`${diffTempo(p.admissao, fim)}${p.status !== "ATIVO" ? " (até a saída)" : ""}`}
+                    souAdmin={souAdmin}
+                    transferirObra={transferirObra}
+                    darBaixa={darBaixa}
+                    reativarPessoa={reativarPessoa}
+                    excluirPessoa={excluirPessoa}
+                    editarPessoa={editarPessoa}
+                    hoje={hoje}
+                  />
                 );
               })}
             </tbody>

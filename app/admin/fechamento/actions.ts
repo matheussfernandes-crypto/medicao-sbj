@@ -28,7 +28,12 @@ export async function salvarConfigNotificacao(formData: FormData) {
   const { supabase } = await exigirAdmin();
   const email1 = String(formData.get("email1") || "").trim() || null;
   const email2 = String(formData.get("email2") || "").trim() || null;
-  await supabase.from("configuracoes_notificacao").update({ email_1: email1, email_2: email2 }).eq("id", 1);
+  const email3 = String(formData.get("email3") || "").trim() || null;
+  const email4 = String(formData.get("email4") || "").trim() || null;
+  await supabase
+    .from("configuracoes_notificacao")
+    .update({ email_1: email1, email_2: email2, email_3: email3, email_4: email4 })
+    .eq("id", 1);
   revalidatePath("/admin/fechamento");
 }
 
@@ -181,8 +186,8 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
     })
   );
 
-  const { data: config } = await supabase.from("configuracoes_notificacao").select("email_1, email_2").eq("id", 1).single();
-  const destinatarios = [config?.email_1, config?.email_2].filter(Boolean) as string[];
+  const { data: config } = await supabase.from("configuracoes_notificacao").select("email_1, email_2, email_3, email_4").eq("id", 1).single();
+  const destinatarios = [config?.email_1, config?.email_2, config?.email_3, config?.email_4].filter(Boolean) as string[];
 
   if (destinatarios.length) {
     const resend = getResend();
@@ -334,8 +339,8 @@ export async function finalizarFechamentoVale(formData: FormData) {
     })
   );
 
-  const { data: config } = await supabase.from("configuracoes_notificacao").select("email_1, email_2").eq("id", 1).single();
-  const destinatarios = [config?.email_1, config?.email_2].filter(Boolean) as string[];
+  const { data: config } = await supabase.from("configuracoes_notificacao").select("email_1, email_2, email_3, email_4").eq("id", 1).single();
+  const destinatarios = [config?.email_1, config?.email_2, config?.email_3, config?.email_4].filter(Boolean) as string[];
 
   if (destinatarios.length) {
     const resend = getResend();

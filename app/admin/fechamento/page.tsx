@@ -22,7 +22,7 @@ export default async function FechamentoPage({
   const obraSelecionada = searchParams.obra || obras?.[0]?.id || null;
   const mes = searchParams.mes || mesAtual();
 
-  const { data: config } = await supabase.from("configuracoes_notificacao").select("email_1, email_2").eq("id", 1).single();
+  const { data: config } = await supabase.from("configuracoes_notificacao").select("email_1, email_2, email_3, email_4").eq("id", 1).single();
 
   const { data: historico } = await supabase
     .from("fechamentos")
@@ -112,7 +112,7 @@ export default async function FechamentoPage({
         <div className="card">
           <h2 className="font-semibold text-primaryDark mb-2">Emails de notificação (ADM)</h2>
           <p className="text-xs text-gray-400 mb-2">
-            Os PDFs de medição e vale fechados são enviados para até 2 emails. Deixe em branco para não enviar.
+            Os PDFs de medição e vale fechados são enviados para até 4 emails. Deixe em branco para não enviar.
           </p>
           <form action={salvarConfigNotificacao} className="flex flex-wrap gap-2">
             <input
@@ -127,6 +127,20 @@ export default async function FechamentoPage({
               type="email"
               placeholder="Email 2 (opcional)"
               defaultValue={config?.email_2 ?? ""}
+              className="border rounded px-2 py-1 flex-1 min-w-[200px]"
+            />
+            <input
+              name="email3"
+              type="email"
+              placeholder="Email 3 (opcional)"
+              defaultValue={config?.email_3 ?? ""}
+              className="border rounded px-2 py-1 flex-1 min-w-[200px]"
+            />
+            <input
+              name="email4"
+              type="email"
+              placeholder="Email 4 (opcional)"
+              defaultValue={config?.email_4 ?? ""}
               className="border rounded px-2 py-1 flex-1 min-w-[200px]"
             />
             <button className="bg-gray-200 rounded px-4 py-2 text-sm">Salvar emails</button>

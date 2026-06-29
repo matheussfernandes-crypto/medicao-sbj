@@ -46,7 +46,9 @@ export async function GET(request: NextRequest) {
 
   const { data: lancamentos } = await supabase
     .from("lancamentos")
-    .select("obra_id, mes_referencia, tipo, total_reais, valor_vale_hibrido, vale_real, status")
+    .select(
+      "obra_id, pessoa_id, mes_referencia, tipo, total_reais, valor_vale_hibrido, valor_bruto, retencao_item, retencao_pct_usado, vale_real, status"
+    )
     .eq("status", "APROVADO");
 
   const todos = lancamentos ?? [];
@@ -58,6 +60,16 @@ export async function GET(request: NextRequest) {
 
   const porMes: Record<string, number> = {};
   for (const m of meses6) porMes[m] = 0;
+
+  // Mesma lógica de composição (pizza) e contagem de empreiteiros por obra usada
+  // no Dashboard Financeiro — replicada aqui para que o PDF da diretoria mostre os
+  // mesmos dois indicadores, e não só a tabela de gasto por obra.
+  let compMedicoesLiquido = 0;
+  let compRetidos = 0;
+  let compVales = 0;
+  let compCorrecoes = 0;
+  const empreiteirosPorObra: Record<string, Set<string>> = {};
+  const empreiteirosTotalMes = new Set<string>();
 
   for (const l of todos) {
     const valor = Number(l.total_reais ?? 0);
@@ -73,11 +85,48 @@ export async function GET(request: NextRequest) {
         porObraMes[l.obra_id].valeReal += valorValeHibrido;
       } else if (l.vale_real) porObraMes[l.obra_id].valeReal += valor;
       else porObraMes[l.obra_id].valeCorrecao += valor;
+
+      if (!empreiteirosPorObra[l.obra_id]) empreiteirosPorObra[l.obra_id] = new Set();
+      if (l.pessoa_id) {
+        empreiteirosPorObra[l.obra_id].add(l.pessoa_id);
+        empreiteirosTotalMes.add(l.pessoa_id);
+      }
+
+      const pct = Number(l.retencao_pct_usado ?? 0);
+      if (l.tipo === "MEDICAO") {
+        const retido = valor * pct;
+        compRetidos += retido;
+        compMedicoesLiquido += valor - retido;
+      } else if (l.tipo === "VALE_MEDICAO") {
+        const retido = valor * pct;
+        compRetidos += retido;
+        compCorrecoes += valor - retido;
+        compVales += valorValeHibrido;
+      } else if (l.vale_real) {
+        compVales += valor;
+      } else {
+        compRetidos += Number(l.retencao_item ?? 0);
+        compCorrecoes += valor;
+      }
     }
     if (l.mes_referencia in porMes) {
       porMes[l.mes_referencia] += valor + valorValeHibrido;
     }
   }
+
+  const totalComposicao = compMedicoesLiquido + compRetidos + compVales + compCorrecoes;
+  const composicao = [
+    { categoria: "Medições", valor: compMedicoesLiquido },
+    { categoria: "Vales", valor: compVales },
+    { categoria: "Correções", valor: compCorrecoes },
+    { categoria: "Retidos", valor: compRetidos },
+  ].map((c) => ({ ...c, pct: totalComposicao > 0 ? (c.valor / totalComposicao) * 100 : 0 }));
+
+  const linhasEmpreiteiros = Object.keys(nomeObra)
+    .map((id) => ({ nome: nomeObra[id], qtd: empreiteirosPorObra[id]?.size ?? 0 }))
+    .filter((o) => o.qtd > 0)
+    .sort((a, b) => b.qtd - a.qtd);
+  const totalEmpreiteiros = empreiteirosTotalMes.size;
 
   const obraIds = Object.keys(nomeObra).filter((id) => {
     const r = porObraMes[id];
@@ -103,6 +152,9 @@ export async function GET(request: NextRequest) {
       linhasObra,
       totalGeral,
       linhasMes,
+      composicao,
+      linhasEmpreiteiros,
+      totalEmpreiteiros,
       dataGeracao,
     })
   );

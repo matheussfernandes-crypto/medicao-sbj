@@ -93,17 +93,34 @@ export type LinhaMes = {
   total: number;
 };
 
+export type ItemComposicao = {
+  categoria: string;
+  valor: number;
+  pct: number;
+};
+
+export type LinhaEmpreiteiros = {
+  nome: string;
+  qtd: number;
+};
+
 export function RelatorioGastosPdf({
   mesLabel,
   linhasObra,
   totalGeral,
   linhasMes,
+  composicao,
+  linhasEmpreiteiros,
+  totalEmpreiteiros,
   dataGeracao,
 }: {
   mesLabel: string;
   linhasObra: LinhaObra[];
   totalGeral: number;
   linhasMes: LinhaMes[];
+  composicao: ItemComposicao[];
+  linhasEmpreiteiros: LinhaEmpreiteiros[];
+  totalEmpreiteiros: number;
   dataGeracao: string;
 }) {
   return (
@@ -114,6 +131,51 @@ export function RelatorioGastosPdf({
         <View style={styles.totalBox}>
           <Text style={styles.totalLabel}>Total geral aprovado no mês</Text>
           <Text style={styles.totalValor}>R$ {fmt(totalGeral)}</Text>
+        </View>
+
+        <Text style={styles.sectionTitle}>Composição do total aprovado — {mesLabel}</Text>
+        <View>
+          <View style={styles.row}>
+            <Text style={[styles.th, { flex: 3 }]}>Categoria</Text>
+            <Text style={[styles.th, { flex: 2 }]}>Valor (R$)</Text>
+            <Text style={[styles.th, { flex: 1.5 }]}>%</Text>
+          </View>
+          {composicao.map((c, i) => (
+            <View style={styles.row} key={i}>
+              <Text style={[styles.tdFirst, { flex: 3 }]}>{c.categoria}</Text>
+              <Text style={[styles.td, { flex: 2 }]}>R$ {fmt(c.valor)}</Text>
+              <Text style={[styles.td, { flex: 1.5 }]}>{c.pct.toFixed(1)}%</Text>
+            </View>
+          ))}
+          <View style={styles.row}>
+            <Text style={[styles.somaFirst, { flex: 3 }]}>SOMA</Text>
+            <Text style={[styles.somaCell, { flex: 3.5 }]}>
+              R$ {fmt(composicao.reduce((s, c) => s + c.valor, 0))}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Empreiteiros por obra — {mesLabel}</Text>
+        <View>
+          <View style={styles.row}>
+            <Text style={[styles.th, { flex: 4 }]}>Obra</Text>
+            <Text style={[styles.th, { flex: 2 }]}>Empreiteiros</Text>
+          </View>
+          {linhasEmpreiteiros.map((l, i) => (
+            <View style={styles.row} key={i}>
+              <Text style={[styles.tdFirst, { flex: 4 }]}>{l.nome}</Text>
+              <Text style={[styles.td, { flex: 2 }]}>{l.qtd}</Text>
+            </View>
+          ))}
+          {linhasEmpreiteiros.length === 0 && (
+            <View style={styles.row}>
+              <Text style={[styles.td, { flex: 6 }]}>Nenhum empreiteiro com movimentação neste mês.</Text>
+            </View>
+          )}
+          <View style={styles.row}>
+            <Text style={[styles.somaFirst, { flex: 4 }]}>TOTAL GERAL (sem repetir entre obras)</Text>
+            <Text style={[styles.somaCell, { flex: 2 }]}>{totalEmpreiteiros}</Text>
+          </View>
         </View>
 
         <Text style={styles.sectionTitle}>Gasto por obra — {mesLabel}</Text>

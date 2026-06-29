@@ -49,6 +49,18 @@ export default async function LancamentosPage({
   const nomesPessoas: Record<string, string> = {};
   for (const p of pessoas ?? []) nomesPessoas[p.id] = p.nome;
 
+  // Nome de quem lançou (estagiário/responsável), para o ADM identificar
+  // rapidamente quem fez o lançamento ao decidir aprovar/rejeitar.
+  const idsCriadores = Array.from(new Set((lancamentos ?? []).map((l) => l.criado_por).filter(Boolean)));
+  const nomesCriadores: Record<string, string> = {};
+  if (idsCriadores.length > 0) {
+    const { data: perfisCriadores } = await supabase
+      .from("perfis")
+      .select("id, nome_completo")
+      .in("id", idsCriadores as string[]);
+    for (const p of perfisCriadores ?? []) nomesCriadores[p.id] = p.nome_completo;
+  }
+
   const { data: fechamentosObra } = obraId
     ? await supabase.from("fechamentos").select("tipo, mes_referencia").eq("obra_id", obraId)
     : { data: [] };
@@ -99,8 +111,8 @@ export default async function LancamentosPage({
               <thead className="text-left text-gray-400">
                 <tr>
                   <th className="p-1">Data</th><th className="p-1">Tipo</th><th className="p-1">Pessoa</th>
-                  <th className="p-1">Detalhe</th><th className="p-1">Local</th><th className="p-1">Total</th>
-                  <th className="p-1">Status</th><th className="p-1">Ações</th>
+                  <th className="p-1">Detalhe</th><th className="p-1">Local</th><th className="p-1">Lançado por</th>
+                  <th className="p-1">Total</th><th className="p-1">Status</th><th className="p-1">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -116,6 +128,7 @@ export default async function LancamentosPage({
                       l={l as any}
                       obraId={obraId}
                       nomePessoa={nomesPessoas[l.pessoa_id] ?? "—"}
+                      nomeCriador={(l.criado_por && nomesCriadores[l.criado_por]) || "—"}
                       pessoas={pessoas ?? []}
                       servicos={servicos ?? []}
                       ehAdmin={ehAdmin}

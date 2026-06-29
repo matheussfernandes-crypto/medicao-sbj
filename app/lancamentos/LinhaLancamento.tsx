@@ -26,7 +26,7 @@ type Lancamento = {
   criado_por: string | null;
 };
 
-const COLUNAS = 8;
+const COLUNAS = 9;
 
 function rotuloTipo(tipo: string) {
   if (tipo === "VALE") return "Vale";
@@ -38,6 +38,7 @@ export default function LinhaLancamento({
   l,
   obraId,
   nomePessoa,
+  nomeCriador,
   pessoas,
   servicos,
   ehAdmin,
@@ -52,6 +53,7 @@ export default function LinhaLancamento({
   l: Lancamento;
   obraId: string;
   nomePessoa: string;
+  nomeCriador: string;
   pessoas: Pessoa[];
   servicos: Servico[];
   ehAdmin: boolean;
@@ -101,6 +103,7 @@ export default function LinhaLancamento({
           : `${l.servico ?? ""} ${l.detalhe_texto ?? ""}`}
       </td>
       <td className="p-1">{l.local ?? "—"}</td>
+      <td className="p-1">{nomeCriador}</td>
       <td className="p-1">
         {l.tipo === "VALE_MEDICAO"
           ? `R$ ${(Number(l.valor_vale_hibrido ?? 0) + Number(l.total_reais)).toFixed(2)}`

@@ -25,6 +25,74 @@ function ultimosMeses(qtd: number, mesFinalISO: string): string[] {
   return meses;
 }
 
+function fmtReais(v: number) {
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Gráfico de pizza em SVG puro (sem biblioteca, sem JS no cliente) — cada fatia
+// recebe um <title>, que o navegador já exibe como tooltip nativo ao passar o
+// mouse, com o valor em R$ e o percentual.
+function polarToCartesian(cx: number, cy: number, r: number, angleGraus: number) {
+  const rad = ((angleGraus - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function fatiaPizza(cx: number, cy: number, r: number, anguloInicial: number, anguloFinal: number) {
+  const inicio = polarToCartesian(cx, cy, r, anguloInicial);
+  const fim = polarToCartesian(cx, cy, r, anguloFinal);
+  const largeArc = anguloFinal - anguloInicial <= 180 ? "0" : "1";
+  return ["M", cx, cy, "L", inicio.x, inicio.y, "A", r, r, 0, largeArc, 1, fim.x, fim.y, "Z"].join(" ");
+}
+
+type FatiaCategoria = { nome: string; valor: number; cor: string };
+
+function GraficoPizza({ categorias, total }: { categorias: FatiaCategoria[]; total: number }) {
+  const cx = 100, cy = 100, r = 90;
+  const comValor = categorias.filter((c) => c.valor > 0);
+
+  return (
+    <div className="flex flex-wrap items-center gap-6">
+      <svg viewBox="0 0 200 200" className="w-48 h-48 shrink-0">
+        {total <= 0 ? (
+          <circle cx={cx} cy={cy} r={r} fill="#e5e7eb" />
+        ) : comValor.length === 1 ? (
+          <circle cx={cx} cy={cy} r={r} fill={comValor[0].cor}>
+            <title>{`${comValor[0].nome}: R$ ${fmtReais(comValor[0].valor)} (100%)`}</title>
+          </circle>
+        ) : (
+          (() => {
+            let anguloAtual = 0;
+            return comValor.map((c) => {
+              const pct = c.valor / total;
+              const anguloFinal = anguloAtual + pct * 360;
+              const d = fatiaPizza(cx, cy, r, anguloAtual, anguloFinal);
+              anguloAtual = anguloFinal;
+              return (
+                <path key={c.nome} d={d} fill={c.cor} stroke="#fff" strokeWidth={1}>
+                  <title>{`${c.nome}: R$ ${fmtReais(c.valor)} (${Math.round(pct * 100)}%)`}</title>
+                </path>
+              );
+            });
+          })()
+        )}
+      </svg>
+      <div className="space-y-1.5 text-sm">
+        {categorias.map((c) => {
+          const pct = total > 0 ? Math.round((c.valor / total) * 100) : 0;
+          return (
+            <div key={c.nome} className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: c.cor }} />
+              <span className="w-24 text-gray-600">{c.nome}</span>
+              <span className="font-semibold">R$ {fmtReais(c.valor)}</span>
+              <span className="text-gray-400">({pct}%)</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default async function DashboardGastosPage({
   searchParams,
 }: {
@@ -43,7 +111,9 @@ export default async function DashboardGastosPage({
 
   const { data: lancamentos } = await supabase
     .from("lancamentos")
-    .select("obra_id, mes_referencia, tipo, total_reais, valor_vale_hibrido, vale_real, status")
+    .select(
+      "obra_id, pessoa_id, mes_referencia, tipo, total_reais, valor_vale_hibrido, valor_bruto, retencao_item, retencao_pct_usado, vale_real, status"
+    )
     .eq("status", "APROVADO");
 
   const todos = lancamentos ?? [];
@@ -57,6 +127,21 @@ export default async function DashboardGastosPage({
   // Totais por mês (todas as obras somadas), últimos 6 meses até o mês selecionado
   const porMes: Record<string, number> = {};
   for (const m of meses6) porMes[m] = 0;
+
+  // Composição do total aprovado do mês para o gráfico de pizza. Cada lançamento
+  // contribui para "Medições" (líquido) + "Retidos" (a parte retida da mesma
+  // medição), ou para "Vales" / "Correções" — de forma que a soma das 4 fatias
+  // bata exatamente com o total bruto aprovado no mês (nenhum real fica de fora,
+  // nenhum é contado duas vezes).
+  let pizzaMedicoesLiquido = 0;
+  let pizzaRetidos = 0;
+  let pizzaVales = 0;
+  let pizzaCorrecoes = 0;
+
+  // Empreiteiros com alguma movimentação (medição, vale ou correção) no mês,
+  // por obra e no total geral.
+  const empreiteirosPorObra: Record<string, Set<string>> = {};
+  const empreiteirosTotalMes = new Set<string>();
 
   for (const l of todos) {
     const valor = Number(l.total_reais ?? 0);
@@ -72,11 +157,51 @@ export default async function DashboardGastosPage({
         porObraMesAtual[l.obra_id].valeReal += valorValeHibrido;
       } else if (l.vale_real) porObraMesAtual[l.obra_id].valeReal += valor;
       else porObraMesAtual[l.obra_id].valeCorrecao += valor;
+
+      if (!empreiteirosPorObra[l.obra_id]) empreiteirosPorObra[l.obra_id] = new Set();
+      if (l.pessoa_id) {
+        empreiteirosPorObra[l.obra_id].add(l.pessoa_id);
+        empreiteirosTotalMes.add(l.pessoa_id);
+      }
+
+      const pct = Number(l.retencao_pct_usado ?? 0);
+      if (l.tipo === "MEDICAO") {
+        const retido = valor * pct;
+        pizzaRetidos += retido;
+        pizzaMedicoesLiquido += valor - retido;
+      } else if (l.tipo === "VALE_MEDICAO") {
+        // valor (total_reais) aqui é o bruto da Medição Complementar — paga,
+        // líquida, junto com o vale no fechamento de Vale.
+        const retido = valor * pct;
+        pizzaRetidos += retido;
+        pizzaCorrecoes += valor - retido;
+        pizzaVales += valorValeHibrido;
+      } else if (l.vale_real) {
+        pizzaVales += valor;
+      } else {
+        // "Vale de correção de medição": total_reais já é líquido (a retenção do
+        // próprio item foi calculada e descontada no momento do lançamento).
+        pizzaRetidos += Number(l.retencao_item ?? 0);
+        pizzaCorrecoes += valor;
+      }
     }
     if (l.mes_referencia in porMes) {
       porMes[l.mes_referencia] += valor + valorValeHibrido;
     }
   }
+
+  const totalAprovadoPizza = pizzaMedicoesLiquido + pizzaRetidos + pizzaVales + pizzaCorrecoes;
+  const categoriasPizza: FatiaCategoria[] = [
+    { nome: "Medições", valor: pizzaMedicoesLiquido, cor: "#2c6975" },
+    { nome: "Vales", valor: pizzaVales, cor: "#f4dd3d" },
+    { nome: "Correções", valor: pizzaCorrecoes, cor: "#c8763e" },
+    { nome: "Retidos", valor: pizzaRetidos, cor: "#8a94a6" },
+  ];
+
+  const empreiteirosPorObraLista = Object.keys(nomeObra)
+    .map((id) => ({ id, nome: nomeObra[id], qtd: empreiteirosPorObra[id]?.size ?? 0 }))
+    .filter((o) => o.qtd > 0)
+    .sort((a, b) => b.qtd - a.qtd);
 
   const obraIds = Object.keys(nomeObra).filter((id) => {
     const r = porObraMesAtual[id];
@@ -165,6 +290,45 @@ export default async function DashboardGastosPage({
               );
             })}
           </div>
+        </div>
+
+        <div className="card">
+          <h2 className="font-semibold text-primaryDark mb-1">Distribuição dos gastos — {mesLabel(mesSelecionado)}</h2>
+          <p className="text-xs text-gray-400 mb-3">Passe o mouse sobre uma fatia para ver o valor e o percentual.</p>
+          {totalAprovadoPizza > 0 ? (
+            <GraficoPizza categorias={categoriasPizza} total={totalAprovadoPizza} />
+          ) : (
+            <p className="text-sm text-gray-400">Nenhum valor aprovado neste mês ainda.</p>
+          )}
+        </div>
+
+        <div className="card overflow-x-auto">
+          <h2 className="font-semibold text-primaryDark mb-1">Empreiteiros por obra — {mesLabel(mesSelecionado)}</h2>
+          <p className="text-xs text-gray-400 mb-3">Empreiteiros com medição, vale ou correção aprovados no mês selecionado.</p>
+          {empreiteirosPorObraLista.length > 0 ? (
+            <table className="w-full text-sm">
+              <thead className="text-left text-gray-400">
+                <tr>
+                  <th className="p-1">Obra</th>
+                  <th className="p-1 text-right">Empreiteiros</th>
+                </tr>
+              </thead>
+              <tbody>
+                {empreiteirosPorObraLista.map((o) => (
+                  <tr key={o.id} className="border-t" style={{ borderColor: "var(--border)" }}>
+                    <td className="p-1">{o.nome}</td>
+                    <td className="p-1 text-right font-semibold">{o.qtd}</td>
+                  </tr>
+                ))}
+                <tr className="border-t font-semibold" style={{ borderColor: "var(--border)" }}>
+                  <td className="p-1">Total geral (sem repetir pessoa entre obras)</td>
+                  <td className="p-1 text-right">{empreiteirosTotalMes.size}</td>
+                </tr>
+              </tbody>
+            </table>
+          ) : (
+            <p className="text-sm text-gray-400">Nenhum empreiteiro com movimentação neste mês ainda.</p>
+          )}
         </div>
 
         <div className="card flex items-center justify-between flex-wrap gap-2">

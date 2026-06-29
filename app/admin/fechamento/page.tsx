@@ -171,13 +171,28 @@ export default async function FechamentoPage({
                     {previaMedicao.qtdItens} item(ns) aprovado(s) — total a pagar estimado:{" "}
                     <span className="font-semibold">R$ {previaMedicao.somaPagar.toFixed(2)}</span>
                   </p>
-                  <form action={finalizarFechamentoMedicao}>
-                    <input type="hidden" name="obraId" value={obraSelecionada} />
-                    <input type="hidden" name="mes" value={mes} />
-                    <button className="bg-primary text-white rounded px-4 py-2">
-                      Finalizar medição e enviar PDF por email
-                    </button>
-                  </form>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      href={`/admin/fechamento/pdf?tipo=medicao&obraId=${obraSelecionada}&mes=${mes}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded px-3 py-2 text-sm"
+                      title="Visualizar PDF antes de finalizar"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      Visualizar
+                    </a>
+                    <form action={finalizarFechamentoMedicao}>
+                      <input type="hidden" name="obraId" value={obraSelecionada} />
+                      <input type="hidden" name="mes" value={mes} />
+                      <button className="bg-primary text-white rounded px-4 py-2">
+                        Finalizar medição e enviar PDF por email
+                      </button>
+                    </form>
+                  </div>
                 </>
               ) : (
                 <p className="text-sm text-gray-400">Nenhuma medição aprovada nesse mês/obra ainda.</p>
@@ -192,13 +207,28 @@ export default async function FechamentoPage({
                     {previaVale.qtdItens} vale(s) aprovado(s) — total do mês:{" "}
                     <span className="font-semibold">R$ {previaVale.somaGeral.toFixed(2)}</span>
                   </p>
-                  <form action={finalizarFechamentoVale}>
-                    <input type="hidden" name="obraId" value={obraSelecionada} />
-                    <input type="hidden" name="mes" value={mes} />
-                    <button className="bg-primary text-white rounded px-4 py-2">
-                      Finalizar vale e enviar PDF por email
-                    </button>
-                  </form>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      href={`/admin/fechamento/pdf?tipo=vale&obraId=${obraSelecionada}&mes=${mes}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded px-3 py-2 text-sm"
+                      title="Visualizar PDF antes de finalizar"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      Visualizar
+                    </a>
+                    <form action={finalizarFechamentoVale}>
+                      <input type="hidden" name="obraId" value={obraSelecionada} />
+                      <input type="hidden" name="mes" value={mes} />
+                      <button className="bg-primary text-white rounded px-4 py-2">
+                        Finalizar vale e enviar PDF por email
+                      </button>
+                    </form>
+                  </div>
                 </>
               ) : (
                 <p className="text-sm text-gray-400">Nenhum vale aprovado nesse mês/obra ainda.</p>

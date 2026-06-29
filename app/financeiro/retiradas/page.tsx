@@ -17,7 +17,7 @@ export default async function RetiradasPage() {
   const { data: pessoas } = await supabase
     .from("pessoas")
     .select("id, nome, obra_id, admissao, papel, saldo_inicial_retido")
-    .neq("papel", "MESTRE")
+    .not("papel", "in", "(MESTRE,MESTRE_GERAL)")
     .order("nome");
 
   // Lançamentos "Vale + Medição" também somam aqui pela parte da Medição Complementar

@@ -1,21 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
-import { criarLancamento, aprovarLancamento, rejeitarLancamento, excluirLancamento } from "./actions";
+import {
+  criarLancamento,
+  aprovarLancamento,
+  rejeitarLancamento,
+  editarLancamento,
+  excluirLancamento,
+  excluirLancamentoProprio,
+} from "./actions";
 import Topbar from "../components/Topbar";
-import ConfirmDeleteButton from "./ConfirmDeleteButton";
 import NovoLancamentoForm from "./NovoLancamentoForm";
-
-const TIPO_LABEL: Record<string, string> = {
-  area: "Por m² (comprimento × altura)",
-  linear: "Por m",
-  unidade: "Por unidade",
-  diaria: "Por diária",
-};
-
-function rotuloTipo(tipo: string) {
-  if (tipo === "VALE") return "Vale";
-  if (tipo === "VALE_MEDICAO") return "Vale + Medição";
-  return "Medição";
-}
+import LinhaLancamento from "./LinhaLancamento";
 
 export default async function LancamentosPage({
   searchParams,
@@ -38,10 +32,15 @@ export default async function LancamentosPage({
     ? await supabase.from("servicos").select("id, nome, tipo, valor_unitario").eq("obra_id", obraId).order("criado_em")
     : { data: [] };
 
+  // Local entra na seleção (campo já existia no banco, mas não aparecia na tela)
+  // e criado_por entra para o estagiário poder identificar e editar/excluir só
+  // os lançamentos que ele mesmo criou, conforme a regra de pendência.
   const { data: lancamentos } = obraId
     ? await supabase
         .from("lancamentos")
-        .select("id, tipo, data, mes_referencia, pessoa_id, servico, detalhe_texto, total_reais, valor_vale_hibrido, retencao_pct_usado, status, vale_real")
+        .select(
+          "id, tipo, data, mes_referencia, pessoa_id, servico, local, detalhe_texto, total_reais, valor_vale_hibrido, retencao_pct_usado, status, vale_real, observacao_medicao, quantidade, criado_por"
+        )
         .eq("obra_id", obraId)
         .order("criado_em", { ascending: false })
         .limit(50)
@@ -100,60 +99,36 @@ export default async function LancamentosPage({
               <thead className="text-left text-gray-400">
                 <tr>
                   <th className="p-1">Data</th><th className="p-1">Tipo</th><th className="p-1">Pessoa</th>
-                  <th className="p-1">Detalhe</th><th className="p-1">Total</th><th className="p-1">Status</th>
-                  {ehAdmin && <th className="p-1">Ações</th>}
+                  <th className="p-1">Detalhe</th><th className="p-1">Local</th><th className="p-1">Total</th>
+                  <th className="p-1">Status</th><th className="p-1">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {lancamentos.map((l) => (
-                  <tr key={l.id} className="border-t">
-                    <td className="p-1">{new Date(l.data).toLocaleDateString("pt-BR")}</td>
-                    <td className="p-1">{rotuloTipo(l.tipo)}</td>
-                    <td className="p-1">{nomesPessoas[l.pessoa_id] ?? "—"}</td>
-                    <td className="p-1">
-                      {l.tipo === "VALE_MEDICAO"
-                        ? `Vale R$ ${Number(l.valor_vale_hibrido ?? 0).toFixed(2)} + Medição compl. R$ ${Number(l.total_reais).toFixed(2)} (bruto)`
-                        : l.vale_real
-                        ? "Vale real"
-                        : `${l.servico ?? ""} ${l.detalhe_texto ?? ""}`}
-                    </td>
-                    <td className="p-1">
-                      {l.tipo === "VALE_MEDICAO"
-                        ? `R$ ${(Number(l.valor_vale_hibrido ?? 0) + Number(l.total_reais)).toFixed(2)}`
-                        : `R$ ${Number(l.total_reais).toFixed(2)}`}
-                    </td>
-                    <td className="p-1">
-                      <span className={
-                        "badge " + (l.status === "APROVADO" ? "badge-aprovado" : l.status === "REJEITADO" ? "badge-rejeitado" : "badge-pendente")
-                      }>{l.status}</span>
-                    </td>
-                    {ehAdmin && (
-                      <td className="p-1 space-x-1 whitespace-nowrap">
-                        {l.status === "PENDENTE" && (
-                          <>
-                            <form action={aprovarLancamento} className="inline">
-                              <input type="hidden" name="id" value={l.id} />
-                              <button className="bg-primary text-white rounded px-2 py-0.5 text-xs">Aprovar</button>
-                            </form>
-                            <form action={rejeitarLancamento} className="inline">
-                              <input type="hidden" name="id" value={l.id} />
-                              <button className="bg-gray-200 rounded px-2 py-0.5 text-xs">Rejeitar</button>
-                            </form>
-                          </>
-                        )}
-                        <form action={excluirLancamento} className="inline">
-                          <input type="hidden" name="id" value={l.id} />
-                          <input type="hidden" name="obraId" value={obraId ?? ""} />
-                          <ConfirmDeleteButton jaFechado={
-                            l.tipo === "VALE_MEDICAO"
-                              ? mesesFechados.has(`MEDICAO-${l.mes_referencia}`) || mesesFechados.has(`VALE-${l.mes_referencia}`)
-                              : mesesFechados.has(`${l.tipo}-${l.mes_referencia}`)
-                          } />
-                        </form>
-                      </td>
-                    )}
-                  </tr>
-                ))}
+                {lancamentos.map((l) => {
+                  const isOwner = l.criado_por === user!.id;
+                  const jaFechado =
+                    l.tipo === "VALE_MEDICAO"
+                      ? mesesFechados.has(`MEDICAO-${l.mes_referencia}`) || mesesFechados.has(`VALE-${l.mes_referencia}`)
+                      : mesesFechados.has(`${l.tipo}-${l.mes_referencia}`);
+                  return (
+                    <LinhaLancamento
+                      key={l.id}
+                      l={l as any}
+                      obraId={obraId}
+                      nomePessoa={nomesPessoas[l.pessoa_id] ?? "—"}
+                      pessoas={pessoas ?? []}
+                      servicos={servicos ?? []}
+                      ehAdmin={ehAdmin}
+                      isOwner={isOwner}
+                      jaFechado={jaFechado}
+                      aprovarLancamento={aprovarLancamento}
+                      rejeitarLancamento={rejeitarLancamento}
+                      editarLancamento={editarLancamento}
+                      excluirLancamento={excluirLancamento}
+                      excluirLancamentoProprio={excluirLancamentoProprio}
+                    />
+                  );
+                })}
               </tbody>
             </table>
           ) : (

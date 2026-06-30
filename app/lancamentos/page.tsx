@@ -24,8 +24,26 @@ export default async function LancamentosPage({
   const { data: obras } = await supabase.from("obras").select("id, nome").order("nome");
   const obraId = searchParams.obra || obras?.[0]?.id || null;
 
+  // Só "Empreiteiro" pode ser escolhido para lançar medição/vale — Mestre,
+  // Mestre Geral e Contramestre não entram nessa lista (não são medidos por
+  // serviço, então não fazem sentido aparecer aqui para o estagiário medir).
   const { data: pessoas } = obraId
-    ? await supabase.from("pessoas").select("id, nome").eq("obra_id", obraId).eq("status", "ATIVO").order("nome")
+    ? await supabase
+        .from("pessoas")
+        .select("id, nome")
+        .eq("obra_id", obraId)
+        .eq("status", "ATIVO")
+        .eq("papel", "EMPREITEIRO")
+        .order("nome")
+    : { data: [] };
+
+  // Lista separada com TODAS as pessoas da obra (qualquer papel/status), só
+  // para resolver o nome de quem aparece no histórico de lançamentos — um
+  // lançamento antigo pode ter sido feito para alguém que hoje não é mais
+  // Empreiteiro, foi desativado, ou mudou de obra, e o nome precisa continuar
+  // aparecendo certo na tabela.
+  const { data: todasPessoasObra } = obraId
+    ? await supabase.from("pessoas").select("id, nome").eq("obra_id", obraId)
     : { data: [] };
 
   const { data: servicos } = obraId
@@ -47,7 +65,7 @@ export default async function LancamentosPage({
     : { data: [] };
 
   const nomesPessoas: Record<string, string> = {};
-  for (const p of pessoas ?? []) nomesPessoas[p.id] = p.nome;
+  for (const p of todasPessoasObra ?? []) nomesPessoas[p.id] = p.nome;
 
   // Nome de quem lançou (estagiário/responsável), para o ADM identificar
   // rapidamente quem fez o lançamento ao decidir aprovar/rejeitar.

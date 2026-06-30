@@ -67,5 +67,9 @@ export async function enviarNotificacaoAvulsa(formData: FormData) {
     throw new Error("Preencha título, mensagem e selecione ao menos um destinatário.");
   }
 
-  await notificarUsuarios(ids, { title: titulo, body: mensagem, url: "/dashboard" });
+  try {
+    await notificarUsuarios(ids, { title: titulo, body: mensagem, url: "/dashboard" });
+  } catch {
+    // silencioso — push não deve quebrar a action
+  }
 }

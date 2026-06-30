@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { FolhaMedicaoPdf, FolhaValePdf, type ItemMedicao, type ResumoMedicao, type ItemVale, type ResumoVale } from "@/lib/pdf/FolhaPdf";
-import { getResend } from "@/lib/email/resend";
+import { getMailer } from "@/lib/email/gmail";
 
 async function exigirAdmin() {
   const supabase = createClient();
@@ -195,21 +195,23 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
   // dizia "enviado por email" mesmo quando o email nunca saiu de fato.
   let emailErro: string | null = null;
   if (destinatarios.length) {
-    const resend = getResend();
-    if (resend) {
-      const { error } = await resend.emails.send({
-        from: "Medição SBJ <medicao@resend.dev>",
-        to: destinatarios,
-        subject: `Medição ${obra!.nome} — ${mes}`,
-        html: `<p>Segue em anexo o relatório de medição da obra <b>${obra!.nome}</b>, referente a ${mes}, fechado por ${engenheiroNome}.</p>`,
-        attachments: [{ filename: `medicao-${obra!.nome}-${mes}.pdf`, content: buffer.toString("base64") }],
-      });
-      if (error) {
-        console.error("Falha ao enviar email de fechamento de medição:", error);
-        emailErro = error.message || "Falha desconhecida no envio do email.";
+    const mailer = getMailer();
+    if (mailer) {
+      try {
+        await mailer.sendMail({
+          from: `"Medição SBJ" <${process.env.GMAIL_USER}>`,
+          to: destinatarios.join(", "),
+          subject: `Medição ${obra!.nome} — ${mes}`,
+          html: `<p>Segue em anexo o relatório de medição da obra <b>${obra!.nome}</b>, referente a ${mes}, fechado por ${engenheiroNome}.</p>`,
+          attachments: [{ filename: `medicao-${obra!.nome}-${mes}.pdf`, content: buffer }],
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("Falha ao enviar email de fechamento de medição:", msg);
+        emailErro = msg || "Falha desconhecida no envio do email.";
       }
     } else {
-      emailErro = "RESEND_API_KEY não configurada no servidor.";
+      emailErro = "GMAIL_USER ou GMAIL_APP_PASSWORD não configurados no servidor.";
     }
   }
 
@@ -361,21 +363,23 @@ export async function finalizarFechamentoVale(formData: FormData) {
 
   let emailErro: string | null = null;
   if (destinatarios.length) {
-    const resend = getResend();
-    if (resend) {
-      const { error } = await resend.emails.send({
-        from: "Medição SBJ <medicao@resend.dev>",
-        to: destinatarios,
-        subject: `Vales ${obra!.nome} — ${mes}`,
-        html: `<p>Segue em anexo o relatório de vales da obra <b>${obra!.nome}</b>, referente a ${mes}, fechado por ${engenheiroNome}.</p>`,
-        attachments: [{ filename: `vales-${obra!.nome}-${mes}.pdf`, content: buffer.toString("base64") }],
-      });
-      if (error) {
-        console.error("Falha ao enviar email de fechamento de vale:", error);
-        emailErro = error.message || "Falha desconhecida no envio do email.";
+    const mailer = getMailer();
+    if (mailer) {
+      try {
+        await mailer.sendMail({
+          from: `"Medição SBJ" <${process.env.GMAIL_USER}>`,
+          to: destinatarios.join(", "),
+          subject: `Vales ${obra!.nome} — ${mes}`,
+          html: `<p>Segue em anexo o relatório de vales da obra <b>${obra!.nome}</b>, referente a ${mes}, fechado por ${engenheiroNome}.</p>`,
+          attachments: [{ filename: `vales-${obra!.nome}-${mes}.pdf`, content: buffer }],
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("Falha ao enviar email de fechamento de vale:", msg);
+        emailErro = msg || "Falha desconhecida no envio do email.";
       }
     } else {
-      emailErro = "RESEND_API_KEY não configurada no servidor.";
+      emailErro = "GMAIL_USER ou GMAIL_APP_PASSWORD não configurados no servidor.";
     }
   }
 

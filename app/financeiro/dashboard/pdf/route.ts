@@ -54,9 +54,13 @@ export async function GET(request: NextRequest) {
   const todos = lancamentos ?? [];
   const meses6 = ultimosMeses(6, mesSelecionado);
 
-  type Resumo = { medicao: number; valeReal: number; valeCorrecao: number };
+  // Mesma regra do Dashboard Financeiro: "valeReal" é só o adiantamento puro,
+  // que não entra no gasto da obra (já é descontado no fechamento da medição
+  // do mesmo mês). "valeHibrido" é a parte de Vale + Medição complementar, que
+  // é gasto extra de fato e entra no total.
+  type Resumo = { medicao: number; valeReal: number; valeHibrido: number; valeCorrecao: number };
   const porObraMes: Record<string, Resumo> = {};
-  for (const obraId of Object.keys(nomeObra)) porObraMes[obraId] = { medicao: 0, valeReal: 0, valeCorrecao: 0 };
+  for (const obraId of Object.keys(nomeObra)) porObraMes[obraId] = { medicao: 0, valeReal: 0, valeHibrido: 0, valeCorrecao: 0 };
 
   const porMes: Record<string, number> = {};
   for (const m of meses6) porMes[m] = 0;
@@ -78,11 +82,11 @@ export async function GET(request: NextRequest) {
     // dois contam normalmente no total do mês, como qualquer medição/vale aprovado.
     const valorValeHibrido = l.tipo === "VALE_MEDICAO" ? Number(l.valor_vale_hibrido ?? 0) : 0;
     if (l.mes_referencia === mesSelecionado) {
-      if (!porObraMes[l.obra_id]) porObraMes[l.obra_id] = { medicao: 0, valeReal: 0, valeCorrecao: 0 };
+      if (!porObraMes[l.obra_id]) porObraMes[l.obra_id] = { medicao: 0, valeReal: 0, valeHibrido: 0, valeCorrecao: 0 };
       if (l.tipo === "MEDICAO") porObraMes[l.obra_id].medicao += valor;
       else if (l.tipo === "VALE_MEDICAO") {
         porObraMes[l.obra_id].medicao += valor;
-        porObraMes[l.obra_id].valeReal += valorValeHibrido;
+        porObraMes[l.obra_id].valeHibrido += valorValeHibrido;
       } else if (l.vale_real) porObraMes[l.obra_id].valeReal += valor;
       else porObraMes[l.obra_id].valeCorrecao += valor;
 
@@ -130,14 +134,19 @@ export async function GET(request: NextRequest) {
 
   const obraIds = Object.keys(nomeObra).filter((id) => {
     const r = porObraMes[id];
-    return r && (r.medicao + r.valeReal + r.valeCorrecao) > 0;
+    return r && (r.medicao + r.valeReal + r.valeHibrido + r.valeCorrecao) > 0;
   });
 
   const linhasObra = obraIds
     .map((id) => {
       const r = porObraMes[id];
-      const total = r.medicao + r.valeReal + r.valeCorrecao;
-      return { nome: nomeObra[id], medicao: r.medicao, valeReal: r.valeReal, valeCorrecao: r.valeCorrecao, total };
+      // Vale real puro fica fora do total (já embutido na medição); o vale
+      // híbrido (vale + medição complementar) entra junto com a coluna de
+      // vale de correção, já que ambos são pagos integralmente no fechamento
+      // de vale, sem desconto posterior.
+      const valeCorrecaoExibido = r.valeHibrido + r.valeCorrecao;
+      const total = r.medicao + valeCorrecaoExibido;
+      return { nome: nomeObra[id], medicao: r.medicao, valeReal: r.valeReal, valeCorrecao: valeCorrecaoExibido, total };
     })
     .sort((a, b) => b.total - a.total);
 

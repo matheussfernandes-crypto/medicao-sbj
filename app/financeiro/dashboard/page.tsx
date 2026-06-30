@@ -109,6 +109,35 @@ export default async function DashboardGastosPage({
   const nomeObra: Record<string, string> = {};
   for (const o of obras ?? []) nomeObra[o.id] = o.nome;
 
+  // Saldo de retenção geral — mesma lógica e mesmas exclusões (Mestre e Mestre
+  // Geral não entram no controle de retenção) usadas em financeiro/retiradas,
+  // só que somando todas as pessoas para mostrar um número único aqui no topo.
+  const { data: pessoasRetencao } = await supabase
+    .from("pessoas")
+    .select("id, saldo_inicial_retido")
+    .not("papel", "in", "(MESTRE,MESTRE_GERAL)");
+  const { data: medicoesParaRetencao } = await supabase
+    .from("lancamentos")
+    .select("pessoa_id, total_reais, retencao_pct_usado")
+    .in("tipo", ["MEDICAO", "VALE_MEDICAO"])
+    .eq("status", "APROVADO");
+  const { data: retiradasTodas } = await supabase.from("retiradas_retido").select("pessoa_id, valor");
+
+  const retidoCalculadoPessoa: Record<string, number> = {};
+  for (const l of medicoesParaRetencao ?? []) {
+    const pct = l.retencao_pct_usado != null ? Number(l.retencao_pct_usado) : 0;
+    retidoCalculadoPessoa[l.pessoa_id] = (retidoCalculadoPessoa[l.pessoa_id] ?? 0) + Number(l.total_reais) * pct;
+  }
+  const retiradoPorPessoaGeral: Record<string, number> = {};
+  for (const r of retiradasTodas ?? []) {
+    retiradoPorPessoaGeral[r.pessoa_id] = (retiradoPorPessoaGeral[r.pessoa_id] ?? 0) + Number(r.valor);
+  }
+  const saldoRetidoGeral = (pessoasRetencao ?? []).reduce((soma, p) => {
+    const totalRetido = Number(p.saldo_inicial_retido ?? 0) + (retidoCalculadoPessoa[p.id] ?? 0);
+    const totalRetirado = retiradoPorPessoaGeral[p.id] ?? 0;
+    return soma + (totalRetido - totalRetirado);
+  }, 0);
+
   const { data: lancamentos } = await supabase
     .from("lancamentos")
     .select(
@@ -120,9 +149,15 @@ export default async function DashboardGastosPage({
   const meses6 = ultimosMeses(6, mesSelecionado);
 
   // Totais por obra no mês selecionado
-  type Resumo = { medicao: number; valeReal: number; valeCorrecao: number };
+  // "valeReal" aqui é só o adiantamento puro (Vale Real), que NÃO entra no total
+  // de gasto da obra — ele é descontado do que falta pagar no fechamento da
+  // medição do mesmo mês (total a pagar = bruto − retido − vale real), então é
+  // dinheiro que já está embutido na própria medição, não um gasto adicional.
+  // "valeHibrido" é a parte de Vale + Medição complementar (pago junto com o
+  // vale, não no fechamento de medição) — esse sim é gasto extra e entra no total.
+  type Resumo = { medicao: number; valeReal: number; valeHibrido: number; valeCorrecao: number };
   const porObraMesAtual: Record<string, Resumo> = {};
-  for (const obraId of Object.keys(nomeObra)) porObraMesAtual[obraId] = { medicao: 0, valeReal: 0, valeCorrecao: 0 };
+  for (const obraId of Object.keys(nomeObra)) porObraMesAtual[obraId] = { medicao: 0, valeReal: 0, valeHibrido: 0, valeCorrecao: 0 };
 
   // Totais por mês (todas as obras somadas), últimos 6 meses até o mês selecionado
   const porMes: Record<string, number> = {};
@@ -150,11 +185,11 @@ export default async function DashboardGastosPage({
     // dois contam normalmente no total do mês, como qualquer medição/vale aprovado.
     const valorValeHibrido = l.tipo === "VALE_MEDICAO" ? Number(l.valor_vale_hibrido ?? 0) : 0;
     if (l.mes_referencia === mesSelecionado) {
-      if (!porObraMesAtual[l.obra_id]) porObraMesAtual[l.obra_id] = { medicao: 0, valeReal: 0, valeCorrecao: 0 };
+      if (!porObraMesAtual[l.obra_id]) porObraMesAtual[l.obra_id] = { medicao: 0, valeReal: 0, valeHibrido: 0, valeCorrecao: 0 };
       if (l.tipo === "MEDICAO") porObraMesAtual[l.obra_id].medicao += valor;
       else if (l.tipo === "VALE_MEDICAO") {
         porObraMesAtual[l.obra_id].medicao += valor;
-        porObraMesAtual[l.obra_id].valeReal += valorValeHibrido;
+        porObraMesAtual[l.obra_id].valeHibrido += valorValeHibrido;
       } else if (l.vale_real) porObraMesAtual[l.obra_id].valeReal += valor;
       else porObraMesAtual[l.obra_id].valeCorrecao += valor;
 
@@ -203,15 +238,23 @@ export default async function DashboardGastosPage({
     .filter((o) => o.qtd > 0)
     .sort((a, b) => b.qtd - a.qtd);
 
+  // O "gasto" da obra é Medição (já inclui a parte da Medição Complementar do
+  // Vale híbrido) + Vale híbrido + Vale de correção. O Vale Real puro fica de
+  // fora dessa soma de propósito: ele é um adiantamento que será descontado do
+  // que falta pagar no fechamento da medição do mesmo mês, então já está
+  // embutido no valor da própria medição — somá-lo de novo aqui inflaria o
+  // gasto real da obra. Ele continua aparecendo no detalhamento, só não entra
+  // no total.
+  const gastoObra = (id: string) => {
+    const r = porObraMesAtual[id];
+    return r.medicao + r.valeHibrido + r.valeCorrecao;
+  };
   const obraIds = Object.keys(nomeObra).filter((id) => {
     const r = porObraMesAtual[id];
-    return r && (r.medicao + r.valeReal + r.valeCorrecao) > 0;
+    return r && (r.medicao + r.valeReal + r.valeHibrido + r.valeCorrecao) > 0;
   });
-  const totalGeralMesAtual = obraIds.reduce(
-    (s, id) => s + porObraMesAtual[id].medicao + porObraMesAtual[id].valeReal + porObraMesAtual[id].valeCorrecao,
-    0
-  );
-  const maiorObra = Math.max(1, ...obraIds.map((id) => porObraMesAtual[id].medicao + porObraMesAtual[id].valeReal + porObraMesAtual[id].valeCorrecao));
+  const totalGeralMesAtual = obraIds.reduce((s, id) => s + gastoObra(id), 0);
+  const maiorObra = Math.max(1, ...obraIds.map((id) => gastoObra(id)));
   const maiorMes = Math.max(1, ...Object.values(porMes));
 
   return (
@@ -231,9 +274,19 @@ export default async function DashboardGastosPage({
           <button className="bg-primary text-white rounded px-3 py-1">Ver mês</button>
         </form>
 
-        <div className="card">
-          <h2 className="font-semibold text-primaryDark mb-1">Total geral no mês — {mesLabel(mesSelecionado)}</h2>
-          <p className="text-3xl font-bold text-primary">R$ {totalGeralMesAtual.toFixed(2)}</p>
+        <div className="flex flex-wrap gap-4">
+          <div className="card flex-1 min-w-[240px]">
+            <h2 className="font-semibold text-primaryDark mb-1">Total geral no mês — {mesLabel(mesSelecionado)}</h2>
+            <p className="text-3xl font-bold text-primary">R$ {totalGeralMesAtual.toFixed(2)}</p>
+          </div>
+          <div className="card flex-1 min-w-[240px]">
+            <h2 className="font-semibold text-primaryDark mb-1">Saldo retido com empreiteiros (geral)</h2>
+            <p className="text-3xl font-bold text-primary">R$ {saldoRetidoGeral.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Soma de tudo que está retido com os empreiteiros hoje (todas as obras, todos os meses), já descontado o que foi retirado.{" "}
+              <a href="/financeiro/retiradas" className="underline">Ver detalhe por pessoa</a>
+            </p>
+          </div>
         </div>
 
         <div className="card overflow-x-auto">
@@ -241,14 +294,10 @@ export default async function DashboardGastosPage({
           {obraIds.length > 0 ? (
             <div className="space-y-2">
               {obraIds
-                .sort((a, b) => {
-                  const ta = porObraMesAtual[a].medicao + porObraMesAtual[a].valeReal + porObraMesAtual[a].valeCorrecao;
-                  const tb = porObraMesAtual[b].medicao + porObraMesAtual[b].valeReal + porObraMesAtual[b].valeCorrecao;
-                  return tb - ta;
-                })
+                .sort((a, b) => gastoObra(b) - gastoObra(a))
                 .map((id) => {
                   const r = porObraMesAtual[id];
-                  const total = r.medicao + r.valeReal + r.valeCorrecao;
+                  const total = gastoObra(id);
                   const pct = Math.round((total / maiorObra) * 100);
                   return (
                     <div key={id}>
@@ -260,7 +309,7 @@ export default async function DashboardGastosPage({
                         <div className="bg-primary rounded h-3" style={{ width: `${pct}%` }} />
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        Medição: R$ {r.medicao.toFixed(2)} · Vale real: R$ {r.valeReal.toFixed(2)} · Vale correção: R$ {r.valeCorrecao.toFixed(2)}
+                        Medição: R$ {r.medicao.toFixed(2)} · Vale real do mês (adiantamento, já considerado na medição — não soma no total): R$ {r.valeReal.toFixed(2)} · Vale correção: R$ {(r.valeHibrido + r.valeCorrecao).toFixed(2)}
                       </p>
                     </div>
                   );

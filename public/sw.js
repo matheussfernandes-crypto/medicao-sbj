@@ -1,14 +1,9 @@
 self.addEventListener("push", (event) => {
   if (!event.data) return;
   const data = event.data.json();
-  // iOS mostra: SBJ (bold) / from SBJ / body
-  // Juntamos título e texto no body para ficar: "Tipo: Mensagem"
-  const body = data.title && data.body
-    ? `${data.title}: ${data.body}`
-    : data.body || data.title || "";
   event.waitUntil(
-    self.registration.showNotification("SBJ", {
-      body,
+    self.registration.showNotification(data.title || "SBJ", {
+      body: data.body || "",
       icon: "/apple-touch-icon.png",
       badge: "/icon-192.png",
       data: data.url ? { url: data.url } : {},

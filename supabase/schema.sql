@@ -70,6 +70,11 @@ create policy "ADM aprova ou rejeita perfis"
   on public.perfis for update
   using (public.eh_admin_aprovado(auth.uid()));
 
+create policy "usuário atualiza o próprio perfil"
+  on public.perfis for update
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
+
 -- ---------------------------------------------------------------------------
 -- 2) OBRAS, PESSOAS (empreiteiros), SERVIÇOS — base para as próximas fases.
 --    (Ainda não usadas pelas telas desta primeira versão; deixadas aqui para

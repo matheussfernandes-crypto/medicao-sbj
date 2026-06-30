@@ -97,7 +97,7 @@ export default async function AuditoriaPage({
 
   return (
     <main className="min-h-screen">
-      <Topbar setor="ADMIN" nome={meuPerfil?.nome_completo} />
+      <Topbar setor="ADMIN" />
       <div className="p-8 space-y-4">
         <h1 className="text-xl font-semibold text-primaryDark">Log de auditoria</h1>
         <p className="text-sm text-gray-500">

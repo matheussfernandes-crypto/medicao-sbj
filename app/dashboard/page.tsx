@@ -15,7 +15,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen">
-      <Topbar setor={setor} nome={perfil?.nome_completo} voltar={false} />
+      <Topbar setor={setor} voltar={false} />
 
       <div className="max-w-3xl mx-auto p-6 space-y-4">
         {setor === "ADMIN" && (

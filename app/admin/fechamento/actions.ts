@@ -189,16 +189,27 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
   const { data: config } = await supabase.from("configuracoes_notificacao").select("email_1, email_2, email_3, email_4").eq("id", 1).single();
   const destinatarios = [config?.email_1, config?.email_2, config?.email_3, config?.email_4].filter(Boolean) as string[];
 
+  // O retorno do Resend é { data, error } — ele NÃO lança exceção quando o envio
+  // falha (domínio não verificado, destinatário inválido, limite da conta etc.).
+  // Por isso é preciso checar "error" manualmente; sem isso o fechamento sempre
+  // dizia "enviado por email" mesmo quando o email nunca saiu de fato.
+  let emailErro: string | null = null;
   if (destinatarios.length) {
     const resend = getResend();
     if (resend) {
-      await resend.emails.send({
+      const { error } = await resend.emails.send({
         from: "Medição SBJ <medicao@resend.dev>",
         to: destinatarios,
         subject: `Medição ${obra!.nome} — ${mes}`,
         html: `<p>Segue em anexo o relatório de medição da obra <b>${obra!.nome}</b>, referente a ${mes}, fechado por ${engenheiroNome}.</p>`,
         attachments: [{ filename: `medicao-${obra!.nome}-${mes}.pdf`, content: buffer.toString("base64") }],
       });
+      if (error) {
+        console.error("Falha ao enviar email de fechamento de medição:", error);
+        emailErro = error.message || "Falha desconhecida no envio do email.";
+      }
+    } else {
+      emailErro = "RESEND_API_KEY não configurada no servidor.";
     }
   }
 
@@ -209,12 +220,18 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
     tipo: "MEDICAO",
     mes_referencia: mes,
     fechado_por: userId,
-    email_enviado_para: destinatarios.join(", ") || null,
+    email_enviado_para: destinatarios.length && !emailErro ? destinatarios.join(", ") : null,
     pdf_path: pdfPath,
   });
 
   revalidatePath("/admin/fechamento");
-  redirect(`/admin/fechamento?obra=${obraId}&mes=${mes}&sucesso=${encodeURIComponent(destinatarios.length ? "Medição fechada e PDF enviado por email." : "Medição fechada. Nenhum email configurado para envio.")}`);
+  const mensagem = emailErro
+    ? `Medição fechada, mas o email FALHOU: ${emailErro}. O PDF foi salvo e pode ser baixado no histórico abaixo.`
+    : destinatarios.length
+      ? "Medição fechada e PDF enviado por email."
+      : "Medição fechada. Nenhum email configurado para envio.";
+  const paramTipo = emailErro ? "erro" : "sucesso";
+  redirect(`/admin/fechamento?obra=${obraId}&mes=${mes}&${paramTipo}=${encodeURIComponent(mensagem)}`);
 }
 
 export async function finalizarFechamentoVale(formData: FormData) {
@@ -342,16 +359,23 @@ export async function finalizarFechamentoVale(formData: FormData) {
   const { data: config } = await supabase.from("configuracoes_notificacao").select("email_1, email_2, email_3, email_4").eq("id", 1).single();
   const destinatarios = [config?.email_1, config?.email_2, config?.email_3, config?.email_4].filter(Boolean) as string[];
 
+  let emailErro: string | null = null;
   if (destinatarios.length) {
     const resend = getResend();
     if (resend) {
-      await resend.emails.send({
+      const { error } = await resend.emails.send({
         from: "Medição SBJ <medicao@resend.dev>",
         to: destinatarios,
         subject: `Vales ${obra!.nome} — ${mes}`,
         html: `<p>Segue em anexo o relatório de vales da obra <b>${obra!.nome}</b>, referente a ${mes}, fechado por ${engenheiroNome}.</p>`,
         attachments: [{ filename: `vales-${obra!.nome}-${mes}.pdf`, content: buffer.toString("base64") }],
       });
+      if (error) {
+        console.error("Falha ao enviar email de fechamento de vale:", error);
+        emailErro = error.message || "Falha desconhecida no envio do email.";
+      }
+    } else {
+      emailErro = "RESEND_API_KEY não configurada no servidor.";
     }
   }
 
@@ -362,10 +386,16 @@ export async function finalizarFechamentoVale(formData: FormData) {
     tipo: "VALE",
     mes_referencia: mes,
     fechado_por: userId,
-    email_enviado_para: destinatarios.join(", ") || null,
+    email_enviado_para: destinatarios.length && !emailErro ? destinatarios.join(", ") : null,
     pdf_path: pdfPath,
   });
 
   revalidatePath("/admin/fechamento");
-  redirect(`/admin/fechamento?obra=${obraId}&mes=${mes}&sucesso=${encodeURIComponent(destinatarios.length ? "Vales fechados e PDF enviado por email." : "Vales fechados. Nenhum email configurado para envio.")}`);
+  const mensagem = emailErro
+    ? `Vales fechados, mas o email FALHOU: ${emailErro}. O PDF foi salvo e pode ser baixado no histórico abaixo.`
+    : destinatarios.length
+      ? "Vales fechados e PDF enviado por email."
+      : "Vales fechados. Nenhum email configurado para envio.";
+  const paramTipo = emailErro ? "erro" : "sucesso";
+  redirect(`/admin/fechamento?obra=${obraId}&mes=${mes}&${paramTipo}=${encodeURIComponent(mensagem)}`);
 }

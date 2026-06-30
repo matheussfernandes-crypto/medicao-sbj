@@ -1,6 +1,6 @@
 {
-  "name": "Medição SBJ",
-  "short_name": "Medição SBJ",
+  "name": "SBJ",
+  "short_name": "SBJ",
   "description": "Sistema de medição de empreiteiros — SBJ Construtora",
   "start_url": "/",
   "display": "standalone",

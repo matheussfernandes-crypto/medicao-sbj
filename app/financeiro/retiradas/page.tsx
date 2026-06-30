@@ -64,7 +64,10 @@ export default async function RetiradasPage() {
     <main className="min-h-screen">
       <Topbar setor="FINANCEIRO" />
       <div className="max-w-3xl mx-auto p-6 space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
       <h1 className="text-xl font-semibold text-primaryDark">Financeiro — Retiradas de retido</h1>
+      <a href="/financeiro/extrato-retidos" className="bg-primary text-white rounded px-4 py-2 text-sm font-medium hover:bg-primaryDark transition">📊 Extrato de Retidos</a>
+      </div>
 
       <div className="bg-white rounded-xl shadow p-4">
         <h2 className="font-semibold text-primaryDark mb-2">Lançar retirada de valor retido</h2>

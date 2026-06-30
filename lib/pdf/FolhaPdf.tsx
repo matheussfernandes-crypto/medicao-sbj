@@ -18,60 +18,60 @@ function fmt(n: number | null | undefined) {
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 28, fontSize: 9, fontFamily: "Helvetica", color: "#1f2733" },
+  page: { padding: 22, fontSize: 8, fontFamily: "Helvetica", color: "#1f2733" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     borderBottomWidth: 2,
     borderBottomColor: "#1c474f",
-    paddingBottom: 10,
-    marginBottom: 14,
+    paddingBottom: 7,
+    marginBottom: 9,
   },
   headerCenter: { flex: 1, alignItems: "center" },
-  title: { fontSize: 13, fontWeight: 700, letterSpacing: 0.5, color: "#1f2733" },
-  sub: { fontSize: 8, color: "#555", marginTop: 3 },
-  headerRight: { fontSize: 8, color: "#444", textAlign: "right" },
-  logo: { width: 46, height: 46 },
+  title: { fontSize: 11.5, fontWeight: 700, letterSpacing: 0.5, color: "#1f2733" },
+  sub: { fontSize: 7, color: "#555", marginTop: 2 },
+  headerRight: { fontSize: 7, color: "#444", textAlign: "right" },
+  logo: { width: 36, height: 36 },
   sectionTitle: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 700,
     textTransform: "uppercase",
-    marginTop: 14,
-    marginBottom: 5,
+    marginTop: 8,
+    marginBottom: 3,
     color: "#16232e",
   },
   row: { flexDirection: "row" },
   th: {
     backgroundColor: "#1c474f",
     color: "#fff",
-    fontSize: 7.5,
+    fontSize: 6.5,
     fontWeight: 700,
     textTransform: "uppercase",
-    padding: 5,
+    padding: 3,
     borderWidth: 0.5,
     borderColor: "#333",
   },
   thResumo: {
     backgroundColor: "#16232e",
     color: "#fff",
-    fontSize: 7.5,
+    fontSize: 6.5,
     fontWeight: 700,
     textTransform: "uppercase",
-    padding: 5,
+    padding: 3,
     borderWidth: 0.5,
     borderColor: "#333",
   },
-  td: { fontSize: 8, padding: 5, borderWidth: 0.5, borderColor: "#333" },
-  tdFirst: { fontSize: 8, padding: 5, borderWidth: 0.5, borderColor: "#333", color: "#1c474f", fontWeight: 700 },
-  somaCell: { fontSize: 8, padding: 5, borderWidth: 0.5, borderColor: "#333", fontWeight: 700, backgroundColor: "#eef1f4" },
-  somaFirst: { fontSize: 8, padding: 5, borderWidth: 0.5, borderColor: "#333", fontWeight: 700, backgroundColor: "#0e1820", color: "#fff" },
-  note: { fontSize: 7.5, color: "#65707d", marginTop: 10, lineHeight: 1.4 },
-  assinaturas: { flexDirection: "row", justifyContent: "space-between", marginTop: 36, gap: 16 },
+  td: { fontSize: 7, padding: 3, borderWidth: 0.5, borderColor: "#333" },
+  tdFirst: { fontSize: 7, padding: 3, borderWidth: 0.5, borderColor: "#333", color: "#1c474f", fontWeight: 700 },
+  somaCell: { fontSize: 7, padding: 3, borderWidth: 0.5, borderColor: "#333", fontWeight: 700, backgroundColor: "#eef1f4" },
+  somaFirst: { fontSize: 7, padding: 3, borderWidth: 0.5, borderColor: "#333", fontWeight: 700, backgroundColor: "#0e1820", color: "#fff" },
+  note: { fontSize: 6.5, color: "#65707d", marginTop: 6, lineHeight: 1.3 },
+  assinaturas: { flexDirection: "row", justifyContent: "space-between", marginTop: 18, gap: 16 },
   assinatura: { flex: 1 },
-  linha: { borderTopWidth: 1, borderTopColor: "#333", marginTop: 34, paddingTop: 4 },
-  rotulo: { fontSize: 7.5, color: "#444" },
-  nomeAssinatura: { fontSize: 8, fontWeight: 700, marginTop: 2 },
+  linha: { borderTopWidth: 1, borderTopColor: "#333", marginTop: 16, paddingTop: 3 },
+  rotulo: { fontSize: 6.5, color: "#444" },
+  nomeAssinatura: { fontSize: 7, fontWeight: 700, marginTop: 2 },
 });
 
 function Header({ titulo, dataGeracao }: { titulo: string; dataGeracao: string }) {
@@ -209,7 +209,7 @@ export function FolhaMedicaoPdf({
         </View>
 
         <Text style={styles.sectionTitle}>Resumo por empreiteiro</Text>
-        <View>
+        <View wrap={false}>
           <View style={styles.row}>
             <Text style={[styles.thResumo, { flex: 2 }]}>Empreiteiro</Text>
             <Text style={[styles.thResumo, { flex: 1.6 }]}>Retido</Text>
@@ -335,7 +335,7 @@ export function FolhaValePdf({
         </View>
 
         <Text style={styles.sectionTitle}>Resumo por empreiteiro</Text>
-        <View>
+        <View wrap={false}>
           <View style={styles.row}>
             <Text style={[styles.thResumo, { flex: 2 }]}>Empreiteiro</Text>
             <Text style={[styles.thResumo, { flex: 1.5 }]}>Vale Real</Text>

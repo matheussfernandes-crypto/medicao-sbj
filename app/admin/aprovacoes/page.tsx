@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { aprovarConta, rejeitarConta, desativarConta, reativarConta } from "./actions";
+import NotificacaoAvulsaPanel from "./NotificacaoAvulsaPanel";
 import Topbar from "../../components/Topbar";
 
 const SETOR_LABEL: Record<string, string> = {
@@ -37,6 +38,12 @@ export default async function AprovacoesPage() {
     .neq("status", "pendente")
     .order("decidido_em", { ascending: false })
     .limit(50);
+
+  const { data: usuariosAprovados } = await supabase
+    .from("perfis")
+    .select("id, nome_completo, setor")
+    .eq("status", "aprovado")
+    .order("nome_completo");
 
   return (
     <main className="min-h-screen">
@@ -146,6 +153,8 @@ export default async function AprovacoesPage() {
           </tbody>
         </table>
       </div>
+
+      <NotificacaoAvulsaPanel usuarios={usuariosAprovados ?? []} />
       </div>
     </main>
   );

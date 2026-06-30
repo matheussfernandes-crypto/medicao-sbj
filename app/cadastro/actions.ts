@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { notificarAdmins } from "@/lib/push/send";
 import { redirect } from "next/navigation";
 
 const SETORES_VALIDOS = ["ESTAGIARIO", "ADMIN", "RH", "FINANCEIRO"];
@@ -31,5 +32,6 @@ export async function solicitarCadastro(formData: FormData) {
     redirect(`/cadastro?erro=${encodeURIComponent(error.message)}`);
   }
 
+  notificarAdmins({ title: "Novo usuário aguardando aprovação", body: `${nomeCompleto} (${setor}) solicitou acesso.`, url: "/admin/aprovacoes" }).catch(() => null);
   redirect("/aguardando-aprovacao?novo=1");
 }

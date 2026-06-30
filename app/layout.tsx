@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import PushRegistrar from "@/components/PushRegistrar";
 
 export const metadata: Metadata = {
   title: "Medição SBJ",
@@ -19,7 +20,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
       </head>
-      <body>{children}</body>
+      <body>
+        <PushRegistrar />
+        {children}
+      </body>
     </html>
   );
 }

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { notificarUsuarios } from "@/lib/push/send";
 
 async function exigirAdmin() {
   const supabase = createClient();
@@ -53,4 +54,18 @@ export async function reativarConta(perfilId: string) {
     .update({ status: "aprovado", decidido_por: user.id, decidido_em: new Date().toISOString() })
     .eq("id", perfilId);
   revalidatePath("/admin/aprovacoes");
+}
+
+export async function enviarNotificacaoAvulsa(formData: FormData) {
+  const { supabase } = await exigirAdmin();
+  const titulo = String(formData.get("titulo") || "").trim();
+  const mensagem = String(formData.get("mensagem") || "").trim();
+  const idsRaw = formData.getAll("destinatarios");
+  const ids = idsRaw.map(String).filter(Boolean);
+
+  if (!titulo || !mensagem || ids.length === 0) {
+    throw new Error("Preencha título, mensagem e selecione ao menos um destinatário.");
+  }
+
+  await notificarUsuarios(ids, { title: titulo, body: mensagem, url: "/dashboard" });
 }

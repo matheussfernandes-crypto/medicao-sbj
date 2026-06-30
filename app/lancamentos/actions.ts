@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { notificarAdmins } from "@/lib/push/send";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -74,6 +75,7 @@ export async function criarLancamento(formData: FormData) {
       observacao_medicao: observacaoMedicao, status: "PENDENTE", criado_por: user.id, vale_real: false,
     });
     revalidatePath("/lancamentos");
+    notificarAdmins({ title: "Novo lançamento pendente", body: `${nome} lançou Vale+Medição para ${empreiteiroNome}`, url: "/admin/aprovacoes" }).catch(() => null);
     return;
   }
 
@@ -85,6 +87,7 @@ export async function criarLancamento(formData: FormData) {
       detalhe_texto: `Vale real (${empreiteiroNome})`,
     });
     revalidatePath("/lancamentos");
+    notificarAdmins({ title: "Novo vale pendente", body: `${nome} lançou vale para ${empreiteiroNome}`, url: "/admin/aprovacoes" }).catch(() => null);
     return;
   }
 
@@ -118,6 +121,7 @@ export async function criarLancamento(formData: FormData) {
   }
 
   revalidatePath("/lancamentos");
+  notificarAdmins({ title: "Novo lançamento pendente", body: `${nome} lançou medição para ${empreiteiroNome}`, url: "/admin/aprovacoes" }).catch(() => null);
 }
 
 export async function aprovarLancamento(formData: FormData) {

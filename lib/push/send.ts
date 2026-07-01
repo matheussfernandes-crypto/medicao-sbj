@@ -53,7 +53,8 @@ async function enviarParaIds(
     corpo: payload.body ?? null,
     url: payload.url ?? null,
   }));
-  await supabase.from("notificacoes").insert(rows).catch(() => null);
+  // Salva no inbox — erros silenciados para não quebrar o fluxo
+  try { await supabase.from("notificacoes").insert(rows); } catch {}
 }
 
 export async function notificarAdmins(payload: {

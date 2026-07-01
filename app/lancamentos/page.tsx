@@ -6,10 +6,12 @@ import {
   editarLancamento,
   excluirLancamento,
   excluirLancamentoProprio,
+  aprovarEmLote,
+  notificarEngenheiroConferir,
 } from "./actions";
 import Topbar from "../components/Topbar";
 import NovoLancamentoForm from "./NovoLancamentoForm";
-import LinhaLancamento from "./LinhaLancamento";
+import LancamentosTable from "./LancamentosTable";
 
 export default async function LancamentosPage({
   searchParams,
@@ -23,10 +25,8 @@ export default async function LancamentosPage({
 
   const { data: obras } = await supabase.from("obras").select("id, nome").order("nome");
   const obraId = searchParams.obra || obras?.[0]?.id || null;
+  const obraNome = obras?.find((o) => o.id === obraId)?.nome ?? "";
 
-  // Só "Empreiteiro" pode ser escolhido para lançar medição/vale — Mestre,
-  // Mestre Geral e Contramestre não entram nessa lista (não são medidos por
-  // serviço, então não fazem sentido aparecer aqui para o estagiário medir).
   const { data: pessoas } = obraId
     ? await supabase
         .from("pessoas")
@@ -37,11 +37,6 @@ export default async function LancamentosPage({
         .order("nome")
     : { data: [] };
 
-  // Lista separada com TODAS as pessoas da obra (qualquer papel/status), só
-  // para resolver o nome de quem aparece no histórico de lançamentos — um
-  // lançamento antigo pode ter sido feito para alguém que hoje não é mais
-  // Empreiteiro, foi desativado, ou mudou de obra, e o nome precisa continuar
-  // aparecendo certo na tabela.
   const { data: todasPessoasObra } = obraId
     ? await supabase.from("pessoas").select("id, nome").eq("obra_id", obraId)
     : { data: [] };
@@ -50,14 +45,11 @@ export default async function LancamentosPage({
     ? await supabase.from("servicos").select("id, nome, tipo, valor_unitario").eq("obra_id", obraId).order("criado_em")
     : { data: [] };
 
-  // Local entra na seleção (campo já existia no banco, mas não aparecia na tela)
-  // e criado_por entra para o estagiário poder identificar e editar/excluir só
-  // os lançamentos que ele mesmo criou, conforme a regra de pendência.
   const { data: lancamentos } = obraId
     ? await supabase
         .from("lancamentos")
         .select(
-          "id, tipo, data, mes_referencia, pessoa_id, servico, local, detalhe_texto, total_reais, valor_vale_hibrido, retencao_pct_usado, status, vale_real, observacao_medicao, quantidade, criado_por"
+          "id, tipo, data, mes_referencia, pessoa_id, servico, local, detalhe_texto, total_reais, valor_vale_hibrido, retencao_pct_usado, status, vale_real, observacao_medicao, quantidade, criado_por, motivo_rejeicao"
         )
         .eq("obra_id", obraId)
         .order("criado_em", { ascending: false })
@@ -67,8 +59,6 @@ export default async function LancamentosPage({
   const nomesPessoas: Record<string, string> = {};
   for (const p of todasPessoasObra ?? []) nomesPessoas[p.id] = p.nome;
 
-  // Nome de quem lançou (estagiário/responsável), para o ADM identificar
-  // rapidamente quem fez o lançamento ao decidir aprovar/rejeitar.
   const idsCriadores = Array.from(new Set((lancamentos ?? []).map((l) => l.criado_por).filter(Boolean)));
   const nomesCriadores: Record<string, string> = {};
   if (idsCriadores.length > 0) {
@@ -82,91 +72,71 @@ export default async function LancamentosPage({
   const { data: fechamentosObra } = obraId
     ? await supabase.from("fechamentos").select("tipo, mes_referencia").eq("obra_id", obraId)
     : { data: [] };
-  const mesesFechados = new Set((fechamentosObra ?? []).map((f) => `${f.tipo}-${f.mes_referencia}`));
+  const mesesFechadosArr = (fechamentosObra ?? []).map((f) => `${f.tipo}-${f.mes_referencia}`);
 
   return (
     <main className="min-h-screen">
       <Topbar setor={meuPerfil?.setor} />
       <div className="p-8 space-y-4">
-      <h1 className="text-xl font-semibold text-primaryDark">Lançamentos — Medição &amp; Vale</h1>
+        <h1 className="text-xl font-semibold text-primaryDark">Lançamentos — Medição &amp; Vale</h1>
 
-      <div className="card">
-        <form method="get" className="flex gap-2">
-          <select name="obra" defaultValue={obraId ?? ""} className="border rounded px-3 py-2 flex-1">
-            {(obras ?? []).map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-          </select>
-          <button className="bg-gray-200 rounded px-4 py-2">Ver obra</button>
-        </form>
-      </div>
-
-      {obraId && (
         <div className="card">
-          <h2 className="font-semibold text-primaryDark mb-2">Novo lançamento</h2>
-          {pessoas && pessoas.length > 0 ? (
-            <NovoLancamentoForm
-              obraId={obraId}
-              pessoas={pessoas}
-              servicos={servicos ?? []}
-              criarLancamento={criarLancamento}
-            />
-          ) : (
-            <p className="text-sm text-gray-400">Nenhuma pessoa ativa nesta obra. Cadastre em RH &amp; Pessoas.</p>
-          )}
+          <form method="get" className="flex gap-2">
+            <select name="obra" defaultValue={obraId ?? ""} className="border rounded px-3 py-2 flex-1">
+              {(obras ?? []).map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
+            </select>
+            <button className="bg-gray-200 rounded px-4 py-2">Ver obra</button>
+          </form>
         </div>
-      )}
 
-      {searchParams.erro && (
-        <div className="card bg-red-50 border border-red-200 text-red-700 text-sm">
-          {searchParams.erro}
-        </div>
-      )}
+        {obraId && (
+          <div className="card">
+            <h2 className="font-semibold text-primaryDark mb-2">Novo lançamento</h2>
+            {pessoas && pessoas.length > 0 ? (
+              <NovoLancamentoForm
+                obraId={obraId}
+                pessoas={pessoas}
+                servicos={servicos ?? []}
+                criarLancamento={criarLancamento}
+              />
+            ) : (
+              <p className="text-sm text-gray-400">Nenhuma pessoa ativa nesta obra. Cadastre em RH &amp; Pessoas.</p>
+            )}
+          </div>
+        )}
 
-      {obraId && (
-        <div className="card overflow-x-auto">
-          <h2 className="font-semibold text-primaryDark mb-2">Histórico de lançamentos</h2>
-          {lancamentos && lancamentos.length > 0 ? (
-            <table className="w-full text-sm">
-              <thead className="text-left text-gray-400">
-                <tr>
-                  <th className="p-1">Data</th><th className="p-1">Tipo</th><th className="p-1">Pessoa</th>
-                  <th className="p-1">Detalhe</th><th className="p-1">Local</th><th className="p-1">Lançado por</th>
-                  <th className="p-1">Total</th><th className="p-1">Status</th><th className="p-1">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lancamentos.map((l) => {
-                  const isOwner = l.criado_por === user!.id;
-                  const jaFechado =
-                    l.tipo === "VALE_MEDICAO"
-                      ? mesesFechados.has(`MEDICAO-${l.mes_referencia}`) || mesesFechados.has(`VALE-${l.mes_referencia}`)
-                      : mesesFechados.has(`${l.tipo}-${l.mes_referencia}`);
-                  return (
-                    <LinhaLancamento
-                      key={l.id}
-                      l={l as any}
-                      obraId={obraId}
-                      nomePessoa={nomesPessoas[l.pessoa_id] ?? "—"}
-                      nomeCriador={(l.criado_por && nomesCriadores[l.criado_por]) || "—"}
-                      pessoas={pessoas ?? []}
-                      servicos={servicos ?? []}
-                      ehAdmin={ehAdmin}
-                      isOwner={isOwner}
-                      jaFechado={jaFechado}
-                      aprovarLancamento={aprovarLancamento}
-                      rejeitarLancamento={rejeitarLancamento}
-                      editarLancamento={editarLancamento}
-                      excluirLancamento={excluirLancamento}
-                      excluirLancamentoProprio={excluirLancamentoProprio}
-                    />
-                  );
-                })}
-              </tbody>
-            </table>
-          ) : (
-            <p className="text-sm text-gray-400">Nenhum lançamento encontrado para esta obra.</p>
-          )}
-        </div>
-      )}
+        {searchParams.erro && (
+          <div className="card bg-red-50 border border-red-200 text-red-700 text-sm">
+            {searchParams.erro}
+          </div>
+        )}
+
+        {obraId && (
+          <div className="card">
+            <h2 className="font-semibold text-primaryDark mb-3">Histórico de lançamentos</h2>
+            {lancamentos && lancamentos.length > 0 ? (
+              <LancamentosTable
+                lancamentos={lancamentos as any}
+                obraId={obraId}
+                obraNome={obraNome}
+                nomesPessoas={nomesPessoas}
+                nomesCriadores={nomesCriadores}
+                pessoas={pessoas ?? []}
+                servicos={servicos ?? []}
+                ehAdmin={ehAdmin}
+                meuUserId={user!.id}
+                mesesFechados={new Set(mesesFechadosArr)}
+                aprovarLancamento={aprovarLancamento}
+                rejeitarLancamento={rejeitarLancamento}
+                editarLancamento={editarLancamento}
+                excluirLancamento={excluirLancamento}
+                excluirLancamentoProprio={excluirLancamentoProprio}
+              />
+            ) : (
+              <p className="text-sm text-gray-400">Nenhum lançamento encontrado para esta obra.</p>
+            )}
+          </div>
+        )}
       </div>
     </main>
   );

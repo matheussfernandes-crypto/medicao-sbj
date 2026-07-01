@@ -7,7 +7,7 @@ import EditarLancamentoForm from "./EditarLancamentoForm";
 type Pessoa = { id: string; nome: string };
 type Servico = { id: string; nome: string; tipo: string; valor_unitario: number };
 
-type Lancamento = {
+export type Lancamento = {
   id: string;
   tipo: "MEDICAO" | "VALE" | "VALE_MEDICAO";
   data: string;
@@ -24,9 +24,8 @@ type Lancamento = {
   observacao_medicao: string | null;
   quantidade: number | null;
   criado_por: string | null;
+  motivo_rejeicao: string | null;
 };
-
-const COLUNAS = 9;
 
 function rotuloTipo(tipo: string) {
   if (tipo === "VALE") return "Vale";
@@ -44,6 +43,8 @@ export default function LinhaLancamento({
   ehAdmin,
   isOwner,
   jaFechado,
+  selected,
+  onSelect,
   aprovarLancamento,
   rejeitarLancamento,
   editarLancamento,
@@ -59,6 +60,8 @@ export default function LinhaLancamento({
   ehAdmin: boolean;
   isOwner: boolean;
   jaFechado: boolean;
+  selected?: boolean;
+  onSelect?: (id: string, checked: boolean) => void;
   aprovarLancamento: (formData: FormData) => void;
   rejeitarLancamento: (formData: FormData) => void;
   editarLancamento: (formData: FormData) => void;
@@ -66,11 +69,12 @@ export default function LinhaLancamento({
   excluirLancamentoProprio: (formData: FormData) => void;
 }) {
   const [editando, setEditando] = useState(false);
+  const [rejeitando, setRejeitando] = useState(false);
+  const [motivoTexto, setMotivoTexto] = useState("");
 
-  // Regra de negócio: só dá para editar ou excluir (pelo dono, o estagiário que
-  // criou) enquanto o lançamento está PENDENTE. Depois que o ADM aprova, fica
-  // travado para sempre — só o ADM mantém um botão de exclusão de emergência
-  // (correção de erro/teste), já existente antes desta funcionalidade.
+  // checkbox + 9 colunas existentes (quando admin); 9 sem checkbox (não-admin)
+  const COLUNAS = ehAdmin ? 10 : 9;
+
   const podeEditarOuExcluirProprio = l.status === "PENDENTE" && (isOwner || ehAdmin);
 
   if (editando) {
@@ -79,7 +83,7 @@ export default function LinhaLancamento({
         <td colSpan={COLUNAS} className="p-2">
           <EditarLancamentoForm
             obraId={obraId}
-            lancamento={l}
+            lancamento={l as any}
             pessoas={pessoas}
             servicos={servicos}
             editarLancamento={editarLancamento}
@@ -92,6 +96,20 @@ export default function LinhaLancamento({
 
   return (
     <tr className="border-t">
+      {/* Checkbox de seleção — apenas para ADM em lançamentos PENDENTES */}
+      {ehAdmin && (
+        <td className="p-1 w-8 text-center">
+          {l.status === "PENDENTE" && (
+            <input
+              type="checkbox"
+              checked={!!selected}
+              onChange={(e) => onSelect?.(l.id, e.target.checked)}
+              className="w-4 h-4 cursor-pointer"
+            />
+          )}
+        </td>
+      )}
+
       <td className="p-1">{new Date(l.data).toLocaleDateString("pt-BR")}</td>
       <td className="p-1">{rotuloTipo(l.tipo)}</td>
       <td className="p-1">{nomePessoa}</td>
@@ -112,28 +130,67 @@ export default function LinhaLancamento({
       <td className="p-1">
         <span
           className={
-            "badge " + (l.status === "APROVADO" ? "badge-aprovado" : l.status === "REJEITADO" ? "badge-rejeitado" : "badge-pendente")
+            "badge " +
+            (l.status === "APROVADO"
+              ? "badge-aprovado"
+              : l.status === "REJEITADO"
+              ? "badge-rejeitado"
+              : "badge-pendente")
           }
         >
           {l.status}
         </span>
+        {/* Motivo de rejeição visível inline */}
+        {l.status === "REJEITADO" && l.motivo_rejeicao && (
+          <p className="text-xs text-red-600 mt-0.5 max-w-[180px] break-words">{l.motivo_rejeicao}</p>
+        )}
       </td>
-      <td className="p-1 space-x-1 whitespace-nowrap">
+      <td className="p-1 space-y-1">
         {ehAdmin && l.status === "PENDENTE" && (
-          <>
+          <div className="flex flex-wrap gap-1">
+            {/* Aprovar individual (o lote está no toolbar acima da tabela) */}
             <form action={aprovarLancamento} className="inline">
               <input type="hidden" name="id" value={l.id} />
               <button className="bg-primary text-white rounded px-2 py-0.5 text-xs">Aprovar</button>
             </form>
-            <form action={rejeitarLancamento} className="inline">
-              <input type="hidden" name="id" value={l.id} />
-              <button className="bg-gray-200 rounded px-2 py-0.5 text-xs">Rejeitar</button>
-            </form>
-          </>
+
+            {/* Rejeitar com motivo: expande inline antes de confirmar */}
+            {rejeitando ? (
+              <form action={rejeitarLancamento} className="flex items-center gap-1 flex-wrap">
+                <input type="hidden" name="id" value={l.id} />
+                <input
+                  type="text"
+                  name="motivo"
+                  placeholder="Motivo (opcional)"
+                  value={motivoTexto}
+                  onChange={(e) => setMotivoTexto(e.target.value)}
+                  className="border rounded px-2 py-0.5 text-xs w-36 focus:outline-none focus:ring-1 focus:ring-red-300"
+                  autoFocus
+                />
+                <button type="submit" className="bg-red-500 text-white rounded px-2 py-0.5 text-xs">
+                  Confirmar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setRejeitando(false); setMotivoTexto(""); }}
+                  className="bg-gray-200 rounded px-2 py-0.5 text-xs"
+                >
+                  ✕
+                </button>
+              </form>
+            ) : (
+              <button
+                onClick={() => setRejeitando(true)}
+                className="bg-gray-200 rounded px-2 py-0.5 text-xs"
+              >
+                Rejeitar
+              </button>
+            )}
+          </div>
         )}
 
         {podeEditarOuExcluirProprio && (
-          <>
+          <div className="flex gap-1 flex-wrap">
             <button onClick={() => setEditando(true)} className="bg-blue-100 text-blue-700 rounded px-2 py-0.5 text-xs">
               Editar
             </button>
@@ -142,13 +199,11 @@ export default function LinhaLancamento({
               <input type="hidden" name="obraId" value={obraId} />
               <ConfirmDeleteButton />
             </form>
-          </>
+          </div>
         )}
 
         {!podeEditarOuExcluirProprio && l.status === "APROVADO" && !ehAdmin && (
-          <span className="text-xs text-gray-400">
-            Esta medição já foi aprovada pelo administrador e não pode mais ser alterada ou excluída.
-          </span>
+          <span className="text-xs text-gray-400">Aprovado.</span>
         )}
 
         {ehAdmin && l.status !== "PENDENTE" && (

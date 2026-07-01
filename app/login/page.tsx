@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { login } from "./actions";
 import PasswordField from "../components/PasswordField";
+import PwaInstallGuide from "../components/PwaInstallGuide";
 
 export default function LoginPage({
   searchParams,
@@ -56,8 +57,11 @@ export default function LoginPage({
           </Link>
         </p>
         <p className="text-xs text-gray-400 mt-3 text-center">
-          Todo cadastro novo (estagiário, engenheiro/ADM, RH ou financeiro) precisa ser aprovado pelo ADM antes do primeiro acesso.
+          Todo cadastro novo precisa ser aprovado pelo ADM antes do primeiro acesso.
         </p>
+
+        {/* Guia de instalação PWA */}
+        <PwaInstallGuide />
       </div>
     </main>
   );

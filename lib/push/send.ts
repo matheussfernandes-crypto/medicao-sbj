@@ -45,6 +45,15 @@ async function enviarParaIds(
         .catch(() => null)
     )
   );
+
+  // Salva no inbox de notificações (para visualização no app)
+  const rows = userIds.map((uid) => ({
+    usuario_id: uid,
+    titulo: payload.title,
+    corpo: payload.body ?? null,
+    url: payload.url ?? null,
+  }));
+  await supabase.from("notificacoes").insert(rows).catch(() => null);
 }
 
 export async function notificarAdmins(payload: {

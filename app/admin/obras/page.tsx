@@ -33,7 +33,7 @@ export default async function ObrasPage({
     : { data: [] };
 
   const { data: pessoas } = obraSelecionada
-    ? await supabase.from("pessoas").select("id, nome").eq("obra_id", obraSelecionada).eq("status", "ATIVO").order("nome")
+    ? await supabase.from("pessoas").select("id, nome").eq("obra_id", obraSelecionada).eq("status", "ATIVO").eq("papel", "EMPREITEIRO").order("nome")
     : { data: [] };
 
   const retencoesPorPessoa: Record<string, number> = {};

@@ -38,30 +38,56 @@ export async function criarLancamento(formData: FormData) {
   const { supabase, user, nome } = await exigirAprovado();
 
   const obraId = String(formData.get("obraId"));
-  const pessoaId = String(formData.get("pessoaId"));
+  const tipoContratado = (String(formData.get("tipoContratado") || "SBJ")) as "SBJ" | "TERCEIRIZADA";
   const tipoLancamento = String(formData.get("tipoLancamento"));
   const data = String(formData.get("data") || new Date().toISOString().slice(0, 10));
   const mesReferencia = data.slice(0, 7);
   const local = String(formData.get("local") || "(sem local)");
 
-  const { data: pessoa } = await supabase.from("pessoas").select("nome").eq("id", pessoaId).single();
-  const empreiteiroNome = pessoa?.nome ?? "?";
+  // ── Resolver quem está sendo medido e a % de retenção ──
+  let pessoaIdFinal: string | null = null;
+  let empresaObraIdFinal: string | null = null;
+  let empreiteiroNome = "?";
+  let pct = 0;
 
-  const { data: vigente } = await supabase
-    .from("retencoes_pessoa")
-    .select("percent")
-    .eq("pessoa_id", pessoaId)
-    .lte("mes", mesReferencia)
-    .order("mes", { ascending: false })
-    .limit(1);
-  const pct = vigente && vigente[0] ? Number(vigente[0].percent) : 0;
+  if (tipoContratado === "TERCEIRIZADA") {
+    empresaObraIdFinal = String(formData.get("empresaObraId") || "");
+    if (!empresaObraIdFinal) return;
+    const { data: contrato } = await supabase
+      .from("empresa_obra")
+      .select("retencao_pct, retencao_contratual, empresas_terceirizadas(nome)")
+      .eq("id", empresaObraIdFinal)
+      .single();
+    empreiteiroNome = (contrato?.empresas_terceirizadas as any)?.nome ?? "Empresa";
+    pct = contrato?.retencao_contratual ? Number(contrato.retencao_pct) / 100 : 0;
+  } else {
+    pessoaIdFinal = String(formData.get("pessoaId") || "");
+    if (!pessoaIdFinal) return;
+    const { data: pessoa } = await supabase.from("pessoas").select("nome").eq("id", pessoaIdFinal).single();
+    empreiteiroNome = pessoa?.nome ?? "?";
+    const { data: vigente } = await supabase
+      .from("retencoes_pessoa")
+      .select("percent")
+      .eq("pessoa_id", pessoaIdFinal)
+      .lte("mes", mesReferencia)
+      .order("mes", { ascending: false })
+      .limit(1);
+    pct = vigente && vigente[0] ? Number(vigente[0].percent) : 0;
+  }
+
+  // Campos extras para terceirizada
+  const extraContratado = {
+    tipo_contratado: tipoContratado,
+    pessoa_id: pessoaIdFinal,
+    empresa_obra_id: empresaObraIdFinal,
+  };
 
   if (tipoLancamento === "VALE_MEDICAO") {
     const valorVale = parseFloat(String(formData.get("valorValeHibrido") || "0")) || 0;
     const valorBrutoMedicao = parseFloat(String(formData.get("valorBrutoMedicaoComplementar") || "0")) || 0;
     const observacaoMedicao = String(formData.get("observacaoMedicao") || "").trim() || null;
     await supabase.from("lancamentos").insert({
-      obra_id: obraId, pessoa_id: pessoaId, tipo: "VALE_MEDICAO", data, mes_referencia: mesReferencia,
+      obra_id: obraId, ...extraContratado, tipo: "VALE_MEDICAO", data, mes_referencia: mesReferencia,
       servico: "Medição complementar", local, detalhe_texto: observacaoMedicao ?? "Medição complementar (regularização de período anterior)",
       retencao_pct_usado: pct, total_reais: valorBrutoMedicao, valor_vale_hibrido: valorVale,
       observacao_medicao: observacaoMedicao, status: "PENDENTE", criado_por: user.id, vale_real: false,
@@ -74,7 +100,7 @@ export async function criarLancamento(formData: FormData) {
   if (tipoLancamento === "VALE" && String(formData.get("valeReal")) === "1") {
     const valor = parseFloat(String(formData.get("valorValeReal") || "0")) || 0;
     await supabase.from("lancamentos").insert({
-      obra_id: obraId, pessoa_id: pessoaId, tipo: "VALE", data, mes_referencia: mesReferencia,
+      obra_id: obraId, ...extraContratado, tipo: "VALE", data, mes_referencia: mesReferencia,
       total_reais: valor, status: "PENDENTE", criado_por: user.id, vale_real: true,
       detalhe_texto: `Vale real (${empreiteiroNome})`,
     });
@@ -98,14 +124,14 @@ export async function criarLancamento(formData: FormData) {
     const retido = bruto * pct;
     const liquido = bruto - retido;
     await supabase.from("lancamentos").insert({
-      obra_id: obraId, pessoa_id: pessoaId, tipo: "VALE", data, mes_referencia: mesReferencia,
+      obra_id: obraId, ...extraContratado, tipo: "VALE", data, mes_referencia: mesReferencia,
       servico: servico.nome, local, quantidade, detalhe_texto: detalhe,
       valor_unitario_usado: servico.valor_unitario, valor_bruto: bruto, retencao_item: retido,
       retencao_pct_usado: pct, total_reais: liquido, status: "PENDENTE", criado_por: user.id, vale_real: false,
     });
   } else {
     await supabase.from("lancamentos").insert({
-      obra_id: obraId, pessoa_id: pessoaId, tipo: "MEDICAO", data, mes_referencia: mesReferencia,
+      obra_id: obraId, ...extraContratado, tipo: "MEDICAO", data, mes_referencia: mesReferencia,
       servico: servico.nome, local, quantidade, detalhe_texto: detalhe,
       valor_unitario_usado: servico.valor_unitario, retencao_pct_usado: pct,
       total_reais: bruto, status: "PENDENTE", criado_por: user.id,

@@ -11,35 +11,95 @@ const TIPO_LABEL: Record<string, string> = {
 
 type Pessoa = { id: string; nome: string };
 type Servico = { id: string; nome: string; tipo: string; valor_unitario: number };
+type EmpresaContrato = { id: string; empresa_nome: string; tipo_servico: string; retencao_pct: number; retencao_contratual: boolean };
 
 export default function NovoLancamentoForm({
   obraId,
   pessoas,
   servicos,
+  empresasContrato,
   criarLancamento,
 }: {
   obraId: string;
   pessoas: Pessoa[];
   servicos: Servico[];
+  empresasContrato: EmpresaContrato[];
   criarLancamento: (formData: FormData) => void;
 }) {
+  const [tipoContratado, setTipoContratado] = useState<"SBJ" | "TERCEIRIZADA">("SBJ");
   const [tipoLancamento, setTipoLancamento] = useState<"MEDICAO" | "VALE" | "VALE_MEDICAO">("MEDICAO");
   const [valeReal, setValeReal] = useState(false);
 
-  // Cada tipo de lançamento usa um conjunto diferente de campos — mostrar só os
-  // relevantes evita preencher (ou esquecer de preencher) campos que o lançamento
-  // escolhido nem chega a usar.
   const mostrarCamposServico = tipoLancamento === "MEDICAO" || (tipoLancamento === "VALE" && !valeReal);
   const mostrarValeReal = tipoLancamento === "VALE";
   const mostrarValeMedicao = tipoLancamento === "VALE_MEDICAO";
 
+  const temEmpresasAtivas = empresasContrato.length > 0;
+
   return (
-    <form action={criarLancamento} className="space-y-2">
+    <form action={criarLancamento} className="space-y-3">
       <input type="hidden" name="obraId" value={obraId} />
+      <input type="hidden" name="tipoContratado" value={tipoContratado} />
+
+      {/* ── PASSO 1: Tipo de contratado ── */}
+      <div>
+        <p className="text-xs text-gray-500 mb-1 font-medium">Tipo de contratado</p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setTipoContratado("SBJ")}
+            className={`flex-1 border rounded px-3 py-2 text-sm font-medium transition ${
+              tipoContratado === "SBJ"
+                ? "bg-primary text-white border-primary"
+                : "bg-white text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            Empreiteiros SBJ
+          </button>
+          <button
+            type="button"
+            onClick={() => setTipoContratado("TERCEIRIZADA")}
+            className={`flex-1 border rounded px-3 py-2 text-sm font-medium transition ${
+              tipoContratado === "TERCEIRIZADA"
+                ? "bg-primary text-white border-primary"
+                : "bg-white text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            Empresa Terceirizada
+          </button>
+        </div>
+      </div>
+
+      {/* ── PASSO 2: Quem vai medir ── */}
       <div className="flex flex-wrap gap-2">
-        <select name="pessoaId" className="border rounded px-2 py-1 flex-1 min-w-[150px]" required>
-          {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-        </select>
+        {tipoContratado === "SBJ" ? (
+          <select name="pessoaId" className="border rounded px-2 py-1 flex-1 min-w-[150px]" required>
+            <option value="">Selecionar empreiteiro…</option>
+            {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+          </select>
+        ) : (
+          <>
+            {temEmpresasAtivas ? (
+              <select name="empresaObraId" className="border rounded px-2 py-1 flex-1 min-w-[200px]" required>
+                <option value="">Selecionar empresa…</option>
+                {empresasContrato.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.empresa_nome} — {e.tipo_servico}
+                    {e.retencao_contratual ? ` (retenção ${Number(e.retencao_pct).toFixed(0)}%)` : ""}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="flex-1 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                Nenhuma empresa com contrato ativo vinculada a esta obra.{" "}
+                <a href="/admin/obras" className="underline font-medium">
+                  Vincular empresa →
+                </a>
+              </div>
+            )}
+          </>
+        )}
+
         <select
           name="tipoLancamento"
           className="border rounded px-2 py-1"
@@ -109,7 +169,12 @@ export default function NovoLancamentoForm({
         </>
       )}
 
-      <button className="bg-primary text-white rounded px-4 py-2">Lançar</button>
+      <button
+        disabled={tipoContratado === "TERCEIRIZADA" && !temEmpresasAtivas}
+        className="bg-primary text-white rounded px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Lançar
+      </button>
       {mostrarCamposServico && (
         <p className="text-xs text-gray-400">
           Preencha comprimento/altura para serviços por m², só comprimento para metro linear, ou quantidade para diária/unidade.

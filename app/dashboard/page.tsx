@@ -28,7 +28,14 @@ export default async function DashboardPage() {
         {setor === "ADMIN" && (
           <Link href="/admin/obras" className="block bg-white rounded-xl shadow p-4 hover:shadow-md transition">
             <h2 className="font-semibold text-primaryDark">Obras &amp; Pessoas</h2>
-            <p className="text-sm text-gray-500">Cadastrar obras, serviços e gerenciar % de retenção mensal.</p>
+            <p className="text-sm text-gray-500">Cadastrar obras, serviços, retenção mensal e empresas contratadas.</p>
+          </Link>
+        )}
+
+        {setor === "ADMIN" && (
+          <Link href="/admin/empresas" className="block bg-white rounded-xl shadow p-4 hover:shadow-md transition">
+            <h2 className="font-semibold text-primaryDark">Empresas Terceirizadas</h2>
+            <p className="text-sm text-gray-500">Cadastrar e gerenciar empresas de serviços terceirizados.</p>
           </Link>
         )}
 

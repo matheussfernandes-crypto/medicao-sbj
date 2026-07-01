@@ -41,6 +41,24 @@ export default async function LancamentosPage({
     ? await supabase.from("pessoas").select("id, nome").eq("obra_id", obraId)
     : { data: [] };
 
+  // Contratos de empresas terceirizadas com status ATIVO para esta obra
+  const { data: contratosAtivos } = obraId
+    ? await supabase
+        .from("empresa_obra")
+        .select("id, tipo_servico, retencao_pct, retencao_contratual, empresas_terceirizadas(nome)")
+        .eq("obra_id", obraId)
+        .eq("status", "ATIVO")
+        .order("criado_em")
+    : { data: [] };
+
+  const empresasContrato = (contratosAtivos ?? []).map((c) => ({
+    id: c.id,
+    empresa_nome: (c.empresas_terceirizadas as any)?.nome ?? "—",
+    tipo_servico: c.tipo_servico,
+    retencao_pct: Number(c.retencao_pct),
+    retencao_contratual: c.retencao_contratual,
+  }));
+
   const { data: servicos } = obraId
     ? await supabase.from("servicos").select("id, nome, tipo, valor_unitario").eq("obra_id", obraId).order("criado_em")
     : { data: [] };
@@ -97,6 +115,7 @@ export default async function LancamentosPage({
                 obraId={obraId}
                 pessoas={pessoas}
                 servicos={servicos ?? []}
+                empresasContrato={empresasContrato}
                 criarLancamento={criarLancamento}
               />
             ) : (

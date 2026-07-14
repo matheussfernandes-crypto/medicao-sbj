@@ -1,9 +1,12 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Protege as rotas: sem sessão -> /login; perfil pendente/rejeitado -> /aguardando-aprovacao.
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
+
+  const path = request.nextUrl.pathname;
+  const rotasPublicas = ["/login", "/cadastro", "/esqueci-senha", "/redefinir-senha"];
+  const isPublica = rotasPublicas.some((r) => path.startsWith(r));
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,28 +26,15 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
-  const path = request.nextUrl.pathname;
-  const rotasPublicas = ["/login", "/cadastro", "/esqueci-senha", "/redefinir-senha"];
-  const isPublica = rotasPublicas.some((r) => path.startsWith(r));
+  // getSession() lê o JWT do cookie — sem chamada de rede, sem timeout
+  const { data: { session } } = await supabase.auth.getSession();
+  const logado = !!session?.user;
 
-  if (!user && !isPublica) {
+  if (!logado && !isPublica) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (user && !isPublica && path !== "/aguardando-aprovacao") {
-    const { data: perfil } = await supabase
-      .from("perfis")
-      .select("status")
-      .eq("id", user.id)
-      .single();
-
-    if (!perfil || perfil.status !== "aprovado") {
-      return NextResponse.redirect(new URL("/aguardando-aprovacao", request.url));
-    }
-  }
-
-  if (user && isPublica) {
+  if (logado && isPublica) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
@@ -52,5 +42,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|icon-|apple-touch-icon|manifest|sw\\.js).*)"],
 };

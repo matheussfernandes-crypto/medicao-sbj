@@ -8,6 +8,9 @@ import { navItemsForSetor } from "./nav-items";
 const SETOR_LABEL: Record<string, string> = {
   ESTAGIARIO: "Estagiário",
   ADMIN: "Engenheiro / ADM",
+  ARQUITETO: "Arquiteto",
+  ENGENHEIRO: "Engenheiro",
+  MESTRE_GERAL: "Mestre Geral",
   RH: "RH",
   FINANCEIRO: "Financeiro",
 };
@@ -62,21 +65,25 @@ export default function Sidebar({
         </div>
 
         <nav className="flex-1 overflow-y-auto px-2 py-3">
-          <p className="nav-group-label">Navegação</p>
-          {items.map((item) => {
+          {items.map((item, i) => {
             const Icon = item.icon;
             const active = pathname === item.href || pathname.startsWith(item.href + "/");
+            const grupo = item.group ?? "Navegação";
+            const grupoAnterior = i > 0 ? items[i - 1].group ?? "Navegação" : null;
+            const mostrarRotulo = grupo !== grupoAnterior;
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                className={"nav-item" + (active ? " active" : "")}
-                title={item.description}
-              >
-                <Icon className="w-[18px] h-[18px] shrink-0" />
-                <span className="truncate">{item.label}</span>
-              </Link>
+              <div key={`${item.href}-${i}`}>
+                {mostrarRotulo && <p className="nav-group-label">{grupo}</p>}
+                <Link
+                  href={item.href}
+                  onClick={onClose}
+                  className={"nav-item" + (active ? " active" : "")}
+                  title={item.description}
+                >
+                  <Icon className="w-[18px] h-[18px] shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              </div>
             );
           })}
         </nav>

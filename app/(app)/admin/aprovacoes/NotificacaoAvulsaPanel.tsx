@@ -8,6 +8,9 @@ type Perfil = { id: string; nome_completo: string; setor: string };
 const SETOR_LABEL: Record<string, string> = {
   ESTAGIARIO: "Estagiário",
   ADMIN: "Engenheiro / ADM",
+  ARQUITETO: "Arquiteto",
+  ENGENHEIRO: "Engenheiro",
+  MESTRE_GERAL: "Mestre Geral",
   RH: "RH",
   FINANCEIRO: "Financeiro",
 };

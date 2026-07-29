@@ -6,6 +6,9 @@ import NotificacaoAvulsaPanel from "./NotificacaoAvulsaPanel";
 const SETOR_LABEL: Record<string, string> = {
   ESTAGIARIO: "Estagiário",
   ADMIN: "Engenheiro / ADM",
+  ARQUITETO: "Arquiteto",
+  ENGENHEIRO: "Engenheiro",
+  MESTRE_GERAL: "Mestre Geral",
   RH: "RH",
   FINANCEIRO: "Financeiro",
 };

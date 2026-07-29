@@ -7,6 +7,7 @@ const TABELA_LABEL: Record<string, string> = {
   fechamentos: "Fechamentos mensais",
   retencoes_pessoa: "Retenção por pessoa",
   retiradas_retido: "Retiradas de retido",
+  manutencao_os: "Manutenções (Ordens de Serviço)",
 };
 
 const ACAO_LABEL: Record<string, string> = {
@@ -50,6 +51,10 @@ function resumoLinha(
     case "retiradas_retido": {
       const pessoa = nomePessoa[dados.pessoa_id] ?? "—";
       return `${pessoa} — R$ ${Number(dados.valor ?? 0).toFixed(2)} em ${dados.data ?? "—"}`;
+    }
+    case "manutencao_os": {
+      const obra = nomeObra[dados.obra_id] ?? "—";
+      return `OS #${dados.numero_os} — ${dados.categoria} (${obra}), status ${dados.status}`;
     }
     default:
       return JSON.stringify(dados);

@@ -16,7 +16,7 @@ export default async function EmpresasPage({
 
   const { data: empresas } = await supabase
     .from("empresas_terceirizadas")
-    .select("id, nome, nome_empresarial, cnpj, inscricao_municipal, contato, email, telefone, endereco, cep, bairro, municipio, uf, observacoes, ativo")
+    .select("id, nome, nome_empresarial, cnpj, inscricao_municipal, contato, email, telefone, whatsapp, especialidade, endereco, cep, bairro, municipio, uf, observacoes, ativo")
     .order("nome");
 
   const editarId = searchParams.editar ?? null;
@@ -98,6 +98,16 @@ export default async function EmpresasPage({
               <input name="telefone" defaultValue={e?.telefone ?? ""} className="border rounded px-3 py-2 w-full" placeholder="47 3246-2529" />
             </div>
 
+            {/* WhatsApp + Especialidade */}
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">WhatsApp</label>
+              <input name="whatsapp" defaultValue={(e as any)?.whatsapp ?? ""} className="border rounded px-3 py-2 w-full" placeholder="47 99999-9999" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Especialidade</label>
+              <input name="especialidade" defaultValue={(e as any)?.especialidade ?? ""} className="border rounded px-3 py-2 w-full" placeholder="Ex: Hidráulica, Impermeabilização, Elétrica…" />
+            </div>
+
             {/* E-mail */}
             <div className="sm:col-span-2">
               <label className="text-xs text-gray-500 block mb-1">E-mail</label>
@@ -147,6 +157,9 @@ export default async function EmpresasPage({
                   <td className="p-3">
                     <span className="font-medium block">{emp.nome}</span>
                     {emp.nome_empresarial && <span className="text-xs text-gray-400 block">{emp.nome_empresarial}</span>}
+                    {(emp as any).especialidade && (
+                      <span className="inline-block text-[11px] bg-primary/10 text-primaryDark rounded px-1.5 py-0.5 mt-0.5">{(emp as any).especialidade}</span>
+                    )}
                     {emp.observacoes && <span className="text-xs text-gray-400 italic block truncate max-w-[180px]">{emp.observacoes}</span>}
                   </td>
                   <td className="p-3 text-gray-600 text-xs">
@@ -165,6 +178,7 @@ export default async function EmpresasPage({
                   <td className="p-3 text-xs">
                     <span className="block">{emp.contato ?? "—"}</span>
                     {emp.telefone && <span className="text-gray-400 block">{emp.telefone}</span>}
+                    {(emp as any).whatsapp && <span className="text-gray-400 block">WhatsApp: {(emp as any).whatsapp}</span>}
                     {emp.email && <span className="text-gray-400 block">{emp.email}</span>}
                   </td>
                   <td className="p-3 text-center">

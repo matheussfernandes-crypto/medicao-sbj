@@ -11,6 +11,12 @@ import {
   BarChart3,
   History,
   HardHat,
+  Wrench,
+  FilePlus2,
+  ListChecks,
+  CalendarClock,
+  Archive,
+  FileBarChart2,
 } from "lucide-react";
 
 export type NavItem = {
@@ -19,6 +25,7 @@ export type NavItem = {
   icon: LucideIcon;
   description: string;
   allowedSetores?: string[]; // undefined = todos os setores aprovados
+  group?: string; // undefined = grupo padrão "Navegação"
 };
 
 // Fonte única da navegação — usada pela Sidebar e pelo Breadcrumbs, para não
@@ -70,6 +77,62 @@ export const NAV_ITEMS: NavItem[] = [
     icon: HardHat,
     description: "Andamento de obra — módulo em construção.",
     allowedSetores: ["ESTAGIARIO", "ADMIN"],
+  },
+  {
+    label: "Dashboard",
+    href: "/manutencoes",
+    icon: Wrench,
+    description: "Indicadores de chamados de manutenção/assistência técnica.",
+    allowedSetores: ["ADMIN", "ARQUITETO", "ENGENHEIRO", "MESTRE_GERAL", "ESTAGIARIO"],
+    group: "Manutenções",
+  },
+  {
+    label: "Nova Ordem de Serviço",
+    href: "/manutencoes/nova",
+    icon: FilePlus2,
+    description: "Cadastrar um chamado em ~30 segundos.",
+    allowedSetores: ["ADMIN", "ARQUITETO", "ENGENHEIRO", "ESTAGIARIO"],
+    group: "Manutenções",
+  },
+  {
+    label: "Ordens de Serviço",
+    href: "/manutencoes/os",
+    icon: ListChecks,
+    description: "Acompanhar e executar chamados abertos.",
+    allowedSetores: ["ADMIN", "ARQUITETO", "ENGENHEIRO", "MESTRE_GERAL", "ESTAGIARIO"],
+    group: "Manutenções",
+  },
+  {
+    label: "Agenda",
+    href: "/manutencoes/agenda",
+    icon: CalendarClock,
+    description: "Chamados agendados por data, funcionário ou empresa.",
+    allowedSetores: ["ADMIN", "ARQUITETO", "ENGENHEIRO", "MESTRE_GERAL", "ESTAGIARIO"],
+    group: "Manutenções",
+  },
+  {
+    label: "Histórico",
+    href: "/manutencoes/historico",
+    icon: Archive,
+    description: "Histórico técnico permanente, com busca e filtros.",
+    allowedSetores: ["ADMIN", "ARQUITETO", "ENGENHEIRO", "MESTRE_GERAL", "ESTAGIARIO"],
+    group: "Manutenções",
+  },
+  {
+    label: "Empresas Terceirizadas",
+    href: "/admin/empresas",
+    icon: Briefcase,
+    description: "Cadastro de empresas (reaproveita o de Obras & Pessoas).",
+    allowedSetores: ["ADMIN"],
+    group: "Manutenções",
+  },
+  {
+    label: "Relatórios",
+    href: "/manutencoes/historico",
+    icon: FileBarChart2,
+    description: "Exportar PDF/Excel do histórico de manutenções.",
+    allowedSetores: ["ADMIN", "ARQUITETO", "ENGENHEIRO", "MESTRE_GERAL", "ESTAGIARIO"],
+    group: "Manutenções",
   },
   {
     label: "Retiradas de retido",

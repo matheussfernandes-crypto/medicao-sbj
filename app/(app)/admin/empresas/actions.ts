@@ -20,6 +20,8 @@ function extrairCampos(fd: FormData) {
     contato: (fd.get("contato") as string).trim() || null,
     email: (fd.get("email") as string).trim() || null,
     telefone: (fd.get("telefone") as string).trim() || null,
+    whatsapp: (fd.get("whatsapp") as string).trim() || null,
+    especialidade: (fd.get("especialidade") as string).trim() || null,
     endereco: (fd.get("endereco") as string).trim() || null,
     cep: (fd.get("cep") as string).trim() || null,
     bairro: (fd.get("bairro") as string).trim() || null,

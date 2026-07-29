@@ -21,7 +21,7 @@ export default function LoginPage({
             backgroundSize: "48px 48px",
           }}
         />
-        <img src="/logo-topbar.png" alt="SBJ" className="h-12 w-auto relative" />
+        <img src="/logo-topbar.png" alt="SBJ" className="h-12 w-auto self-start relative" />
         <div className="relative">
           <h1 className="text-3xl font-semibold text-white leading-tight max-w-md">
             Sistema de Medição de Empreiteiros

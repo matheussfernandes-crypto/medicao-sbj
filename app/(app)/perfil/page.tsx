@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import Topbar from "../components/Topbar";
-import PasswordField from "../components/PasswordField";
+import PasswordField from "../../components/PasswordField";
 import { salvarPerfil } from "./actions";
 
 const SETOR_LABEL: Record<string, string> = {
@@ -29,9 +28,7 @@ export default async function PerfilPage({
   if (!perfil) redirect("/login");
 
   return (
-    <main className="min-h-screen">
-      <Topbar setor={perfil.setor} />
-      <div className="max-w-md mx-auto p-6 space-y-4">
+    <div className="max-w-md mx-auto space-y-4">
         <h1 className="text-xl font-semibold text-primaryDark">Meu cadastro</h1>
 
         {searchParams.erro && (
@@ -92,7 +89,6 @@ export default async function PerfilPage({
             Salvar alterações
           </button>
         </form>
-      </div>
-    </main>
+    </div>
   );
 }

@@ -9,7 +9,6 @@ import {
   aprovarEmLote,
   notificarEngenheiroConferir,
 } from "./actions";
-import Topbar from "../components/Topbar";
 import NovoLancamentoForm from "./NovoLancamentoForm";
 import LancamentosTable from "./LancamentosTable";
 
@@ -93,9 +92,7 @@ export default async function LancamentosPage({
   const mesesFechadosArr = (fechamentosObra ?? []).map((f) => `${f.tipo}-${f.mes_referencia}`);
 
   return (
-    <main className="min-h-screen">
-      <Topbar setor={meuPerfil?.setor} />
-      <div className="p-8 space-y-4">
+    <>
         <h1 className="text-xl font-semibold text-primaryDark">Lançamentos — Medição &amp; Vale</h1>
 
         <div className="card">
@@ -156,7 +153,6 @@ export default async function LancamentosPage({
             )}
           </div>
         )}
-      </div>
-    </main>
+    </>
   );
 }

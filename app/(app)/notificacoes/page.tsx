@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Topbar from "../components/Topbar";
 import { marcarComoLida, marcarTodasComoLidas } from "./actions";
 
 export default async function NotificacoesPage() {
@@ -36,9 +35,7 @@ export default async function NotificacoesPage() {
   }
 
   return (
-    <main className="min-h-screen">
-      <Topbar setor={perfil?.setor} />
-      <div className="p-6 max-w-2xl mx-auto space-y-4">
+    <div className="max-w-2xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold text-primaryDark">
             🔔 Notificações
@@ -116,12 +113,6 @@ export default async function NotificacoesPage() {
           ))}
         </div>
 
-        <div className="text-center pt-2">
-          <Link href="/dashboard" className="text-sm text-gray-400 underline">
-            ← Voltar ao painel
-          </Link>
-        </div>
-      </div>
-    </main>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { criarPessoa, transferirObra, darBaixa, reativarPessoa, excluirPessoa, editarPessoa } from "./actions";
-import Topbar from "../../components/Topbar";
 import PessoaLinha from "./PessoaLinha";
 
 function hojeISO() {
@@ -44,9 +43,7 @@ export default async function PessoasPage({
   const hoje = hojeISO();
 
   return (
-    <main className="min-h-screen">
-      <Topbar setor="RH" />
-      <div className="max-w-3xl mx-auto p-6 space-y-4">
+    <div className="max-w-3xl mx-auto space-y-4">
       <h1 className="text-xl font-semibold text-primaryDark">RH &amp; Pessoas</h1>
 
       {searchParams.erro && (
@@ -118,7 +115,6 @@ export default async function PessoasPage({
           <p className="text-sm text-gray-400">Nenhum empreiteiro cadastrado ainda.</p>
         )}
       </div>
-      </div>
-    </main>
+    </div>
   );
 }

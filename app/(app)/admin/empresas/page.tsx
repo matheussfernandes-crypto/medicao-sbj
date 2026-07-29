@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import Topbar from "../../components/Topbar";
 import { criarEmpresa, editarEmpresa, toggleEmpresaAtivo } from "./actions";
 
 const UF_LIST = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
@@ -24,9 +23,7 @@ export default async function EmpresasPage({
   const e = editarId ? (empresas ?? []).find((x) => x.id === editarId) : null;
 
   return (
-    <main className="min-h-screen">
-      <Topbar setor="ADMIN" />
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
         <h1 className="text-xl font-semibold text-primaryDark">Empresas Terceirizadas</h1>
 
         {/* Formulário criar / editar */}
@@ -190,7 +187,6 @@ export default async function EmpresasPage({
             </tbody>
           </table>
         </div>
-      </div>
-    </main>
+    </div>
   );
 }

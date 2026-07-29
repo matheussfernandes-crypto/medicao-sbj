@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { aprovarConta, rejeitarConta, desativarConta, reativarConta } from "./actions";
 import NotificacaoAvulsaPanel from "./NotificacaoAvulsaPanel";
-import Topbar from "../../components/Topbar";
 
 const SETOR_LABEL: Record<string, string> = {
   ESTAGIARIO: "Estagiário",
@@ -46,9 +45,7 @@ export default async function AprovacoesPage() {
     .order("nome_completo");
 
   return (
-    <main className="min-h-screen">
-      <Topbar setor="ADMIN" />
-      <div className="p-8 space-y-6">
+    <>
       <h1 className="text-xl font-semibold text-primaryDark">Cadastros pendentes de aprovação</h1>
       <p className="text-sm text-gray-500 -mt-4">
         Toda solicitação de cadastro (qualquer setor) precisa ser aprovada aqui antes da pessoa conseguir entrar.
@@ -155,7 +152,6 @@ export default async function AprovacoesPage() {
       </div>
 
       <NotificacaoAvulsaPanel usuarios={usuariosAprovados ?? []} />
-      </div>
-    </main>
+    </>
   );
 }

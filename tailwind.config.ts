@@ -9,6 +9,10 @@ const config: Config = {
         primaryDark: "#1c474f",
         accent: "#f4dd3d",
         border: "#dfe3ea",
+        surface: {
+          DEFAULT: "#ffffff",
+          subtle: "#f4f6f9",
+        },
         ink: {
           900: "#1f2733",
           700: "#3c4657",

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { salvarSaldoInicial, lancarRetirada, excluirRetirada } from "./actions";
-import Topbar from "../../components/Topbar";
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
@@ -61,9 +60,7 @@ export default async function RetiradasPage() {
   }
 
   return (
-    <main className="min-h-screen">
-      <Topbar setor="FINANCEIRO" />
-      <div className="max-w-3xl mx-auto p-6 space-y-4">
+    <div className="max-w-3xl mx-auto space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
       <h1 className="text-xl font-semibold text-primaryDark">Financeiro — Retiradas de retido</h1>
       <a href="/financeiro/extrato-retidos" className="bg-primary text-white rounded px-4 py-2 text-sm font-medium hover:bg-primaryDark transition">📊 Extrato de Retidos</a>
@@ -167,7 +164,6 @@ export default async function RetiradasPage() {
           <p className="text-sm text-gray-400">Nenhuma retirada de retido lançada ainda.</p>
         )}
       </div>
-      </div>
-    </main>
+    </div>
   );
 }

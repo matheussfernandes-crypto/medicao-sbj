@@ -179,9 +179,10 @@ export default function LancamentosTable({
             <button
               onClick={handleNotificar}
               disabled={notificando}
+              title={`Avisa o engenheiro que os lançamentos de "${obraNome}" estão prontos para conferência e aprovação.`}
               className="bg-accent text-primaryDark font-semibold rounded px-4 py-2 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {notificando ? "Enviando…" : `📢 Notificar engenheiro — lançamentos de "${obraNome}" prontos para revisão`}
+              {notificando ? "Enviando…" : "Enviar a Aprovação"}
             </button>
           )}
         </div>

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import Topbar from "../../components/Topbar";
 import FiltrosExtrato from "./FiltrosExtrato";
 import { Suspense } from "react";
 
@@ -178,9 +177,7 @@ export default async function ExtratoRetidosPage({
   if (situacao) pdfParams.set("situacao", situacao);
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <Topbar setor={meuPerfil?.setor} />
-      <div className="max-w-7xl mx-auto p-6 space-y-5">
+    <div className="max-w-7xl mx-auto space-y-5">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h1 className="text-xl font-semibold text-primaryDark">Extrato de Retidos</h1>
           <a
@@ -386,7 +383,6 @@ export default async function ExtratoRetidosPage({
             ))}
           </div>
         )}
-      </div>
-    </main>
+    </div>
   );
 }

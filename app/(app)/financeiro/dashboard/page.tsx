@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import Topbar from "../../components/Topbar";
 
 function mesAtualISO() {
   return new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -258,9 +257,7 @@ export default async function DashboardGastosPage({
   const maiorMes = Math.max(1, ...Object.values(porMes));
 
   return (
-    <main className="min-h-screen">
-      <Topbar setor="FINANCEIRO" />
-      <div className="p-8 space-y-4">
+    <>
         <h1 className="text-xl font-semibold text-primaryDark">Dashboard de gastos</h1>
         <p className="text-sm text-gray-500">
           Visão geral dos valores aprovados (medições e vales). Mês de referência: {mesLabel(mesSelecionado)}.
@@ -392,7 +389,6 @@ export default async function DashboardGastosPage({
             Baixar relatório em PDF
           </a>
         </div>
-      </div>
-    </main>
+    </>
   );
 }

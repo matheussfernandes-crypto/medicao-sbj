@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { criarObra, criarServico, editarValorServico, salvarRetencao } from "./actions";
 import { vincularEmpresaObra, editarVinculoEmpresaObra, removerVinculoEmpresaObra } from "./empresa-obra-actions";
-import Topbar from "../../components/Topbar";
 
 const TIPO_LABEL: Record<string, string> = {
   area: "Por m²",
@@ -90,9 +89,7 @@ export default async function ObrasPage({
     : null;
 
   return (
-    <main className="min-h-screen">
-      <Topbar setor="ADMIN" />
-      <div className="max-w-3xl mx-auto p-6 space-y-4">
+    <div className="max-w-3xl mx-auto space-y-4">
       <h1 className="text-xl font-semibold text-primaryDark">Obras &amp; Pessoas</h1>
 
       <div className="bg-white rounded-xl shadow p-4">
@@ -417,7 +414,6 @@ export default async function ObrasPage({
           </div>
         </>
       )}
-      </div>
-    </main>
+    </div>
   );
 }

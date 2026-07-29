@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import Topbar from "../../components/Topbar";
 
 const TABELA_LABEL: Record<string, string> = {
   lancamentos: "Lançamentos (medição/vale)",
@@ -96,9 +95,7 @@ export default async function AuditoriaPage({
   const tabelasDisponiveis = Object.keys(TABELA_LABEL);
 
   return (
-    <main className="min-h-screen">
-      <Topbar setor="ADMIN" />
-      <div className="p-8 space-y-4">
+    <>
         <h1 className="text-xl font-semibold text-primaryDark">Log de auditoria</h1>
         <p className="text-sm text-gray-500">
           Histórico de criação, edição e exclusão registrado automaticamente pelo banco de dados. Mostra os últimos 200 registros.
@@ -159,7 +156,6 @@ export default async function AuditoriaPage({
             <p className="text-sm text-gray-400">Nenhum registro de auditoria ainda.</p>
           )}
         </div>
-      </div>
-    </main>
+    </>
   );
 }

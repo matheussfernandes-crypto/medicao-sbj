@@ -10,6 +10,7 @@ import {
   FileCheck2,
   BarChart3,
   History,
+  HardHat,
 } from "lucide-react";
 
 export type NavItem = {
@@ -62,6 +63,13 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/lancamentos",
     icon: ClipboardList,
     description: "Registrar medições e vales por pessoa/obra, com aprovação.",
+  },
+  {
+    label: "EM PRODUÇÃO",
+    href: "/andamento-obra",
+    icon: HardHat,
+    description: "Andamento de obra — módulo em construção.",
+    allowedSetores: ["ESTAGIARIO", "ADMIN"],
   },
   {
     label: "Retiradas de retido",

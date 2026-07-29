@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { salvarConfigNotificacao, finalizarFechamentoMedicao, finalizarFechamentoVale, excluirFechamento } from "./actions";
-import Topbar from "../../components/Topbar";
 import ConfirmDeleteButton from "../../lancamentos/ConfirmDeleteButton";
 
 function mesAtual() {
@@ -93,9 +92,7 @@ export default async function FechamentoPage({
   }
 
   return (
-    <main className="min-h-screen">
-      <Topbar setor="ADMIN" />
-      <div className="p-8 space-y-4">
+    <>
         <h1 className="text-xl font-semibold text-primaryDark">Fechamento mensal — Medição e Vale</h1>
         <p className="text-sm text-gray-500 -mt-2">
           Ao finalizar, o relatório em PDF (com as três assinaturas — Mestre, Estagiário, Engenheiro) é gerado e
@@ -292,7 +289,6 @@ export default async function FechamentoPage({
             <p className="text-sm text-gray-400">Nenhum fechamento realizado ainda.</p>
           )}
         </div>
-      </div>
-    </main>
+    </>
   );
 }

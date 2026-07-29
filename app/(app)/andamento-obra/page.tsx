@@ -13,7 +13,10 @@ export default async function AndamentoObraPage() {
   return (
     <div className="card flex flex-col items-center justify-center text-center py-16 gap-3">
       <HardHat className="w-10 h-10 text-primary" />
-      <h1 className="text-lg font-semibold text-primaryDark">Andamento de Obra</h1>
+      <div className="flex items-center gap-2">
+        <h1 className="text-lg font-semibold text-primaryDark">Andamento de Obra</h1>
+        <span className="badge badge-pendente">Em produção</span>
+      </div>
       <p className="text-sm text-ink-500 max-w-md">
         Este módulo está em produção e será liberado em breve, com o acompanhamento do andamento físico de cada obra.
       </p>

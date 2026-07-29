@@ -65,7 +65,7 @@ export const NAV_ITEMS: NavItem[] = [
     description: "Registrar medições e vales por pessoa/obra, com aprovação.",
   },
   {
-    label: "EM PRODUÇÃO",
+    label: "Andamento de Obra",
     href: "/andamento-obra",
     icon: HardHat,
     description: "Andamento de obra — módulo em construção.",

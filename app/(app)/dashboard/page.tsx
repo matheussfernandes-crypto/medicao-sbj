@@ -135,13 +135,17 @@ export default async function DashboardPage() {
     </div>,
   ];
 
-  const hoje = new Date();
+  function emDias(qtd: number) {
+    const d = new Date();
+    d.setDate(d.getDate() + qtd);
+    return d.toISOString().slice(0, 10);
+  }
   const eventosExemplo: EventoCalendario[] = [
-    { dia: 5, label: "Fechamento mensal (previsto)" },
-    { dia: 12, label: "Reunião de obra — Ilha de Capri" },
-    { dia: 18, label: "Revisão de aprovações pendentes" },
-    { dia: 25, label: "Vencimento de contrato — empresa terceirizada" },
-  ].map((e) => ({ ...e, dia: Math.min(e.dia, new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate()) }));
+    { data: emDias(2), label: "Fechamento mensal (previsto)" },
+    { data: emDias(6), label: "Reunião de obra — Ilha de Capri" },
+    { data: emDias(11), label: "Revisão de aprovações pendentes" },
+    { data: emDias(17), label: "Vencimento de contrato — empresa terceirizada" },
+  ];
 
   return (
     <>

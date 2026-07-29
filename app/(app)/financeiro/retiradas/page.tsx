@@ -60,7 +60,7 @@ export default async function RetiradasPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
       <h1 className="text-xl font-semibold text-primaryDark">Financeiro — Retiradas de retido</h1>
       <a href="/financeiro/extrato-retidos" className="bg-primary text-white rounded px-4 py-2 text-sm font-medium hover:bg-primaryDark transition">📊 Extrato de Retidos</a>

@@ -28,7 +28,7 @@ export default async function PerfilPage({
   if (!perfil) redirect("/login");
 
   return (
-    <div className="max-w-md mx-auto space-y-4">
+    <div className="max-w-md space-y-4">
         <h1 className="text-xl font-semibold text-primaryDark">Meu cadastro</h1>
 
         {searchParams.erro && (

@@ -23,7 +23,7 @@ export default async function EmpresasPage({
   const e = editarId ? (empresas ?? []).find((x) => x.id === editarId) : null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="space-y-6">
         <h1 className="text-xl font-semibold text-primaryDark">Empresas Terceirizadas</h1>
 
         {/* Formulário criar / editar */}

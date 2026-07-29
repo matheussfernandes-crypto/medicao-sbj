@@ -177,7 +177,7 @@ export default async function ExtratoRetidosPage({
   if (situacao) pdfParams.set("situacao", situacao);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-5">
+    <div className="space-y-5">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h1 className="text-xl font-semibold text-primaryDark">Extrato de Retidos</h1>
           <a

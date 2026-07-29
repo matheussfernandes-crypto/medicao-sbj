@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { navItemsForSetor } from "@/components/nav-items";
+import Carousel from "@/components/Carousel";
+import MiniCalendar, { type EventoCalendario } from "@/components/MiniCalendar";
+import { HardHat, BarChart3, Sparkles } from "lucide-react";
 
 function mesAtualISO() {
   return new Date().toISOString().slice(0, 7);
@@ -88,6 +91,58 @@ export default async function DashboardPage() {
 
   const atalhos = navItemsForSetor(setor).filter((item) => item.href !== "/dashboard");
 
+  // Slides de exemplo — quando o módulo "Andamento de Obra" e a agenda real
+  // existirem, essas mesmas posições passam a vir de dados reais (fotos da
+  // obra, gráfico de avanço físico, próximos compromissos).
+  const slides = [
+    <div
+      key="andamento"
+      className="h-full w-full flex flex-col items-center justify-center text-center gap-3 p-8 bg-primaryDark relative overflow-hidden"
+    >
+      <div
+        className="absolute inset-0 opacity-[0.08]"
+        style={{
+          backgroundImage: "radial-gradient(circle at 25% 25%, #fff 1px, transparent 1px)",
+          backgroundSize: "32px 32px",
+        }}
+      />
+      <HardHat className="w-10 h-10 text-accent relative" />
+      <p className="text-white text-lg font-semibold relative">Em breve: Andamento de Obra</p>
+      <p className="text-white/60 text-sm max-w-sm relative">
+        Fotos e o progresso físico de cada obra vão aparecer bem aqui, direto no seu painel.
+      </p>
+    </div>,
+    <div
+      key="graficos"
+      className="h-full w-full flex flex-col items-center justify-center text-center gap-3 p-8 bg-white"
+    >
+      <BarChart3 className="w-10 h-10 text-primary" />
+      <p className="text-primaryDark text-lg font-semibold">Gráficos de avanço em destaque</p>
+      <p className="text-ink-500 text-sm max-w-sm">
+        Assim que o andamento físico for cadastrado, os gráficos de progresso de cada obra também vão girar por aqui.
+      </p>
+    </div>,
+    <div
+      key="novidade"
+      className="h-full w-full flex flex-col items-center justify-center text-center gap-3 p-8"
+      style={{ background: "linear-gradient(135deg, #2c6975, #1c474f)" }}
+    >
+      <Sparkles className="w-10 h-10 text-accent" />
+      <p className="text-white text-lg font-semibold">Painel novo por aqui!</p>
+      <p className="text-white/60 text-sm max-w-sm">
+        Menu lateral fixo, KPIs em tempo real e navegação mais rápida entre obras.
+      </p>
+    </div>,
+  ];
+
+  const hoje = new Date();
+  const eventosExemplo: EventoCalendario[] = [
+    { dia: 5, label: "Fechamento mensal (previsto)" },
+    { dia: 12, label: "Reunião de obra — Ilha de Capri" },
+    { dia: 18, label: "Revisão de aprovações pendentes" },
+    { dia: 25, label: "Vencimento de contrato — empresa terceirizada" },
+  ].map((e) => ({ ...e, dia: Math.min(e.dia, new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate()) }));
+
   return (
     <>
       <div>
@@ -95,6 +150,13 @@ export default async function DashboardPage() {
           Olá, {perfil?.nome_completo?.split(" ")[0] ?? "bem-vindo"}
         </h1>
         <p className="text-sm text-ink-500">Visão geral do sistema de medição de empreiteiros.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <Carousel slides={slides} intervalMs={7000} />
+        </div>
+        <MiniCalendar eventos={eventosExemplo} />
       </div>
 
       {kpis.length > 0 && (

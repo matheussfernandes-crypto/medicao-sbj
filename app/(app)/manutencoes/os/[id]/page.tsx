@@ -106,11 +106,19 @@ export default async function DetalheOSPage({
           <h1 className="text-xl font-semibold text-primaryDark">OS #{os.numero_os}</h1>
           <p className="text-sm text-ink-500">{obra?.nome} — criada em {new Date(os.criado_em).toLocaleString("pt-BR")}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <span className={`inline-block text-xs px-2 py-1 rounded-full font-semibold ${PRIORIDADE_COR[os.prioridade] ?? ""}`}>
             {PRIORIDADE_LABEL[os.prioridade] ?? os.prioridade}
           </span>
           <span className={`badge ${STATUS_COR[os.status] ?? ""}`}>{STATUS_LABEL[os.status] ?? os.status}</span>
+          <a
+            href={`/manutencoes/os/${os.id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-gray-200 rounded px-3 py-1.5 text-sm font-semibold"
+          >
+            Exportar PDF
+          </a>
         </div>
       </div>
 

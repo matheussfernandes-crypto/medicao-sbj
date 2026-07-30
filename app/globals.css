@@ -109,6 +109,13 @@ table th {
   color: rgba(255, 255, 255, 0.4);
   font-weight: 700;
 }
+button.nav-group-label {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+button.nav-group-label:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
 
 .table-scroll {
   overflow-x: auto;

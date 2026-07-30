@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X } from "lucide-react";
+import { X, ChevronDown, ChevronRight } from "lucide-react";
 import { navItemsForSetor } from "./nav-items";
 
 const SETOR_LABEL: Record<string, string> = {
@@ -26,6 +27,17 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   const items = navItemsForSetor(setor);
+
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const inicial: Record<string, boolean> = {};
+    for (const item of items) {
+      const grupo = item.group ?? "Navegação";
+      if (grupo !== "Navegação" && (pathname === item.href || pathname.startsWith(item.href + "/"))) {
+        inicial[grupo] = true;
+      }
+    }
+    return inicial;
+  });
 
   return (
     <>
@@ -71,18 +83,39 @@ export default function Sidebar({
             const grupo = item.group ?? "Navegação";
             const grupoAnterior = i > 0 ? items[i - 1].group ?? "Navegação" : null;
             const mostrarRotulo = grupo !== grupoAnterior;
+            const colapsavel = grupo !== "Navegação";
+            const aberto = !colapsavel || openGroups[grupo];
             return (
               <div key={`${item.href}-${i}`}>
-                {mostrarRotulo && <p className="nav-group-label">{grupo}</p>}
-                <Link
-                  href={item.href}
-                  onClick={onClose}
-                  className={"nav-item" + (active ? " active" : "")}
-                  title={item.description}
-                >
-                  <Icon className="w-[18px] h-[18px] shrink-0" />
-                  <span className="truncate">{item.label}</span>
-                </Link>
+                {mostrarRotulo && (
+                  colapsavel ? (
+                    <button
+                      type="button"
+                      onClick={() => setOpenGroups((prev) => ({ ...prev, [grupo]: !prev[grupo] }))}
+                      className="nav-group-label w-full flex items-center justify-between"
+                    >
+                      <span>{grupo}</span>
+                      {aberto ? (
+                        <ChevronDown className="w-3 h-3 shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3 shrink-0" />
+                      )}
+                    </button>
+                  ) : (
+                    <p className="nav-group-label">{grupo}</p>
+                  )
+                )}
+                {aberto && (
+                  <Link
+                    href={item.href}
+                    onClick={onClose}
+                    className={"nav-item" + (active ? " active" : "")}
+                    title={item.description}
+                  >
+                    <Icon className="w-[18px] h-[18px] shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                )}
               </div>
             );
           })}

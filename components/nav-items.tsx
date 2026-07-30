@@ -17,6 +17,7 @@ import {
   CalendarClock,
   Archive,
   FileBarChart2,
+  Tags,
 } from "lucide-react";
 
 export type NavItem = {
@@ -132,6 +133,14 @@ export const NAV_ITEMS: NavItem[] = [
     icon: FileBarChart2,
     description: "Exportar PDF/Excel do histórico de manutenções.",
     allowedSetores: ["ADMIN", "ARQUITETO", "ENGENHEIRO", "MESTRE_GERAL", "ESTAGIARIO"],
+    group: "Manutenções",
+  },
+  {
+    label: "Categorias & Problemas",
+    href: "/manutencoes/opcoes",
+    icon: Tags,
+    description: "Cadastrar novas categorias e problemas usados ao abrir uma OS.",
+    allowedSetores: ["ADMIN"],
     group: "Manutenções",
   },
   {

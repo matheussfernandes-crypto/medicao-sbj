@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SETORES_MODULO, CATEGORIA_LABEL, PROBLEMA_LABEL, STATUS_LABEL, STATUS_COR, GARANTIA_LABEL, ORIGEM_LABEL, PRIORIDADE_LABEL } from "../constants";
 import { lerFiltros, aplicarFiltros } from "./filtros";
+import { listarCategoriasEProblemas } from "../opcoes-listas";
 
 export default async function HistoricoPage({
   searchParams,
@@ -17,9 +18,10 @@ export default async function HistoricoPage({
   const usp = new URLSearchParams(Object.entries(searchParams).filter(([, v]) => v) as [string, string][]);
   const filtros = lerFiltros(usp);
 
-  const [{ data: obras }, { data: registros }] = await Promise.all([
+  const [{ data: obras }, { data: registros }, { categorias, problemas }] = await Promise.all([
     supabase.from("obras").select("id, nome").order("nome"),
     aplicarFiltros(supabase, filtros),
+    listarCategoriasEProblemas(),
   ]);
   const nomeObra: Record<string, string> = {};
   for (const o of obras ?? []) nomeObra[o.id] = o.nome;
@@ -52,11 +54,11 @@ export default async function HistoricoPage({
           </select>
           <select name="categoria" defaultValue={filtros.categoria ?? ""} className="border rounded px-2 py-1.5 text-sm">
             <option value="">Categoria</option>
-            {Object.entries(CATEGORIA_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            {categorias.map((c) => <option key={c.valor} value={c.valor}>{c.label}</option>)}
           </select>
           <select name="problema" defaultValue={filtros.problema ?? ""} className="border rounded px-2 py-1.5 text-sm">
             <option value="">Problema</option>
-            {Object.entries(PROBLEMA_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            {problemas.map((p) => <option key={p.valor} value={p.valor}>{p.label}</option>)}
           </select>
           <select name="status" defaultValue={filtros.status ?? ""} className="border rounded px-2 py-1.5 text-sm">
             <option value="">Situação</option>

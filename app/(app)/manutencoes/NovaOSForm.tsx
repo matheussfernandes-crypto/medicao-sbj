@@ -4,10 +4,9 @@ import { useMemo, useState } from "react";
 import {
   SOLICITANTE_TIPO_LABEL,
   ORIGEM_LABEL,
-  CATEGORIA_LABEL,
-  PROBLEMA_LABEL,
   PRIORIDADE_LABEL,
 } from "./constants";
+import type { Opcao } from "./opcoes-listas";
 
 type Obra = { id: string; nome: string };
 type Torre = { id: string; obra_id: string; nome: string };
@@ -19,12 +18,16 @@ export default function NovaOSForm({
   torres,
   pavimentos,
   unidades,
+  categorias,
+  problemas,
   criarOS,
 }: {
   obras: Obra[];
   torres: Torre[];
   pavimentos: Pavimento[];
   unidades: Unidade[];
+  categorias: Opcao[];
+  problemas: Opcao[];
   criarOS: (formData: FormData) => void;
 }) {
   const [obraId, setObraId] = useState(obras[0]?.id ?? "");
@@ -138,14 +141,14 @@ export default function NovaOSForm({
             <label className="text-xs text-ink-500 block mb-1">Categoria *</label>
             <select name="categoria" required className="border rounded px-3 py-2 w-full" defaultValue="">
               <option value="" disabled>Selecione…</option>
-              {Object.entries(CATEGORIA_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              {categorias.map((c) => <option key={c.valor} value={c.valor}>{c.label}</option>)}
             </select>
           </div>
           <div>
             <label className="text-xs text-ink-500 block mb-1">Problema *</label>
             <select name="problema" required className="border rounded px-3 py-2 w-full" defaultValue="">
               <option value="" disabled>Selecione…</option>
-              {Object.entries(PROBLEMA_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              {problemas.map((p) => <option key={p.valor} value={p.valor}>{p.label}</option>)}
             </select>
           </div>
           <div>

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { criarOS } from "../actions";
 import NovaOSForm from "../NovaOSForm";
 import { SETORES_EXECUTORES } from "../constants";
+import { listarCategoriasEProblemas } from "../opcoes-listas";
 
 export default async function NovaOSPage({
   searchParams,
@@ -14,11 +15,12 @@ export default async function NovaOSPage({
   const { data: perfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
   if (!perfil || !SETORES_EXECUTORES.includes(perfil.setor)) redirect("/manutencoes");
 
-  const [{ data: obras }, { data: torres }, { data: pavimentos }, { data: unidades }] = await Promise.all([
+  const [{ data: obras }, { data: torres }, { data: pavimentos }, { data: unidades }, { categorias, problemas }] = await Promise.all([
     supabase.from("obras").select("id, nome").order("nome"),
     supabase.from("torres").select("id, obra_id, nome").order("ordem"),
     supabase.from("pavimentos").select("id, torre_id, nome").order("ordem"),
     supabase.from("unidades").select("id, pavimento_id, nome").order("ordem"),
+    listarCategoriasEProblemas(),
   ]);
 
   return (
@@ -37,6 +39,8 @@ export default async function NovaOSPage({
         torres={torres ?? []}
         pavimentos={pavimentos ?? []}
         unidades={unidades ?? []}
+        categorias={categorias}
+        problemas={problemas}
         criarOS={criarOS}
       />
     </div>

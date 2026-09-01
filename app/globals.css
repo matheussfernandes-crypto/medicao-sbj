@@ -41,3 +41,85 @@ table th {
 .badge-aprovado { background: #e1f3e6; color: var(--green); }
 .badge-rejeitado { background: #fbe4e1; color: var(--red); }
 .badge-desativado { background: #e7e7ea; color: #5b5b66; }
+
+.card-table {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+}
+.card-flush {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0;
+}
+
+.stat-tile {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stat-tile .stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.stat-tile .stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1c474f;
+}
+.stat-tile .stat-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  transition: background-color 0.15s, color 0.15s;
+}
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.nav-item.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-weight: 600;
+}
+.nav-group-label {
+  padding: 16px 12px 4px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 700;
+}
+button.nav-group-label {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+button.nav-group-label:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+.table-scroll table {
+  min-width: 640px;
+}

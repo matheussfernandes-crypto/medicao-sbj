@@ -31,6 +31,9 @@ export default function CadastroPage({
             <select name="setor" required className="w-full border rounded px-3 py-2 text-sm">
               <option value="ESTAGIARIO">Estagiário</option>
               <option value="ADMIN">Engenheiro / ADM</option>
+              <option value="ARQUITETO">Arquiteto</option>
+              <option value="ENGENHEIRO">Engenheiro</option>
+              <option value="MESTRE_GERAL">Mestre Geral</option>
               <option value="RH">RH</option>
               <option value="FINANCEIRO">Financeiro</option>
             </select>

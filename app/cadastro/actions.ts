@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notificarAdmins } from "@/lib/push/send";
 import { redirect } from "next/navigation";
 
-const SETORES_VALIDOS = ["ESTAGIARIO", "ADMIN", "RH", "FINANCEIRO"];
+const SETORES_VALIDOS = ["ESTAGIARIO", "ADMIN", "RH", "FINANCEIRO", "ARQUITETO", "ENGENHEIRO", "MESTRE_GERAL"];
 
 export async function solicitarCadastro(formData: FormData) {
   const nomeCompleto = String(formData.get("nomeCompleto") || "").trim();

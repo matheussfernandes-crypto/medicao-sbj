@@ -32,7 +32,7 @@ export default function Sidebar({
     const inicial: Record<string, boolean> = {};
     for (const item of items) {
       const grupo = item.group ?? "Navegação";
-      if (grupo !== "Navegação" && (pathname === item.href || pathname.startsWith(item.href + "/"))) {
+      if (grupo !== "Navegação") {
         inicial[grupo] = true;
       }
     }

@@ -50,6 +50,7 @@ export default function LinhaLancamento({
   editarLancamento,
   excluirLancamento,
   excluirLancamentoProprio,
+  editarDataLancamento,
 }: {
   l: Lancamento;
   obraId: string;
@@ -67,10 +68,12 @@ export default function LinhaLancamento({
   editarLancamento: (formData: FormData) => void;
   excluirLancamento: (formData: FormData) => void;
   excluirLancamentoProprio: (formData: FormData) => void;
+  editarDataLancamento: (formData: FormData) => void;
 }) {
   const [editando, setEditando] = useState(false);
   const [rejeitando, setRejeitando] = useState(false);
   const [motivoTexto, setMotivoTexto] = useState("");
+  const [editandoData, setEditandoData] = useState(false);
 
   // checkbox + 9 colunas existentes (quando admin); 9 sem checkbox (não-admin)
   const COLUNAS = ehAdmin ? 10 : 9;
@@ -212,6 +215,28 @@ export default function LinhaLancamento({
             <input type="hidden" name="obraId" value={obraId} />
             <ConfirmDeleteButton jaFechado={jaFechado} />
           </form>
+        )}
+
+        {/* Editar data — ADM em qualquer status */}
+        {ehAdmin && (
+          editandoData ? (
+            <form action={editarDataLancamento} className="flex items-center gap-1 mt-1 flex-wrap" onSubmit={() => setEditandoData(false)}>
+              <input type="hidden" name="id" value={l.id} />
+              <input
+                type="date"
+                name="data"
+                defaultValue={l.data}
+                className="border rounded px-1 py-0.5 text-xs"
+                autoFocus
+              />
+              <button type="submit" className="bg-primary text-white rounded px-2 py-0.5 text-xs">Salvar</button>
+              <button type="button" onClick={() => setEditandoData(false)} className="bg-gray-200 rounded px-2 py-0.5 text-xs">✕</button>
+            </form>
+          ) : (
+            <button onClick={() => setEditandoData(true)} className="mt-1 bg-yellow-100 text-yellow-800 rounded px-2 py-0.5 text-xs">
+              📅 Data
+            </button>
+          )
         )}
       </td>
     </tr>

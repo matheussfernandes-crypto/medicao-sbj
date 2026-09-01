@@ -23,6 +23,7 @@ export default function LancamentosTable({
   editarLancamento,
   excluirLancamento,
   excluirLancamentoProprio,
+  editarDataLancamento,
 }: {
   lancamentos: Lancamento[];
   obraId: string;
@@ -39,6 +40,7 @@ export default function LancamentosTable({
   editarLancamento: (formData: FormData) => void;
   excluirLancamento: (formData: FormData) => void;
   excluirLancamentoProprio: (formData: FormData) => void;
+  editarDataLancamento?: (formData: FormData) => void;
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [notificando, setNotificando] = useState(false);
@@ -161,6 +163,7 @@ export default function LancamentosTable({
                   editarLancamento={editarLancamento}
                   excluirLancamento={excluirLancamento}
                   excluirLancamentoProprio={excluirLancamentoProprio}
+                editarDataLancamento={editarDataLancamento ?? (async () => {})}
                 />
               );
             })}

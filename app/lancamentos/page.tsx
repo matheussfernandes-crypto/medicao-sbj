@@ -8,6 +8,7 @@ import {
   excluirLancamentoProprio,
   aprovarEmLote,
   notificarEngenheiroConferir,
+  editarDataLancamento,
 } from "./actions";
 import Topbar from "../components/Topbar";
 import NovoLancamentoForm from "./NovoLancamentoForm";
@@ -150,6 +151,7 @@ export default async function LancamentosPage({
                 editarLancamento={editarLancamento}
                 excluirLancamento={excluirLancamento}
                 excluirLancamentoProprio={excluirLancamentoProprio}
+                editarDataLancamento={editarDataLancamento}
               />
             ) : (
               <p className="text-sm text-gray-400">Nenhum lançamento encontrado para esta obra.</p>

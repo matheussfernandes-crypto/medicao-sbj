@@ -332,3 +332,16 @@ export async function excluirLancamentoProprio(formData: FormData) {
   await supabase.from("lancamentos").delete().eq("id", id);
   revalidatePath("/lancamentos");
 }
+
+export async function editarDataLancamento(formData: FormData) {
+  const { supabase, user } = await exigirAprovado();
+  const { data: perfil } = await supabase.from("perfis").select("setor").eq("id", user.id).single();
+  if (perfil?.setor !== "ADMIN") return;
+
+  const id = String(formData.get("id"));
+  const novaData = String(formData.get("data"));
+  const novoMes = novaData.slice(0, 7); // "YYYY-MM"
+
+  await supabase.from("lancamentos").update({ data: novaData, mes_referencia: novoMes }).eq("id", id);
+  revalidatePath("/lancamentos");
+}

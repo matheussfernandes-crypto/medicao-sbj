@@ -60,7 +60,7 @@ export default function Sidebar({
           <div className="flex items-center gap-2 min-w-0">
             <img src="/logo-topbar.png" alt="SBJ" className="h-8 w-auto shrink-0" />
             <div className="min-w-0">
-              <p className="text-white text-sm font-semibold leading-tight truncate">Medição SBJ</p>
+              <p className="text-white text-sm font-semibold leading-tight truncate">Engenharia SBJ</p>
               {setor && (
                 <p className="text-white/50 text-[11px] leading-tight truncate">{SETOR_LABEL[setor] ?? setor}</p>
               )}

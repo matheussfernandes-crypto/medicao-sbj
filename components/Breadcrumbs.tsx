@@ -11,7 +11,7 @@ export default function Breadcrumbs() {
 
   return (
     <div className="min-w-0">
-      <p className="text-xs text-ink-400">Medição SBJ</p>
+      <p className="text-xs text-ink-400">Engenharia SBJ</p>
       <h1 className="text-sm font-semibold text-ink-900 truncate">{atual?.label ?? "Painel"}</h1>
     </div>
   );

@@ -76,7 +76,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Andamento de Obra",
     href: "/andamento-obra",
     icon: HardHat,
-    description: "Andamento de obra — módulo em construção.",
+    description: "Fluxograma de andamento por pavimento e unidade, com relatório e histórico.",
     allowedSetores: ["ESTAGIARIO", "ADMIN"],
   },
   {

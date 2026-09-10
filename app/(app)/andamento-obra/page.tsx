@@ -1,25 +1,40 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { HardHat } from "lucide-react";
+import { buscarDadosObra } from "./data";
+import AndamentoObraClient from "./AndamentoObraClient";
 
-export default async function AndamentoObraPage() {
+export default async function AndamentoObraPage({
+  searchParams,
+}: {
+  searchParams: { obra?: string };
+}) {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { data: perfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
+  const { data: perfil } = await supabase.from("perfis").select("setor, nome_completo").eq("id", user!.id).single();
   if (perfil?.setor !== "ESTAGIARIO" && perfil?.setor !== "ADMIN") redirect("/dashboard");
 
-  return (
-    <div className="card flex flex-col items-center justify-center text-center py-16 gap-3">
-      <HardHat className="w-10 h-10 text-primary" />
-      <div className="flex items-center gap-2">
-        <h1 className="text-lg font-semibold text-primaryDark">Andamento de Obra</h1>
-        <span className="badge badge-pendente">Em produção</span>
+  const { data: obras } = await supabase.from("obras").select("id, nome").order("nome");
+  const obraSelecionada = searchParams.obra || obras?.[0]?.id || null;
+
+  if (!obraSelecionada) {
+    return (
+      <div className="card text-center text-sm text-ink-500 py-16">
+        Nenhuma obra cadastrada ainda. Cadastre uma obra em "Obras &amp; Pessoas" primeiro.
       </div>
-      <p className="text-sm text-ink-500 max-w-md">
-        Este módulo está em produção e será liberado em breve, com o acompanhamento do andamento físico de cada obra.
-      </p>
+    );
+  }
+
+  const dados = await buscarDadosObra(obraSelecionada);
+
+  return (
+    <div>
+      <div className="mb-4">
+        <h1 className="text-lg font-semibold text-primaryDark">Andamento de Obra</h1>
+        <p className="text-sm text-ink-500">Fluxograma vertical de serviços por pavimento e unidade.</p>
+      </div>
+      <AndamentoObraClient key={obraSelecionada} obras={obras ?? []} dados={dados} nomeUsuario={perfil?.nome_completo ?? "Você"} />
     </div>
   );
 }

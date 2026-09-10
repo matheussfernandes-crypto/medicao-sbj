@@ -13,6 +13,9 @@ import {
   Settings,
   LayoutGrid,
   BarChart3,
+  CheckSquare,
+  X,
+  Check,
 } from "lucide-react";
 import * as actions from "./actions";
 import {
@@ -71,6 +74,8 @@ export default function AndamentoObraClient({
   const [torreAtivaId, setTorreAtivaId] = useState<string | null>(dados.torres[0]?.id ?? null);
   const [popover, setPopover] = useState<{ unidadeId: string; servicoId: string; x: number; y: number } | null>(null);
   const [obsRascunho, setObsRascunho] = useState("");
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [erro, setErro] = useState<string | null>(null);
   const [confirmacao, setConfirmacao] = useState<{ label: string; onConfirm: () => void } | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -116,6 +121,12 @@ export default function AndamentoObraClient({
     router.push(`/andamento-obra?obra=${id}`);
   }
 
+  function mudarView(v: ViewMode) {
+    setViewMode(v);
+    setModoSelecao(false);
+    setSelecionadas(new Set());
+  }
+
   // ---------- status / observação ----------
 
   function abrirPopover(e: React.MouseEvent, unidadeId: string, servicoId: string) {
@@ -124,9 +135,7 @@ export default function AndamentoObraClient({
     setPopover({ unidadeId, servicoId, x: e.clientX, y: e.clientY });
   }
 
-  function aplicarStatus(status: StatusAndamento) {
-    if (!popover) return;
-    const { unidadeId, servicoId } = popover;
+  function definirStatusCelula(unidadeId: string, servicoId: string, status: StatusAndamento) {
     const key = cellKey(unidadeId, servicoId);
     const anterior = celulas.get(key);
     setCelulas((prev) => {
@@ -144,7 +153,7 @@ export default function AndamentoObraClient({
     if ((anterior?.status ?? "NAO_INICIADO") !== status) {
       setHistorico((prev) => [
         {
-          id: "temp_" + Date.now(),
+          id: "temp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
           unidade_id: unidadeId,
           servico_id: servicoId,
           tipo: "STATUS",
@@ -158,6 +167,44 @@ export default function AndamentoObraClient({
       ]);
     }
     actions.definirStatus(unidadeId, servicoId, status).catch((e) => setErro(e.message));
+  }
+
+  function aplicarStatus(status: StatusAndamento) {
+    if (!popover) return;
+    definirStatusCelula(popover.unidadeId, popover.servicoId, status);
+  }
+
+  // ---------- seleção múltipla ----------
+
+  function alternarModoSelecao() {
+    setModoSelecao((prev) => !prev);
+    setSelecionadas(new Set());
+    setPopover(null);
+  }
+
+  function alternarSelecaoCelula(key: string) {
+    setSelecionadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function aoClicarCelula(e: React.MouseEvent, unidadeId: string, servicoId: string) {
+    if (modoSelecao) {
+      alternarSelecaoCelula(cellKey(unidadeId, servicoId));
+    } else {
+      abrirPopover(e, unidadeId, servicoId);
+    }
+  }
+
+  function aplicarStatusEmMassa(status: StatusAndamento) {
+    selecionadas.forEach((key) => {
+      const [unidadeId, servicoId] = key.split("__");
+      definirStatusCelula(unidadeId, servicoId, status);
+    });
+    setSelecionadas(new Set());
   }
 
   function salvarObs() {
@@ -454,16 +501,16 @@ export default function AndamentoObraClient({
         </div>
         <div className="flex-1" />
         <div className="flex gap-2">
-          <TabButton active={viewMode === "grid"} onClick={() => setViewMode("grid")} icon={<LayoutGrid className="w-4 h-4" />}>
+          <TabButton active={viewMode === "grid"} onClick={() => mudarView("grid")} icon={<LayoutGrid className="w-4 h-4" />}>
             Andamento
           </TabButton>
-          <TabButton active={viewMode === "config"} onClick={() => setViewMode("config")} icon={<Settings className="w-4 h-4" />}>
+          <TabButton active={viewMode === "config"} onClick={() => mudarView("config")} icon={<Settings className="w-4 h-4" />}>
             Pavimentos e serviços
           </TabButton>
-          <TabButton active={viewMode === "relatorio"} onClick={() => setViewMode("relatorio")} icon={<BarChart3 className="w-4 h-4" />}>
+          <TabButton active={viewMode === "relatorio"} onClick={() => mudarView("relatorio")} icon={<BarChart3 className="w-4 h-4" />}>
             Relatório
           </TabButton>
-          <TabButton active={viewMode === "historico"} onClick={() => setViewMode("historico")} icon={<HistoryIcon className="w-4 h-4" />}>
+          <TabButton active={viewMode === "historico"} onClick={() => mudarView("historico")} icon={<HistoryIcon className="w-4 h-4" />}>
             Histórico
           </TabButton>
         </div>
@@ -507,7 +554,10 @@ export default function AndamentoObraClient({
                     .map((t) => (
                       <button
                         key={t.id}
-                        onClick={() => setTorreAtivaId(t.id)}
+                        onClick={() => {
+                          setTorreAtivaId(t.id);
+                          setSelecionadas(new Set());
+                        }}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
                           t.id === torreAtiva?.id ? "bg-primary text-white border-primary" : "bg-white border-border text-ink-700"
                         }`}
@@ -531,7 +581,20 @@ export default function AndamentoObraClient({
                         {STATUS_LABEL[s]}
                       </span>
                     ))}
-                    <span className="ml-auto">Clique numa célula pra apontar o status do serviço naquela unidade</span>
+                    <span className="ml-auto">
+                      {modoSelecao
+                        ? "Clique nas células pra marcar — depois escolha o status lá embaixo pra aplicar em todas de uma vez"
+                        : "Clique numa célula pra apontar o status do serviço naquela unidade"}
+                    </span>
+                    <button
+                      onClick={alternarModoSelecao}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border ${
+                        modoSelecao ? "bg-primaryDark text-white border-primaryDark" : "bg-white border-border text-ink-700"
+                      }`}
+                    >
+                      {modoSelecao ? <X className="w-3.5 h-3.5" /> : <CheckSquare className="w-3.5 h-3.5" />}
+                      {modoSelecao ? "Sair da seleção" : "Selecionar várias"}
+                    </button>
                   </div>
 
                   <div className="card-table overflow-auto" style={{ maxHeight: "66vh" }}>
@@ -581,17 +644,30 @@ export default function AndamentoObraClient({
                             {u.nome}
                           </td>
                           {servicosOrdenados.map((s) => {
-                            const cel = celulas.get(cellKey(u.id, s.id));
+                            const key = cellKey(u.id, s.id);
+                            const cel = celulas.get(key);
                             const status = cel?.status ?? "NAO_INICIADO";
+                            const selecionada = selecionadas.has(key);
                             return (
                               <td
                                 key={s.id}
-                                onClick={(e) => abrirPopover(e, u.id, s.id)}
+                                onClick={(e) => aoClicarCelula(e, u.id, s.id)}
                                 title={`${pav.nome} · ${u.nome} · ${s.nome}: ${STATUS_LABEL[status]}`}
                                 className="border-b border-r border-border cursor-pointer relative hover:brightness-95"
-                                style={{ background: STATUS_COR[status], width: 26, height: 26, minWidth: 26 }}
+                                style={{
+                                  background: STATUS_COR[status],
+                                  width: 26,
+                                  height: 26,
+                                  minWidth: 26,
+                                  boxShadow: selecionada ? "inset 0 0 0 2px #f4dd3d" : undefined,
+                                }}
                               >
-                                {cel?.observacao && (
+                                {selecionada && (
+                                  <span className="absolute inset-0 flex items-center justify-center bg-black/10">
+                                    <Check className="w-3.5 h-3.5 text-white drop-shadow" />
+                                  </span>
+                                )}
+                                {!selecionada && cel?.observacao && (
                                   <span className="absolute top-0.5 right-0.5 w-1 h-1 rounded-full bg-primaryDark" />
                                 )}
                               </td>
@@ -672,6 +748,33 @@ export default function AndamentoObraClient({
           servicoById={servicoById}
           onExportarCSV={exportarHistoricoCSV}
         />
+      )}
+
+      {modoSelecao && selecionadas.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-primaryDark text-white rounded-xl shadow-panel px-4 py-3 flex items-center gap-3 flex-wrap justify-center">
+          <span className="text-sm font-medium">
+            {selecionadas.size} célula{selecionadas.size > 1 ? "s" : ""} selecionada{selecionadas.size > 1 ? "s" : ""}
+          </span>
+          <span className="text-xs text-white/60">Aplicar:</span>
+          <div className="flex gap-1.5">
+            {STATUS_ORDER.map((s) => (
+              <button
+                key={s}
+                onClick={() => aplicarStatusEmMassa(s)}
+                className="rounded-md py-1.5 px-3 text-xs font-semibold"
+                style={{ background: STATUS_COR[s], color: STATUS_TEXTO[s] }}
+              >
+                {STATUS_LABEL[s]}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setSelecionadas(new Set())}
+            className="text-xs text-white/70 hover:text-white underline ml-1"
+          >
+            Limpar seleção
+          </button>
+        </div>
       )}
 
       {popover && (

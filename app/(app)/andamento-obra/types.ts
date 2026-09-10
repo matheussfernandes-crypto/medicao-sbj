@@ -66,3 +66,15 @@ export type DadosObra = {
 export function cellKey(unidadeId: string, servicoId: string) {
   return unidadeId + "__" + servicoId;
 }
+
+// Fluxograma padrão de serviços da SBJ (mesma ordem de execução usada nos
+// fluxogramas verticais em papel). Usado pra pré-popular qualquer obra que
+// ainda não tenha nenhum serviço de andamento cadastrado.
+export const SERVICOS_PADRAO = [
+  "Estrutura", "Alvenaria Perímetro", "Alvenaria", "Tubulação Elétrica Parede", "Tubulação Elétrica Teto",
+  "Tubulação Hidráulica Parede", "Tubulação Hidráulica Teto", "Tubulação Gás", "Tubulação Split", "Churrasqueira",
+  "Contramarco", "Chapisco Interno", "Reboco Interno", "Fiação Elétrica", "Contrapiso", "Manta Acústica",
+  "Impermeabilização Esquadrias", "Impermeabilização Boxes", "Soleira Granito", "Forro de Gesso", "Azulejo",
+  "Piso Cerâmico", "Autonivelante", "Acab. Churrasqueira", "Vinílico", "Esquadria de Alumínio", "Selador Acrílico",
+  "Massa Corrida", "Pintura Interna", "Sanitários", "Portas e Rodapés", "Pintura Final", "Personalizado",
+];

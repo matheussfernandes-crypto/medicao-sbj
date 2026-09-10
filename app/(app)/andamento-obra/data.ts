@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { DadosObra, CelulaStatus, HistoricoItem } from "./types";
+import { SERVICOS_PADRAO, type DadosObra, type CelulaStatus, type HistoricoItem } from "./types";
 
 export async function buscarDadosObra(obraId: string): Promise<DadosObra> {
   const supabase = createClient();
@@ -30,11 +30,22 @@ export async function buscarDadosObra(obraId: string): Promise<DadosObra> {
         .order("ordem")
     : { data: [] };
 
-  const { data: servicos } = await supabase
+  let { data: servicos } = await supabase
     .from("andamento_servicos")
     .select("id, obra_id, nome, ordem")
     .eq("obra_id", obraId)
     .order("ordem");
+
+  // Obra ainda sem nenhum serviço cadastrado: pré-popula com o fluxograma
+  // padrão da SBJ, pra não precisar montar a lista do zero toda vez.
+  if (!servicos || servicos.length === 0) {
+    const linhas = SERVICOS_PADRAO.map((nome, ordem) => ({ obra_id: obraId, nome, ordem }));
+    const { data: inseridos } = await supabase
+      .from("andamento_servicos")
+      .upsert(linhas, { onConflict: "obra_id,nome", ignoreDuplicates: true })
+      .select("id, obra_id, nome, ordem");
+    servicos = (inseridos ?? []).sort((a, b) => a.ordem - b.ordem);
+  }
 
   const unidadeIds = (unidades ?? []).map((u) => u.id);
 

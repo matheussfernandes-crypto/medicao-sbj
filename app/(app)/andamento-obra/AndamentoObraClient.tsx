@@ -493,6 +493,11 @@ export default function AndamentoObraClient({
             <div className="card text-center text-sm text-ink-500 py-10">
               Nenhuma torre cadastrada ainda para esta obra. Vá em <b>Pavimentos e serviços</b> pra começar.
             </div>
+          ) : servicosOrdenados.length === 0 ? (
+            <div className="card text-center text-sm text-ink-500 py-10">
+              Nenhum serviço cadastrado ainda. Vá em <b>Pavimentos e serviços</b> pra adicionar as fases do fluxograma (Estrutura,
+              Alvenaria, Reboco...).
+            </div>
           ) : (
             <>
               {torres.length > 1 && (
@@ -513,17 +518,23 @@ export default function AndamentoObraClient({
                 </div>
               )}
 
-              <div className="flex items-center gap-3 text-xs text-ink-500 flex-wrap">
-                {STATUS_ORDER.map((s) => (
-                  <span key={s} className="flex items-center gap-1.5">
-                    <span className="inline-block w-3 h-3 rounded" style={{ background: STATUS_COR[s] }} />
-                    {STATUS_LABEL[s]}
-                  </span>
-                ))}
-                <span className="ml-auto">Clique numa célula pra apontar o status do serviço naquela unidade</span>
-              </div>
+              {pavimentosDaTorre.length === 0 ? (
+                <div className="card text-center text-sm text-ink-500 py-10">
+                  {torreAtiva?.nome} ainda não tem pavimentos cadastrados. Vá em <b>Pavimentos e serviços</b> pra adicionar.
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 text-xs text-ink-500 flex-wrap">
+                    {STATUS_ORDER.map((s) => (
+                      <span key={s} className="flex items-center gap-1.5">
+                        <span className="inline-block w-3 h-3 rounded" style={{ background: STATUS_COR[s] }} />
+                        {STATUS_LABEL[s]}
+                      </span>
+                    ))}
+                    <span className="ml-auto">Clique numa célula pra apontar o status do serviço naquela unidade</span>
+                  </div>
 
-              <div className="card-table overflow-auto" style={{ maxHeight: "66vh" }}>
+                  <div className="card-table overflow-auto" style={{ maxHeight: "66vh" }}>
                 <table className="border-separate border-spacing-0 text-xs">
                   <thead>
                     <tr>
@@ -591,7 +602,9 @@ export default function AndamentoObraClient({
                     })}
                   </tbody>
                 </table>
-              </div>
+                  </div>
+                </>
+              )}
             </>
           )}
         </>
@@ -835,7 +848,11 @@ function ConfigPanel(props: {
       <div className="card">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-primaryDark">Torres</h2>
-          <button onClick={props.onAddTorre} className="flex items-center gap-1 text-xs px-2 py-1.5 border border-border rounded-md">
+          <button
+            onClick={props.onAddTorre}
+            disabled={props.salvando}
+            className="flex items-center gap-1 text-xs px-2 py-1.5 border border-border rounded-md disabled:opacity-50 disabled:cursor-wait"
+          >
             <Plus className="w-3.5 h-3.5" /> Nova torre
           </button>
         </div>
@@ -925,7 +942,8 @@ function ConfigPanel(props: {
                         ))}
                         <button
                           onClick={() => props.onAddUnidade(p.id)}
-                          className="text-xs px-1.5 border border-dashed border-border rounded text-ink-500"
+                          disabled={props.salvando}
+                          className="text-xs px-1.5 border border-dashed border-border rounded text-ink-500 disabled:opacity-50 disabled:cursor-wait"
                         >
                           + unidade
                         </button>
@@ -947,7 +965,11 @@ function ConfigPanel(props: {
               })}
             </tbody>
           </table>
-          <button onClick={props.onAddPavimento} className="mt-3 flex items-center gap-1 text-xs px-2 py-1.5 border border-border rounded-md">
+          <button
+            onClick={props.onAddPavimento}
+            disabled={props.salvando}
+            className="mt-3 flex items-center gap-1 text-xs px-2 py-1.5 border border-border rounded-md disabled:opacity-50 disabled:cursor-wait"
+          >
             <Plus className="w-3.5 h-3.5" /> Adicionar pavimento
           </button>
         </div>
@@ -981,7 +1003,11 @@ function ConfigPanel(props: {
             ))}
           </tbody>
         </table>
-        <button onClick={props.onAddServico} className="mt-3 flex items-center gap-1 text-xs px-2 py-1.5 border border-border rounded-md">
+        <button
+          onClick={props.onAddServico}
+          disabled={props.salvando}
+          className="mt-3 flex items-center gap-1 text-xs px-2 py-1.5 border border-border rounded-md disabled:opacity-50 disabled:cursor-wait"
+        >
           <Plus className="w-3.5 h-3.5" /> Adicionar serviço
         </button>
       </div>
@@ -1232,16 +1258,33 @@ function RelatorioPanel({
         @media print {
           @page {
             size: A4 landscape;
-            margin: 9mm;
+            margin: 8mm;
           }
           header,
           aside,
           .print\\:hidden {
             display: none !important;
           }
+          body {
+            background: #fff !important;
+          }
+          main {
+            padding: 0 !important;
+          }
           .card {
             padding: 8px 10px !important;
             box-shadow: none !important;
+            border-radius: 6px !important;
+          }
+          h1 {
+            font-size: 16px !important;
+          }
+          table {
+            font-size: 8.5px !important;
+          }
+          th,
+          td {
+            padding: 2px 5px !important;
           }
         }
       `}</style>

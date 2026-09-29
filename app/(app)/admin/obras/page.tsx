@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { criarObra, criarServico, editarValorServico, salvarRetencao } from "./actions";
+import { criarObra, criarServico, editarValorServico } from "./actions";
+import RetencaoForm from "./RetencaoForm";
 import { vincularEmpresaObra, editarVinculoEmpresaObra, removerVinculoEmpresaObra } from "./empresa-obra-actions";
 
 const TIPO_LABEL: Record<string, string> = {
@@ -128,26 +129,12 @@ export default async function ObrasPage({
               O % informado vale a partir deste mês até você cadastrar um novo valor. Medições já lançadas em meses anteriores mantêm a % que estava em vigor na época.
             </p>
             {pessoas && pessoas.length ? (
-              <div className="space-y-2">
-                {pessoas.map((p) => (
-                  <form key={p.id} action={salvarRetencao} className="flex items-center gap-2">
-                    <input type="hidden" name="pessoaId" value={p.id} />
-                    <input type="hidden" name="obraId" value={obraSelecionada} />
-                    <input type="hidden" name="mes" value={mes} />
-                    <span className="flex-1 text-sm">{p.nome}</span>
-                    <input
-                      type="number"
-                      name="percent"
-                      min={0}
-                      max={100}
-                      defaultValue={retencoesPorPessoa[p.id] ?? 0}
-                      className="border rounded px-2 py-1 w-20 text-right"
-                    />
-                    <span className="text-sm text-gray-500">%</span>
-                    <button className="bg-gray-200 rounded px-3 py-1 text-sm">Salvar</button>
-                  </form>
-                ))}
-              </div>
+              <RetencaoForm
+                pessoas={pessoas}
+                retencoesPorPessoa={retencoesPorPessoa}
+                obraId={obraSelecionada!}
+                mes={mes}
+              />
             ) : (
               <p className="text-sm text-gray-400">Nenhuma pessoa ativa nesta obra ainda. Cadastre em RH &amp; Pessoas.</p>
             )}

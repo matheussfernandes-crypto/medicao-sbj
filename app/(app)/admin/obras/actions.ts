@@ -99,3 +99,57 @@ export async function salvarRetencao(formData: FormData) {
 
   revalidatePath("/admin/obras");
 }
+
+export async function verificarLancamentos(pessoaId: string, mes: string): Promise<number> {
+  const { supabase } = await exigirAdmin();
+  const { count } = await supabase
+    .from("lancamentos")
+    .select("id", { count: "exact", head: true })
+    .eq("pessoa_id", pessoaId)
+    .eq("mes_referencia", mes)
+    .in("tipo", ["MEDICAO", "VALE_MEDICAO"]);
+  return count ?? 0;
+}
+
+export async function salvarRetencaoRetroativo(formData: FormData) {
+  const { supabase, user } = await exigirAdmin();
+  const pessoaId = String(formData.get("pessoaId"));
+  const obraId = String(formData.get("obraId"));
+  const mes = String(formData.get("mes"));
+  const pctNovo = parseFloat(String(formData.get("percent") || "0")) || 0;
+
+  const { data: vigentes } = await supabase
+    .from("retencoes_pessoa")
+    .select("mes, percent")
+    .eq("pessoa_id", pessoaId)
+    .lte("mes", mes)
+    .order("mes", { ascending: false })
+    .limit(1);
+
+  const pctAnterior = vigentes && vigentes[0] ? Number(vigentes[0].percent) : 0;
+
+  await supabase.from("retencoes_pessoa").delete().eq("pessoa_id", pessoaId).eq("mes", mes);
+  await supabase.from("retencoes_pessoa").insert({ pessoa_id: pessoaId, mes, percent: pctNovo / 100 });
+
+  if (Math.round(pctAnterior * 100) !== pctNovo) {
+    await supabase.from("log_alteracoes_retencao").insert({
+      pessoa_id: pessoaId,
+      obra_id: obraId,
+      mes_aplicacao: mes,
+      percent_anterior: pctAnterior,
+      percent_novo: pctNovo / 100,
+      alterado_por: user.id,
+    });
+  }
+
+  // Atualiza retencao_pct_usado nas medições JÁ LANÇADAS deste mês (somente este mês)
+  await supabase
+    .from("lancamentos")
+    .update({ retencao_pct_usado: pctNovo / 100 })
+    .eq("pessoa_id", pessoaId)
+    .eq("mes_referencia", mes)
+    .in("tipo", ["MEDICAO", "VALE_MEDICAO"]);
+
+  revalidatePath("/admin/obras");
+  revalidatePath("/lancamentos");
+}

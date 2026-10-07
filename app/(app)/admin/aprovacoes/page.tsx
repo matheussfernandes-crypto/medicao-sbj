@@ -1,3 +1,4 @@
+import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { aprovarConta, rejeitarConta, desativarConta, reativarConta } from "./actions";
@@ -21,8 +22,8 @@ function fmtData(iso: string | null) {
 export default async function AprovacoesPage() {
   const supabase = createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: meuPerfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
+  const user = await getUsuarioAtual();
+  const { data: meuPerfil } = await perfilDaRequisicao(user!.id);
   if (meuPerfil?.setor !== "ADMIN") {
     redirect("/dashboard");
   }

@@ -1,13 +1,12 @@
+import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { HardHat } from "lucide-react";
 
 export default async function AndamentoObraPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: perfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
+  const user = await getUsuarioAtual();
+  const { data: perfil } = await perfilDaRequisicao(user!.id);
   if (perfil?.setor !== "ESTAGIARIO" && perfil?.setor !== "ADMIN") redirect("/dashboard");
 
   return (

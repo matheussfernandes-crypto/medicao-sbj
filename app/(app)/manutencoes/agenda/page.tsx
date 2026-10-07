@@ -1,3 +1,4 @@
+import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -9,8 +10,8 @@ export default async function AgendaPage({
   searchParams: { funcionario?: string; empresa?: string; obra?: string; data?: string };
 }) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: perfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
+  const user = await getUsuarioAtual();
+  const { data: perfil } = await perfilDaRequisicao(user!.id);
   if (!perfil || !SETORES_MODULO.includes(perfil.setor)) redirect("/dashboard");
 
   const [{ data: obras }, { data: funcionarios }, { data: empresas }] = await Promise.all([

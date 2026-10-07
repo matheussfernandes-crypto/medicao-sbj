@@ -1,3 +1,4 @@
+import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIA_LABEL, PROBLEMA_LABEL } from "../constants";
@@ -7,8 +8,8 @@ type Item = { id: string; nome: string; ativo: boolean };
 
 export default async function OpcoesManutencaoPage() {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: perfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
+  const user = await getUsuarioAtual();
+  const { data: perfil } = await perfilDaRequisicao(user!.id);
   if (!perfil || perfil.setor !== "ADMIN") redirect("/manutencoes");
 
   const [{ data: categorias }, { data: problemas }] = await Promise.all([

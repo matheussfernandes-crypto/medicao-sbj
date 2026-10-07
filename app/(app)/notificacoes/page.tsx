@@ -1,3 +1,4 @@
+import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -5,10 +6,10 @@ import { marcarComoLida, marcarTodasComoLidas } from "./actions";
 
 export default async function NotificacoesPage() {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUsuarioAtual();
   if (!user) redirect("/login");
 
-  const { data: perfil } = await supabase.from("perfis").select("setor").eq("id", user.id).single();
+  const { data: perfil } = await perfilDaRequisicao(user.id);
 
   const { data: notificacoes } = await supabase
     .from("notificacoes")

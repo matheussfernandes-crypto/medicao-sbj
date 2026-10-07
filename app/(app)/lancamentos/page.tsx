@@ -1,3 +1,4 @@
+import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { createClient } from "@/lib/supabase/server";
 import {
   criarLancamento,
@@ -19,60 +20,57 @@ export default async function LancamentosPage({
   searchParams: { obra?: string; erro?: string };
 }) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: meuPerfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
+  const user = await getUsuarioAtual();
+  const { data: meuPerfil } = await perfilDaRequisicao(user!.id);
   const ehAdmin = meuPerfil?.setor === "ADMIN";
 
   const { data: obras } = await supabase.from("obras").select("id, nome").order("nome");
   const obraId = searchParams.obra || obras?.[0]?.id || null;
   const obraNome = obras?.find((o) => o.id === obraId)?.nome ?? "";
 
-  const { data: pessoas } = obraId
-    ? await supabase
-        .from("pessoas")
-        .select("id, nome")
-        .eq("obra_id", obraId)
-        .eq("status", "ATIVO")
-        .eq("papel", "EMPREITEIRO")
-        .order("nome")
-    : { data: [] };
+  const vazio = Promise.resolve({ data: [] as any[] });
+  const [
+    { data: pessoas },
+    { data: todasPessoasObra },
+    { data: contratosAtivos },
+    { data: servicos },
+    { data: lancamentos },
+    { data: fechamentosObra },
+  ] = await Promise.all([
+    obraId
+      ? supabase.from("pessoas").select("id, nome").eq("obra_id", obraId).eq("status", "ATIVO").eq("papel", "EMPREITEIRO").order("nome")
+      : vazio,
+    obraId ? supabase.from("pessoas").select("id, nome").eq("obra_id", obraId) : vazio,
+    // Contratos de empresas terceirizadas com status ATIVO para esta obra
+    obraId
+      ? supabase
+          .from("empresa_obra")
+          .select("id, tipo_servico, retencao_pct, retencao_contratual, empresas_terceirizadas(nome)")
+          .eq("obra_id", obraId)
+          .eq("status", "ATIVO")
+          .order("criado_em")
+      : vazio,
+    obraId ? supabase.from("servicos").select("id, nome, tipo, valor_unitario").eq("obra_id", obraId).order("criado_em") : vazio,
+    obraId
+      ? supabase
+          .from("lancamentos")
+          .select(
+            "id, tipo, data, mes_referencia, pessoa_id, servico, local, detalhe_texto, total_reais, valor_vale_hibrido, retencao_pct_usado, status, vale_real, observacao_medicao, quantidade, criado_por, motivo_rejeicao"
+          )
+          .eq("obra_id", obraId)
+          .order("criado_em", { ascending: false })
+          .limit(50)
+      : vazio,
+    obraId ? supabase.from("fechamentos").select("tipo, mes_referencia").eq("obra_id", obraId) : vazio,
+  ]);
 
-  const { data: todasPessoasObra } = obraId
-    ? await supabase.from("pessoas").select("id, nome").eq("obra_id", obraId)
-    : { data: [] };
-
-  // Contratos de empresas terceirizadas com status ATIVO para esta obra
-  const { data: contratosAtivos } = obraId
-    ? await supabase
-        .from("empresa_obra")
-        .select("id, tipo_servico, retencao_pct, retencao_contratual, empresas_terceirizadas(nome)")
-        .eq("obra_id", obraId)
-        .eq("status", "ATIVO")
-        .order("criado_em")
-    : { data: [] };
-
-  const empresasContrato = (contratosAtivos ?? []).map((c) => ({
+  const empresasContrato = (contratosAtivos ?? []).map((c: any) => ({
     id: c.id,
     empresa_nome: (c.empresas_terceirizadas as any)?.nome ?? "—",
     tipo_servico: c.tipo_servico,
     retencao_pct: Number(c.retencao_pct),
     retencao_contratual: c.retencao_contratual,
   }));
-
-  const { data: servicos } = obraId
-    ? await supabase.from("servicos").select("id, nome, tipo, valor_unitario").eq("obra_id", obraId).order("criado_em")
-    : { data: [] };
-
-  const { data: lancamentos } = obraId
-    ? await supabase
-        .from("lancamentos")
-        .select(
-          "id, tipo, data, mes_referencia, pessoa_id, servico, local, detalhe_texto, total_reais, valor_vale_hibrido, retencao_pct_usado, status, vale_real, observacao_medicao, quantidade, criado_por, motivo_rejeicao"
-        )
-        .eq("obra_id", obraId)
-        .order("criado_em", { ascending: false })
-        .limit(50)
-    : { data: [] };
 
   const nomesPessoas: Record<string, string> = {};
   for (const p of todasPessoasObra ?? []) nomesPessoas[p.id] = p.nome;
@@ -87,9 +85,6 @@ export default async function LancamentosPage({
     for (const p of perfisCriadores ?? []) nomesCriadores[p.id] = p.nome_completo;
   }
 
-  const { data: fechamentosObra } = obraId
-    ? await supabase.from("fechamentos").select("tipo, mes_referencia").eq("obra_id", obraId)
-    : { data: [] };
   const mesesFechadosArr = (fechamentosObra ?? []).map((f) => `${f.tipo}-${f.mes_referencia}`);
 
   return (

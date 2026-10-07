@@ -1,3 +1,4 @@
+import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -37,8 +38,8 @@ export default async function DetalheOSPage({
   searchParams: { sucesso?: string; erro?: string };
 }) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: perfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
+  const user = await getUsuarioAtual();
+  const { data: perfil } = await perfilDaRequisicao(user!.id);
   if (!perfil || !SETORES_MODULO.includes(perfil.setor)) redirect("/dashboard");
 
   const souExecutor = SETORES_EXECUTORES.includes(perfil.setor);

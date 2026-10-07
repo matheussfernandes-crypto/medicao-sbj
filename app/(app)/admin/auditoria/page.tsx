@@ -1,3 +1,4 @@
+import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -67,8 +68,8 @@ export default async function AuditoriaPage({
   searchParams: { tabela?: string };
 }) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: meuPerfil } = await supabase.from("perfis").select("setor, nome_completo").eq("id", user!.id).single();
+  const user = await getUsuarioAtual();
+  const { data: meuPerfil } = await perfilDaRequisicao(user!.id);
   if (meuPerfil?.setor !== "ADMIN") redirect("/dashboard");
 
   const filtroTabela = searchParams.tabela;

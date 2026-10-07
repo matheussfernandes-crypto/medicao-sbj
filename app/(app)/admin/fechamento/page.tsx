@@ -1,3 +1,4 @@
+import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { salvarConfigNotificacao, finalizarFechamentoMedicao, finalizarFechamentoVale, excluirFechamento } from "./actions";
@@ -13,8 +14,8 @@ export default async function FechamentoPage({
   searchParams: { obra?: string; mes?: string; sucesso?: string; erro?: string };
 }) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: meuPerfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
+  const user = await getUsuarioAtual();
+  const { data: meuPerfil } = await perfilDaRequisicao(user!.id);
   if (meuPerfil?.setor !== "ADMIN") redirect("/dashboard");
 
   const { data: obras } = await supabase.from("obras").select("id, nome").order("nome");

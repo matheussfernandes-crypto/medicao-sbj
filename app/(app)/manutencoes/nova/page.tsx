@@ -1,3 +1,4 @@
+import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { criarOS } from "../actions";
@@ -11,8 +12,8 @@ export default async function NovaOSPage({
   searchParams: { erro?: string };
 }) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: perfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
+  const user = await getUsuarioAtual();
+  const { data: perfil } = await perfilDaRequisicao(user!.id);
   if (!perfil || !SETORES_EXECUTORES.includes(perfil.setor)) redirect("/manutencoes");
 
   const [{ data: obras }, { data: torres }, { data: pavimentos }, { data: unidades }, { categorias, problemas }] = await Promise.all([

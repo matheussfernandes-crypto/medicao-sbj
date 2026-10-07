@@ -1,3 +1,4 @@
+import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { navItemsForSetor } from "@/components/nav-items";
@@ -11,14 +12,8 @@ function mesAtualISO() {
 
 export default async function DashboardPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: perfil } = await supabase
-    .from("perfis")
-    .select("nome_completo, setor")
-    .eq("id", user!.id)
-    .single();
+  const user = await getUsuarioAtual();
+  const { data: perfil } = await perfilDaRequisicao(user!.id);
 
   const setor = perfil?.setor ?? "ESTAGIARIO";
   const mes = mesAtualISO();
@@ -50,16 +45,18 @@ export default async function DashboardPage() {
   }
 
   if (setor === "FINANCEIRO" || setor === "ADMIN") {
-    const { data: pessoasRetencao } = await supabase
-      .from("pessoas")
-      .select("id, saldo_inicial_retido")
-      .not("papel", "in", "(MESTRE,MESTRE_GERAL)");
-    const { data: medicoesRetencao } = await supabase
-      .from("lancamentos")
-      .select("pessoa_id, total_reais, retencao_pct_usado")
-      .in("tipo", ["MEDICAO", "VALE_MEDICAO"])
-      .eq("status", "APROVADO");
-    const { data: retiradas } = await supabase.from("retiradas_retido").select("pessoa_id, valor");
+    const [{ data: pessoasRetencao }, { data: medicoesRetencao }, { data: retiradas }] = await Promise.all([
+      supabase
+        .from("pessoas")
+        .select("id, saldo_inicial_retido")
+        .not("papel", "in", "(MESTRE,MESTRE_GERAL)"),
+      supabase
+        .from("lancamentos")
+        .select("pessoa_id, total_reais, retencao_pct_usado")
+        .in("tipo", ["MEDICAO", "VALE_MEDICAO"])
+        .eq("status", "APROVADO"),
+      supabase.from("retiradas_retido").select("pessoa_id, valor"),
+    ]);
 
     const retidoPorPessoa: Record<string, number> = {};
     for (const l of medicoesRetencao ?? []) {

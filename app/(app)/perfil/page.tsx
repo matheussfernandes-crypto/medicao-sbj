@@ -1,3 +1,4 @@
+import { getUsuarioAtual } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import PasswordField from "../../components/PasswordField";
@@ -19,7 +20,7 @@ export default async function PerfilPage({
   searchParams: { erro?: string; sucesso?: string };
 }) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUsuarioAtual();
   if (!user) redirect("/login");
 
   const { data: perfil } = await supabase

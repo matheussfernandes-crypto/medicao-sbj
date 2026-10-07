@@ -1,3 +1,4 @@
+import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import GraficoPizza, { type FatiaCategoria } from "@/components/GraficoPizza";
@@ -35,8 +36,8 @@ export default async function DashboardGastosPage({
   searchParams: { mes?: string };
 }) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: meuPerfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
+  const user = await getUsuarioAtual();
+  const { data: meuPerfil } = await perfilDaRequisicao(user!.id);
   if (meuPerfil?.setor !== "FINANCEIRO" && meuPerfil?.setor !== "ADMIN") redirect("/dashboard");
 
   const mesSelecionado = searchParams.mes && /^\d{4}-\d{2}$/.test(searchParams.mes) ? searchParams.mes : mesAtualISO();

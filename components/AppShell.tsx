@@ -11,8 +11,10 @@ export default function AppShell({
   setor,
   nome,
   naoLidas,
+  contadores,
   children,
 }: {
+  contadores?: Record<string, number>;
   setor: string | null;
   nome: string | null;
   naoLidas: number;
@@ -22,7 +24,7 @@ export default function AppShell({
 
   return (
     <div className="min-h-screen lg:flex">
-      <Sidebar setor={setor} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+      <Sidebar setor={setor} contadores={contadores} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       <div className="flex-1 min-w-0 flex flex-col min-h-screen">
         <header className="h-16 shrink-0 bg-white border-b border-border flex items-center justify-between gap-3 px-4 lg:px-6">

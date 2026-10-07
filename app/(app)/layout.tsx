@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (profile.status !== "aprovado") redirect("/aguardando-aprovacao");
 
   return (
-    <AppShell setor={profile.setor} nome={profile.nome} naoLidas={profile.naoLidas}>
+    <AppShell setor={profile.setor} nome={profile.nome} naoLidas={profile.naoLidas} contadores={{ contratosPendentes: profile.contratosPendentes }}>
       {children}
     </AppShell>
   );

@@ -18,6 +18,10 @@ import {
   Archive,
   FileBarChart2,
   Tags,
+  Handshake,
+  ClipboardPen,
+  CheckCheck,
+  FileSpreadsheet,
 } from "lucide-react";
 
 export type NavItem = {
@@ -27,6 +31,7 @@ export type NavItem = {
   description: string;
   allowedSetores?: string[]; // undefined = todos os setores aprovados
   group?: string; // undefined = grupo padrão "Navegação"
+  badgeKey?: "contratosPendentes"; // contador exibido ao lado do item
 };
 
 // Fonte única da navegação — usada pela Sidebar e pelo Breadcrumbs, para não
@@ -142,6 +147,39 @@ export const NAV_ITEMS: NavItem[] = [
     description: "Cadastrar novas categorias e problemas usados ao abrir uma OS.",
     allowedSetores: ["ADMIN"],
     group: "Manutenções",
+  },
+  {
+    label: "Contratos",
+    href: "/contratos",
+    icon: Handshake,
+    description: "Contratos de empresas terceirizadas: itens, aditivos, retenção e PDFs.",
+    allowedSetores: ["ADMIN", "ENGENHEIRO", "ESTAGIARIO", "FINANCEIRO"],
+    group: "Contratos",
+  },
+  {
+    label: "Medições de Contratos",
+    href: "/contratos/medicoes",
+    icon: ClipboardPen,
+    description: "Lançar medições, vales e vales de medição de empresas terceirizadas.",
+    allowedSetores: ["ADMIN", "ENGENHEIRO", "ESTAGIARIO"],
+    group: "Contratos",
+  },
+  {
+    label: "Aprovações de Contratos",
+    href: "/contratos/aprovacoes",
+    icon: CheckCheck,
+    description: "Aprovar medições/vales de contratos (com glosa) e solicitações de aditivo.",
+    allowedSetores: ["ADMIN"],
+    group: "Contratos",
+    badgeKey: "contratosPendentes",
+  },
+  {
+    label: "Fechamento de Contratos",
+    href: "/contratos/fechamento",
+    icon: FileSpreadsheet,
+    description: "Boletim mensal por contrato, com PDF no padrão SBJ.",
+    allowedSetores: ["ADMIN"],
+    group: "Contratos",
   },
   {
     label: "Retiradas de retido",

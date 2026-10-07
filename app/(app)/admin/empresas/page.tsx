@@ -1,3 +1,4 @@
+import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { criarEmpresa, editarEmpresa, toggleEmpresaAtivo } from "./actions";
@@ -10,14 +11,22 @@ export default async function EmpresasPage({
   searchParams: { editar?: string };
 }) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: perfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
+  const user = await getUsuarioAtual();
+  const { data: perfil } = await perfilDaRequisicao(user!.id);
   if (perfil?.setor !== "ADMIN") redirect("/dashboard");
 
   const { data: empresas } = await supabase
     .from("empresas_terceirizadas")
     .select("id, nome, nome_empresarial, cnpj, inscricao_municipal, contato, email, telefone, whatsapp, especialidade, endereco, cep, bairro, municipio, uf, observacoes, ativo")
     .order("nome");
+
+  const { data: contratosEmp } = await supabase.from("contratos").select("empresa_id, status");
+  const qtdContratos: Record<string, { ativos: number; total: number }> = {};
+  for (const c of contratosEmp ?? []) {
+    const q = (qtdContratos[c.empresa_id] ??= { ativos: 0, total: 0 });
+    q.total++;
+    if (c.status === "ATIVO") q.ativos++;
+  }
 
   const editarId = searchParams.editar ?? null;
   const e = editarId ? (empresas ?? []).find((x) => x.id === editarId) : null;
@@ -161,6 +170,11 @@ export default async function EmpresasPage({
                       <span className="inline-block text-[11px] bg-primary/10 text-primaryDark rounded px-1.5 py-0.5 mt-0.5">{(emp as any).especialidade}</span>
                     )}
                     {emp.observacoes && <span className="text-xs text-gray-400 italic block truncate max-w-[180px]">{emp.observacoes}</span>}
+                    {qtdContratos[emp.id] && (
+                      <a href={`/contratos?empresa=${emp.id}&status=`} className="text-xs text-primary underline block mt-0.5">
+                        {qtdContratos[emp.id].total} contrato(s) · {qtdContratos[emp.id].ativos} ativo(s)
+                      </a>
+                    )}
                   </td>
                   <td className="p-3 text-gray-600 text-xs">
                     {emp.cnpj && <span className="block">{emp.cnpj}</span>}

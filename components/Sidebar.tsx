@@ -18,10 +18,12 @@ const SETOR_LABEL: Record<string, string> = {
 
 export default function Sidebar({
   setor,
+  contadores = {},
   mobileOpen,
   onClose,
 }: {
   setor: string | null;
+  contadores?: Record<string, number>;
   mobileOpen: boolean;
   onClose: () => void;
 }) {
@@ -114,6 +116,11 @@ export default function Sidebar({
                   >
                     <Icon className="w-[18px] h-[18px] shrink-0" />
                     <span className="truncate">{item.label}</span>
+                    {item.badgeKey && (contadores[item.badgeKey] ?? 0) > 0 && (
+                      <span className="ml-auto bg-accent text-primaryDark text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                        {contadores[item.badgeKey]}
+                      </span>
+                    )}
                   </Link>
                 )}
               </div>

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import PushRegistrar from "@/components/PushRegistrar";
 
 export const metadata: Metadata = {
-  title: "Medição SBJ",
+  title: "Engenharia SBJ",
   description: "Sistema de medição de empreiteiros — SBJ Construtora e Incorporadora.",
   manifest: "/manifest.json",
 };

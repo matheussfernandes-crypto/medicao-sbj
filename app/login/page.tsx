@@ -38,7 +38,7 @@ export default function LoginPage({
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-2 mb-8">
             <img src="/logo-topbar.png" alt="SBJ" className="h-9 w-auto bg-primaryDark rounded p-1" />
-            <span className="font-semibold text-primaryDark">Medição SBJ</span>
+            <span className="font-semibold text-primaryDark">Engenharia SBJ</span>
           </div>
 
           <h1 className="text-xl font-semibold text-ink-900 mb-1">Entrar</h1>

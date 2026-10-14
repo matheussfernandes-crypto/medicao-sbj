@@ -199,7 +199,7 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
     if (mailer) {
       try {
         await mailer.sendMail({
-          from: `"Medição SBJ" <${process.env.GMAIL_USER}>`,
+          from: `"Engenharia SBJ" <${process.env.GMAIL_USER}>`,
           to: destinatarios.join(", "),
           subject: `Medição ${obra!.nome} — ${mes}`,
           html: `<p>Segue em anexo o relatório de medição da obra <b>${obra!.nome}</b>, referente a ${mes}, fechado por ${engenheiroNome}.</p>`,
@@ -367,7 +367,7 @@ export async function finalizarFechamentoVale(formData: FormData) {
     if (mailer) {
       try {
         await mailer.sendMail({
-          from: `"Medição SBJ" <${process.env.GMAIL_USER}>`,
+          from: `"Engenharia SBJ" <${process.env.GMAIL_USER}>`,
           to: destinatarios.join(", "),
           subject: `Vales ${obra!.nome} — ${mes}`,
           html: `<p>Segue em anexo o relatório de vales da obra <b>${obra!.nome}</b>, referente a ${mes}, fechado por ${engenheiroNome}.</p>`,

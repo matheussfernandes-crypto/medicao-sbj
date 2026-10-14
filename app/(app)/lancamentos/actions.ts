@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { notificarAdmins, notificarUsuarios } from "@/lib/push/send";
+import { zerarRetidoSeInativa } from "@/lib/retidos";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -149,6 +150,8 @@ export async function aprovarLancamento(formData: FormData) {
     .from("lancamentos")
     .update({ status: "APROVADO", aprovado_em: new Date().toISOString(), aprovado_por: user.id })
     .eq("id", id);
+  const { data: lan } = await supabase.from("lancamentos").select("pessoa_id").eq("id", id).single();
+  if (lan?.pessoa_id) await zerarRetidoSeInativa([lan.pessoa_id], user.id);
   revalidatePath("/lancamentos");
 }
 
@@ -162,6 +165,8 @@ export async function aprovarEmLote(formData: FormData) {
     .update({ status: "APROVADO", aprovado_em: new Date().toISOString(), aprovado_por: user.id })
     .in("id", ids)
     .eq("status", "PENDENTE");
+  const { data: lans } = await supabase.from("lancamentos").select("pessoa_id").in("id", ids);
+  await zerarRetidoSeInativa((lans ?? []).map((l) => l.pessoa_id), user.id);
   revalidatePath("/lancamentos");
 }
 

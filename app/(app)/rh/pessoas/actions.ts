@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { zerarRetidoDaPessoa } from "@/lib/retidos";
 
 async function exigirRhOuAdmin() {
   const supabase = createClient();
@@ -128,11 +129,34 @@ export async function transferirObra(formData: FormData) {
 }
 
 export async function darBaixa(formData: FormData) {
-  const { supabase } = await exigirRhOuAdmin();
+  const { supabase, user } = await exigirRhOuAdmin();
   const pessoaId = String(formData.get("pessoaId"));
   const dataSaida = String(formData.get("saida") || new Date().toISOString().slice(0, 10));
   await supabase.from("pessoas").update({ status: "INATIVO", saida: dataSaida }).eq("id", pessoaId);
+
+  // Na baixa o retido é devolvido: lança a retirada do saldo todo, zerando-o.
+  const { valor, erro } = await zerarRetidoDaPessoa(pessoaId, {
+    data: dataSaida,
+    lancadoPor: user.id,
+    observacao: "Baixa — devolução automática do retido",
+  });
+
   revalidatePath("/rh/pessoas");
+  revalidatePath("/financeiro/retiradas");
+  if (erro) {
+    redirect(
+      `/rh/pessoas?erro=${encodeURIComponent(
+        "Baixa feita, mas não consegui zerar o retido automaticamente (" + erro + "). Lance a retirada em Financeiro > Retiradas."
+      )}`
+    );
+  }
+  if (valor > 0) {
+    redirect(
+      `/rh/pessoas?sucesso=${encodeURIComponent(
+        `Baixa feita. Retido de R$ ${valor.toFixed(2)} devolvido e zerado automaticamente.`
+      )}`
+    );
+  }
 }
 
 export async function reativarPessoa(formData: FormData) {

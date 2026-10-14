@@ -1176,7 +1176,7 @@ function donutPath(cGeral: Contagem) {
   });
   const pct = Math.round((cGeral.FINALIZADO / total) * 100);
   return (
-    <svg width={150} height={150} viewBox="0 0 140 140" className="shrink-0">
+    <svg viewBox="0 0 140 140" className="shrink-0" style={{ width: 150, height: 150 }}>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="#eef1f1" strokeWidth={20} />
       {segs}
       <text x={70} y={68} textAnchor="middle" fontSize={28} fontWeight={800} fill="#1c474f">
@@ -1187,6 +1187,20 @@ function donutPath(cGeral: Contagem) {
       </text>
     </svg>
   );
+}
+
+// Fundo da célula do mapa: preenche de baixo pra cima (verde = finalizado,
+// âmbar = em andamento, cinza = não iniciado) proporcional às unidades.
+function fundoCelula(f: number, a: number, n: number) {
+  if (n === 0) return "#f3f4f6";
+  const pf = (f / n) * 100;
+  const pa = (a / n) * 100;
+  if (pf >= 99.9) return STATUS_COR.FINALIZADO;
+  if (pf + pa <= 0.1) return STATUS_COR.NAO_INICIADO;
+  const g = STATUS_COR.FINALIZADO;
+  const am = STATUS_COR.ANDAMENTO;
+  const c = STATUS_COR.NAO_INICIADO;
+  return `linear-gradient(to top, ${g} 0%, ${g} ${pf}%, ${am} ${pf}%, ${am} ${pf + pa}%, ${c} ${pf + pa}%, ${c} 100%)`;
 }
 
 function RelatorioPanel({
@@ -1234,20 +1248,14 @@ function RelatorioPanel({
   const pctGeral = pctDe(cGeral);
 
   const multiTorre = torres.length > 1;
-  const nomeTorre = new Map(torres.map((t) => [t.id, t.nome]));
-  const ordemTorre = new Map(torres.map((t) => [t.id, t.ordem]));
-  const pavsOrdenados = [...pavimentos].sort(
-    (a, b) => (ordemTorre.get(a.torre_id) ?? 0) - (ordemTorre.get(b.torre_id) ?? 0) || a.ordem - b.ordem
-  );
+  const torresOrdenadas = [...torres].sort((a, b) => a.ordem - b.ordem);
+  const grupos = torresOrdenadas
+    .map((t) => ({
+      torre: t,
+      pavs: pavimentos.filter((p) => p.torre_id === t.id).sort((a, b) => a.ordem - b.ordem),
+    }))
+    .filter((g) => g.pavs.length > 0);
 
-  const porPavimento = pavsOrdenados.map((p) => {
-    const c = contar(keysDoPav(p));
-    return { pav: p, c, pct: pctDe(c) };
-  });
-  const porServico = servicos.map((s) => {
-    const c = contar(unidades.map((u) => cellKey(u.id, s.id)));
-    return { serv: s, c, pct: pctDe(c) };
-  });
   const porCategoria = CATEGORIA_ORDER.map((cat) => {
     const pavsCat = pavimentos.filter((p) => p.categoria === cat);
     if (!pavsCat.length) return null;
@@ -1256,16 +1264,35 @@ function RelatorioPanel({
     const c = contar(keys);
     return { cat, qtd: pavsCat.length, c, pct: pctDe(c) };
   }).filter(Boolean) as { cat: CategoriaPavimento; qtd: number; c: Contagem; pct: number }[];
-  const porTorre = torres
-    .map((t) => {
-      const keys: string[] = [];
-      pavimentos.filter((p) => p.torre_id === t.id).forEach((p) => keys.push(...keysDoPav(p)));
-      const c = contar(keys);
-      return { torre: t, c, pct: pctDe(c) };
-    })
-    .sort((a, b) => a.torre.ordem - b.torre.ordem);
 
-  const geradoEm = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  const porTorre = grupos.map((g) => {
+    const keys: string[] = [];
+    g.pavs.forEach((p) => keys.push(...keysDoPav(p)));
+    const c = contar(keys);
+    return { torre: g.torre, c, pct: pctDe(c) };
+  });
+
+  const porServico = servicos.map((s) => {
+    const c = contar(unidades.map((u) => cellKey(u.id, s.id)));
+    return { serv: s, pct: pctDe(c) };
+  });
+
+  const celulaMapa = (p: Pavimento, s: ServicoAndamento) => {
+    const us = unidadesPorPav.get(p.id) ?? [];
+    let f = 0,
+      a = 0;
+    us.forEach((u) => {
+      const st = celulas.get(cellKey(u.id, s.id))?.status ?? "NAO_INICIADO";
+      if (st === "FINALIZADO") f++;
+      else if (st === "ANDAMENTO") a++;
+    });
+    return { f, a, n: us.length };
+  };
+
+  const nSrv = servicos.length;
+  const colunas = `190px repeat(${Math.max(nSrv, 1)}, minmax(0, 1fr)) 84px`;
+  const geradoEm = new Date().toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" });
+
   const tiles = [
     { label: "Concluído", valor: `${pctGeral}%`, sub: `${cGeral.FINALIZADO} de ${cGeral.total} etapas`, cor: STATUS_COR.FINALIZADO },
     {
@@ -1281,201 +1308,258 @@ function RelatorioPanel({
       cor: "#9ca3af",
     },
     {
-      label: "Escopo",
-      valor: `${unidades.length} un.`,
-      sub: `${servicos.length} serviços · ${torres.length} torre${torres.length === 1 ? "" : "s"}`,
+      label: "Escopo da obra",
+      valor: `${unidades.length}`,
+      sub: `unidades · ${servicos.length} serviços · ${torres.length} torre${torres.length === 1 ? "" : "s"}`,
       cor: "#2c6975",
     },
   ];
 
   return (
     <div className="report-root space-y-3">
-      <div className="flex gap-2 print:hidden">
+      <div className="flex items-center gap-2 flex-wrap print:hidden">
         <button onClick={onExportarCSV} className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-lg text-sm">
           <Download className="w-4 h-4" /> Exportar CSV
         </button>
         <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-2 border border-border rounded-lg text-sm">
-          <Printer className="w-4 h-4" /> Imprimir / salvar PDF
+          <Printer className="w-4 h-4" /> Imprimir / salvar PDF (A3)
         </button>
+        <span className="text-xs text-ink-500">Sai em uma única folha A3 paisagem — na janela de impressão deixe o tamanho do papel em A3.</span>
       </div>
 
-      {/* Cabeçalho */}
-      <div
-        className="rel-card rounded-xl text-white px-5 py-4 flex justify-between items-center flex-wrap gap-4"
-        style={{ background: "linear-gradient(120deg,#12383f,#2c6975 70%,#3a8794)", boxShadow: "inset 0 -5px 0 #f4dd3d" }}
-      >
-        <div className="flex items-center gap-4">
-          <img src="/logo-topbar.png" alt="SBJ" className="h-12 w-auto" />
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.12em] text-[#cfe3e5]">Engenharia SBJ · Relatório de andamento de obra</div>
-            <h1 className="text-2xl font-bold leading-tight">{obraNome}</h1>
-            <div className="text-xs text-[#d7e7e8] mt-0.5">
-              Gerado em {geradoEm} · por {nomeUsuario}
-            </div>
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="text-5xl font-extrabold leading-none" style={{ color: "#f4dd3d" }}>
-            {pctGeral}%
-          </div>
-          <div className="text-[10px] uppercase tracking-wide text-[#d7e7e8] mt-1">concluído no geral</div>
-        </div>
-      </div>
-
-      {/* Indicadores */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 print:grid-cols-4 gap-3">
-        {tiles.map((t) => (
-          <div key={t.label} className="rel-card bg-white rounded-xl border border-border px-4 py-3" style={{ borderTop: `4px solid ${t.cor}` }}>
-            <div className="text-[10px] uppercase tracking-wide text-ink-500 font-semibold">{t.label}</div>
-            <div className="text-2xl font-extrabold leading-tight" style={{ color: t.cor === "#9ca3af" ? "#4b5563" : t.cor }}>
-              {t.valor}
-            </div>
-            <div className="text-[11px] text-ink-500">{t.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Visão geral + áreas + torres */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 print:grid-cols-3 gap-3">
-        <div className="rel-card bg-white rounded-xl border border-border p-4">
-          <h2 className="font-semibold text-primaryDark text-sm mb-2">Visão geral</h2>
-          <div className="flex items-center gap-3">
-            {donutPath(cGeral)}
-            <div className="text-[11px] space-y-1.5 flex-1">
-              {STATUS_ORDER.slice()
-                .reverse()
-                .map((s) => (
-                  <div key={s} className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-1.5">
-                      <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: STATUS_COR[s] }} />
-                      {STATUS_LABEL[s]}
-                    </span>
-                    <b>{cGeral[s]}</b>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="rel-card bg-white rounded-xl border border-border p-4">
-          <h2 className="font-semibold text-primaryDark text-sm mb-3">Andamento por área</h2>
-          <div className="space-y-3">
-            {porCategoria.map(({ cat, qtd, pct }) => (
-              <div key={cat}>
-                <div className="flex items-center justify-between text-[11px] mb-1">
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: CATEGORIA_COR[cat] }} />
-                    {CATEGORIA_LABEL[cat]} <span className="text-ink-400 font-normal">({qtd})</span>
-                  </span>
-                  <b style={{ color: CATEGORIA_COR[cat] }}>{pct}%</b>
-                </div>
-                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "#e5e7eb" }}>
-                  <div className="h-full rounded-full" style={{ width: `${pct}%`, background: CATEGORIA_COR[cat] }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rel-card bg-white rounded-xl border border-border p-4">
-          <h2 className="font-semibold text-primaryDark text-sm mb-3">{multiTorre ? "Andamento por torre" : "Distribuição das etapas"}</h2>
-          {multiTorre ? (
-            <div className="space-y-3">
-              {porTorre.map(({ torre, c, pct }) => (
-                <div key={torre.id}>
-                  <div className="flex items-center justify-between text-[11px] mb-1">
-                    <span className="font-medium">{torre.nome}</span>
-                    <b style={{ color: corPct(pct) }}>{pct}%</b>
-                  </div>
-                  <BarraEmpilhada c={c} altura={10} />
-                </div>
-              ))}
-            </div>
-          ) : (
+      <div className="report-page space-y-3">
+        {/* Cabeçalho */}
+        <div
+          className="rel-card rounded-xl text-white px-6 py-4 flex justify-between items-center flex-wrap gap-4"
+          style={{ background: "linear-gradient(120deg,#12383f,#2c6975 70%,#3a8794)", boxShadow: "inset 0 -6px 0 #f4dd3d" }}
+        >
+          <div className="flex items-center gap-5">
+            <img src="/logo-topbar.png" alt="SBJ" className="h-16 w-auto" />
             <div>
-              <BarraEmpilhada c={cGeral} altura={16} />
-              <div className="flex justify-between text-[11px] mt-2">
+              <div className="text-[11px] uppercase tracking-[0.16em] text-[#cfe3e5]">SBJ Construtora e Incorporadora · Relatório de andamento de obra</div>
+              <h1 className="text-3xl font-extrabold leading-tight">{obraNome}</h1>
+              <div className="text-xs text-[#d7e7e8] mt-0.5">
+                Emitido em {geradoEm} · por {nomeUsuario}
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-6xl font-extrabold leading-none" style={{ color: "#f4dd3d" }}>
+              {pctGeral}%
+            </div>
+            <div className="text-[11px] uppercase tracking-wide text-[#d7e7e8] mt-1">da obra concluído</div>
+          </div>
+        </div>
+
+        {/* Resumo */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 print:grid-cols-4 gap-3">
+          <div className="rel-card bg-white rounded-xl border border-border p-4">
+            <h2 className="font-semibold text-primaryDark text-sm mb-1">Visão geral</h2>
+            <div className="flex items-center gap-3">
+              {donutPath(cGeral)}
+              <div className="text-[12px] space-y-2 flex-1">
                 {STATUS_ORDER.slice()
                   .reverse()
                   .map((s) => (
-                    <span key={s} className="flex flex-col items-center">
-                      <b style={{ color: s === "NAO_INICIADO" ? "#4b5563" : STATUS_COR[s] }}>
-                        {cGeral.total ? Math.round((cGeral[s] / cGeral.total) * 100) : 0}%
-                      </b>
-                      <span className="text-ink-500">{STATUS_LABEL[s]}</span>
-                    </span>
+                    <div key={s} className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5">
+                        <span className="inline-block w-3 h-3 rounded-sm" style={{ background: STATUS_COR[s] }} />
+                        {STATUS_LABEL[s]}
+                      </span>
+                      <b>{cGeral[s]}</b>
+                    </div>
                   ))}
               </div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* Pavimentos e serviços */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 print:grid-cols-5 gap-3">
-        <div className="rel-card bg-white rounded-xl border border-border p-4 lg:col-span-2 print:col-span-2">
-          <h2 className="font-semibold text-primaryDark text-sm mb-2">Andamento por pavimento</h2>
-          <div className="space-y-1.5">
-            {porPavimento.map(({ pav, c, pct }) => (
-              <div key={pav.id} className="grid items-center gap-2 text-[11px]" style={{ gridTemplateColumns: "minmax(0,1fr) 110px 34px" }}>
-                <span className="truncate">
-                  {multiTorre && <span className="text-ink-400">{nomeTorre.get(pav.torre_id)} · </span>}
-                  <span className="font-medium">{pav.nome}</span>
-                  {pav.categoria !== "RESIDENCIAL" && (
-                    <span
-                      className="ml-1 inline-block text-[8.5px] font-bold text-white px-1.5 py-px rounded-full align-middle"
-                      style={{ background: CATEGORIA_COR[pav.categoria] }}
-                    >
-                      {CATEGORIA_LABEL[pav.categoria]}
+          <div className="rel-card bg-white rounded-xl border border-border p-4">
+            <h2 className="font-semibold text-primaryDark text-sm mb-3">Andamento por área</h2>
+            <div className="space-y-3">
+              {porCategoria.map(({ cat, qtd, pct }) => (
+                <div key={cat}>
+                  <div className="flex items-center justify-between text-[12px] mb-1">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <span className="inline-block w-3 h-3 rounded-sm" style={{ background: CATEGORIA_COR[cat] }} />
+                      {CATEGORIA_LABEL[cat]} <span className="text-ink-400 font-normal">({qtd})</span>
                     </span>
+                    <b style={{ color: CATEGORIA_COR[cat] }}>{pct}%</b>
+                  </div>
+                  <div className="h-3 rounded-full overflow-hidden" style={{ background: "#e5e7eb" }}>
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: CATEGORIA_COR[cat] }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rel-card bg-white rounded-xl border border-border p-4">
+            <h2 className="font-semibold text-primaryDark text-sm mb-3">{multiTorre ? "Andamento por torre" : "Distribuição das etapas"}</h2>
+            {multiTorre ? (
+              <div className="space-y-3">
+                {porTorre.map(({ torre, c, pct }) => (
+                  <div key={torre.id}>
+                    <div className="flex items-center justify-between text-[12px] mb-1">
+                      <span className="font-medium">{torre.nome}</span>
+                      <b style={{ color: corPct(pct) }}>{pct}%</b>
+                    </div>
+                    <BarraEmpilhada c={c} altura={12} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div>
+                <BarraEmpilhada c={cGeral} altura={18} />
+                <div className="flex justify-between text-[12px] mt-3">
+                  {STATUS_ORDER.slice()
+                    .reverse()
+                    .map((s) => (
+                      <span key={s} className="flex flex-col items-center">
+                        <b className="text-base" style={{ color: s === "NAO_INICIADO" ? "#4b5563" : STATUS_COR[s] }}>
+                          {cGeral.total ? Math.round((cGeral[s] / cGeral.total) * 100) : 0}%
+                        </b>
+                        <span className="text-ink-500">{STATUS_LABEL[s]}</span>
+                      </span>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {tiles.map((t) => (
+              <div key={t.label} className="rel-card bg-white rounded-xl border border-border px-3 py-2" style={{ borderTop: `4px solid ${t.cor}` }}>
+                <div className="text-[10px] uppercase tracking-wide text-ink-500 font-semibold">{t.label}</div>
+                <div className="text-2xl font-extrabold leading-tight" style={{ color: t.cor === "#9ca3af" ? "#4b5563" : t.cor }}>
+                  {t.valor}
+                </div>
+                <div className="text-[10.5px] text-ink-500 leading-tight">{t.sub}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Mapa do andamento: pavimentos x serviços */}
+        <div className="rel-card report-mapa bg-white rounded-xl border border-border p-4">
+          <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+            <h2 className="font-semibold text-primaryDark text-base">Fluxograma vertical de serviços — andamento por pavimento</h2>
+            <div className="flex items-center gap-4 text-[11px] text-ink-500">
+              {STATUS_ORDER.slice()
+                .reverse()
+                .map((s) => (
+                  <span key={s} className="flex items-center gap-1.5">
+                    <span className="inline-block w-3 h-3 rounded-sm" style={{ background: STATUS_COR[s] }} />
+                    {STATUS_LABEL[s]}
+                  </span>
+                ))}
+              <span>Células parciais mostram finalizadas/total de unidades</span>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <div style={{ minWidth: 1100 }}>
+              {/* cabeçalho: serviços */}
+              <div className="grid items-end gap-[3px] mb-1" style={{ gridTemplateColumns: colunas }}>
+                <div className="text-[10px] font-semibold uppercase text-ink-500">Pavimento</div>
+                {servicos.map((s) => (
+                  <div
+                    key={s.id}
+                    className="text-[10px] font-semibold text-primaryDark text-left leading-tight"
+                    style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", height: 118, justifySelf: "center" }}
+                    title={s.nome}
+                  >
+                    {s.nome}
+                  </div>
+                ))}
+                <div className="text-[10px] font-semibold uppercase text-ink-500 text-right">Concluído</div>
+              </div>
+
+              {grupos.map((g) => (
+                <div key={g.torre.id}>
+                  {multiTorre && (
+                    <div className="text-[11px] font-bold uppercase tracking-wide text-white px-2 py-0.5 rounded mt-2 mb-1" style={{ background: "#1c474f" }}>
+                      {g.torre.nome}
+                    </div>
                   )}
-                </span>
-                <BarraEmpilhada c={c} altura={9} />
-                <b className="text-right" style={{ color: corPct(pct) }}>
-                  {pct}%
-                </b>
+                  <div className="grid gap-[3px]" style={{ gridTemplateColumns: colunas, gridAutoRows: "minmax(24px, 40px)" }}>
+                    {g.pavs.map((p) => {
+                      const c = contar(keysDoPav(p));
+                      const pct = pctDe(c);
+                      return (
+                        <div key={p.id} className="contents">
+                          <div className="flex items-center gap-1.5 text-[12px] font-semibold truncate pr-1">
+                            <span className="truncate">{p.nome}</span>
+                            {p.categoria !== "RESIDENCIAL" && (
+                              <span
+                                className="shrink-0 text-[8.5px] font-bold text-white px-1.5 py-px rounded-full"
+                                style={{ background: CATEGORIA_COR[p.categoria] }}
+                              >
+                                {CATEGORIA_LABEL[p.categoria]}
+                              </span>
+                            )}
+                          </div>
+                          {servicos.map((s) => {
+                            const { f, a, n } = celulaMapa(p, s);
+                            const parcial = n > 0 && (a > 0 || (f > 0 && f < n));
+                            return (
+                              <div
+                                key={s.id}
+                                className="rounded-[3px] flex items-center justify-center"
+                                style={{ background: fundoCelula(f, a, n) }}
+                                title={`${p.nome} · ${s.nome}: ${f}/${n} finalizadas${a ? `, ${a} em andamento` : ""}`}
+                              >
+                                {parcial && (
+                                  <span className="text-[9px] font-bold leading-none px-0.5 rounded-sm" style={{ background: "rgba(255,255,255,.85)", color: "#1f2937" }}>
+                                    {f}/{n}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                          <div className="flex items-center gap-1.5 justify-end">
+                            <div className="w-8">
+                              <BarraEmpilhada c={c} altura={7} />
+                            </div>
+                            <b className="text-[12px] w-9 text-right" style={{ color: corPct(pct) }}>
+                              {pct}%
+                            </b>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {/* rodapé do mapa: % por serviço */}
+              <div className="grid items-center gap-[3px] mt-2 pt-2 border-t border-border" style={{ gridTemplateColumns: colunas }}>
+                <div className="text-[10px] font-semibold uppercase text-ink-500">Concluído por serviço</div>
+                {porServico.map(({ serv, pct }) => (
+                  <div key={serv.id} className="text-center text-[10px] font-bold" style={{ color: corPct(pct) }}>
+                    {pct}%
+                  </div>
+                ))}
+                <div className="text-right text-[12px] font-extrabold" style={{ color: corPct(pctGeral) }}>
+                  {pctGeral}%
+                </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
 
-        <div className="rel-card bg-white rounded-xl border border-border p-4 lg:col-span-3 print:col-span-3">
-          <h2 className="font-semibold text-primaryDark text-sm mb-2">Andamento por serviço</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-5 gap-y-1.5">
-            {porServico.map(({ serv, c, pct }) => (
-              <div key={serv.id} className="grid items-center gap-2 text-[11px]" style={{ gridTemplateColumns: "minmax(0,1fr) 70px 32px" }}>
-                <span className="truncate" title={serv.nome}>
-                  {serv.nome}
-                </span>
-                <BarraEmpilhada c={c} altura={8} />
-                <b className="text-right" style={{ color: corPct(pct) }}>
-                  {pct}%
-                </b>
-              </div>
-            ))}
-          </div>
+        <div className="flex items-center text-[11px] text-ink-500 px-1">
+          <span>Engenharia SBJ · {obraNome}</span>
+          <span className="ml-auto">Emitido em {geradoEm}</span>
         </div>
-      </div>
-
-      {/* Legenda */}
-      <div className="flex items-center gap-4 text-[11px] text-ink-500 px-1">
-        {STATUS_ORDER.slice()
-          .reverse()
-          .map((s) => (
-            <span key={s} className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded-sm" style={{ background: STATUS_COR[s] }} />
-              {STATUS_LABEL[s]}
-            </span>
-          ))}
-        <span className="ml-auto">Engenharia SBJ · {obraNome}</span>
       </div>
 
       <style jsx global>{`
         @page {
-          size: A4 landscape;
+          size: A3 landscape;
           margin: 8mm;
         }
         @media print {
+          html,
           body {
             background: #fff !important;
           }
@@ -1487,6 +1571,15 @@ function RelatorioPanel({
           .report-root .rel-card {
             break-inside: avoid;
             box-shadow: none;
+          }
+          .report-root .report-page {
+            min-height: 274mm;
+            display: flex;
+            flex-direction: column;
+          }
+          .report-root .report-mapa {
+            flex: 1 1 auto;
+            min-height: 0;
           }
         }
       `}</style>

@@ -117,11 +117,18 @@ export default function LinhaLancamento({
       <td className="p-1">{rotuloTipo(l.tipo)}</td>
       <td className="p-1">{nomePessoa}</td>
       <td className="p-1">
-        {l.tipo === "VALE_MEDICAO"
-          ? `Vale R$ ${Number(l.valor_vale_hibrido ?? 0).toFixed(2)} + Medição compl. R$ ${Number(l.total_reais).toFixed(2)} (bruto)`
-          : l.vale_real
-          ? "Vale real"
-          : `${l.servico ?? ""} ${l.detalhe_texto ?? ""}`}
+        {l.tipo === "VALE_MEDICAO" ? (
+          <>
+            {`Vale R$ ${Number(l.valor_vale_hibrido ?? 0).toFixed(2)} + Medição compl. R$ ${Number(l.total_reais).toFixed(2)} (bruto)`}
+            {l.observacao_medicao && (
+              <div className="text-xs text-ink-500 mt-0.5 whitespace-pre-wrap break-words">Obs.: {l.observacao_medicao}</div>
+            )}
+          </>
+        ) : l.vale_real ? (
+          "Vale real"
+        ) : (
+          `${l.servico ?? ""} ${l.detalhe_texto ?? ""}`
+        )}
       </td>
       <td className="p-1">{l.local ?? "—"}</td>
       <td className="p-1">{nomeCriador}</td>

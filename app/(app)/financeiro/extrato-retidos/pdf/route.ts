@@ -71,7 +71,7 @@ function buildMovs(
   movs.sort((a, b) => a.data.localeCompare(b.data));
   let saldo = 0;
   return movs.map((m) => {
-    saldo += m.entrada - m.saida;
+    saldo = Math.round((saldo + m.entrada - m.saida) * 100) / 100 + 0;
     return { ...m, saldo };
   });
 }
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
   const { data: obras } = await supabase.from("obras").select("id, nome");
   const { data: pessoas } = await supabase
     .from("pessoas")
-    .select("id, nome, obra_id, admissao, saldo_inicial_retido")
+    .select("id, nome, obra_id, admissao, saldo_inicial_retido, status")
     .not("papel", "in", "(MESTRE,MESTRE_GERAL)")
     .order("nome");
   const { data: lancamentos } = await supabase
@@ -119,9 +119,11 @@ export async function GET(request: NextRequest) {
     ? `${dataInicio ? dataInicio.split("-").reverse().join("/") : "início"} a ${dataFim ? dataFim.split("-").reverse().join("/") : "hoje"}`
     : "Todos os períodos";
 
+  // Relatório geral só lista quem ainda está na empresa; quem teve baixa (e já
+  // recebeu o retido de volta) só aparece se for pedido o extrato individual.
   let pessoasFiltradas = pessoaId
     ? (pessoas ?? []).filter((p) => p.id === pessoaId)
-    : (pessoas ?? []);
+    : (pessoas ?? []).filter((p) => p.status !== "INATIVO");
 
   const extratos: PessoaExtrato[] = pessoasFiltradas.map((p) => {
     const lacs = (lancamentos ?? []).filter((l) => l.pessoa_id === p.id);

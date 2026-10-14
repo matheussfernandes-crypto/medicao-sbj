@@ -91,7 +91,7 @@ function buildMovs(
   // Calcula saldo acumulado
   let saldo = 0;
   return movs.map((m) => {
-    saldo += m.entrada - m.saida;
+    saldo = Math.round((saldo + m.entrada - m.saida) * 100) / 100 + 0;
     return { ...m, saldo };
   });
 }
@@ -116,7 +116,7 @@ export default async function ExtratoRetidosPage({
   const { data: obras } = await supabase.from("obras").select("id, nome").order("nome");
   const { data: pessoas } = await supabase
     .from("pessoas")
-    .select("id, nome, obra_id, admissao, saldo_inicial_retido")
+    .select("id, nome, obra_id, admissao, saldo_inicial_retido, status")
     .not("papel", "in", "(MESTRE,MESTRE_GERAL)")
     .order("nome");
 
@@ -155,9 +155,12 @@ export default async function ExtratoRetidosPage({
   });
 
   // Filtros de situação
+  // Quem teve baixa (já recebeu o retido de volta) só aparece no extrato
+  // individual; o resumo geral lista apenas quem continua na empresa.
+  const inativos = new Set((pessoas ?? []).filter((p) => p.status === "INATIVO").map((p) => p.id));
   let extratosFiltrados = pessoaId
     ? extratos.filter((e) => e.id === pessoaId)
-    : extratos;
+    : extratos.filter((e) => !inativos.has(e.id));
 
   if (situacao === "com_saldo") extratosFiltrados = extratosFiltrados.filter((e) => e.saldoAtual > 0.005);
   if (situacao === "zerados") extratosFiltrados = extratosFiltrados.filter((e) => e.saldoAtual <= 0.005);

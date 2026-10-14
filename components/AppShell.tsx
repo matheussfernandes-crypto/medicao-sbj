@@ -27,7 +27,7 @@ export default function AppShell({
       <Sidebar setor={setor} contadores={contadores} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       <div className="flex-1 min-w-0 flex flex-col min-h-screen">
-        <header className="h-16 shrink-0 bg-white border-b border-border flex items-center justify-between gap-3 px-4 lg:px-6">
+        <header className="print:hidden h-16 shrink-0 bg-white border-b border-border flex items-center justify-between gap-3 px-4 lg:px-6">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
@@ -68,7 +68,7 @@ export default function AppShell({
           </div>
         </header>
 
-        <main className="flex-1 p-4 lg:p-8 space-y-4">{children}</main>
+        <main className="flex-1 p-4 lg:p-8 space-y-4 print:p-0">{children}</main>
       </div>
     </div>
   );

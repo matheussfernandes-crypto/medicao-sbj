@@ -53,7 +53,7 @@ export default function Sidebar({
 
       <aside
         className={
-          "fixed inset-y-0 left-0 z-40 w-sidebar bg-primaryDark flex flex-col transition-transform duration-200 ease-out " +
+          "print:hidden fixed inset-y-0 left-0 z-40 w-sidebar bg-primaryDark flex flex-col transition-transform duration-200 ease-out " +
           "lg:static lg:translate-x-0 lg:shrink-0 " +
           (mobileOpen ? "translate-x-0" : "-translate-x-full")
         }

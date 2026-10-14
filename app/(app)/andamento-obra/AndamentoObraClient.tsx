@@ -39,12 +39,12 @@ import {
 
 const STATUS_COR: Record<StatusAndamento, string> = {
   NAO_INICIADO: "#e5e7eb",
-  ANDAMENTO: "#2c6975",
+  ANDAMENTO: "#f59e0b",
   FINALIZADO: "#1f8a4c",
 };
 const STATUS_TEXTO: Record<StatusAndamento, string> = {
   NAO_INICIADO: "#4b5563",
-  ANDAMENTO: "#ffffff",
+  ANDAMENTO: "#3b2a00",
   FINALIZADO: "#ffffff",
 };
 
@@ -484,7 +484,7 @@ export default function AndamentoObraClient({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 print:hidden">
         <div>
           <label className="block text-xs text-ink-500 mb-1">Obra</label>
           <select
@@ -522,7 +522,7 @@ export default function AndamentoObraClient({
           <StatTile
             label="Em andamento"
             value={String(cGeral.ANDAMENTO)}
-            corBarra="#2c6975"
+            corBarra={STATUS_COR.ANDAMENTO}
             pct={cGeral.total ? Math.round((cGeral.ANDAMENTO / cGeral.total) * 100) : 0}
           />
           <StatTile
@@ -659,7 +659,7 @@ export default function AndamentoObraClient({
                                   width: 26,
                                   height: 26,
                                   minWidth: 26,
-                                  boxShadow: selecionada ? "inset 0 0 0 2px #f4dd3d" : undefined,
+                                  boxShadow: selecionada ? "inset 0 0 0 2px #1c474f" : undefined,
                                 }}
                               >
                                 {selecionada && (
@@ -1125,17 +1125,36 @@ function ConfigPanel(props: {
   );
 }
 
-function donutPath(cGeral: { NAO_INICIADO: number; ANDAMENTO: number; FINALIZADO: number; total: number }) {
+type Contagem = { NAO_INICIADO: number; ANDAMENTO: number; FINALIZADO: number; total: number };
+
+function pctDe(c: Contagem) {
+  return c.total ? Math.round((c.FINALIZADO / c.total) * 100) : 0;
+}
+
+function BarraEmpilhada({ c, altura = 10 }: { c: Contagem; altura?: number }) {
+  const t = c.total || 1;
+  return (
+    <div className="flex w-full overflow-hidden rounded-full" style={{ height: altura, background: STATUS_COR.NAO_INICIADO }}>
+      <div style={{ width: `${(c.FINALIZADO / t) * 100}%`, background: STATUS_COR.FINALIZADO }} />
+      <div style={{ width: `${(c.ANDAMENTO / t) * 100}%`, background: STATUS_COR.ANDAMENTO }} />
+    </div>
+  );
+}
+
+function corPct(p: number) {
+  return p >= 100 ? STATUS_COR.FINALIZADO : p > 0 ? "#b45309" : "#9ca3af";
+}
+
+function donutPath(cGeral: Contagem) {
   const total = cGeral.total || 1;
-  const order: (keyof typeof cGeral)[] = ["FINALIZADO", "ANDAMENTO", "NAO_INICIADO"];
-  const cores: Record<string, string> = { FINALIZADO: "#1f8a4c", ANDAMENTO: "#2c6975", NAO_INICIADO: "#e5e7eb" };
+  const order: ("FINALIZADO" | "ANDAMENTO" | "NAO_INICIADO")[] = ["FINALIZADO", "ANDAMENTO", "NAO_INICIADO"];
   const r = 52,
     cx = 70,
     cy = 70,
     circ = 2 * Math.PI * r;
   let acc = 0;
   const segs = order.map((k) => {
-    const frac = (cGeral[k] as number) / total;
+    const frac = cGeral[k] / total;
     const dash = frac * circ;
     const el =
       frac > 0 ? (
@@ -1145,7 +1164,7 @@ function donutPath(cGeral: { NAO_INICIADO: number; ANDAMENTO: number; FINALIZADO
           cy={cy}
           r={r}
           fill="none"
-          stroke={cores[k as string]}
+          stroke={STATUS_COR[k]}
           strokeWidth={20}
           strokeDasharray={`${dash} ${circ - dash}`}
           strokeDashoffset={-acc * circ}
@@ -1157,14 +1176,14 @@ function donutPath(cGeral: { NAO_INICIADO: number; ANDAMENTO: number; FINALIZADO
   });
   const pct = Math.round((cGeral.FINALIZADO / total) * 100);
   return (
-    <svg width={140} height={140} viewBox="0 0 140 140">
+    <svg width={150} height={150} viewBox="0 0 140 140" className="shrink-0">
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="#eef1f1" strokeWidth={20} />
       {segs}
-      <text x={70} y={66} textAnchor="middle" fontSize={26} fontWeight={800} fill="#1c474f">
+      <text x={70} y={68} textAnchor="middle" fontSize={28} fontWeight={800} fill="#1c474f">
         {pct}%
       </text>
-      <text x={70} y={84} textAnchor="middle" fontSize={10.5} fill="#65707d">
-        finalizado
+      <text x={70} y={86} textAnchor="middle" fontSize={10.5} fill="#65707d">
+        concluído
       </text>
     </svg>
   );
@@ -1189,8 +1208,8 @@ function RelatorioPanel({
   celulas: Map<string, CelulaStatus>;
   onExportarCSV: () => void;
 }) {
-  function contar(keys: string[]) {
-    const c = { NAO_INICIADO: 0, ANDAMENTO: 0, FINALIZADO: 0, total: 0 };
+  function contar(keys: string[]): Contagem {
+    const c: Contagem = { NAO_INICIADO: 0, ANDAMENTO: 0, FINALIZADO: 0, total: 0 };
     keys.forEach((k) => {
       const s = celulas.get(k)?.status ?? "NAO_INICIADO";
       c[s]++;
@@ -1203,39 +1222,74 @@ function RelatorioPanel({
     if (!unidadesPorPav.has(u.pavimento_id)) unidadesPorPav.set(u.pavimento_id, []);
     unidadesPorPav.get(u.pavimento_id)!.push(u);
   });
+  const keysDoPav = (p: Pavimento) => {
+    const keys: string[] = [];
+    (unidadesPorPav.get(p.id) ?? []).forEach((u) => servicos.forEach((s) => keys.push(cellKey(u.id, s.id))));
+    return keys;
+  };
 
   const keysGeral: string[] = [];
   unidades.forEach((u) => servicos.forEach((s) => keysGeral.push(cellKey(u.id, s.id))));
   const cGeral = contar(keysGeral);
-  const pctGeral = cGeral.total ? Math.round((cGeral.FINALIZADO / cGeral.total) * 100) : 0;
+  const pctGeral = pctDe(cGeral);
 
-  const porPavimento = pavimentos.map((p) => {
-    const us = unidadesPorPav.get(p.id) ?? [];
-    const keys: string[] = [];
-    us.forEach((u) => servicos.forEach((s) => keys.push(cellKey(u.id, s.id))));
-    const c = contar(keys);
-    return { pav: p, c, pct: c.total ? Math.round((c.FINALIZADO / c.total) * 100) : 0 };
+  const multiTorre = torres.length > 1;
+  const nomeTorre = new Map(torres.map((t) => [t.id, t.nome]));
+  const ordemTorre = new Map(torres.map((t) => [t.id, t.ordem]));
+  const pavsOrdenados = [...pavimentos].sort(
+    (a, b) => (ordemTorre.get(a.torre_id) ?? 0) - (ordemTorre.get(b.torre_id) ?? 0) || a.ordem - b.ordem
+  );
+
+  const porPavimento = pavsOrdenados.map((p) => {
+    const c = contar(keysDoPav(p));
+    return { pav: p, c, pct: pctDe(c) };
   });
-
   const porServico = servicos.map((s) => {
-    const keys = unidades.map((u) => cellKey(u.id, s.id));
-    const c = contar(keys);
-    return { serv: s, c, pct: c.total ? Math.round((c.FINALIZADO / c.total) * 100) : 0 };
+    const c = contar(unidades.map((u) => cellKey(u.id, s.id)));
+    return { serv: s, c, pct: pctDe(c) };
   });
-
   const porCategoria = CATEGORIA_ORDER.map((cat) => {
     const pavsCat = pavimentos.filter((p) => p.categoria === cat);
     if (!pavsCat.length) return null;
     const keys: string[] = [];
-    pavsCat.forEach((p) => (unidadesPorPav.get(p.id) ?? []).forEach((u) => servicos.forEach((s) => keys.push(cellKey(u.id, s.id)))));
+    pavsCat.forEach((p) => keys.push(...keysDoPav(p)));
     const c = contar(keys);
-    return { cat, qtd: pavsCat.length, pct: c.total ? Math.round((c.FINALIZADO / c.total) * 100) : 0 };
-  }).filter(Boolean) as { cat: CategoriaPavimento; qtd: number; pct: number }[];
+    return { cat, qtd: pavsCat.length, c, pct: pctDe(c) };
+  }).filter(Boolean) as { cat: CategoriaPavimento; qtd: number; c: Contagem; pct: number }[];
+  const porTorre = torres
+    .map((t) => {
+      const keys: string[] = [];
+      pavimentos.filter((p) => p.torre_id === t.id).forEach((p) => keys.push(...keysDoPav(p)));
+      const c = contar(keys);
+      return { torre: t, c, pct: pctDe(c) };
+    })
+    .sort((a, b) => a.torre.ordem - b.torre.ordem);
 
   const geradoEm = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  const tiles = [
+    { label: "Concluído", valor: `${pctGeral}%`, sub: `${cGeral.FINALIZADO} de ${cGeral.total} etapas`, cor: STATUS_COR.FINALIZADO },
+    {
+      label: "Em andamento",
+      valor: String(cGeral.ANDAMENTO),
+      sub: `${cGeral.total ? Math.round((cGeral.ANDAMENTO / cGeral.total) * 100) : 0}% das etapas`,
+      cor: STATUS_COR.ANDAMENTO,
+    },
+    {
+      label: "Não iniciado",
+      valor: String(cGeral.NAO_INICIADO),
+      sub: `${cGeral.total ? Math.round((cGeral.NAO_INICIADO / cGeral.total) * 100) : 0}% das etapas`,
+      cor: "#9ca3af",
+    },
+    {
+      label: "Escopo",
+      valor: `${unidades.length} un.`,
+      sub: `${servicos.length} serviços · ${torres.length} torre${torres.length === 1 ? "" : "s"}`,
+      cor: "#2c6975",
+    },
+  ];
 
   return (
-    <div className="space-y-3">
+    <div className="report-root space-y-3">
       <div className="flex gap-2 print:hidden">
         <button onClick={onExportarCSV} className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-lg text-sm">
           <Download className="w-4 h-4" /> Exportar CSV
@@ -1245,149 +1299,194 @@ function RelatorioPanel({
         </button>
       </div>
 
+      {/* Cabeçalho */}
       <div
-        className="rounded-xl text-white p-5 flex justify-between items-center flex-wrap gap-4"
-        style={{ background: "linear-gradient(135deg,#1c474f,#2c6975)" }}
+        className="rel-card rounded-xl text-white px-5 py-4 flex justify-between items-center flex-wrap gap-4"
+        style={{ background: "linear-gradient(120deg,#12383f,#2c6975 70%,#3a8794)", boxShadow: "inset 0 -5px 0 #f4dd3d" }}
       >
         <div className="flex items-center gap-4">
-          <img src="/logo-topbar.png" alt="SBJ" className="h-10 w-auto" />
+          <img src="/logo-topbar.png" alt="SBJ" className="h-12 w-auto" />
           <div>
-            <div className="text-[10px] uppercase tracking-wide text-[#cfe3e5]">Engenharia SBJ · Relatório de andamento de obra</div>
-            <h1 className="text-xl font-semibold">{obraNome}</h1>
+            <div className="text-[10px] uppercase tracking-[0.12em] text-[#cfe3e5]">Engenharia SBJ · Relatório de andamento de obra</div>
+            <h1 className="text-2xl font-bold leading-tight">{obraNome}</h1>
             <div className="text-xs text-[#d7e7e8] mt-0.5">
               Gerado em {geradoEm} · por {nomeUsuario}
             </div>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-4xl font-extrabold leading-none">{pctGeral}%</div>
-          <div className="text-[10px] uppercase text-[#d7e7e8]">concluído no geral</div>
+          <div className="text-5xl font-extrabold leading-none" style={{ color: "#f4dd3d" }}>
+            {pctGeral}%
+          </div>
+          <div className="text-[10px] uppercase tracking-wide text-[#d7e7e8] mt-1">concluído no geral</div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="card">
-          <h2 className="font-semibold text-primaryDark mb-2">Visão geral</h2>
-          <div className="flex items-center gap-4">
+      {/* Indicadores */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 print:grid-cols-4 gap-3">
+        {tiles.map((t) => (
+          <div key={t.label} className="rel-card bg-white rounded-xl border border-border px-4 py-3" style={{ borderTop: `4px solid ${t.cor}` }}>
+            <div className="text-[10px] uppercase tracking-wide text-ink-500 font-semibold">{t.label}</div>
+            <div className="text-2xl font-extrabold leading-tight" style={{ color: t.cor === "#9ca3af" ? "#4b5563" : t.cor }}>
+              {t.valor}
+            </div>
+            <div className="text-[11px] text-ink-500">{t.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Visão geral + áreas + torres */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 print:grid-cols-3 gap-3">
+        <div className="rel-card bg-white rounded-xl border border-border p-4">
+          <h2 className="font-semibold text-primaryDark text-sm mb-2">Visão geral</h2>
+          <div className="flex items-center gap-3">
             {donutPath(cGeral)}
-            <div className="text-xs space-y-1 flex-1">
-              {STATUS_ORDER.map((s) => (
-                <div key={s} className="flex justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <span className="inline-block w-2.5 h-2.5 rounded" style={{ background: STATUS_COR[s] }} />
-                    {STATUS_LABEL[s]}
-                  </span>
-                  <b>
-                    {cGeral[s]} ({cGeral.total ? Math.round((cGeral[s] / cGeral.total) * 100) : 0}%)
-                  </b>
-                </div>
-              ))}
+            <div className="text-[11px] space-y-1.5 flex-1">
+              {STATUS_ORDER.slice()
+                .reverse()
+                .map((s) => (
+                  <div key={s} className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: STATUS_COR[s] }} />
+                      {STATUS_LABEL[s]}
+                    </span>
+                    <b>{cGeral[s]}</b>
+                  </div>
+                ))}
             </div>
           </div>
         </div>
-        <div className="card">
-          <h2 className="font-semibold text-primaryDark mb-2">Andamento por área</h2>
-          <div className="space-y-2">
+
+        <div className="rel-card bg-white rounded-xl border border-border p-4">
+          <h2 className="font-semibold text-primaryDark text-sm mb-3">Andamento por área</h2>
+          <div className="space-y-3">
             {porCategoria.map(({ cat, qtd, pct }) => (
-              <div key={cat} className="grid items-center gap-2 text-xs" style={{ gridTemplateColumns: "150px 1fr 34px" }}>
-                <span className="flex items-center gap-1.5 truncate">
-                  <span className="inline-block w-2.5 h-2.5 rounded" style={{ background: CATEGORIA_COR[cat] }} />
-                  {CATEGORIA_LABEL[cat]} <span className="text-ink-400">({qtd})</span>
-                </span>
-                <div className="h-1.5 rounded bg-gray-200 overflow-hidden">
-                  <div className="h-full" style={{ width: `${pct}%`, background: CATEGORIA_COR[cat] }} />
+              <div key={cat}>
+                <div className="flex items-center justify-between text-[11px] mb-1">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: CATEGORIA_COR[cat] }} />
+                    {CATEGORIA_LABEL[cat]} <span className="text-ink-400 font-normal">({qtd})</span>
+                  </span>
+                  <b style={{ color: CATEGORIA_COR[cat] }}>{pct}%</b>
                 </div>
-                <span className="text-right font-semibold">{pct}%</span>
+                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "#e5e7eb" }}>
+                  <div className="h-full rounded-full" style={{ width: `${pct}%`, background: CATEGORIA_COR[cat] }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rel-card bg-white rounded-xl border border-border p-4">
+          <h2 className="font-semibold text-primaryDark text-sm mb-3">{multiTorre ? "Andamento por torre" : "Distribuição das etapas"}</h2>
+          {multiTorre ? (
+            <div className="space-y-3">
+              {porTorre.map(({ torre, c, pct }) => (
+                <div key={torre.id}>
+                  <div className="flex items-center justify-between text-[11px] mb-1">
+                    <span className="font-medium">{torre.nome}</span>
+                    <b style={{ color: corPct(pct) }}>{pct}%</b>
+                  </div>
+                  <BarraEmpilhada c={c} altura={10} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div>
+              <BarraEmpilhada c={cGeral} altura={16} />
+              <div className="flex justify-between text-[11px] mt-2">
+                {STATUS_ORDER.slice()
+                  .reverse()
+                  .map((s) => (
+                    <span key={s} className="flex flex-col items-center">
+                      <b style={{ color: s === "NAO_INICIADO" ? "#4b5563" : STATUS_COR[s] }}>
+                        {cGeral.total ? Math.round((cGeral[s] / cGeral.total) * 100) : 0}%
+                      </b>
+                      <span className="text-ink-500">{STATUS_LABEL[s]}</span>
+                    </span>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Pavimentos e serviços */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 print:grid-cols-5 gap-3">
+        <div className="rel-card bg-white rounded-xl border border-border p-4 lg:col-span-2 print:col-span-2">
+          <h2 className="font-semibold text-primaryDark text-sm mb-2">Andamento por pavimento</h2>
+          <div className="space-y-1.5">
+            {porPavimento.map(({ pav, c, pct }) => (
+              <div key={pav.id} className="grid items-center gap-2 text-[11px]" style={{ gridTemplateColumns: "minmax(0,1fr) 110px 34px" }}>
+                <span className="truncate">
+                  {multiTorre && <span className="text-ink-400">{nomeTorre.get(pav.torre_id)} · </span>}
+                  <span className="font-medium">{pav.nome}</span>
+                  {pav.categoria !== "RESIDENCIAL" && (
+                    <span
+                      className="ml-1 inline-block text-[8.5px] font-bold text-white px-1.5 py-px rounded-full align-middle"
+                      style={{ background: CATEGORIA_COR[pav.categoria] }}
+                    >
+                      {CATEGORIA_LABEL[pav.categoria]}
+                    </span>
+                  )}
+                </span>
+                <BarraEmpilhada c={c} altura={9} />
+                <b className="text-right" style={{ color: corPct(pct) }}>
+                  {pct}%
+                </b>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rel-card bg-white rounded-xl border border-border p-4 lg:col-span-3 print:col-span-3">
+          <h2 className="font-semibold text-primaryDark text-sm mb-2">Andamento por serviço</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-5 gap-y-1.5">
+            {porServico.map(({ serv, c, pct }) => (
+              <div key={serv.id} className="grid items-center gap-2 text-[11px]" style={{ gridTemplateColumns: "minmax(0,1fr) 70px 32px" }}>
+                <span className="truncate" title={serv.nome}>
+                  {serv.nome}
+                </span>
+                <BarraEmpilhada c={c} altura={8} />
+                <b className="text-right" style={{ color: corPct(pct) }}>
+                  {pct}%
+                </b>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="card">
-          <h2 className="font-semibold text-primaryDark mb-2">Andamento por pavimento</h2>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="text-left text-[10px] uppercase text-ink-400">
-                <th className="pb-1">Pavimento</th>
-                <th className="pb-1">%</th>
-                <th className="pb-1 text-right">Final.</th>
-                <th className="pb-1 text-right">Andam.</th>
-                <th className="pb-1 text-right">Não in.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {porPavimento.map(({ pav, c, pct }) => (
-                <tr key={pav.id} className="border-t border-border">
-                  <td className="py-1">{pav.nome}</td>
-                  <td className="py-1">{pct}%</td>
-                  <td className="py-1 text-right">{c.FINALIZADO}</td>
-                  <td className="py-1 text-right">{c.ANDAMENTO}</td>
-                  <td className="py-1 text-right">{c.NAO_INICIADO}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="card">
-          <h2 className="font-semibold text-primaryDark mb-2">Andamento por serviço</h2>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="text-left text-[10px] uppercase text-ink-400">
-                <th className="pb-1">Serviço</th>
-                <th className="pb-1">%</th>
-                <th className="pb-1 text-right">Final.</th>
-                <th className="pb-1 text-right">Andam.</th>
-                <th className="pb-1 text-right">Não in.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {porServico.map(({ serv, c, pct }) => (
-                <tr key={serv.id} className="border-t border-border">
-                  <td className="py-1">{serv.nome}</td>
-                  <td className="py-1">{pct}%</td>
-                  <td className="py-1 text-right">{c.FINALIZADO}</td>
-                  <td className="py-1 text-right">{c.ANDAMENTO}</td>
-                  <td className="py-1 text-right">{c.NAO_INICIADO}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* Legenda */}
+      <div className="flex items-center gap-4 text-[11px] text-ink-500 px-1">
+        {STATUS_ORDER.slice()
+          .reverse()
+          .map((s) => (
+            <span key={s} className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded-sm" style={{ background: STATUS_COR[s] }} />
+              {STATUS_LABEL[s]}
+            </span>
+          ))}
+        <span className="ml-auto">Engenharia SBJ · {obraNome}</span>
       </div>
 
       <style jsx global>{`
+        @page {
+          size: A4 landscape;
+          margin: 8mm;
+        }
         @media print {
-          @page {
-            size: A4 landscape;
-            margin: 8mm;
-          }
-          header,
-          aside,
-          .print\\:hidden {
-            display: none !important;
-          }
           body {
             background: #fff !important;
           }
-          main {
-            padding: 0 !important;
+          .report-root,
+          .report-root * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
-          .card {
-            padding: 8px 10px !important;
-            box-shadow: none !important;
-            border-radius: 6px !important;
-          }
-          h1 {
-            font-size: 16px !important;
-          }
-          table {
-            font-size: 8.5px !important;
-          }
-          th,
-          td {
-            padding: 2px 5px !important;
+          .report-root .rel-card {
+            break-inside: avoid;
+            box-shadow: none;
           }
         }
       `}</style>

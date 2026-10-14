@@ -30,7 +30,7 @@ export default async function AndamentoObraPage({
 
   return (
     <div>
-      <div className="mb-4">
+      <div className="mb-4 print:hidden">
         <h1 className="text-lg font-semibold text-primaryDark">Andamento de Obra</h1>
         <p className="text-sm text-ink-500">Fluxograma vertical de serviços por pavimento e unidade.</p>
       </div>

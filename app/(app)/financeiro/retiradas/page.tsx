@@ -57,7 +57,8 @@ export default async function RetiradasPage() {
     return retiradoPorPessoa[pessoaId] ?? 0;
   }
   function saldoDisponivel(pessoaId: string, saldoInicial: number) {
-    return totalRetido(pessoaId, saldoInicial) - totalRetirado(pessoaId);
+    const saldo = totalRetido(pessoaId, saldoInicial) - totalRetirado(pessoaId);
+    return Math.abs(saldo) < 0.005 ? 0 : saldo;
   }
 
   return (

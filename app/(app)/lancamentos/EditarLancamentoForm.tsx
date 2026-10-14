@@ -123,6 +123,12 @@ export default function EditarLancamentoForm({
               className="border rounded px-2 py-1 w-64"
             />
             <input
+              name="local"
+              placeholder="Local (ex: bloco A, Ap 1203)"
+              defaultValue={lancamento.local && lancamento.local !== "(sem local)" ? lancamento.local : ""}
+              className="border rounded px-2 py-1 w-56"
+            />
+            <input
               name="observacaoMedicao"
               placeholder="Observação da correção (opcional)"
               defaultValue={lancamento.observacao_medicao ?? ""}

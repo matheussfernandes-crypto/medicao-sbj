@@ -142,6 +142,7 @@ export default function NovoLancamentoForm({
           <div className="flex flex-wrap gap-2">
             <input type="number" step="0.01" name="valorValeHibrido" placeholder="Valor do vale (R$)" className="border rounded px-2 py-1 w-44" />
             <input type="number" step="0.01" name="valorBrutoMedicaoComplementar" placeholder="Valor bruto da medição complementar (R$)" className="border rounded px-2 py-1 w-64" />
+            <input name="local" placeholder="Local (ex: bloco A, Ap 1203)" className="border rounded px-2 py-1 w-56" />
             <input name="observacaoMedicao" placeholder="Observação da correção (opcional)" className="border rounded px-2 py-1 flex-1 min-w-[200px]" />
           </div>
         </div>

@@ -28,7 +28,7 @@ export const CATEGORIA_COR: Record<CategoriaPavimento, string> = {
 export type Torre = { id: string; obra_id: string; nome: string; ordem: number };
 export type Pavimento = { id: string; torre_id: string; nome: string; ordem: number; categoria: CategoriaPavimento };
 export type Unidade = { id: string; pavimento_id: string; nome: string; ordem: number };
-export type ServicoAndamento = { id: string; obra_id: string; nome: string; ordem: number };
+export type ServicoAndamento = { id: string; obra_id: string; nome: string; ordem: number; peso: number };
 
 export type CelulaStatus = {
   unidade_id: string;

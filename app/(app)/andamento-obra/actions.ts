@@ -262,12 +262,12 @@ export async function excluirUnidade(id: string) {
 
 // ---------- serviços (fases do fluxograma) ----------
 
-export async function salvarServico(input: { id?: string; obraId: string; nome: string; ordem: number }) {
+export async function salvarServico(input: { id?: string; obraId: string; nome: string; ordem: number; peso?: number }) {
   const { supabase } = await exigirAcesso();
   const { data, error } = await supabase
     .from("andamento_servicos")
-    .upsert({ id: input.id, obra_id: input.obraId, nome: input.nome, ordem: input.ordem })
-    .select("id, obra_id, nome, ordem")
+    .upsert({ id: input.id, obra_id: input.obraId, nome: input.nome, ordem: input.ordem, ...(input.peso != null ? { peso: Math.max(0, input.peso) } : {}) })
+    .select("id, obra_id, nome, ordem, peso")
     .single();
   if (error) throw new Error(error.message);
   revalidatePath("/andamento-obra");

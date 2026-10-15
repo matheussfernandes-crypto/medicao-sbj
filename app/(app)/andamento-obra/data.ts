@@ -32,7 +32,7 @@ export async function buscarDadosObra(obraId: string): Promise<DadosObra> {
 
   let { data: servicos } = await supabase
     .from("andamento_servicos")
-    .select("id, obra_id, nome, ordem")
+    .select("id, obra_id, nome, ordem, peso")
     .eq("obra_id", obraId)
     .order("ordem");
 
@@ -43,7 +43,7 @@ export async function buscarDadosObra(obraId: string): Promise<DadosObra> {
     const { data: inseridos } = await supabase
       .from("andamento_servicos")
       .upsert(linhas, { onConflict: "obra_id,nome", ignoreDuplicates: true })
-      .select("id, obra_id, nome, ordem");
+      .select("id, obra_id, nome, ordem, peso");
     servicos = (inseridos ?? []).sort((a, b) => a.ordem - b.ordem);
   }
 

@@ -118,13 +118,21 @@ export default function AndamentoObraClient({
     unidades.forEach((u) => servicos.forEach((s) => keys.push(cellKey(u.id, s.id))));
     return keys;
   }
+  const pesoPorServico = useMemo(() => new Map(servicos.map((s) => [s.id, Number(s.peso ?? 1)])), [servicos]);
+
+  // Contagem de etapas (pra exibir) + soma ponderada pelo peso do serviço
+  // (pra calcular a porcentagem de andamento).
   function contarStatus(keys: string[]) {
-    const c = { NAO_INICIADO: 0, ANDAMENTO: 0, FINALIZADO: 0, total: 0 };
+    const c = { NAO_INICIADO: 0, ANDAMENTO: 0, FINALIZADO: 0, total: 0, pFIN: 0, pAND: 0, pNAO: 0, pTotal: 0 };
     keys.forEach((k) => {
-      const cel = celulas.get(k);
-      const s = cel?.status ?? "NAO_INICIADO";
+      const s = celulas.get(k)?.status ?? "NAO_INICIADO";
+      const w = pesoPorServico.get(k.split("__")[1]) ?? 1;
       c[s]++;
       c.total++;
+      if (s === "FINALIZADO") c.pFIN += w;
+      else if (s === "ANDAMENTO") c.pAND += w;
+      else c.pNAO += w;
+      c.pTotal += w;
     });
     return c;
   }
@@ -390,9 +398,23 @@ export default function AndamentoObraClient({
     }
   }
 
+  const servicosRef = useRef(servicos);
+  servicosRef.current = servicos;
+  function persistirServico(id: string) {
+    const s = servicosRef.current.find((x) => x.id === id);
+    if (!s) return Promise.resolve();
+    return actions.salvarServico({ id: s.id, obraId: s.obra_id, nome: s.nome, ordem: s.ordem, peso: s.peso });
+  }
+
+  function alterarPesoServico(s: ServicoAndamento, peso: number) {
+    const valor = Number.isFinite(peso) && peso >= 0 ? peso : 0;
+    setServicos((prev) => prev.map((x) => (x.id === s.id ? { ...x, peso: valor } : x)));
+    agendarSalvar("sv:" + s.id, () => persistirServico(s.id));
+  }
+
   async function renomearServico(s: ServicoAndamento, nome: string) {
     setServicos((prev) => prev.map((x) => (x.id === s.id ? { ...x, nome } : x)));
-    agendarSalvar("sv:" + s.id, () => actions.salvarServico({ id: s.id, obraId: s.obra_id, nome, ordem: s.ordem }));
+    agendarSalvar("sv:" + s.id, () => persistirServico(s.id));
   }
 
   function pedirExclusaoServico(s: ServicoAndamento) {
@@ -498,7 +520,7 @@ export default function AndamentoObraClient({
 
   const keysGeral = todasAsChavesDaObra();
   const cGeral = contarStatus(keysGeral);
-  const pctGeral = cGeral.total ? Math.round((cGeral.FINALIZADO / cGeral.total) * 100) : 0;
+  const pctGeral = cGeral.pTotal ? Math.round((cGeral.pFIN / cGeral.pTotal) * 100) : 0;
 
   return (
     <div className="space-y-4">
@@ -550,13 +572,13 @@ export default function AndamentoObraClient({
             label="Em andamento"
             value={String(cGeral.ANDAMENTO)}
             corBarra={STATUS_COR.ANDAMENTO}
-            pct={cGeral.total ? Math.round((cGeral.ANDAMENTO / cGeral.total) * 100) : 0}
+            pct={cGeral.pTotal ? Math.round((cGeral.pAND / cGeral.pTotal) * 100) : 0}
           />
           <StatTile
             label="Não iniciados"
             value={String(cGeral.NAO_INICIADO)}
             corBarra="#d1d5db"
-            pct={cGeral.total ? Math.round((cGeral.NAO_INICIADO / cGeral.total) * 100) : 0}
+            pct={cGeral.pTotal ? Math.round((cGeral.pNAO / cGeral.pTotal) * 100) : 0}
           />
         </div>
       )}
@@ -747,9 +769,10 @@ export default function AndamentoObraClient({
           }
           onAddServico={addServico}
           onRenomearServico={renomearServico}
+          onAlterarPeso={alterarPesoServico}
           onExcluirServico={pedirExclusaoServico}
           onMoverServico={(id, dir) =>
-            mover(servicosOrdenados, setServicos, id, dir, (s) => actions.salvarServico({ id: s.id, obraId: s.obra_id, nome: s.nome, ordem: s.ordem }))
+            mover(servicosOrdenados, setServicos, id, dir, (s) => actions.salvarServico({ id: s.id, obraId: s.obra_id, nome: s.nome, ordem: s.ordem, peso: s.peso }))
           }
           onConfirmar={confirmarConfiguracao}
         />
@@ -959,10 +982,13 @@ function ConfigPanel(props: {
   onMoverUnidade: (lista: Unidade[], id: string, dir: -1 | 1) => void;
   onAddServico: () => void;
   onRenomearServico: (s: ServicoAndamento, nome: string) => void;
+  onAlterarPeso: (s: ServicoAndamento, peso: number) => void;
   onExcluirServico: (s: ServicoAndamento) => void;
   onMoverServico: (id: string, dir: -1 | 1) => void;
   onConfirmar: () => void;
 }) {
+  const pesoTotal = props.servicos.reduce((a, s) => a + Number(s.peso ?? 0), 0);
+
   return (
     <div className="space-y-4">
       {props.confirmacao && (
@@ -1122,8 +1148,20 @@ function ConfigPanel(props: {
       )}
 
       <div className="card">
-        <h2 className="font-semibold text-primaryDark mb-3">Serviços (ordem de execução)</h2>
-        <table className="w-full text-sm max-w-lg">
+        <h2 className="font-semibold text-primaryDark mb-1">Serviços (ordem de execução)</h2>
+        <p className="text-xs text-ink-500 mb-3 max-w-xl">
+          O <b>peso</b> define quanto cada serviço vale no andamento geral: um serviço de peso 10 influencia a porcentagem da obra dez vezes mais
+          que um de peso 1. Com todos em 1, todos valem igual.
+        </p>
+        <table className="w-full text-sm max-w-2xl">
+          <thead>
+            <tr className="text-left text-[11px] uppercase text-ink-400">
+              <th className="pb-1">Serviço</th>
+              <th className="pb-1 text-right pr-2">Peso</th>
+              <th className="pb-1 text-right pr-3">% do total</th>
+              <th className="pb-1"></th>
+            </tr>
+          </thead>
           <tbody>
             {props.servicos.map((s, idx) => (
               <tr key={s.id} className="border-t border-border">
@@ -1133,6 +1171,20 @@ function ConfigPanel(props: {
                     onChange={(e) => props.onRenomearServico(s, e.target.value)}
                     className="text-sm w-full bg-transparent outline-none border-b border-transparent hover:border-border focus:border-border"
                   />
+                </td>
+                <td className="py-1.5 pr-2 text-right">
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.5"
+                    value={Number.isFinite(s.peso) ? s.peso : 1}
+                    onChange={(e) => props.onAlterarPeso(s, parseFloat(e.target.value))}
+                    className="w-16 border border-border rounded px-1.5 py-1 text-sm text-right"
+                    title="Peso do serviço no andamento geral"
+                  />
+                </td>
+                <td className="py-1.5 pr-3 text-right text-xs text-ink-500 tabular-nums whitespace-nowrap">
+                  {pesoTotal > 0 ? ((Number(s.peso) / pesoTotal) * 100).toFixed(1).replace(".", ",") : "0,0"}%
                 </td>
                 <td className="py-1.5 whitespace-nowrap">
                   <button onClick={() => props.onMoverServico(s.id, -1)} disabled={idx === 0}>
@@ -1168,18 +1220,34 @@ function ConfigPanel(props: {
   );
 }
 
-type Contagem = { NAO_INICIADO: number; ANDAMENTO: number; FINALIZADO: number; total: number };
+// Contagens de etapas (total, pra exibir) e somas ponderadas pelo peso do serviço
+// (pFIN/pAND/pNAO/pTotal, usadas nas porcentagens).
+type Contagem = {
+  NAO_INICIADO: number;
+  ANDAMENTO: number;
+  FINALIZADO: number;
+  total: number;
+  pFIN: number;
+  pAND: number;
+  pNAO: number;
+  pTotal: number;
+};
+
+function pctPeso(c: Contagem, s: StatusAndamento) {
+  const p = s === "FINALIZADO" ? c.pFIN : s === "ANDAMENTO" ? c.pAND : c.pNAO;
+  return c.pTotal ? Math.round((p / c.pTotal) * 100) : 0;
+}
 
 function pctDe(c: Contagem) {
-  return c.total ? Math.round((c.FINALIZADO / c.total) * 100) : 0;
+  return c.pTotal ? Math.round((c.pFIN / c.pTotal) * 100) : 0;
 }
 
 function BarraEmpilhada({ c, altura = 10 }: { c: Contagem; altura?: number }) {
-  const t = c.total || 1;
+  const t = c.pTotal || 1;
   return (
     <div className="flex w-full overflow-hidden rounded-full" style={{ height: altura, background: STATUS_COR.NAO_INICIADO }}>
-      <div style={{ width: `${(c.FINALIZADO / t) * 100}%`, background: STATUS_COR.FINALIZADO }} />
-      <div style={{ width: `${(c.ANDAMENTO / t) * 100}%`, background: STATUS_COR.ANDAMENTO }} />
+      <div style={{ width: `${(c.pFIN / t) * 100}%`, background: STATUS_COR.FINALIZADO }} />
+      <div style={{ width: `${(c.pAND / t) * 100}%`, background: STATUS_COR.ANDAMENTO }} />
     </div>
   );
 }
@@ -1189,7 +1257,7 @@ function corPct(p: number) {
 }
 
 function donutPath(cGeral: Contagem) {
-  const total = cGeral.total || 1;
+  const total = cGeral.pTotal || 1;
   const order: ("FINALIZADO" | "ANDAMENTO" | "NAO_INICIADO")[] = ["FINALIZADO", "ANDAMENTO", "NAO_INICIADO"];
   const r = 52,
     cx = 70,
@@ -1197,7 +1265,8 @@ function donutPath(cGeral: Contagem) {
     circ = 2 * Math.PI * r;
   let acc = 0;
   const segs = order.map((k) => {
-    const frac = cGeral[k] / total;
+    const peso = k === "FINALIZADO" ? cGeral.pFIN : k === "ANDAMENTO" ? cGeral.pAND : cGeral.pNAO;
+    const frac = peso / total;
     const dash = frac * circ;
     const el =
       frac > 0 ? (
@@ -1217,7 +1286,7 @@ function donutPath(cGeral: Contagem) {
     acc += frac;
     return el;
   });
-  const pct = Math.round((cGeral.FINALIZADO / total) * 100);
+  const pct = Math.round((cGeral.pFIN / total) * 100);
   return (
     <svg viewBox="0 0 140 140" className="shrink-0" style={{ width: 150, height: 150 }}>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="#eef1f1" strokeWidth={20} />
@@ -1301,12 +1370,20 @@ function RelatorioPanel({
     };
   }, []);
 
+  const pesoPorServico = new Map(servicos.map((s) => [s.id, Number(s.peso ?? 1)]));
+  const pesoTotal = servicos.reduce((a, s) => a + Number(s.peso ?? 1), 0);
+
   function contar(keys: string[]): Contagem {
-    const c: Contagem = { NAO_INICIADO: 0, ANDAMENTO: 0, FINALIZADO: 0, total: 0 };
+    const c: Contagem = { NAO_INICIADO: 0, ANDAMENTO: 0, FINALIZADO: 0, total: 0, pFIN: 0, pAND: 0, pNAO: 0, pTotal: 0 };
     keys.forEach((k) => {
       const s = celulas.get(k)?.status ?? "NAO_INICIADO";
+      const w = pesoPorServico.get(k.split("__")[1]) ?? 1;
       c[s]++;
       c.total++;
+      if (s === "FINALIZADO") c.pFIN += w;
+      else if (s === "ANDAMENTO") c.pAND += w;
+      else c.pNAO += w;
+      c.pTotal += w;
     });
     return c;
   }
@@ -1377,13 +1454,13 @@ function RelatorioPanel({
     {
       label: "Em andamento",
       valor: String(cGeral.ANDAMENTO),
-      sub: `${cGeral.total ? Math.round((cGeral.ANDAMENTO / cGeral.total) * 100) : 0}% das etapas`,
+      sub: `${pctPeso(cGeral, "ANDAMENTO")}% do andamento (ponderado)`,
       cor: STATUS_COR.ANDAMENTO,
     },
     {
       label: "Não iniciado",
       valor: String(cGeral.NAO_INICIADO),
-      sub: `${cGeral.total ? Math.round((cGeral.NAO_INICIADO / cGeral.total) * 100) : 0}% das etapas`,
+      sub: `${pctPeso(cGeral, "NAO_INICIADO")}% do andamento (ponderado)`,
       cor: "#9ca3af",
     },
     {
@@ -1495,7 +1572,7 @@ function RelatorioPanel({
                     .map((s) => (
                       <span key={s} className="flex flex-col items-center">
                         <b className="text-base" style={{ color: s === "NAO_INICIADO" ? "#4b5563" : STATUS_COR[s] }}>
-                          {cGeral.total ? Math.round((cGeral[s] / cGeral.total) * 100) : 0}%
+                          {pctPeso(cGeral, s)}%
                         </b>
                         <span className="text-ink-500">{STATUS_LABEL[s]}</span>
                       </span>
@@ -1609,6 +1686,17 @@ function RelatorioPanel({
                   </div>
                 </div>
               ))}
+
+              {/* peso de cada serviço no total */}
+              <div className="grid items-center gap-[3px] mt-2" style={{ gridTemplateColumns: colunas }}>
+                <div className="text-[10px] font-semibold uppercase text-ink-500">Peso no total</div>
+                {servicos.map((s) => (
+                  <div key={s.id} className="text-center text-[10px] text-ink-500">
+                    {pesoTotal > 0 ? Math.round((Number(s.peso ?? 1) / pesoTotal) * 100) : 0}%
+                  </div>
+                ))}
+                <div />
+              </div>
 
               {/* rodapé do mapa: % por serviço */}
               <div className="grid items-center gap-[3px] mt-2 pt-2 border-t border-border" style={{ gridTemplateColumns: colunas }}>

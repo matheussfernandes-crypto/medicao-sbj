@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronUp,
@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   BarChart3,
   CheckSquare,
+  Copy,
   X,
   Check,
 } from "lucide-react";
@@ -80,6 +81,17 @@ export default function AndamentoObraClient({
   const [confirmacao, setConfirmacao] = useState<{ label: string; onConfirm: () => void } | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [salvoEm, setSalvoEm] = useState<number | null>(null);
+  const [focoPavId, setFocoPavId] = useState<string | null>(null);
+  const timersSalvar = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // Edição de nomes: atualiza a tela na hora e só grava no servidor quando a
+  // pessoa para de digitar, pra não disparar um salvamento por letra.
+  function agendarSalvar(chave: string, fn: () => Promise<unknown>) {
+    clearTimeout(timersSalvar.current[chave]);
+    timersSalvar.current[chave] = setTimeout(() => {
+      fn().catch((e: any) => setErro(e.message));
+    }, 500);
+  }
 
   const torreAtiva = torres.find((t) => t.id === torreAtivaId) ?? torres[0] ?? null;
   const pavimentosDaTorre = useMemo(
@@ -263,7 +275,7 @@ export default function AndamentoObraClient({
     const t = torres.find((x) => x.id === id);
     if (!t) return;
     setTorres((prev) => prev.map((x) => (x.id === id ? { ...x, nome } : x)));
-    await actions.salvarTorre({ id, obraId: dados.obraId, nome, ordem: t.ordem }).catch((e) => setErro(e.message));
+    agendarSalvar("torre:" + id, () => actions.salvarTorre({ id, obraId: dados.obraId, nome, ordem: t.ordem }));
   }
 
   function pedirExclusaoTorre(t: Torre) {
@@ -301,9 +313,24 @@ export default function AndamentoObraClient({
   async function atualizarPavimento(p: Pavimento, patch: Partial<Pick<Pavimento, "nome" | "categoria">>) {
     const atualizado = { ...p, ...patch };
     setPavimentos((prev) => prev.map((x) => (x.id === p.id ? atualizado : x)));
-    await actions
-      .salvarPavimento({ id: p.id, torreId: p.torre_id, nome: atualizado.nome, ordem: p.ordem, categoria: atualizado.categoria })
-      .catch((e) => setErro(e.message));
+    agendarSalvar("pav:" + p.id, () =>
+      actions.salvarPavimento({ id: p.id, torreId: p.torre_id, nome: atualizado.nome, ordem: p.ordem, categoria: atualizado.categoria })
+    );
+  }
+
+  async function duplicarPavimento(p: Pavimento) {
+    setSalvando(true);
+    try {
+      const r = await actions.duplicarPavimento(p.id);
+      setPavimentos((prev) => [...prev.filter((x) => x.torre_id !== p.torre_id), ...(r.pavimentos as Pavimento[])]);
+      setUnidades((prev) => [...prev, ...(r.unidades as Unidade[])]);
+      setFocoPavId(r.novoId);
+      setTimeout(() => setFocoPavId(null), 1000);
+    } catch (e: any) {
+      setErro(e.message);
+    } finally {
+      setSalvando(false);
+    }
   }
 
   function pedirExclusaoPavimento(p: Pavimento) {
@@ -337,7 +364,7 @@ export default function AndamentoObraClient({
 
   async function renomearUnidade(u: Unidade, nome: string) {
     setUnidades((prev) => prev.map((x) => (x.id === u.id ? { ...x, nome } : x)));
-    await actions.salvarUnidade({ id: u.id, pavimentoId: u.pavimento_id, nome, ordem: u.ordem }).catch((e) => setErro(e.message));
+    agendarSalvar("un:" + u.id, () => actions.salvarUnidade({ id: u.id, pavimentoId: u.pavimento_id, nome, ordem: u.ordem }));
   }
 
   function pedirExclusaoUnidade(u: Unidade) {
@@ -365,7 +392,7 @@ export default function AndamentoObraClient({
 
   async function renomearServico(s: ServicoAndamento, nome: string) {
     setServicos((prev) => prev.map((x) => (x.id === s.id ? { ...x, nome } : x)));
-    await actions.salvarServico({ id: s.id, obraId: s.obra_id, nome, ordem: s.ordem }).catch((e) => setErro(e.message));
+    agendarSalvar("sv:" + s.id, () => actions.salvarServico({ id: s.id, obraId: s.obra_id, nome, ordem: s.ordem }));
   }
 
   function pedirExclusaoServico(s: ServicoAndamento) {
@@ -704,6 +731,8 @@ export default function AndamentoObraClient({
           onMoverTorre={(id, dir) => mover(torres, setTorres, id, dir, (t) => actions.salvarTorre({ id: t.id, obraId: dados.obraId, nome: t.nome, ordem: t.ordem }))}
           onAddPavimento={addPavimento}
           onAtualizarPavimento={atualizarPavimento}
+          onDuplicarPavimento={duplicarPavimento}
+          focoPavId={focoPavId}
           onExcluirPavimento={pedirExclusaoPavimento}
           onMoverPavimento={(id, dir) =>
             mover(pavimentosDaTorre, setPavimentos, id, dir, (p) =>
@@ -921,6 +950,8 @@ function ConfigPanel(props: {
   onAddPavimento: () => void;
   onAtualizarPavimento: (p: Pavimento, patch: Partial<Pick<Pavimento, "nome" | "categoria">>) => void;
   onExcluirPavimento: (p: Pavimento) => void;
+  onDuplicarPavimento: (p: Pavimento) => void;
+  focoPavId: string | null;
   onMoverPavimento: (id: string, dir: -1 | 1) => void;
   onAddUnidade: (pavimentoId: string) => void;
   onRenomearUnidade: (u: Unidade, nome: string) => void;
@@ -1013,6 +1044,10 @@ function ConfigPanel(props: {
                       <input
                         value={p.nome}
                         onChange={(e) => props.onAtualizarPavimento(p, { nome: e.target.value })}
+                        autoFocus={p.id === props.focoPavId}
+                        onFocus={(e) => {
+                          if (p.id === props.focoPavId) e.target.select();
+                        }}
                         className="text-sm border-b border-transparent hover:border-border focus:border-border outline-none bg-transparent w-32"
                       />
                     </td>
@@ -1058,6 +1093,14 @@ function ConfigPanel(props: {
                       </button>
                       <button onClick={() => props.onMoverPavimento(p.id, 1)} disabled={idx === props.pavimentosDaTorre.length - 1}>
                         <ChevronDown className="w-4 h-4 text-ink-400" />
+                      </button>
+                      <button
+                        onClick={() => props.onDuplicarPavimento(p)}
+                        disabled={props.salvando}
+                        title="Duplicar pavimento (copia a área e as unidades)"
+                        className="disabled:opacity-40"
+                      >
+                        <Copy className="w-4 h-4 text-primary" />
                       </button>
                       <button onClick={() => props.onExcluirPavimento(p)}>
                         <Trash2 className="w-4 h-4 text-danger" />

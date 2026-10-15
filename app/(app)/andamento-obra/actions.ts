@@ -172,6 +172,8 @@ export async function duplicarPavimento(pavimentoId: string) {
     .order("ordem");
 
   const usados = new Set((irmaos ?? []).map((p) => p.nome.trim().toLowerCase()));
+  const ordemPorNome = new Map((irmaos ?? []).map((p) => [p.nome.trim().toLowerCase(), p.ordem]));
+  let ordemBase = src.ordem;
   let novoNome = "";
   let numAntigo: number | null = null;
   let numNovo: number | null = null;
@@ -182,6 +184,8 @@ export async function duplicarPavimento(pavimentoId: string) {
     do {
       n += 1;
       novoNome = src.nome.slice(0, num.inicio) + String(n).padStart(num.digitos.length, "0") + src.nome.slice(num.fim);
+      const ocupada = ordemPorNome.get(novoNome.trim().toLowerCase());
+      if (ocupada != null) ordemBase = Math.max(ordemBase, ocupada);
     } while (usados.has(novoNome.trim().toLowerCase()));
     numNovo = n;
   } else {
@@ -193,13 +197,13 @@ export async function duplicarPavimento(pavimentoId: string) {
   }
 
   // abre espaço logo abaixo do original
-  for (const irmao of (irmaos ?? []).filter((p) => p.ordem > src.ordem)) {
+  for (const irmao of (irmaos ?? []).filter((p) => p.ordem > ordemBase)) {
     await supabase.from("pavimentos").update({ ordem: irmao.ordem + 1 }).eq("id", irmao.id);
   }
 
   const { data: novo, error } = await supabase
     .from("pavimentos")
-    .insert({ torre_id: src.torre_id, nome: novoNome, ordem: src.ordem + 1, categoria: src.categoria })
+    .insert({ torre_id: src.torre_id, nome: novoNome, ordem: ordemBase + 1, categoria: src.categoria })
     .select("id")
     .single();
   if (error || !novo) throw new Error(error?.message ?? "Não foi possível duplicar o pavimento.");

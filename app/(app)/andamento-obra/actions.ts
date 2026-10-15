@@ -280,3 +280,14 @@ export async function excluirServico(id: string) {
   if (error) throw new Error(error.message);
   revalidatePath("/andamento-obra");
 }
+
+// Grava os pesos de vários serviços de uma vez (usado ao editar a porcentagem).
+export async function definirPesos(itens: { id: string; peso: number }[]) {
+  const { supabase } = await exigirAcesso();
+  const resultados = await Promise.all(
+    itens.map((i) => supabase.from("andamento_servicos").update({ peso: Math.max(0, i.peso) }).eq("id", i.id))
+  );
+  const erro = resultados.find((r) => r.error)?.error;
+  if (erro) throw new Error(erro.message);
+  revalidatePath("/andamento-obra");
+}

@@ -83,6 +83,7 @@ export default function AndamentoObraClient({
   const [salvoEm, setSalvoEm] = useState<number | null>(null);
   const [focoPavId, setFocoPavId] = useState<string | null>(null);
   const timersSalvar = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [fixos, setFixos] = useState<Set<string>>(new Set());
 
   // Edição de nomes: atualiza a tela na hora e só grava no servidor quando a
   // pessoa para de digitar, pra não disparar um salvamento por letra.
@@ -406,10 +407,69 @@ export default function AndamentoObraClient({
     return actions.salvarServico({ id: s.id, obraId: s.obra_id, nome: s.nome, ordem: s.ordem, peso: s.peso });
   }
 
-  function alterarPesoServico(s: ServicoAndamento, peso: number) {
-    const valor = Number.isFinite(peso) && peso >= 0 ? peso : 0;
-    setServicos((prev) => prev.map((x) => (x.id === s.id ? { ...x, peso: valor } : x)));
-    agendarSalvar("sv:" + s.id, () => persistirServico(s.id));
+  // Porcentagem direta: o serviço editado passa a valer p% do total e os que
+  // ainda não foram mexidos dividem o restante na proporção atual. Os já
+  // editados nesta sessão ficam fixos, pra um ajuste não desfazer o outro.
+  // Os pesos gravados passam a ser as próprias porcentagens (soma 100).
+  function definirPercentual(sid: string, pedido: number) {
+    const lista = servicosRef.current;
+    if (!lista.length) return;
+    const p = Math.min(100, Math.max(0, Number.isFinite(pedido) ? pedido : 0));
+    const soma = lista.reduce((a, s) => a + Number(s.peso ?? 0), 0);
+    const shareAtual = (s: ServicoAndamento) => (soma > 0 ? (Number(s.peso) / soma) * 100 : 100 / lista.length);
+
+    let fixosIds = new Set(fixos);
+    fixosIds.add(sid);
+    let livres = lista.filter((s) => !fixosIds.has(s.id));
+    if (livres.length === 0) {
+      fixosIds = new Set([sid]);
+      livres = lista.filter((s) => s.id !== sid);
+    }
+
+    const novo = new Map<string, number>();
+    novo.set(sid, p);
+    let somaFixos = 0;
+    lista.forEach((s) => {
+      if (s.id !== sid && fixosIds.has(s.id)) {
+        const v = shareAtual(s);
+        novo.set(s.id, v);
+        somaFixos += v;
+      }
+    });
+    const limite = 100 - p;
+    if (somaFixos > limite && somaFixos > 0) {
+      const f = limite / somaFixos;
+      lista.forEach((s) => {
+        if (s.id !== sid && fixosIds.has(s.id)) novo.set(s.id, (novo.get(s.id) ?? 0) * f);
+      });
+      somaFixos = limite;
+    }
+    const restante = Math.max(0, 100 - p - somaFixos);
+    const somaLivres = livres.reduce((a, s) => a + Math.max(0, shareAtual(s)), 0);
+    livres.forEach((s) => {
+      novo.set(s.id, somaLivres > 0 ? (restante * Math.max(0, shareAtual(s))) / somaLivres : restante / livres.length);
+    });
+
+    // 2 casas decimais; o resíduo de arredondamento vai pro maior serviço livre
+    lista.forEach((s) => novo.set(s.id, Math.round((novo.get(s.id) ?? 0) * 100) / 100));
+    const residuo = Math.round((100 - Array.from(novo.values()).reduce((a, v) => a + v, 0)) * 100) / 100;
+    if (residuo !== 0) {
+      const alvo = (livres.length ? livres : lista.filter((s) => s.id !== sid)).reduce(
+        (m, s) => ((novo.get(s.id) ?? 0) > (novo.get(m.id) ?? 0) ? s : m),
+        (livres.length ? livres : lista.filter((s) => s.id !== sid))[0] ?? lista[0]
+      );
+      novo.set(alvo.id, Math.max(0, Math.round(((novo.get(alvo.id) ?? 0) + residuo) * 100) / 100));
+    }
+
+    setServicos((prev) => prev.map((s) => ({ ...s, peso: novo.get(s.id) ?? s.peso })));
+    setFixos(fixosIds);
+    agendarSalvar("pesos", () => actions.definirPesos(servicosRef.current.map((s) => ({ id: s.id, peso: s.peso }))));
+  }
+
+  function igualarPesos() {
+    setServicos((prev) => prev.map((s) => ({ ...s, peso: 1 })));
+    setFixos(new Set());
+    agendarSalvar("pesos", () => actions.definirPesos(servicosRef.current.map((s) => ({ id: s.id, peso: s.peso }))));
   }
 
   async function renomearServico(s: ServicoAndamento, nome: string) {
@@ -769,7 +829,9 @@ export default function AndamentoObraClient({
           }
           onAddServico={addServico}
           onRenomearServico={renomearServico}
-          onAlterarPeso={alterarPesoServico}
+          onDefinirPercentual={definirPercentual}
+          onIgualarPesos={igualarPesos}
+          fixos={fixos}
           onExcluirServico={pedirExclusaoServico}
           onMoverServico={(id, dir) =>
             mover(servicosOrdenados, setServicos, id, dir, (s) => actions.salvarServico({ id: s.id, obraId: s.obra_id, nome: s.nome, ordem: s.ordem, peso: s.peso }))
@@ -982,12 +1044,29 @@ function ConfigPanel(props: {
   onMoverUnidade: (lista: Unidade[], id: string, dir: -1 | 1) => void;
   onAddServico: () => void;
   onRenomearServico: (s: ServicoAndamento, nome: string) => void;
-  onAlterarPeso: (s: ServicoAndamento, peso: number) => void;
+  onDefinirPercentual: (id: string, percentual: number) => void;
+  onIgualarPesos: () => void;
+  fixos: Set<string>;
   onExcluirServico: (s: ServicoAndamento) => void;
   onMoverServico: (id: string, dir: -1 | 1) => void;
   onConfirmar: () => void;
 }) {
   const pesoTotal = props.servicos.reduce((a, s) => a + Number(s.peso ?? 0), 0);
+  const [rascunhoPct, setRascunhoPct] = useState<Record<string, string>>({});
+  const shareDe = (s: ServicoAndamento) => (pesoTotal > 0 ? (Number(s.peso) / pesoTotal) * 100 : 0);
+  const fmtPct = (v: number) => v.toFixed(1).replace(".", ",");
+  function confirmarPct(s: ServicoAndamento) {
+    const txt = rascunhoPct[s.id];
+    if (txt === undefined) return;
+    setRascunhoPct((r) => {
+      const { [s.id]: _, ...resto } = r;
+      return resto;
+    });
+    const n = parseFloat(txt.replace("%", "").replace(",", ".").trim());
+    if (!Number.isFinite(n)) return;
+    if (Math.abs(n - shareDe(s)) < 0.05) return;
+    props.onDefinirPercentual(s.id, n);
+  }
 
   return (
     <div className="space-y-4">
@@ -1150,14 +1229,13 @@ function ConfigPanel(props: {
       <div className="card">
         <h2 className="font-semibold text-primaryDark mb-1">Serviços (ordem de execução)</h2>
         <p className="text-xs text-ink-500 mb-3 max-w-xl">
-          O <b>peso</b> define quanto cada serviço vale no andamento geral: um serviço de peso 10 influencia a porcentagem da obra dez vezes mais
-          que um de peso 1. Com todos em 1, todos valem igual.
+          Digite a <b>porcentagem</b> que cada serviço vale no andamento geral da obra. Ao mudar um, os que você ainda não mexeu se ajustam
+          sozinhos pra fechar 100%. Os que você já definiu ficam fixos.
         </p>
         <table className="w-full text-sm max-w-2xl">
           <thead>
             <tr className="text-left text-[11px] uppercase text-ink-400">
               <th className="pb-1">Serviço</th>
-              <th className="pb-1 text-right pr-2">Peso</th>
               <th className="pb-1 text-right pr-3">% do total</th>
               <th className="pb-1"></th>
             </tr>
@@ -1172,19 +1250,22 @@ function ConfigPanel(props: {
                     className="text-sm w-full bg-transparent outline-none border-b border-transparent hover:border-border focus:border-border"
                   />
                 </td>
-                <td className="py-1.5 pr-2 text-right">
+                <td className="py-1.5 pr-3 text-right whitespace-nowrap">
                   <input
-                    type="number"
-                    min={0}
-                    step="0.5"
-                    value={Number.isFinite(s.peso) ? s.peso : 1}
-                    onChange={(e) => props.onAlterarPeso(s, parseFloat(e.target.value))}
-                    className="w-16 border border-border rounded px-1.5 py-1 text-sm text-right"
-                    title="Peso do serviço no andamento geral"
+                    inputMode="decimal"
+                    value={rascunhoPct[s.id] ?? fmtPct(shareDe(s))}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setRascunhoPct((r) => ({ ...r, [s.id]: e.target.value }))}
+                    onBlur={() => confirmarPct(s)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                    }}
+                    className={`w-16 border rounded px-1.5 py-1 text-sm text-right tabular-nums ${
+                      props.fixos.has(s.id) ? "border-primary bg-primary/5 font-semibold" : "border-border"
+                    }`}
+                    title={props.fixos.has(s.id) ? "Porcentagem definida por você (fixa)" : "Digite a porcentagem deste serviço"}
                   />
-                </td>
-                <td className="py-1.5 pr-3 text-right text-xs text-ink-500 tabular-nums whitespace-nowrap">
-                  {pesoTotal > 0 ? ((Number(s.peso) / pesoTotal) * 100).toFixed(1).replace(".", ",") : "0,0"}%
+                  <span className="text-xs text-ink-500 ml-0.5">%</span>
                 </td>
                 <td className="py-1.5 whitespace-nowrap">
                   <button onClick={() => props.onMoverServico(s.id, -1)} disabled={idx === 0}>
@@ -1201,13 +1282,21 @@ function ConfigPanel(props: {
             ))}
           </tbody>
         </table>
-        <button
-          onClick={props.onAddServico}
-          disabled={props.salvando}
-          className="mt-3 flex items-center gap-1 text-xs px-2 py-1.5 border border-border rounded-md disabled:opacity-50 disabled:cursor-wait"
-        >
-          <Plus className="w-3.5 h-3.5" /> Adicionar serviço
-        </button>
+        <div className="mt-3 flex items-center gap-3 flex-wrap">
+          <button
+            onClick={props.onAddServico}
+            disabled={props.salvando}
+            className="flex items-center gap-1 text-xs px-2 py-1.5 border border-border rounded-md disabled:opacity-50 disabled:cursor-wait"
+          >
+            <Plus className="w-3.5 h-3.5" /> Adicionar serviço
+          </button>
+          <button onClick={props.onIgualarPesos} className="text-xs px-2 py-1.5 border border-border rounded-md">
+            Dividir igualmente entre todos
+          </button>
+          <span className="text-xs text-ink-500">
+            Soma: <b className="text-ink-900">{pesoTotal > 0 ? "100%" : "0%"}</b>
+          </span>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

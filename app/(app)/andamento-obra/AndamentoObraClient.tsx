@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronUp,
@@ -1265,6 +1265,42 @@ function RelatorioPanel({
   celulas: Map<string, CelulaStatus>;
   onExportarCSV: () => void;
 }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const paginaRef = useRef<HTMLDivElement>(null);
+
+  // A folha é desenhada numa largura fixa (1500px) e a escala é ajustada:
+  // na tela, pra caber na largura disponível; na impressão, pra caber SEMPRE
+  // numa única folha A3 (mede a altura real do conteúdo na hora de imprimir).
+  useEffect(() => {
+    const LARGURA = 1500;
+    const PAG_W = (404 * 96) / 25.4 - 6; // A3 paisagem menos margens de 8mm
+    const PAG_H = (281 * 96) / 25.4 - 14;
+
+    function ajustarTela() {
+      const el = paginaRef.current;
+      if (!el) return;
+      const disponivel = wrapRef.current?.clientWidth ?? LARGURA;
+      el.style.zoom = String(Math.min(1, disponivel / LARGURA));
+    }
+    function ajustarImpressao() {
+      const el = paginaRef.current;
+      if (!el) return;
+      el.style.zoom = "1";
+      const altura = el.offsetHeight || 1;
+      el.style.zoom = String(Math.min(PAG_W / LARGURA, PAG_H / altura));
+    }
+
+    ajustarTela();
+    window.addEventListener("resize", ajustarTela);
+    window.addEventListener("beforeprint", ajustarImpressao);
+    window.addEventListener("afterprint", ajustarTela);
+    return () => {
+      window.removeEventListener("resize", ajustarTela);
+      window.removeEventListener("beforeprint", ajustarImpressao);
+      window.removeEventListener("afterprint", ajustarTela);
+    };
+  }, []);
+
   function contar(keys: string[]): Contagem {
     const c: Contagem = { NAO_INICIADO: 0, ANDAMENTO: 0, FINALIZADO: 0, total: 0 };
     keys.forEach((k) => {
@@ -1359,7 +1395,7 @@ function RelatorioPanel({
   ];
 
   return (
-    <div className="report-root space-y-3">
+    <div ref={wrapRef} className="report-root space-y-3">
       <div className="flex items-center gap-2 flex-wrap print:hidden">
         <button onClick={onExportarCSV} className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-lg text-sm">
           <Download className="w-4 h-4" /> Exportar CSV
@@ -1370,7 +1406,7 @@ function RelatorioPanel({
         <span className="text-xs text-ink-500">Sai em uma única folha A3 paisagem — na janela de impressão deixe o tamanho do papel em A3.</span>
       </div>
 
-      <div className="report-page space-y-3">
+      <div ref={paginaRef} className="report-page space-y-3 mx-auto" style={{ width: 1500 }}>
         {/* Cabeçalho */}
         <div
           className="rel-card rounded-xl text-white px-6 py-4 flex justify-between items-center flex-wrap gap-4"
@@ -1395,7 +1431,7 @@ function RelatorioPanel({
         </div>
 
         {/* Resumo */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 print:grid-cols-4 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <div className="rel-card bg-white rounded-xl border border-border p-4">
             <h2 className="font-semibold text-primaryDark text-sm mb-1">Visão geral</h2>
             <div className="flex items-center gap-3">
@@ -1601,6 +1637,9 @@ function RelatorioPanel({
           size: A3 landscape;
           margin: 8mm;
         }
+        .report-root {
+          width: 100%;
+        }
         @media print {
           html,
           body {
@@ -1612,17 +1651,11 @@ function RelatorioPanel({
             print-color-adjust: exact;
           }
           .report-root .rel-card {
-            break-inside: avoid;
             box-shadow: none;
           }
           .report-root .report-page {
-            min-height: 274mm;
-            display: flex;
-            flex-direction: column;
-          }
-          .report-root .report-mapa {
-            flex: 1 1 auto;
-            min-height: 0;
+            break-inside: avoid;
+            page-break-after: avoid;
           }
         }
       `}</style>

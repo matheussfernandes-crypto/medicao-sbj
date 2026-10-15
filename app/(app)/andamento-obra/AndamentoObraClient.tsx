@@ -624,7 +624,7 @@ export default function AndamentoObraClient({
                     </button>
                   </div>
 
-                  <div className="card-table overflow-auto" style={{ maxHeight: "66vh" }}>
+                  <div className="card-table overflow-auto" style={{ maxHeight: "max(380px, calc(100vh - 300px))" }}>
                 <table className="border-separate border-spacing-0 text-xs">
                   <thead>
                     <tr>

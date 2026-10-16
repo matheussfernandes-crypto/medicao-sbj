@@ -10,7 +10,8 @@ export default function Carousel({
   slides: React.ReactNode[];
   intervalMs?: number;
 }) {
-  const [index, setIndex] = useState(0);
+  const [indexBruto, setIndex] = useState(0);
+  const index = slides.length ? indexBruto % slides.length : 0;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const restartTimer = useCallback(() => {

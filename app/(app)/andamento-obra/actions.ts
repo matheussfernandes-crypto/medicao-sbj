@@ -291,3 +291,32 @@ export async function definirPesos(itens: { id: string; peso: number }[]) {
   if (erro) throw new Error(erro.message);
   revalidatePath("/andamento-obra");
 }
+
+// ---------- fotos quinzenais da obra ----------
+// O arquivo vai direto do navegador pro Storage (bucket "obra-fotos"); aqui só
+// registramos a foto no banco e removemos quando necessário.
+
+export async function registrarFotoObra(input: { obraId: string; dataFoto: string; legenda: string; path: string }) {
+  const { supabase, userId } = await exigirAcesso();
+  const { error } = await supabase.from("obra_fotos").insert({
+    obra_id: input.obraId,
+    data_foto: input.dataFoto,
+    legenda: input.legenda.trim() || null,
+    storage_path: input.path,
+    criado_por: userId,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/andamento-obra");
+  revalidatePath("/dashboard");
+}
+
+export async function excluirFotoObra(id: string) {
+  const { supabase } = await exigirAcesso();
+  const { data: foto } = await supabase.from("obra_fotos").select("storage_path").eq("id", id).single();
+  if (!foto) return;
+  const { error } = await supabase.from("obra_fotos").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  await supabase.storage.from("obra-fotos").remove([foto.storage_path]);
+  revalidatePath("/andamento-obra");
+  revalidatePath("/dashboard");
+}

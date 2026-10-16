@@ -4,7 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { navItemsForSetor } from "@/components/nav-items";
 import Carousel from "@/components/Carousel";
 import MiniCalendar, { type EventoCalendario } from "@/components/MiniCalendar";
-import { HardHat, BarChart3, Sparkles } from "lucide-react";
+import { HardHat } from "lucide-react";
+import { carregarPainelObras } from "./painel-obras";
+import SlideProgresso from "./SlideProgresso";
+import PainelObrasSeletor from "./PainelObrasSeletor";
 
 function mesAtualISO() {
   return new Date().toISOString().slice(0, 7);
@@ -88,50 +91,43 @@ export default async function DashboardPage() {
 
   const atalhos = navItemsForSetor(setor).filter((item) => item.href !== "/dashboard");
 
-  // Slides de exemplo — quando o módulo "Andamento de Obra" e a agenda real
-  // existirem, essas mesmas posições passam a vir de dados reais (fotos da
-  // obra, gráfico de avanço físico, próximos compromissos).
-  const slides = [
-    <div
-      key="andamento"
-      className="h-full w-full flex flex-col items-center justify-center text-center gap-3 p-8 bg-primaryDark relative overflow-hidden"
-    >
-      <div
-        className="absolute inset-0 opacity-[0.08]"
-        style={{
-          backgroundImage: "radial-gradient(circle at 25% 25%, #fff 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
-        }}
-      />
-      <HardHat className="w-10 h-10 text-accent relative" />
-      <p className="text-white text-lg font-semibold relative">Em breve: Andamento de Obra</p>
-      <p className="text-white/60 text-sm max-w-sm relative">
-        Fotos e o progresso físico de cada obra vão aparecer bem aqui, direto no seu painel.
-      </p>
-    </div>,
-    <div
-      key="graficos"
-      className="h-full w-full flex flex-col items-center justify-center text-center gap-3 p-8 bg-white"
-    >
-      <BarChart3 className="w-10 h-10 text-primary" />
-      <p className="text-primaryDark text-lg font-semibold">Gráficos de avanço em destaque</p>
-      <p className="text-ink-500 text-sm max-w-sm">
-        Assim que o andamento físico for cadastrado, os gráficos de progresso de cada obra também vão girar por aqui.
-      </p>
-    </div>,
-    <div
-      key="novidade"
-      className="h-full w-full flex flex-col items-center justify-center text-center gap-3 p-8"
-      style={{ background: "linear-gradient(135deg, #2c6975, #1c474f)" }}
-    >
-      <Sparkles className="w-10 h-10 text-accent" />
-      <p className="text-white text-lg font-semibold">Painel novo por aqui!</p>
-      <p className="text-white/60 text-sm max-w-sm">
-        Menu lateral fixo, KPIs em tempo real e navegação mais rápida entre obras.
-      </p>
-    </div>,
-  ];
-
+  // Carrossel: gráfico de andamento + fotos mais recentes de cada obra marcada
+  // (o ADMIN escolhe quais pelo ícone de ajustes no canto do carrossel).
+  const painel = await carregarPainelObras();
+  const slides: React.ReactNode[] = [];
+  for (const prog of painel.progresso) {
+    slides.push(<SlideProgresso key={"prog-" + prog.obraId} p={prog} />);
+    painel.fotos
+      .filter((f) => f.obraId === prog.obraId)
+      .forEach((f, i) =>
+        slides.push(
+          <div key={`foto-${prog.obraId}-${i}`} className="h-full w-full relative bg-primaryDark">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={f.url} alt={f.legenda ?? f.obraNome} className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pt-12 pb-9">
+              <p className="text-white font-semibold">{f.obraNome}</p>
+              <p className="text-white/80 text-xs">
+                Atualizado em {f.dataFoto.split("-").reverse().join("/")}
+                {f.legenda ? ` · ${f.legenda}` : ""}
+              </p>
+            </div>
+          </div>
+        )
+      );
+  }
+  if (slides.length === 0) {
+    slides.push(
+      <div key="vazio" className="h-full w-full flex flex-col items-center justify-center text-center gap-3 p-8 bg-primaryDark">
+        <HardHat className="w-10 h-10 text-accent" />
+        <p className="text-white text-lg font-semibold">Nenhuma obra no painel</p>
+        <p className="text-white/60 text-sm max-w-sm">
+          {setor === "ADMIN"
+            ? "Use o ícone de ajustes no canto para escolher as obras que aparecem aqui."
+            : "O administrador escolhe quais obras aparecem aqui."}
+        </p>
+      </div>
+    );
+  }
   function emDias(qtd: number) {
     const d = new Date();
     d.setDate(d.getDate() + qtd);
@@ -155,7 +151,10 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          <Carousel slides={slides} intervalMs={7000} />
+          <div className="relative h-full">
+            <Carousel slides={slides} intervalMs={7000} />
+            {setor === "ADMIN" && <PainelObrasSeletor obras={painel.obras} />}
+          </div>
         </div>
         <MiniCalendar eventos={eventosExemplo} />
       </div>

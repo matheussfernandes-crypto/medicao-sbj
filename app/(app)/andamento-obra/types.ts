@@ -51,6 +51,15 @@ export type HistoricoItem = {
   criado_em: string;
 };
 
+export type FotoObra = {
+  id: string;
+  data_foto: string;
+  legenda: string | null;
+  storage_path: string;
+  url: string;
+  autor_nome: string | null;
+};
+
 export type ObraResumo = { id: string; nome: string };
 
 export type DadosObra = {
@@ -61,6 +70,7 @@ export type DadosObra = {
   servicos: ServicoAndamento[];
   celulas: CelulaStatus[];
   historico: HistoricoItem[];
+  fotos: FotoObra[];
 };
 
 export function cellKey(unidadeId: string, servicoId: string) {

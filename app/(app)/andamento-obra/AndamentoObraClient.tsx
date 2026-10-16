@@ -17,8 +17,10 @@ import {
   Copy,
   X,
   Check,
+  Camera,
 } from "lucide-react";
 import * as actions from "./actions";
+import FotosPanel from "./FotosPanel";
 import {
   STATUS_LABEL,
   STATUS_ORDER,
@@ -49,7 +51,7 @@ const STATUS_TEXTO: Record<StatusAndamento, string> = {
   FINALIZADO: "#ffffff",
 };
 
-type ViewMode = "grid" | "config" | "relatorio" | "historico";
+type ViewMode = "grid" | "config" | "relatorio" | "historico" | "fotos";
 
 export default function AndamentoObraClient({
   obras,
@@ -622,6 +624,9 @@ export default function AndamentoObraClient({
           <TabButton active={viewMode === "historico"} onClick={() => mudarView("historico")} icon={<HistoryIcon className="w-4 h-4" />}>
             Histórico
           </TabButton>
+          <TabButton active={viewMode === "fotos"} onClick={() => mudarView("fotos")} icon={<Camera className="w-4 h-4" />}>
+            Fotos
+          </TabButton>
         </div>
       </div>
 
@@ -851,6 +856,10 @@ export default function AndamentoObraClient({
           celulas={celulas}
           onExportarCSV={exportarCSVAndamento}
         />
+      )}
+
+      {viewMode === "fotos" && (
+        <FotosPanel obraId={dados.obraId} obraNome={obras.find((o) => o.id === dados.obraId)?.nome ?? ""} fotos={dados.fotos} />
       )}
 
       {viewMode === "historico" && (

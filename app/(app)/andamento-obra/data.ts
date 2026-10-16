@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { SERVICOS_PADRAO, type DadosObra, type CelulaStatus, type HistoricoItem } from "./types";
+import { buscarStatusDasUnidades } from "./status-query";
+import { SERVICOS_PADRAO, type DadosObra, type CelulaStatus, type HistoricoItem, type FotoObra } from "./types";
 
 export async function buscarDadosObra(obraId: string): Promise<DadosObra> {
   const supabase = createClient();
@@ -49,12 +50,14 @@ export async function buscarDadosObra(obraId: string): Promise<DadosObra> {
 
   const unidadeIds = (unidades ?? []).map((u) => u.id);
 
-  const { data: statusRows } = unidadeIds.length
-    ? await supabase
-        .from("andamento_status")
-        .select("unidade_id, servico_id, status, observacao, atualizado_em, atualizado_por")
-        .in("unidade_id", unidadeIds)
-    : { data: [] };
+  const statusRows = await buscarStatusDasUnidades<{
+    unidade_id: string;
+    servico_id: string;
+    status: CelulaStatus["status"];
+    observacao: string | null;
+    atualizado_em: string | null;
+    atualizado_por: string | null;
+  }>(supabase, unidadeIds, "unidade_id, servico_id, status, observacao, atualizado_em, atualizado_por");
 
   const { data: historicoRows } = unidadeIds.length
     ? await supabase
@@ -65,8 +68,20 @@ export async function buscarDadosObra(obraId: string): Promise<DadosObra> {
         .limit(500)
     : { data: [] };
 
+  const { data: fotosRows } = await supabase
+    .from("obra_fotos")
+    .select("id, data_foto, legenda, storage_path, criado_por")
+    .eq("obra_id", obraId)
+    .order("data_foto", { ascending: false })
+    .order("criado_em", { ascending: false });
+  const caminhos = (fotosRows ?? []).map((f) => f.storage_path);
+  const { data: assinadas } = caminhos.length
+    ? await supabase.storage.from("obra-fotos").createSignedUrls(caminhos, 3600)
+    : { data: [] as { path: string | null; signedUrl: string }[] };
+  const urlPorCaminho = new Map((assinadas ?? []).map((a) => [a.path, a.signedUrl]));
+
   const idsAutores = Array.from(
-    new Set([...(statusRows ?? []).map((r) => r.atualizado_por), ...(historicoRows ?? []).map((r) => r.autor_id)].filter(Boolean))
+    new Set([...(statusRows ?? []).map((r) => r.atualizado_por), ...(historicoRows ?? []).map((r) => r.autor_id), ...(fotosRows ?? []).map((f) => f.criado_por)].filter(Boolean))
   ) as string[];
   const { data: perfisAutores } = idsAutores.length
     ? await supabase.rpc("nomes_perfis", { uids: idsAutores })
@@ -94,6 +109,17 @@ export async function buscarDadosObra(obraId: string): Promise<DadosObra> {
     autor_nome: r.autor_id ? nomePorId.get(r.autor_id) ?? null : null,
   }));
 
+  const fotos: FotoObra[] = (fotosRows ?? [])
+    .filter((f) => urlPorCaminho.get(f.storage_path))
+    .map((f) => ({
+      id: f.id,
+      data_foto: f.data_foto,
+      legenda: f.legenda,
+      storage_path: f.storage_path,
+      url: urlPorCaminho.get(f.storage_path)!,
+      autor_nome: f.criado_por ? nomePorId.get(f.criado_por) ?? null : null,
+    }));
+
   return {
     obraId,
     torres: torres ?? [],
@@ -102,5 +128,6 @@ export async function buscarDadosObra(obraId: string): Promise<DadosObra> {
     servicos: servicos ?? [],
     celulas,
     historico,
+    fotos,
   };
 }

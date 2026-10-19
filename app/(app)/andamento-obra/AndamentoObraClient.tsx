@@ -24,6 +24,7 @@ import FotosPanel from "./FotosPanel";
 import {
   STATUS_LABEL,
   STATUS_ORDER,
+  STATUS_ORDER_EDIT,
   CATEGORIA_LABEL,
   CATEGORIA_ORDER,
   CATEGORIA_COR,
@@ -44,11 +45,13 @@ const STATUS_COR: Record<StatusAndamento, string> = {
   NAO_INICIADO: "#e5e7eb",
   ANDAMENTO: "#f59e0b",
   FINALIZADO: "#1f8a4c",
+  AUSENTE: "#fafafa",
 };
 const STATUS_TEXTO: Record<StatusAndamento, string> = {
   NAO_INICIADO: "#4b5563",
   ANDAMENTO: "#3b2a00",
   FINALIZADO: "#ffffff",
+  AUSENTE: "#6b7280",
 };
 
 type ViewMode = "grid" | "config" | "relatorio" | "historico" | "fotos";
@@ -126,11 +129,12 @@ export default function AndamentoObraClient({
   // Contagem de etapas (pra exibir) + soma ponderada pelo peso do serviço
   // (pra calcular a porcentagem de andamento).
   function contarStatus(keys: string[]) {
-    const c = { NAO_INICIADO: 0, ANDAMENTO: 0, FINALIZADO: 0, total: 0, pFIN: 0, pAND: 0, pNAO: 0, pTotal: 0 };
+    const c = { NAO_INICIADO: 0, ANDAMENTO: 0, FINALIZADO: 0, AUSENTE: 0, total: 0, pFIN: 0, pAND: 0, pNAO: 0, pTotal: 0 };
     keys.forEach((k) => {
       const s = celulas.get(k)?.status ?? "NAO_INICIADO";
       const w = pesoPorServico.get(k.split("__")[1]) ?? 1;
       c[s]++;
+      if (s === "AUSENTE") return; // não existe nesta unidade: fora da conta
       c.total++;
       if (s === "FINALIZADO") c.pFIN += w;
       else if (s === "ANDAMENTO") c.pAND += w;
@@ -215,19 +219,116 @@ export default function AndamentoObraClient({
   }
 
   function aoClicarCelula(e: React.MouseEvent, unidadeId: string, servicoId: string) {
-    if (modoSelecao) {
-      alternarSelecaoCelula(cellKey(unidadeId, servicoId));
-    } else {
-      abrirPopover(e, unidadeId, servicoId);
-    }
+    // no modo seleção quem trata é o mouseDown (clique simples ou arraste)
+    if (!modoSelecao) abrirPopover(e, unidadeId, servicoId);
   }
 
   function aplicarStatusEmMassa(status: StatusAndamento) {
-    selecionadas.forEach((key) => {
+    const chaves = Array.from(selecionadas);
+    if (!chaves.length) return;
+    const agora = new Date().toISOString();
+    const proximo = new Map(celulas);
+    const novosHistoricos: HistoricoItem[] = [];
+    chaves.forEach((key, i) => {
       const [unidadeId, servicoId] = key.split("__");
-      definirStatusCelula(unidadeId, servicoId, status);
+      const anterior = celulas.get(key);
+      proximo.set(key, {
+        unidade_id: unidadeId,
+        servico_id: servicoId,
+        status,
+        observacao: anterior?.observacao ?? null,
+        atualizado_por_nome: nomeUsuario,
+        atualizado_em: agora,
+      });
+      if ((anterior?.status ?? "NAO_INICIADO") !== status) {
+        novosHistoricos.push({
+          id: "temp_" + Date.now() + "_" + i,
+          unidade_id: unidadeId,
+          servico_id: servicoId,
+          tipo: "STATUS",
+          de: anterior?.status ?? "NAO_INICIADO",
+          para: status,
+          observacao: null,
+          autor_nome: nomeUsuario,
+          criado_em: agora,
+        });
+      }
     });
+    setCelulas(proximo);
+    setHistorico((prev) => [...novosHistoricos, ...prev]);
     setSelecionadas(new Set());
+    actions
+      .definirStatusEmMassa(
+        chaves.map((key) => {
+          const [unidadeId, servicoId] = key.split("__");
+          return { unidadeId, servicoId };
+        }),
+        status
+      )
+      .catch((e) => setErro(e.message));
+  }
+
+  // Arrastar pra selecionar um retângulo de células (como numa planilha). O modo
+  // (marcar ou desmarcar) vem da célula onde o arraste começou.
+  const linhasGrade = useMemo(
+    () => pavimentosDaTorre.flatMap((p) => unidadesPorPavimento.get(p.id) ?? []),
+    [pavimentosDaTorre, unidadesPorPavimento]
+  );
+  const linhaDe = useMemo(() => new Map(linhasGrade.map((u, i) => [u.id, i])), [linhasGrade]);
+  const arraste = useRef<{ lin: number; col: number; modo: "adicionar" | "remover"; base: Set<string> } | null>(null);
+
+  useEffect(() => {
+    const soltar = () => {
+      arraste.current = null;
+    };
+    window.addEventListener("mouseup", soltar);
+    return () => window.removeEventListener("mouseup", soltar);
+  }, []);
+
+  function aplicarRetangulo(lin: number, col: number) {
+    const a = arraste.current;
+    if (!a) return;
+    const proxima = new Set(a.base);
+    for (let l = Math.min(a.lin, lin); l <= Math.max(a.lin, lin); l++) {
+      for (let c = Math.min(a.col, col); c <= Math.max(a.col, col); c++) {
+        const u = linhasGrade[l];
+        const s = servicosOrdenados[c];
+        if (!u || !s) continue;
+        const key = cellKey(u.id, s.id);
+        if (a.modo === "adicionar") proxima.add(key);
+        else proxima.delete(key);
+      }
+    }
+    setSelecionadas(proxima);
+  }
+
+  function iniciarArraste(e: React.MouseEvent, lin: number, col: number) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const key = cellKey(linhasGrade[lin].id, servicosOrdenados[col].id);
+    arraste.current = { lin, col, modo: selecionadas.has(key) ? "remover" : "adicionar", base: new Set(selecionadas) };
+    aplicarRetangulo(lin, col);
+  }
+
+  // rola a grade sozinha quando o arraste chega perto da borda
+  function autoRolar(e: React.MouseEvent<HTMLDivElement>) {
+    if (!arraste.current) return;
+    const el = e.currentTarget;
+    const r = el.getBoundingClientRect();
+    if (e.clientY > r.bottom - 40) el.scrollTop += 20;
+    else if (e.clientY < r.top + 150) el.scrollTop -= 20;
+    if (e.clientX > r.right - 40) el.scrollLeft += 20;
+    else if (e.clientX < r.left + 220) el.scrollLeft -= 20;
+  }
+
+  // clique no nome do serviço / unidade / pavimento seleciona a coluna ou linha toda
+  function alternarGrupo(chaves: string[]) {
+    setSelecionadas((prev) => {
+      const todas = chaves.length > 0 && chaves.every((k) => prev.has(k));
+      const proxima = new Set(prev);
+      chaves.forEach((k) => (todas ? proxima.delete(k) : proxima.add(k)));
+      return proxima;
+    });
   }
 
   function salvarObs() {
@@ -689,15 +790,20 @@ export default function AndamentoObraClient({
               ) : (
                 <>
                   <div className="flex items-center gap-3 text-xs text-ink-500 flex-wrap">
-                    {STATUS_ORDER.map((s) => (
-                      <span key={s} className="flex items-center gap-1.5">
-                        <span className="inline-block w-3 h-3 rounded" style={{ background: STATUS_COR[s] }} />
+                    {STATUS_ORDER_EDIT.map((s) => (
+                      <span key={s} className="flex items-center gap-1.5" title={s === "AUSENTE" ? "Serviço que não existe nesta unidade: não entra na conta da porcentagem" : undefined}>
+                        <span
+                          className="inline-flex items-center justify-center w-3 h-3 rounded"
+                          style={{ background: STATUS_COR[s], border: s === "AUSENTE" ? "1px solid #d1d5db" : undefined }}
+                        >
+                          {s === "AUSENTE" && <X className="w-2.5 h-2.5 text-ink-400" strokeWidth={3} />}
+                        </span>
                         {STATUS_LABEL[s]}
                       </span>
                     ))}
                     <span className="ml-auto">
                       {modoSelecao
-                        ? "Clique nas células pra marcar — depois escolha o status lá embaixo pra aplicar em todas de uma vez"
+                        ? "Clique ou ARRASTE sobre as células pra marcar (clique no nome do serviço/unidade/pavimento pra pegar a coluna ou linha toda) — depois escolha o status lá embaixo"
                         : "Clique numa célula pra apontar o status do serviço naquela unidade"}
                     </span>
                     <button
@@ -711,7 +817,11 @@ export default function AndamentoObraClient({
                     </button>
                   </div>
 
-                  <div className="card-table overflow-auto" style={{ maxHeight: "max(380px, calc(100vh - 300px))" }}>
+                  <div
+                    className="card-table overflow-auto"
+                    style={{ maxHeight: "max(380px, calc(100vh - 300px))", userSelect: modoSelecao ? "none" : undefined }}
+                    onMouseMove={modoSelecao ? autoRolar : undefined}
+                  >
                 <table className="border-separate border-spacing-0 text-xs">
                   <thead>
                     <tr>
@@ -724,9 +834,12 @@ export default function AndamentoObraClient({
                       {servicosOrdenados.map((s) => (
                         <th
                           key={s.id}
-                          className="sticky top-0 z-20 bg-surface-subtle px-1 py-2 border-b border-r border-border font-semibold text-primaryDark"
+                          className={`sticky top-0 z-20 bg-surface-subtle px-1 py-2 border-b border-r border-border font-semibold text-primaryDark ${
+                            modoSelecao ? "cursor-pointer hover:bg-accent/40" : ""
+                          }`}
                           style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", height: 130 }}
-                          title={s.nome}
+                          title={modoSelecao ? `Selecionar a coluna inteira: ${s.nome}` : s.nome}
+                          onClick={modoSelecao ? () => alternarGrupo(linhasGrade.map((u) => cellKey(u.id, s.id))) : undefined}
                         >
                           {s.nome}
                         </th>
@@ -740,8 +853,16 @@ export default function AndamentoObraClient({
                         <tr key={u.id} className={idx % 2 === 1 ? "bg-surface-subtle/50" : ""}>
                           {idx === 0 && (
                             <td
-                              className="sticky left-0 z-10 bg-white px-3 py-1.5 border-b border-r border-border font-semibold whitespace-nowrap align-top"
+                              className={`sticky left-0 z-10 bg-white px-3 py-1.5 border-b border-r border-border font-semibold whitespace-nowrap align-top ${
+                                modoSelecao ? "cursor-pointer hover:bg-accent/30" : ""
+                              }`}
                               rowSpan={unidadesDoPav.length}
+                              title={modoSelecao ? "Selecionar o pavimento inteiro" : undefined}
+                              onClick={
+                                modoSelecao
+                                  ? () => alternarGrupo(unidadesDoPav.flatMap((x) => servicosOrdenados.map((s) => cellKey(x.id, s.id))))
+                                  : undefined
+                              }
                             >
                               {pav.nome}
                               {pav.categoria !== "RESIDENCIAL" && (
@@ -754,18 +875,27 @@ export default function AndamentoObraClient({
                               )}
                             </td>
                           )}
-                          <td className="sticky left-[130px] z-10 bg-white px-2 py-1.5 border-b border-r border-border text-ink-500 whitespace-nowrap">
+                          <td
+                            className={`sticky left-[130px] z-10 bg-white px-2 py-1.5 border-b border-r border-border text-ink-500 whitespace-nowrap ${
+                              modoSelecao ? "cursor-pointer hover:bg-accent/30" : ""
+                            }`}
+                            title={modoSelecao ? "Selecionar a unidade inteira" : undefined}
+                            onClick={modoSelecao ? () => alternarGrupo(servicosOrdenados.map((s) => cellKey(u.id, s.id))) : undefined}
+                          >
                             {u.nome}
                           </td>
-                          {servicosOrdenados.map((s) => {
+                          {servicosOrdenados.map((s, col) => {
                             const key = cellKey(u.id, s.id);
                             const cel = celulas.get(key);
                             const status = cel?.status ?? "NAO_INICIADO";
                             const selecionada = selecionadas.has(key);
+                            const lin = linhaDe.get(u.id) ?? 0;
                             return (
                               <td
                                 key={s.id}
                                 onClick={(e) => aoClicarCelula(e, u.id, s.id)}
+                                onMouseDown={modoSelecao ? (e) => iniciarArraste(e, lin, col) : undefined}
+                                onMouseEnter={modoSelecao ? () => aplicarRetangulo(lin, col) : undefined}
                                 title={`${pav.nome} · ${u.nome} · ${s.nome}: ${STATUS_LABEL[status]}`}
                                 className="border-b border-r border-border cursor-pointer relative hover:brightness-95"
                                 style={{
@@ -776,6 +906,11 @@ export default function AndamentoObraClient({
                                   boxShadow: selecionada ? "inset 0 0 0 2px #1c474f" : undefined,
                                 }}
                               >
+                                {status === "AUSENTE" && (
+                                  <span className="absolute inset-0 flex items-center justify-center">
+                                    <X className="w-3.5 h-3.5 text-ink-400" strokeWidth={2.5} />
+                                  </span>
+                                )}
                                 {selecionada && (
                                   <span className="absolute inset-0 flex items-center justify-center bg-black/10">
                                     <Check className="w-3.5 h-3.5 text-white drop-shadow" />
@@ -880,10 +1015,11 @@ export default function AndamentoObraClient({
           </span>
           <span className="text-xs text-white/60">Aplicar:</span>
           <div className="flex gap-1.5">
-            {STATUS_ORDER.map((s) => (
+            {STATUS_ORDER_EDIT.map((s) => (
               <button
                 key={s}
                 onClick={() => aplicarStatusEmMassa(s)}
+                title={s === "AUSENTE" ? "Não existe nestas unidades: fica fora da conta da porcentagem" : undefined}
                 className="rounded-md py-1.5 px-3 text-xs font-semibold"
                 style={{ background: STATUS_COR[s], color: STATUS_TEXTO[s] }}
               >
@@ -990,11 +1126,12 @@ function Popover({
           <br />
           <b className="text-ink-900">{servico?.nome}</b>
         </div>
-        <div className="grid grid-cols-3 gap-1.5 mb-2.5">
-          {STATUS_ORDER.map((s) => (
+        <div className="grid grid-cols-2 gap-1.5 mb-2.5">
+          {STATUS_ORDER_EDIT.map((s) => (
             <button
               key={s}
               onClick={() => onStatus(s)}
+              title={s === "AUSENTE" ? "Serviço que não existe nesta unidade: não entra na conta da porcentagem" : undefined}
               className={`rounded-md py-1.5 px-1 text-[11px] font-semibold text-center ${status === s ? "ring-2 ring-primaryDark" : ""}`}
               style={{ background: STATUS_COR[s], color: STATUS_TEXTO[s] }}
             >
@@ -1324,6 +1461,7 @@ type Contagem = {
   NAO_INICIADO: number;
   ANDAMENTO: number;
   FINALIZADO: number;
+  AUSENTE: number;
   total: number;
   pFIN: number;
   pAND: number;
@@ -1472,11 +1610,12 @@ function RelatorioPanel({
   const pesoTotal = servicos.reduce((a, s) => a + Number(s.peso ?? 1), 0);
 
   function contar(keys: string[]): Contagem {
-    const c: Contagem = { NAO_INICIADO: 0, ANDAMENTO: 0, FINALIZADO: 0, total: 0, pFIN: 0, pAND: 0, pNAO: 0, pTotal: 0 };
+    const c: Contagem = { NAO_INICIADO: 0, ANDAMENTO: 0, FINALIZADO: 0, AUSENTE: 0, total: 0, pFIN: 0, pAND: 0, pNAO: 0, pTotal: 0 };
     keys.forEach((k) => {
       const s = celulas.get(k)?.status ?? "NAO_INICIADO";
       const w = pesoPorServico.get(k.split("__")[1]) ?? 1;
       c[s]++;
+      if (s === "AUSENTE") return; // não existe nesta unidade: fora da conta
       c.total++;
       if (s === "FINALIZADO") c.pFIN += w;
       else if (s === "ANDAMENTO") c.pAND += w;
@@ -1534,13 +1673,16 @@ function RelatorioPanel({
   const celulaMapa = (p: Pavimento, s: ServicoAndamento) => {
     const us = unidadesPorPav.get(p.id) ?? [];
     let f = 0,
-      a = 0;
+      a = 0,
+      aus = 0;
     us.forEach((u) => {
       const st = celulas.get(cellKey(u.id, s.id))?.status ?? "NAO_INICIADO";
       if (st === "FINALIZADO") f++;
       else if (st === "ANDAMENTO") a++;
+      else if (st === "AUSENTE") aus++;
     });
-    return { f, a, n: us.length };
+    // n = só as unidades que têm o serviço (ausência não entra na conta)
+    return { f, a, aus, n: us.length - aus };
   };
 
   const nSrv = servicos.length;
@@ -1623,6 +1765,17 @@ function RelatorioPanel({
                       <b>{cGeral[s]}</b>
                     </div>
                   ))}
+                {cGeral.AUSENTE > 0 && (
+                  <div className="flex items-center justify-between gap-2 text-ink-500">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-flex items-center justify-center w-3 h-3 rounded-sm" style={{ background: STATUS_COR.AUSENTE, border: "1px solid #d1d5db" }}>
+                        <X className="w-2.5 h-2.5" strokeWidth={3} />
+                      </span>
+                      Ausência
+                    </span>
+                    <b>{cGeral.AUSENTE}</b>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1706,6 +1859,12 @@ function RelatorioPanel({
                     {STATUS_LABEL[s]}
                   </span>
                 ))}
+              <span className="flex items-center gap-1.5">
+                <span className="inline-flex items-center justify-center w-3 h-3 rounded-sm" style={{ background: STATUS_COR.AUSENTE, border: "1px solid #d1d5db" }}>
+                  <X className="w-2.5 h-2.5 text-ink-400" strokeWidth={3} />
+                </span>
+                Ausência (fora da conta)
+              </span>
               <span>Células parciais mostram finalizadas/total de unidades</span>
             </div>
           </div>
@@ -1753,15 +1912,24 @@ function RelatorioPanel({
                             )}
                           </div>
                           {servicos.map((s) => {
-                            const { f, a, n } = celulaMapa(p, s);
+                            const { f, a, aus, n } = celulaMapa(p, s);
                             const parcial = n > 0 && (a > 0 || (f > 0 && f < n));
+                            const todaAusente = n === 0 && aus > 0;
                             return (
                               <div
                                 key={s.id}
                                 className="rounded-[3px] flex items-center justify-center"
-                                style={{ background: fundoCelula(f, a, n) }}
-                                title={`${p.nome} · ${s.nome}: ${f}/${n} finalizadas${a ? `, ${a} em andamento` : ""}`}
+                                style={{
+                                  background: todaAusente ? STATUS_COR.AUSENTE : fundoCelula(f, a, n),
+                                  border: todaAusente ? "1px solid #e5e7eb" : undefined,
+                                }}
+                                title={
+                                  todaAusente
+                                    ? `${p.nome} · ${s.nome}: ausência (não entra na conta)`
+                                    : `${p.nome} · ${s.nome}: ${f}/${n} finalizadas${a ? `, ${a} em andamento` : ""}${aus ? `, ${aus} ausência` : ""}`
+                                }
                               >
+                                {todaAusente && <X className="w-3 h-3 text-ink-400" strokeWidth={2.5} />}
                                 {parcial && (
                                   <span className="text-[9px] font-bold leading-none px-0.5 rounded-sm" style={{ background: "rgba(255,255,255,.85)", color: "#1f2937" }}>
                                     {f}/{n}

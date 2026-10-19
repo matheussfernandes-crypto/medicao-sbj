@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { StatusAndamento, CategoriaPavimento } from "./types";
+import { buscarStatusDasUnidades } from "./status-query";
 
 async function exigirAcesso() {
   const supabase = createClient();
@@ -54,6 +55,48 @@ export async function definirStatus(unidadeId: string, servicoId: string, novoSt
     });
   }
 
+  revalidatePath("/andamento-obra");
+}
+
+// Aplica o mesmo status a várias células de uma vez (seleção múltipla / arraste).
+export async function definirStatusEmMassa(itens: { unidadeId: string; servicoId: string }[], novoStatus: StatusAndamento) {
+  const { supabase, userId } = await exigirAcesso();
+  if (!itens.length) return;
+
+  const unidadeIds = Array.from(new Set(itens.map((i) => i.unidadeId)));
+  const atuais = await buscarStatusDasUnidades<{ unidade_id: string; servico_id: string; status: StatusAndamento }>(
+    supabase,
+    unidadeIds,
+    "unidade_id, servico_id, status"
+  );
+  const anterior = new Map(atuais.map((a) => [a.unidade_id + "__" + a.servico_id, a.status]));
+  const agora = new Date().toISOString();
+
+  const linhas = itens.map((i) => ({
+    unidade_id: i.unidadeId,
+    servico_id: i.servicoId,
+    status: novoStatus,
+    atualizado_por: userId,
+    atualizado_em: agora,
+  }));
+  const historico = itens
+    .filter((i) => (anterior.get(i.unidadeId + "__" + i.servicoId) ?? "NAO_INICIADO") !== novoStatus)
+    .map((i) => ({
+      unidade_id: i.unidadeId,
+      servico_id: i.servicoId,
+      tipo: "STATUS",
+      de: anterior.get(i.unidadeId + "__" + i.servicoId) ?? "NAO_INICIADO",
+      para: novoStatus,
+      autor_id: userId,
+    }));
+
+  for (let i = 0; i < linhas.length; i += 500) {
+    const { error } = await supabase.from("andamento_status").upsert(linhas.slice(i, i + 500), { onConflict: "unidade_id,servico_id" });
+    if (error) throw new Error(error.message);
+  }
+  for (let i = 0; i < historico.length; i += 500) {
+    await supabase.from("andamento_historico").insert(historico.slice(i, i + 500));
+  }
   revalidatePath("/andamento-obra");
 }
 

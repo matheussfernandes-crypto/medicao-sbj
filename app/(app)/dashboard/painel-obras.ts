@@ -72,6 +72,7 @@ export async function carregarPainelObras() {
       servObra.forEach((s) => {
         const w = Number(s.peso ?? 1);
         const st = statusPorChave.get(u.id + "__" + s.id) ?? "NAO_INICIADO";
+        if (st === "AUSENTE") return; // serviço inexistente nesta unidade: fora da conta
         total += w;
         if (st === "FINALIZADO") fin += w;
         else if (st === "ANDAMENTO") and += w;

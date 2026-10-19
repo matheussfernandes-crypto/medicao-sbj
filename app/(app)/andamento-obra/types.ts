@@ -1,13 +1,18 @@
-export type StatusAndamento = "NAO_INICIADO" | "ANDAMENTO" | "FINALIZADO";
+export type StatusAndamento = "NAO_INICIADO" | "ANDAMENTO" | "FINALIZADO" | "AUSENTE";
 export type CategoriaPavimento = "RESIDENCIAL" | "COMUM" | "LAZER" | "GARAGEM";
 
 export const STATUS_LABEL: Record<StatusAndamento, string> = {
   NAO_INICIADO: "Não iniciado",
   ANDAMENTO: "Andamento",
   FINALIZADO: "Finalizado",
+  AUSENTE: "Ausência",
 };
 
+// Status que entram na conta do andamento (usados nos relatórios).
 export const STATUS_ORDER: StatusAndamento[] = ["NAO_INICIADO", "ANDAMENTO", "FINALIZADO"];
+// Status que dá pra marcar na grade: inclui Ausência (o serviço não existe naquela
+// unidade, então a célula fica fora da conta da porcentagem).
+export const STATUS_ORDER_EDIT: StatusAndamento[] = ["NAO_INICIADO", "ANDAMENTO", "FINALIZADO", "AUSENTE"];
 
 export const CATEGORIA_LABEL: Record<CategoriaPavimento, string> = {
   RESIDENCIAL: "Pavimento tipo",

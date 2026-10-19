@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { linhasServicosPadrao, type StatusAndamento, type CategoriaPavimento } from "./types";
+import type { StatusAndamento, CategoriaPavimento } from "./types";
 import { buscarStatusDasUnidades } from "./status-query";
 
 async function exigirAcesso() {
@@ -147,18 +147,8 @@ export async function salvarTorre(input: { id?: string; obraId: string; nome: st
     .select("id, obra_id, nome, ordem")
     .single();
   if (error) throw new Error(error.message);
-
-  // torre nova já nasce com os serviços padrão (cada torre tem os seus)
-  let servicos: { id: string; obra_id: string; torre_id: string; nome: string; ordem: number; peso: number }[] = [];
-  if (!input.id) {
-    const { data: criados } = await supabase
-      .from("andamento_servicos")
-      .upsert(linhasServicosPadrao(input.obraId, data.id, input.nome), { onConflict: "torre_id,nome", ignoreDuplicates: true })
-      .select("id, obra_id, torre_id, nome, ordem, peso");
-    servicos = criados ?? [];
-  }
   revalidatePath("/andamento-obra");
-  return { ...data, servicos };
+  return data;
 }
 
 export async function excluirTorre(id: string) {
@@ -315,19 +305,12 @@ export async function excluirUnidade(id: string) {
 
 // ---------- serviços (fases do fluxograma) ----------
 
-export async function salvarServico(input: { id?: string; obraId: string; torreId: string; nome: string; ordem: number; peso?: number }) {
+export async function salvarServico(input: { id?: string; obraId: string; nome: string; ordem: number; peso?: number }) {
   const { supabase } = await exigirAcesso();
   const { data, error } = await supabase
     .from("andamento_servicos")
-    .upsert({
-      id: input.id,
-      obra_id: input.obraId,
-      torre_id: input.torreId,
-      nome: input.nome,
-      ordem: input.ordem,
-      ...(input.peso != null ? { peso: Math.max(0, input.peso) } : {}),
-    })
-    .select("id, obra_id, torre_id, nome, ordem, peso")
+    .upsert({ id: input.id, obra_id: input.obraId, nome: input.nome, ordem: input.ordem, ...(input.peso != null ? { peso: Math.max(0, input.peso) } : {}) })
+    .select("id, obra_id, nome, ordem, peso")
     .single();
   if (error) throw new Error(error.message);
   revalidatePath("/andamento-obra");

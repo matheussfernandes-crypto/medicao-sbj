@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { buscarStatusDasUnidades } from "./status-query";
-import { linhasServicosPadrao, type DadosObra, type CelulaStatus, type HistoricoItem, type FotoObra } from "./types";
+import { SERVICOS_PADRAO, type DadosObra, type CelulaStatus, type HistoricoItem, type FotoObra } from "./types";
 
 export async function buscarDadosObra(obraId: string): Promise<DadosObra> {
   const supabase = createClient();
@@ -31,24 +31,21 @@ export async function buscarDadosObra(obraId: string): Promise<DadosObra> {
         .order("ordem")
     : { data: [] };
 
-  const { data: servicosRows } = await supabase
+  let { data: servicos } = await supabase
     .from("andamento_servicos")
-    .select("id, obra_id, torre_id, nome, ordem, peso")
+    .select("id, obra_id, nome, ordem, peso")
     .eq("obra_id", obraId)
     .order("ordem");
-  let servicos = servicosRows ?? [];
 
-  // Torre ainda sem nenhum serviço: pré-popula com o fluxograma padrão da SBJ
-  // (e os pesos padrão), pra não precisar montar a lista do zero.
-  const comServico = new Set(servicos.map((s) => s.torre_id));
-  const semServico = (torres ?? []).filter((t) => !comServico.has(t.id));
-  if (semServico.length) {
-    const linhas = semServico.flatMap((t) => linhasServicosPadrao(obraId, t.id, t.nome));
+  // Obra ainda sem nenhum serviço cadastrado: pré-popula com o fluxograma
+  // padrão da SBJ, pra não precisar montar a lista do zero toda vez.
+  if (!servicos || servicos.length === 0) {
+    const linhas = SERVICOS_PADRAO.map((nome, ordem) => ({ obra_id: obraId, nome, ordem }));
     const { data: inseridos } = await supabase
       .from("andamento_servicos")
-      .upsert(linhas, { onConflict: "torre_id,nome", ignoreDuplicates: true })
-      .select("id, obra_id, torre_id, nome, ordem, peso");
-    servicos = [...servicos, ...(inseridos ?? [])];
+      .upsert(linhas, { onConflict: "obra_id,nome", ignoreDuplicates: true })
+      .select("id, obra_id, nome, ordem, peso");
+    servicos = (inseridos ?? []).sort((a, b) => a.ordem - b.ordem);
   }
 
   const unidadeIds = (unidades ?? []).map((u) => u.id);
@@ -128,7 +125,7 @@ export async function buscarDadosObra(obraId: string): Promise<DadosObra> {
     torres: torres ?? [],
     pavimentos: pavimentos ?? [],
     unidades: unidades ?? [],
-    servicos,
+    servicos: servicos ?? [],
     celulas,
     historico,
     fotos,

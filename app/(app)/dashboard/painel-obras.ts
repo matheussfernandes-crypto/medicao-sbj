@@ -29,7 +29,7 @@ export async function carregarPainelObras() {
 
   const [{ data: torres }, { data: servicos }, { data: fotosRows }] = await Promise.all([
     supabase.from("torres").select("id, obra_id, nome, ordem").in("obra_id", ids).order("ordem"),
-    supabase.from("andamento_servicos").select("id, obra_id, nome, ordem, peso").in("obra_id", ids).order("ordem"),
+    supabase.from("andamento_servicos").select("id, obra_id, torre_id, nome, ordem, peso").in("obra_id", ids).order("ordem"),
     supabase
       .from("obra_fotos")
       .select("obra_id, data_foto, legenda, storage_path, criado_em")
@@ -60,16 +60,19 @@ export async function carregarPainelObras() {
   const progresso: ProgressoObra[] = selecionadas.map((obra) => {
     const torresObra = (torres ?? []).filter((t) => t.obra_id === obra.id);
     const servObra = (servicos ?? []).filter((s) => s.obra_id === obra.id);
+    const servPorTorre = new Map<string, typeof servObra>();
+    servObra.forEach((s) => servPorTorre.set(s.torre_id, [...(servPorTorre.get(s.torre_id) ?? []), s]));
     const unidadesObra = (unidades ?? []).filter((u) => torresObra.some((t) => t.id === torreDaUnidade.get(u.id)));
 
     let fin = 0;
     let and = 0;
     let total = 0;
     const porTorre = new Map<string, { fin: number; total: number }>();
-    const porServico = new Map<string, { fin: number; total: number }>();
+    // cada torre tem os seus serviços; no gráfico, agrupa pelo nome do serviço
+    const porServico = new Map<string, { fin: number; total: number; peso: number; ordem: number }>();
     unidadesObra.forEach((u) => {
       const tid = torreDaUnidade.get(u.id)!;
-      servObra.forEach((s) => {
+      (servPorTorre.get(tid) ?? []).forEach((s) => {
         const w = Number(s.peso ?? 1);
         const st = statusPorChave.get(u.id + "__" + s.id) ?? "NAO_INICIADO";
         if (st === "AUSENTE") return; // serviço inexistente nesta unidade: fora da conta
@@ -80,16 +83,19 @@ export async function carregarPainelObras() {
         t.total += w;
         if (st === "FINALIZADO") t.fin += w;
         porTorre.set(tid, t);
-        const sv = porServico.get(s.id) ?? { fin: 0, total: 0 };
+        const sv = porServico.get(s.nome) ?? { fin: 0, total: 0, peso: 0, ordem: s.ordem };
         sv.total += 1;
+        sv.peso = Math.max(sv.peso, w);
         if (st === "FINALIZADO") sv.fin += 1;
-        porServico.set(s.id, sv);
+        porServico.set(s.nome, sv);
       });
     });
 
     const pctOf = (a: number, b: number) => (b > 0 ? pct1((a / b) * 100) : 0);
     // os serviços de maior peso vão em destaque (empate: ordem do fluxograma)
-    const destaque = [...servObra].sort((a, b) => Number(b.peso ?? 1) - Number(a.peso ?? 1) || a.ordem - b.ordem).slice(0, 8);
+    const destaque = Array.from(porServico.entries())
+      .sort((a, b) => b[1].peso - a[1].peso || a[1].ordem - b[1].ordem)
+      .slice(0, 8);
     return {
       obraId: obra.id,
       nome: obra.nome,
@@ -98,7 +104,7 @@ export async function carregarPainelObras() {
       pctNaoIniciado: total > 0 ? pct1(100 - pctOf(fin, total) - pctOf(and, total)) : 0,
       unidades: unidadesObra.length,
       torres: torresObra.map((t) => ({ nome: t.nome, pct: pctOf(porTorre.get(t.id)?.fin ?? 0, porTorre.get(t.id)?.total ?? 0) })),
-      servicos: destaque.map((s) => ({ nome: s.nome, pct: pctOf(porServico.get(s.id)?.fin ?? 0, porServico.get(s.id)?.total ?? 0) })),
+      servicos: destaque.map(([nome, v]) => ({ nome, pct: pctOf(v.fin, v.total) })),
     };
   });
 

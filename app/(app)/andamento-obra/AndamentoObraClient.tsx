@@ -113,7 +113,18 @@ export default function AndamentoObraClient({
     m.forEach((arr) => arr.sort((a, b) => a.ordem - b.ordem));
     return m;
   }, [unidades]);
-  const servicosOrdenados = useMemo(() => [...servicos].sort((a, b) => a.ordem - b.ordem), [servicos]);
+  // Cada torre tem a própria lista de serviços (e pesos): a grade e a configuração
+  // trabalham sempre com os serviços da torre ativa.
+  const servicosPorTorre = useMemo(() => {
+    const m = new Map<string, ServicoAndamento[]>();
+    servicos.forEach((s) => {
+      if (!m.has(s.torre_id)) m.set(s.torre_id, []);
+      m.get(s.torre_id)!.push(s);
+    });
+    m.forEach((arr) => arr.sort((a, b) => a.ordem - b.ordem));
+    return m;
+  }, [servicos]);
+  const servicosOrdenados = useMemo(() => servicosPorTorre.get(torreAtiva?.id ?? "") ?? [], [servicosPorTorre, torreAtiva]);
 
   const pavById = useMemo(() => new Map(pavimentos.map((p) => [p.id, p])), [pavimentos]);
   const unidadeById = useMemo(() => new Map(unidades.map((u) => [u.id, u])), [unidades]);
@@ -121,7 +132,10 @@ export default function AndamentoObraClient({
 
   function todasAsChavesDaObra(): string[] {
     const keys: string[] = [];
-    unidades.forEach((u) => servicos.forEach((s) => keys.push(cellKey(u.id, s.id))));
+    unidades.forEach((u) => {
+      const torreId = pavById.get(u.pavimento_id)?.torre_id ?? "";
+      (servicosPorTorre.get(torreId) ?? []).forEach((s) => keys.push(cellKey(u.id, s.id)));
+    });
     return keys;
   }
   const pesoPorServico = useMemo(() => new Map(servicos.map((s) => [s.id, Number(s.peso ?? 1)])), [servicos]);
@@ -373,8 +387,9 @@ export default function AndamentoObraClient({
   async function addTorre() {
     setSalvando(true);
     try {
-      const nova = await actions.salvarTorre({ obraId: dados.obraId, nome: "Nova torre", ordem: torres.length });
+      const { servicos: novosServicos, ...nova } = await actions.salvarTorre({ obraId: dados.obraId, nome: "Nova torre", ordem: torres.length });
       setTorres((prev) => [...prev, nova as Torre]);
+      setServicos((prev) => [...prev, ...(novosServicos as ServicoAndamento[])]);
       setTorreAtivaId(nova.id);
     } catch (e: any) {
       setErro(e.message);
@@ -397,6 +412,7 @@ export default function AndamentoObraClient({
         await actions.excluirTorre(t.id).catch((e) => setErro(e.message));
         setTorres((prev) => prev.filter((x) => x.id !== t.id));
         const pavsDaTorre = pavimentos.filter((p) => p.torre_id === t.id).map((p) => p.id);
+        setServicos((prev) => prev.filter((s) => s.torre_id !== t.id));
         setPavimentos((prev) => prev.filter((p) => p.torre_id !== t.id));
         setUnidades((prev) => prev.filter((u) => !pavsDaTorre.includes(u.pavimento_id)));
         setConfirmacao(null);
@@ -491,9 +507,16 @@ export default function AndamentoObraClient({
   }
 
   async function addServico() {
+    if (!torreAtiva) return;
     setSalvando(true);
     try {
-      const novo = await actions.salvarServico({ obraId: dados.obraId, nome: "Novo serviço", ordem: servicos.length });
+      const novo = await actions.salvarServico({
+        obraId: dados.obraId,
+        torreId: torreAtiva.id,
+        nome: "Novo serviço",
+        ordem: servicosOrdenados.reduce((m, s) => Math.max(m, s.ordem + 1), 0),
+        peso: 0,
+      });
       setServicos((prev) => [...prev, novo as ServicoAndamento]);
     } catch (e: any) {
       setErro(e.message);
@@ -507,7 +530,7 @@ export default function AndamentoObraClient({
   function persistirServico(id: string) {
     const s = servicosRef.current.find((x) => x.id === id);
     if (!s) return Promise.resolve();
-    return actions.salvarServico({ id: s.id, obraId: s.obra_id, nome: s.nome, ordem: s.ordem, peso: s.peso });
+    return actions.salvarServico({ id: s.id, obraId: s.obra_id, torreId: s.torre_id, nome: s.nome, ordem: s.ordem, peso: s.peso });
   }
 
   // Porcentagem direta: o serviço editado passa a valer p% do total e os que
@@ -515,7 +538,8 @@ export default function AndamentoObraClient({
   // editados nesta sessão ficam fixos, pra um ajuste não desfazer o outro.
   // Os pesos gravados passam a ser as próprias porcentagens (soma 100).
   function definirPercentual(sid: string, pedido: number) {
-    const lista = servicosRef.current;
+    const tid = servicosRef.current.find((s) => s.id === sid)?.torre_id;
+    const lista = servicosRef.current.filter((s) => s.torre_id === tid);
     if (!lista.length) return;
     const p = Math.min(100, Math.max(0, Number.isFinite(pedido) ? pedido : 0));
     const soma = lista.reduce((a, s) => a + Number(s.peso ?? 0), 0);
@@ -566,13 +590,19 @@ export default function AndamentoObraClient({
 
     setServicos((prev) => prev.map((s) => ({ ...s, peso: novo.get(s.id) ?? s.peso })));
     setFixos(fixosIds);
-    agendarSalvar("pesos", () => actions.definirPesos(servicosRef.current.map((s) => ({ id: s.id, peso: s.peso }))));
+    agendarSalvar("pesos:" + tid, () =>
+      actions.definirPesos(servicosRef.current.filter((s) => s.torre_id === tid).map((s) => ({ id: s.id, peso: s.peso })))
+    );
   }
 
   function igualarPesos() {
-    setServicos((prev) => prev.map((s) => ({ ...s, peso: 1 })));
+    const tid = torreAtiva?.id;
+    if (!tid) return;
+    setServicos((prev) => prev.map((s) => (s.torre_id === tid ? { ...s, peso: 1 } : s)));
     setFixos(new Set());
-    agendarSalvar("pesos", () => actions.definirPesos(servicosRef.current.map((s) => ({ id: s.id, peso: s.peso }))));
+    agendarSalvar("pesos:" + tid, () =>
+      actions.definirPesos(servicosRef.current.filter((s) => s.torre_id === tid).map((s) => ({ id: s.id, peso: s.peso })))
+    );
   }
 
   async function renomearServico(s: ServicoAndamento, nome: string) {
@@ -637,7 +667,7 @@ export default function AndamentoObraClient({
     unidades.forEach((u) => {
       const pav = pavById.get(u.pavimento_id);
       const torre = pav ? torres.find((t) => t.id === pav.torre_id) : null;
-      servicos.forEach((s) => {
+      (servicosPorTorre.get(pav?.torre_id ?? "") ?? []).forEach((s) => {
         const cel = celulas.get(cellKey(u.id, s.id));
         linhas.push([
           torre?.nome ?? "",
@@ -974,7 +1004,7 @@ export default function AndamentoObraClient({
           fixos={fixos}
           onExcluirServico={pedirExclusaoServico}
           onMoverServico={(id, dir) =>
-            mover(servicosOrdenados, setServicos, id, dir, (s) => actions.salvarServico({ id: s.id, obraId: s.obra_id, nome: s.nome, ordem: s.ordem, peso: s.peso }))
+            mover(servicosOrdenados, setServicos, id, dir, (s) => actions.salvarServico({ id: s.id, obraId: s.obra_id, torreId: s.torre_id, nome: s.nome, ordem: s.ordem, peso: s.peso }))
           }
           onConfirmar={confirmarConfiguracao}
         />
@@ -987,7 +1017,7 @@ export default function AndamentoObraClient({
           torres={torres}
           pavimentos={pavimentos}
           unidades={unidades}
-          servicos={servicosOrdenados}
+          servicos={servicos}
           celulas={celulas}
           onExportarCSV={exportarCSVAndamento}
         />
@@ -1373,10 +1403,13 @@ function ConfigPanel(props: {
       )}
 
       <div className="card">
-        <h2 className="font-semibold text-primaryDark mb-1">Serviços (ordem de execução)</h2>
+        <h2 className="font-semibold text-primaryDark mb-1">
+          Serviços{props.torreAtiva ? ` — ${props.torreAtiva.nome}` : ""} (ordem de execução)
+        </h2>
         <p className="text-xs text-ink-500 mb-3 max-w-xl">
-          Digite a <b>porcentagem</b> que cada serviço vale no andamento geral da obra. Ao mudar um, os que você ainda não mexeu se ajustam
-          sozinhos pra fechar 100%. Os que você já definiu ficam fixos.
+          Cada torre tem os <b>seus próprios serviços</b>: apague o que não existe nela e inclua os que são só dela. Digite a{" "}
+          <b>porcentagem</b> que cada serviço vale no andamento desta torre — ao mudar um, os que você ainda não mexeu se ajustam sozinhos
+          pra fechar 100%. Os que você já definiu ficam fixos. No relatório geral, o serviço que a torre não tem aparece como "não se aplica".
         </p>
         <table className="w-full text-sm max-w-2xl">
           <thead>
@@ -1607,7 +1640,24 @@ function RelatorioPanel({
   }, []);
 
   const pesoPorServico = new Map(servicos.map((s) => [s.id, Number(s.peso ?? 1)]));
-  const pesoTotal = servicos.reduce((a, s) => a + Number(s.peso ?? 1), 0);
+
+  // Cada torre tem os seus serviços. As colunas do mapa são a união dos nomes de
+  // todas as torres (na ordem do fluxograma); onde a torre não tem o serviço a
+  // célula aparece como "não se aplica" e fica fora da conta.
+  const servicoDaTorre = new Map<string, Map<string, ServicoAndamento>>();
+  const servicosPorTorreId = new Map<string, ServicoAndamento[]>();
+  servicos.forEach((s) => {
+    if (!servicoDaTorre.has(s.torre_id)) servicoDaTorre.set(s.torre_id, new Map());
+    servicoDaTorre.get(s.torre_id)!.set(s.nome, s);
+    if (!servicosPorTorreId.has(s.torre_id)) servicosPorTorreId.set(s.torre_id, []);
+    servicosPorTorreId.get(s.torre_id)!.push(s);
+  });
+  const menorOrdem = new Map<string, number>();
+  servicos.forEach((s) => {
+    const atual = menorOrdem.get(s.nome);
+    if (atual == null || s.ordem < atual) menorOrdem.set(s.nome, s.ordem);
+  });
+  const nomesServicos = Array.from(menorOrdem.keys()).sort((a, b) => menorOrdem.get(a)! - menorOrdem.get(b)! || a.localeCompare(b));
 
   function contar(keys: string[]): Contagem {
     const c: Contagem = { NAO_INICIADO: 0, ANDAMENTO: 0, FINALIZADO: 0, AUSENTE: 0, total: 0, pFIN: 0, pAND: 0, pNAO: 0, pTotal: 0 };
@@ -1631,12 +1681,14 @@ function RelatorioPanel({
   });
   const keysDoPav = (p: Pavimento) => {
     const keys: string[] = [];
-    (unidadesPorPav.get(p.id) ?? []).forEach((u) => servicos.forEach((s) => keys.push(cellKey(u.id, s.id))));
+    (unidadesPorPav.get(p.id) ?? []).forEach((u) =>
+      (servicosPorTorreId.get(p.torre_id) ?? []).forEach((s) => keys.push(cellKey(u.id, s.id)))
+    );
     return keys;
   };
 
   const keysGeral: string[] = [];
-  unidades.forEach((u) => servicos.forEach((s) => keysGeral.push(cellKey(u.id, s.id))));
+  pavimentos.forEach((p) => keysGeral.push(...keysDoPav(p)));
   const cGeral = contar(keysGeral);
   const pctGeral = pctDe(cGeral);
 
@@ -1665,12 +1717,20 @@ function RelatorioPanel({
     return { torre: g.torre, c, pct: pctDe(c) };
   });
 
-  const porServico = servicos.map((s) => {
-    const c = contar(unidades.map((u) => cellKey(u.id, s.id)));
-    return { serv: s, pct: pctDe(c) };
+  // por nome de serviço, somando só as torres que têm aquele serviço
+  const porServico = nomesServicos.map((nome) => {
+    const keys: string[] = [];
+    pavimentos.forEach((p) => {
+      const s = servicoDaTorre.get(p.torre_id)?.get(nome);
+      if (s) (unidadesPorPav.get(p.id) ?? []).forEach((u) => keys.push(cellKey(u.id, s.id)));
+    });
+    const c = contar(keys);
+    return { nome, pct: pctDe(c), peso: cGeral.pTotal ? Math.round((c.pTotal / cGeral.pTotal) * 1000) / 10 : 0 };
   });
 
-  const celulaMapa = (p: Pavimento, s: ServicoAndamento) => {
+  const celulaMapa = (p: Pavimento, nome: string) => {
+    const s = servicoDaTorre.get(p.torre_id)?.get(nome);
+    if (!s) return { f: 0, a: 0, aus: 0, n: 0, na: true };
     const us = unidadesPorPav.get(p.id) ?? [];
     let f = 0,
       a = 0,
@@ -1682,10 +1742,10 @@ function RelatorioPanel({
       else if (st === "AUSENTE") aus++;
     });
     // n = só as unidades que têm o serviço (ausência não entra na conta)
-    return { f, a, aus, n: us.length - aus };
+    return { f, a, aus, n: us.length - aus, na: false };
   };
 
-  const nSrv = servicos.length;
+  const nSrv = nomesServicos.length;
   const colunas = `190px repeat(${Math.max(nSrv, 1)}, minmax(0, 1fr)) 84px`;
   const geradoEm = new Date().toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" });
 
@@ -1706,7 +1766,7 @@ function RelatorioPanel({
     {
       label: "Escopo da obra",
       valor: `${unidades.length}`,
-      sub: `unidades · ${servicos.length} serviços · ${torres.length} torre${torres.length === 1 ? "" : "s"}`,
+      sub: `unidades · ${nomesServicos.length} serviços · ${torres.length} torre${torres.length === 1 ? "" : "s"}`,
       cor: "#2c6975",
     },
   ];
@@ -1863,7 +1923,7 @@ function RelatorioPanel({
                 <span className="inline-flex items-center justify-center w-3 h-3 rounded-sm" style={{ background: STATUS_COR.AUSENTE, border: "1px solid #d1d5db" }}>
                   <X className="w-2.5 h-2.5 text-ink-400" strokeWidth={3} />
                 </span>
-                Ausência (fora da conta)
+                Ausência / não se aplica (fora da conta)
               </span>
               <span>Células parciais mostram finalizadas/total de unidades</span>
             </div>
@@ -1874,14 +1934,14 @@ function RelatorioPanel({
               {/* cabeçalho: serviços */}
               <div className="grid items-end gap-[3px] mb-1" style={{ gridTemplateColumns: colunas }}>
                 <div className="text-[10px] font-semibold uppercase text-ink-500">Pavimento</div>
-                {servicos.map((s) => (
+                {nomesServicos.map((nome) => (
                   <div
-                    key={s.id}
+                    key={nome}
                     className="text-[10px] font-semibold text-primaryDark text-left leading-tight"
                     style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", height: 118, justifySelf: "center" }}
-                    title={s.nome}
+                    title={nome}
                   >
-                    {s.nome}
+                    {nome}
                   </div>
                 ))}
                 <div className="text-[10px] font-semibold uppercase text-ink-500 text-right">Concluído</div>
@@ -1911,13 +1971,13 @@ function RelatorioPanel({
                               </span>
                             )}
                           </div>
-                          {servicos.map((s) => {
-                            const { f, a, aus, n } = celulaMapa(p, s);
+                          {nomesServicos.map((nome) => {
+                            const { f, a, aus, n, na } = celulaMapa(p, nome);
                             const parcial = n > 0 && (a > 0 || (f > 0 && f < n));
-                            const todaAusente = n === 0 && aus > 0;
+                            const todaAusente = na || (n === 0 && aus > 0);
                             return (
                               <div
-                                key={s.id}
+                                key={nome}
                                 className="rounded-[3px] flex items-center justify-center"
                                 style={{
                                   background: todaAusente ? STATUS_COR.AUSENTE : fundoCelula(f, a, n),
@@ -1925,8 +1985,8 @@ function RelatorioPanel({
                                 }}
                                 title={
                                   todaAusente
-                                    ? `${p.nome} · ${s.nome}: ausência (não entra na conta)`
-                                    : `${p.nome} · ${s.nome}: ${f}/${n} finalizadas${a ? `, ${a} em andamento` : ""}${aus ? `, ${aus} ausência` : ""}`
+                                    ? `${p.nome} · ${nome}: ${na ? "não se aplica a esta torre" : "ausência"} (fora da conta)`
+                                    : `${p.nome} · ${nome}: ${f}/${n} finalizadas${a ? `, ${a} em andamento` : ""}${aus ? `, ${aus} ausência` : ""}`
                                 }
                               >
                                 {todaAusente && <X className="w-3 h-3 text-ink-400" strokeWidth={2.5} />}
@@ -1956,9 +2016,9 @@ function RelatorioPanel({
               {/* peso de cada serviço no total */}
               <div className="grid items-center gap-[3px] mt-2" style={{ gridTemplateColumns: colunas }}>
                 <div className="text-[10px] font-semibold uppercase text-ink-500">Peso no total</div>
-                {servicos.map((s) => (
-                  <div key={s.id} className="text-center text-[10px] text-ink-500">
-                    {pesoTotal > 0 ? Math.round((Number(s.peso ?? 1) / pesoTotal) * 100) : 0}%
+                {porServico.map(({ nome, peso }) => (
+                  <div key={nome} className="text-center text-[10px] text-ink-500">
+                    {peso >= 10 ? Math.round(peso) : String(peso).replace(".", ",")}%
                   </div>
                 ))}
                 <div />
@@ -1967,8 +2027,8 @@ function RelatorioPanel({
               {/* rodapé do mapa: % por serviço */}
               <div className="grid items-center gap-[3px] mt-2 pt-2 border-t border-border" style={{ gridTemplateColumns: colunas }}>
                 <div className="text-[10px] font-semibold uppercase text-ink-500">Concluído por serviço</div>
-                {porServico.map(({ serv, pct }) => (
-                  <div key={serv.id} className="text-center text-[10px] font-bold" style={{ color: corPct(pct) }}>
+                {porServico.map(({ nome, pct }) => (
+                  <div key={nome} className="text-center text-[10px] font-bold" style={{ color: corPct(pct) }}>
                     {pct}%
                   </div>
                 ))}

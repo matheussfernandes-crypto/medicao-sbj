@@ -5,15 +5,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CORES_CATEGORIA, gerarEstrutura, type ParamsObraNova } from "./types";
 
-// Todas as ações exigem ADM. As políticas do banco (RLS) também só deixam o ADM gravar a configuração.
+// Configuração: ADM ou quem tem a permissão específica (an_pode_configurar). As políticas do banco (RLS) conferem de novo.
 async function admin() {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-  const { data: perfil } = await supabase.from("perfis").select("setor, status").eq("id", user!.id).single();
-  if (!perfil || perfil.status !== "aprovado" || perfil.setor !== "ADMIN") throw new Error("Somente o administrador configura o Andamento.");
+  const { data: pode } = await supabase.rpc("an_pode_configurar", { uid: user!.id });
+  if (!pode) throw new Error("Sem permissão para configurar o Andamento.");
   return supabase;
 }
 
@@ -32,7 +32,7 @@ async function rpc(supabase: S, fn: string, args: Record<string, unknown>) {
 // ---------- obra ----------
 export async function salvarDatasObra(obraId: string, inicio: string | null, entrega: string | null) {
   const s = await admin();
-  ok((await s.from("obras").update({ data_inicio: inicio || null, data_entrega_prevista: entrega || null }).eq("id", obraId)).error);
+  await rpc(s, "an_definir_datas_obra", { p_obra: obraId, p_inicio: inicio || null, p_entrega: entrega || null });
 }
 
 export async function prepararObra(obraId: string) {

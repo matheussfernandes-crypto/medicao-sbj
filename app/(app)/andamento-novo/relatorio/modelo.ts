@@ -17,10 +17,11 @@ export type Formato = {
 export type Montagem = { modo: "tipo" | "pav"; resumo: boolean; esconder: boolean };
 
 export const FILTROS_VAZIOS: Filtros = { pav: [], sis: [], cat: [], serv: [] };
-export const FORMATO_PADRAO: Formato = { folha: "h", linhas: "serv", texto: "v", det: "ju", fill: false, fachada: "3d", fit: "cont", letra: "n" };
+export const FORMATO_PADRAO: Formato = { folha: "h", linhas: "serv", texto: "v", det: "ju", fill: false, fachada: "3d", fit: "enc", letra: "n" };
 export const MONTAGEM_PADRAO: Montagem = { modo: "tipo", resumo: true, esconder: false };
 
-export const A3 = { h: { w: 1587, h: 1123 }, v: { w: 1123, h: 1587 } };
+// A3 = 420 x 297 mm = 1587,4 x 1122,5 px (96 dpi). A folha fica 1-2 px menor: assim nunca passa da página impressa.
+export const A3 = { h: { w: 1585, h: 1120 }, v: { w: 1120, h: 1585 } };
 export const MARGEM_FOLHA = 34;
 
 // ============================ contexto ============================

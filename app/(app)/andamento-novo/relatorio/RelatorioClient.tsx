@@ -67,7 +67,7 @@ export default function RelatorioClient({ dados, salvas }: { dados: DadosAndamen
   const [minhas, setMinhas] = useState<Predefinicao[]>(salvas);
   const [nomeNova, setNomeNova] = useState("");
   const [erro, setErro] = useState<string | null>(null);
-  const chaveSalva = `an-rel-${obra.id}`;
+  const chaveSalva = `an-rel-v2-${obra.id}`;
 
   // última configuração usada (por obra) fica guardada neste navegador
   useEffect(() => {

@@ -9,6 +9,7 @@ import { sair } from "@/app/auth-actions";
 
 export default function AppShell({
   setor,
+  extras,
   nome,
   naoLidas,
   contadores,
@@ -16,6 +17,7 @@ export default function AppShell({
 }: {
   contadores?: Record<string, number>;
   setor: string | null;
+  extras?: string[];
   nome: string | null;
   naoLidas: number;
   children: React.ReactNode;
@@ -24,7 +26,7 @@ export default function AppShell({
 
   return (
     <div className="min-h-screen lg:flex">
-      <Sidebar setor={setor} contadores={contadores} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+      <Sidebar setor={setor} extras={extras} contadores={contadores} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       <div className="flex-1 min-w-0 flex flex-col min-h-screen">
         <header className="print:hidden h-16 shrink-0 bg-white border-b border-border flex items-center justify-between gap-3 px-4 lg:px-6">

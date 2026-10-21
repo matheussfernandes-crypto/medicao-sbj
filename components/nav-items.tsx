@@ -33,6 +33,7 @@ export type NavItem = {
   allowedSetores?: string[]; // undefined = todos os setores aprovados
   group?: string; // undefined = grupo padrão "Navegação"
   badgeKey?: "contratosPendentes"; // contador exibido ao lado do item
+  extra?: string; // permissão específica que também libera o item (além dos setores)
 };
 
 // Fonte única da navegação — usada pela Sidebar e pelo Breadcrumbs, para não
@@ -91,6 +92,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Layers,
     description: "Reformulação do Andamento: pavimentos, locais, categorias, serviços e pesos (em construção).",
     allowedSetores: ["ADMIN"],
+    extra: "andamento_novo",
   },
   {
     label: "Dashboard",
@@ -219,6 +221,8 @@ export const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-export function navItemsForSetor(setor: string | null): NavItem[] {
-  return NAV_ITEMS.filter((item) => !item.allowedSetores || (setor && item.allowedSetores.includes(setor)));
+export function navItemsForSetor(setor: string | null, extras: string[] = []): NavItem[] {
+  return NAV_ITEMS.filter(
+    (item) => !item.allowedSetores || (setor && item.allowedSetores.includes(setor)) || (item.extra && extras.includes(item.extra))
+  );
 }

@@ -20,8 +20,15 @@ function AutoEscala({ escala, altura, largura, children }: { escala: number; alt
       travado = true;
       el.style.transform = "none";
       el.style.width = `${largura / escala}px`;
-      const h = el.offsetHeight * escala;
-      const novo = h > altura ? (altura / h) * escala * 0.995 : escala;
+      // 1) largura: tabela mais larga que a folha encolhe até caber
+      const larguraLayout = largura / escala;
+      const fw = el.scrollWidth > larguraLayout + 1 ? larguraLayout / el.scrollWidth : 1;
+      let novo = escala * fw * 0.995;
+      el.style.width = `${largura / novo}px`;
+      // 2) altura: conteúdo mais alto que a folha encolhe até caber
+      const h = el.offsetHeight * novo;
+      if (h > altura) novo = novo * (altura / h) * 0.995;
+      if (novo > escala) novo = escala;
       el.style.width = `${largura / novo}px`;
       el.style.transform = `scale(${novo})`;
       setZ((a) => (Math.abs(a - novo) > 0.001 ? novo : a));

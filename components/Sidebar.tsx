@@ -18,17 +18,19 @@ const SETOR_LABEL: Record<string, string> = {
 
 export default function Sidebar({
   setor,
+  extras = [],
   contadores = {},
   mobileOpen,
   onClose,
 }: {
   setor: string | null;
+  extras?: string[];
   contadores?: Record<string, number>;
   mobileOpen: boolean;
   onClose: () => void;
 }) {
   const pathname = usePathname();
-  const items = navItemsForSetor(setor);
+  const items = navItemsForSetor(setor, extras);
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const inicial: Record<string, boolean> = {};

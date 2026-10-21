@@ -224,20 +224,25 @@ export default function RelatorioClient({ dados, salvas }: { dados: DadosAndamen
     }
   }
 
-  // ---------- impressão (janela própria, só com as folhas) ----------
+  // ---------- impressão (quadro oculto só com as folhas; não depende de pop-up) ----------
   const pilhaRef = useRef<HTMLDivElement>(null);
   function imprimir() {
     const pilha = pilhaRef.current;
     if (!pilha) return;
-    const w = window.open("", "_blank");
-    if (!w) {
-      setErro("O navegador bloqueou a janela de impressão. Permita pop-ups para este site.");
+    const css = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map((n) => n.outerHTML).join("\n");
+    const quadro = document.createElement("iframe");
+    quadro.setAttribute("aria-hidden", "true");
+    quadro.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+    document.body.appendChild(quadro);
+    const doc = quadro.contentDocument;
+    const janela = quadro.contentWindow;
+    if (!doc || !janela) {
+      quadro.remove();
+      setErro("Não foi possível preparar a impressão neste navegador.");
       return;
     }
-    const css = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map((n) => n.outerHTML).join("\n");
-    const html = pilha.outerHTML.replace(/zoom:\s*[\d.]+;?/g, (m, i) => m); // mantém o zoom interno das folhas
-    w.document.open();
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${obra.nome} — Andamento</title><base href="${location.origin}/">${css}
+    doc.open();
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>${obra.nome} — Andamento</title><base href="${location.origin}/">${css}
 <style>
 @page { size: A3 ${fmt.folha === "h" ? "landscape" : "portrait"}; margin: 0; }
 html, body { margin: 0; padding: 0; background: #fff; }
@@ -245,13 +250,17 @@ html, body { margin: 0; padding: 0; background: #fff; }
 .rel-pilha { display: block !important; zoom: 1 !important; }
 .rel-folha { break-after: page; page-break-after: always; margin: 0 !important; box-shadow: none !important; }
 .rel-folha:last-child { break-after: auto; page-break-after: auto; }
-</style></head><body>${html}</body></html>`);
-    w.document.close();
-    const disparar = () => setTimeout(() => { w.focus(); w.print(); }, 500);
-    if (w.document.readyState === "complete") disparar();
-    else w.onload = disparar;
+</style></head><body>${pilha.outerHTML}</body></html>`);
+    doc.close();
+    const disparar = () =>
+      setTimeout(() => {
+        janela.focus();
+        janela.print();
+        setTimeout(() => quadro.remove(), 60000);
+      }, 700);
+    if (doc.readyState === "complete") disparar();
+    else quadro.onload = disparar;
   }
-
   // ---------- CSV (segue os filtros) ----------
   function exportarCSV() {
     const linhas: string[][] = [["Pavimento / Sistema", "Local / Item", "Categoria", "Fase", "Serviço", "Status", "Observação"]];

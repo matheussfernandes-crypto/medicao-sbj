@@ -1,0 +1,1948 @@
+{
+  "_leia": "Configuração padrão montada no protótipo pelo usuário (Cauê). Use como semente do 'Modelo padrão SBJ'. Os pesos são o padrão inicial (somam 100% por categoria) e o usuário pode ajustar depois na tela de pesos.",
+  "grupos_de_servico": [
+    {
+      "grupo": "Obra geral",
+      "servicos": [
+        "Estrutura",
+        "Alvenaria Perímetro",
+        "Alvenaria",
+        "Tubulação Elétrica Parede",
+        "Tubulação Elétrica Teto",
+        "Tubulação Hidráulica Parede",
+        "Tubulação Hidráulica Teto",
+        "Tubulação Gás",
+        "Tubulação Split",
+        "Churrasqueira",
+        "Contramarco",
+        "Chapisco Interno",
+        "Reboco Interno",
+        "Fiação Elétrica",
+        "Contrapiso",
+        "Manta Acústica",
+        "Impermeabilização Esquadrias",
+        "Impermeabilização Boxes",
+        "Soleira Granito",
+        "Forro de Gesso",
+        "Azulejo",
+        "Piso Cerâmico",
+        "Autonivelante",
+        "Acab. Churrasqueira",
+        "Vinílico",
+        "Esquadria de Alumínio",
+        "Selador Acrílico",
+        "Massa Corrida",
+        "Pintura Interna",
+        "Sanitários",
+        "Portas e Rodapés",
+        "Pintura Final",
+        "Telhado"
+      ]
+    },
+    {
+      "grupo": "Hall e shafts",
+      "servicos": [
+        "Shaft – água fria",
+        "Shaft – gás primário",
+        "Shaft – recalque",
+        "Shaft – telecomunicações",
+        "Shaft – elétrica (prumada)",
+        "Shaft – esgoto e pluvial",
+        "Shaft – incêndio (hidrante)",
+        "Fechamento do shaft",
+        "Porta do shaft",
+        "Hidrante e abrigo de mangueira",
+        "Iluminação de emergência – hall"
+      ]
+    },
+    {
+      "grupo": "Escadaria",
+      "servicos": [
+        "Degraus e patamares",
+        "Corrimão",
+        "Guarda-corpo",
+        "Porta corta-fogo",
+        "Iluminação de emergência",
+        "Sinalização de rota de fuga",
+        "Fita antiderrapante",
+        "Ventilação / pressurização"
+      ]
+    },
+    {
+      "grupo": "Elevador",
+      "servicos": [
+        "Escavação do poço",
+        "Estrutura do poço e da caixa",
+        "Impermeabilização do poço",
+        "Conferência de prumo da caixa",
+        "Gancho de içamento na laje",
+        "Casa de máquinas",
+        "Ponto de força e iluminação",
+        "Escada de marinheiro do poço",
+        "Montagem das guias",
+        "Montagem da máquina e cabos",
+        "Cabine",
+        "Portas de pavimento",
+        "Requadro das portas",
+        "Botoeiras e indicadores",
+        "Ajustes e testes",
+        "Vistoria e liberação"
+      ]
+    },
+    {
+      "grupo": "Itens entregues",
+      "servicos": [
+        "Bancadas e cubas",
+        "Louças sanitárias",
+        "Metais",
+        "Luminárias",
+        "Espelhos",
+        "Móveis",
+        "Eletrodomésticos",
+        "Equipamentos de academia",
+        "Brinquedos do playground",
+        "Paisagismo",
+        "Decoração"
+      ]
+    },
+    {
+      "grupo": "Fachada",
+      "servicos": [
+        "Reboco externo"
+      ]
+    },
+    {
+      "grupo": "Caixa d'água",
+      "servicos": [
+        "Base / berço de apoio",
+        "Fôrma e armação",
+        "Concretagem",
+        "Desforma e cura",
+        "Impermeabilização interna",
+        "Içamento e posicionamento",
+        "Fixação do reservatório",
+        "Tubulação de entrada e saída",
+        "Barrilete e registros",
+        "Extravasor e limpeza",
+        "Boia / automação de nível",
+        "Teste de estanqueidade",
+        "Tampa de inspeção",
+        "Escada de acesso"
+      ]
+    }
+  ],
+  "fases_em_ordem": [
+    "Estrutura",
+    "Alvenaria",
+    "Instalações",
+    "Shafts",
+    "Revestimentos",
+    "Acabamentos",
+    "Fachada",
+    "Poço e caixa",
+    "Montagem",
+    "Testes",
+    "Execução",
+    "Instalações e testes"
+  ],
+  "fase_de_cada_servico": {
+    "Estrutura": "Estrutura",
+    "Alvenaria Perímetro": "Alvenaria",
+    "Alvenaria": "Alvenaria",
+    "Contramarco": "Alvenaria",
+    "Churrasqueira": "Alvenaria",
+    "Tubulação Elétrica Parede": "Instalações",
+    "Tubulação Elétrica Teto": "Instalações",
+    "Tubulação Hidráulica Parede": "Instalações",
+    "Tubulação Hidráulica Teto": "Instalações",
+    "Tubulação Gás": "Instalações",
+    "Tubulação Split": "Instalações",
+    "Fiação Elétrica": "Instalações",
+    "Shaft – água fria": "Shafts",
+    "Shaft – gás primário": "Shafts",
+    "Shaft – recalque": "Shafts",
+    "Shaft – telecomunicações": "Shafts",
+    "Shaft – elétrica (prumada)": "Shafts",
+    "Shaft – esgoto e pluvial": "Shafts",
+    "Shaft – incêndio (hidrante)": "Shafts",
+    "Fechamento do shaft": "Shafts",
+    "Porta do shaft": "Shafts",
+    "Chapisco Interno": "Revestimentos",
+    "Reboco Interno": "Revestimentos",
+    "Contrapiso": "Revestimentos",
+    "Manta Acústica": "Revestimentos",
+    "Impermeabilização Esquadrias": "Revestimentos",
+    "Impermeabilização Boxes": "Revestimentos",
+    "Soleira Granito": "Revestimentos",
+    "Forro de Gesso": "Revestimentos",
+    "Azulejo": "Revestimentos",
+    "Piso Cerâmico": "Revestimentos",
+    "Autonivelante": "Revestimentos",
+    "Vinílico": "Revestimentos",
+    "Degraus e patamares": "Revestimentos",
+    "Corrimão": "Acabamentos",
+    "Guarda-corpo": "Acabamentos",
+    "Porta corta-fogo": "Acabamentos",
+    "Iluminação de emergência": "Acabamentos",
+    "Iluminação de emergência – hall": "Acabamentos",
+    "Sinalização de rota de fuga": "Acabamentos",
+    "Fita antiderrapante": "Acabamentos",
+    "Ventilação / pressurização": "Acabamentos",
+    "Hidrante e abrigo de mangueira": "Acabamentos",
+    "Acab. Churrasqueira": "Acabamentos",
+    "Esquadria de Alumínio": "Acabamentos",
+    "Selador Acrílico": "Acabamentos",
+    "Massa Corrida": "Acabamentos",
+    "Pintura Interna": "Acabamentos",
+    "Sanitários": "Acabamentos",
+    "Portas e Rodapés": "Acabamentos",
+    "Pintura Final": "Acabamentos",
+    "Telhado": "Acabamentos",
+    "Escavação do poço": "Poço e caixa",
+    "Estrutura do poço e da caixa": "Poço e caixa",
+    "Impermeabilização do poço": "Poço e caixa",
+    "Conferência de prumo da caixa": "Poço e caixa",
+    "Gancho de içamento na laje": "Poço e caixa",
+    "Casa de máquinas": "Poço e caixa",
+    "Ponto de força e iluminação": "Poço e caixa",
+    "Escada de marinheiro do poço": "Poço e caixa",
+    "Montagem das guias": "Montagem",
+    "Montagem da máquina e cabos": "Montagem",
+    "Cabine": "Montagem",
+    "Portas de pavimento": "Montagem",
+    "Requadro das portas": "Montagem",
+    "Botoeiras e indicadores": "Montagem",
+    "Ajustes e testes": "Testes",
+    "Vistoria e liberação": "Testes",
+    "Base / berço de apoio": "Execução",
+    "Fôrma e armação": "Execução",
+    "Concretagem": "Execução",
+    "Desforma e cura": "Execução",
+    "Impermeabilização interna": "Execução",
+    "Içamento e posicionamento": "Execução",
+    "Fixação do reservatório": "Execução",
+    "Tubulação de entrada e saída": "Instalações e testes",
+    "Barrilete e registros": "Instalações e testes",
+    "Extravasor e limpeza": "Instalações e testes",
+    "Boia / automação de nível": "Instalações e testes",
+    "Teste de estanqueidade": "Instalações e testes",
+    "Tampa de inspeção": "Instalações e testes",
+    "Escada de acesso": "Instalações e testes",
+    "Chapisco externo": "Fachada",
+    "Reboco externo": "Fachada",
+    "Frisos e juntas": "Fachada",
+    "Revestimento de fachada": "Fachada",
+    "Textura / pintura externa": "Fachada"
+  },
+  "categorias": [
+    {
+      "id": "tipo",
+      "nome": "Apartamentos",
+      "cor": "#2c6975",
+      "servicos": [
+        {
+          "nome": "Estrutura",
+          "peso_percentual": 15.9,
+          "vale_pro_pavimento_inteiro": true
+        },
+        {
+          "nome": "Alvenaria Perímetro",
+          "peso_percentual": 3.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Alvenaria",
+          "peso_percentual": 5.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Elétrica Parede",
+          "peso_percentual": 2.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Elétrica Teto",
+          "peso_percentual": 1.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Hidráulica Parede",
+          "peso_percentual": 3.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Hidráulica Teto",
+          "peso_percentual": 2.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Gás",
+          "peso_percentual": 1.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Split",
+          "peso_percentual": 1.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Churrasqueira",
+          "peso_percentual": 1.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Contramarco",
+          "peso_percentual": 1.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Chapisco Interno",
+          "peso_percentual": 1.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Reboco Interno",
+          "peso_percentual": 6.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Fiação Elétrica",
+          "peso_percentual": 3.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Contrapiso",
+          "peso_percentual": 3.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Manta Acústica",
+          "peso_percentual": 1.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Impermeabilização Esquadrias",
+          "peso_percentual": 1.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Impermeabilização Boxes",
+          "peso_percentual": 1.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Soleira Granito",
+          "peso_percentual": 1.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Forro de Gesso",
+          "peso_percentual": 3.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Azulejo",
+          "peso_percentual": 4.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Piso Cerâmico",
+          "peso_percentual": 5.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Autonivelante",
+          "peso_percentual": 1.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Acab. Churrasqueira",
+          "peso_percentual": 1.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Vinílico",
+          "peso_percentual": 2.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Esquadria de Alumínio",
+          "peso_percentual": 4.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Selador Acrílico",
+          "peso_percentual": 1.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Massa Corrida",
+          "peso_percentual": 3.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Pintura Interna",
+          "peso_percentual": 4.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Sanitários",
+          "peso_percentual": 4.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Portas e Rodapés",
+          "peso_percentual": 3.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Pintura Final",
+          "peso_percentual": 3.0,
+          "vale_pro_pavimento_inteiro": false
+        }
+      ]
+    },
+    {
+      "id": "hall",
+      "nome": "Hall",
+      "cor": "#3d7d5a",
+      "servicos": [
+        {
+          "nome": "Estrutura",
+          "peso_percentual": 18.6,
+          "vale_pro_pavimento_inteiro": true
+        },
+        {
+          "nome": "Alvenaria",
+          "peso_percentual": 6.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Elétrica Parede",
+          "peso_percentual": 2.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Elétrica Teto",
+          "peso_percentual": 1.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Chapisco Interno",
+          "peso_percentual": 1.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Reboco Interno",
+          "peso_percentual": 8.1,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Fiação Elétrica",
+          "peso_percentual": 3.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Contrapiso",
+          "peso_percentual": 3.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Forro de Gesso",
+          "peso_percentual": 4.1,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Piso Cerâmico",
+          "peso_percentual": 6.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Massa Corrida",
+          "peso_percentual": 3.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Pintura Interna",
+          "peso_percentual": 4.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Portas e Rodapés",
+          "peso_percentual": 4.1,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Pintura Final",
+          "peso_percentual": 3.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Shaft – água fria",
+          "peso_percentual": 2.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Shaft – gás primário",
+          "peso_percentual": 2.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Shaft – recalque",
+          "peso_percentual": 2.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Shaft – telecomunicações",
+          "peso_percentual": 2.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Shaft – elétrica (prumada)",
+          "peso_percentual": 3.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Shaft – esgoto e pluvial",
+          "peso_percentual": 2.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Shaft – incêndio (hidrante)",
+          "peso_percentual": 2.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Fechamento do shaft",
+          "peso_percentual": 1.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Porta do shaft",
+          "peso_percentual": 1.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Hidrante e abrigo de mangueira",
+          "peso_percentual": 1.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Iluminação de emergência – hall",
+          "peso_percentual": 1.2,
+          "vale_pro_pavimento_inteiro": false
+        }
+      ]
+    },
+    {
+      "id": "esc",
+      "nome": "Escadaria",
+      "cor": "#a35d3d",
+      "servicos": [
+        {
+          "nome": "Estrutura",
+          "peso_percentual": 28.2,
+          "vale_pro_pavimento_inteiro": true
+        },
+        {
+          "nome": "Alvenaria",
+          "peso_percentual": 10.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Elétrica Parede",
+          "peso_percentual": 4.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Chapisco Interno",
+          "peso_percentual": 2.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Reboco Interno",
+          "peso_percentual": 12.3,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Fiação Elétrica",
+          "peso_percentual": 5.3,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Pintura Final",
+          "peso_percentual": 5.3,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Degraus e patamares",
+          "peso_percentual": 7.1,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Corrimão",
+          "peso_percentual": 4.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Guarda-corpo",
+          "peso_percentual": 4.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Porta corta-fogo",
+          "peso_percentual": 5.3,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Iluminação de emergência",
+          "peso_percentual": 2.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Sinalização de rota de fuga",
+          "peso_percentual": 1.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Fita antiderrapante",
+          "peso_percentual": 1.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Ventilação / pressurização",
+          "peso_percentual": 3.6,
+          "vale_pro_pavimento_inteiro": false
+        }
+      ]
+    },
+    {
+      "id": "garagem",
+      "nome": "Garagem",
+      "cor": "#56606b",
+      "servicos": [
+        {
+          "nome": "Estrutura",
+          "peso_percentual": 30.3,
+          "vale_pro_pavimento_inteiro": true
+        },
+        {
+          "nome": "Alvenaria Perímetro",
+          "peso_percentual": 5.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Alvenaria",
+          "peso_percentual": 11.3,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Elétrica Parede",
+          "peso_percentual": 4.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Elétrica Teto",
+          "peso_percentual": 2.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Hidráulica Parede",
+          "peso_percentual": 5.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Hidráulica Teto",
+          "peso_percentual": 3.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Chapisco Interno",
+          "peso_percentual": 2.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Reboco Interno",
+          "peso_percentual": 13.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Fiação Elétrica",
+          "peso_percentual": 5.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Contrapiso",
+          "peso_percentual": 5.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Selador Acrílico",
+          "peso_percentual": 1.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Pintura Final",
+          "peso_percentual": 5.8,
+          "vale_pro_pavimento_inteiro": false
+        }
+      ]
+    },
+    {
+      "id": "lazer",
+      "nome": "Área de lazer",
+      "cor": "#c0782b",
+      "servicos": [
+        {
+          "nome": "Estrutura",
+          "peso_percentual": 14.7,
+          "vale_pro_pavimento_inteiro": true
+        },
+        {
+          "nome": "Alvenaria Perímetro",
+          "peso_percentual": 2.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Alvenaria",
+          "peso_percentual": 5.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Elétrica Parede",
+          "peso_percentual": 2.3,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Elétrica Teto",
+          "peso_percentual": 1.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Hidráulica Parede",
+          "peso_percentual": 2.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Hidráulica Teto",
+          "peso_percentual": 1.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Gás",
+          "peso_percentual": 0.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Split",
+          "peso_percentual": 0.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Churrasqueira",
+          "peso_percentual": 1.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Contramarco",
+          "peso_percentual": 0.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Chapisco Interno",
+          "peso_percentual": 1.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Reboco Interno",
+          "peso_percentual": 6.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Fiação Elétrica",
+          "peso_percentual": 2.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Contrapiso",
+          "peso_percentual": 2.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Impermeabilização Esquadrias",
+          "peso_percentual": 0.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Impermeabilização Boxes",
+          "peso_percentual": 1.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Soleira Granito",
+          "peso_percentual": 0.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Forro de Gesso",
+          "peso_percentual": 3.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Azulejo",
+          "peso_percentual": 4.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Piso Cerâmico",
+          "peso_percentual": 5.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Acab. Churrasqueira",
+          "peso_percentual": 0.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Esquadria de Alumínio",
+          "peso_percentual": 4.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Selador Acrílico",
+          "peso_percentual": 0.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Massa Corrida",
+          "peso_percentual": 2.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Pintura Interna",
+          "peso_percentual": 3.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Sanitários",
+          "peso_percentual": 3.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Portas e Rodapés",
+          "peso_percentual": 3.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Pintura Final",
+          "peso_percentual": 2.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Bancadas e cubas",
+          "peso_percentual": 1.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Louças sanitárias",
+          "peso_percentual": 1.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Metais",
+          "peso_percentual": 0.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Luminárias",
+          "peso_percentual": 0.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Espelhos",
+          "peso_percentual": 0.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Móveis",
+          "peso_percentual": 1.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Eletrodomésticos",
+          "peso_percentual": 1.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Equipamentos de academia",
+          "peso_percentual": 1.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Brinquedos do playground",
+          "peso_percentual": 0.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Paisagismo",
+          "peso_percentual": 1.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Decoração",
+          "peso_percentual": 0.5,
+          "vale_pro_pavimento_inteiro": false
+        }
+      ]
+    },
+    {
+      "id": "comum",
+      "nome": "Área comum",
+      "cor": "#8a6d3b",
+      "servicos": [
+        {
+          "nome": "Estrutura",
+          "peso_percentual": 18.4,
+          "vale_pro_pavimento_inteiro": true
+        },
+        {
+          "nome": "Alvenaria Perímetro",
+          "peso_percentual": 3.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Alvenaria",
+          "peso_percentual": 6.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Elétrica Parede",
+          "peso_percentual": 2.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Elétrica Teto",
+          "peso_percentual": 1.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Hidráulica Parede",
+          "peso_percentual": 3.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Contramarco",
+          "peso_percentual": 1.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Chapisco Interno",
+          "peso_percentual": 1.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Reboco Interno",
+          "peso_percentual": 8.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Fiação Elétrica",
+          "peso_percentual": 3.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Contrapiso",
+          "peso_percentual": 3.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Soleira Granito",
+          "peso_percentual": 1.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Forro de Gesso",
+          "peso_percentual": 4.1,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Piso Cerâmico",
+          "peso_percentual": 6.3,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Esquadria de Alumínio",
+          "peso_percentual": 5.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Selador Acrílico",
+          "peso_percentual": 1.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Massa Corrida",
+          "peso_percentual": 3.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Pintura Interna",
+          "peso_percentual": 4.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Portas e Rodapés",
+          "peso_percentual": 4.1,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Pintura Final",
+          "peso_percentual": 3.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Bancadas e cubas",
+          "peso_percentual": 1.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Louças sanitárias",
+          "peso_percentual": 1.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Metais",
+          "peso_percentual": 1.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Luminárias",
+          "peso_percentual": 1.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Espelhos",
+          "peso_percentual": 0.6,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Móveis",
+          "peso_percentual": 2.3,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Paisagismo",
+          "peso_percentual": 1.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Decoração",
+          "peso_percentual": 0.6,
+          "vale_pro_pavimento_inteiro": false
+        }
+      ]
+    },
+    {
+      "id": "cob",
+      "nome": "Cobertura / técnica",
+      "cor": "#4a6fa5",
+      "servicos": [
+        {
+          "nome": "Estrutura",
+          "peso_percentual": 32.5,
+          "vale_pro_pavimento_inteiro": true
+        },
+        {
+          "nome": "Alvenaria Perímetro",
+          "peso_percentual": 6.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Alvenaria",
+          "peso_percentual": 12.1,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Elétrica Parede",
+          "peso_percentual": 5.1,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação Hidráulica Parede",
+          "peso_percentual": 6.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Chapisco Interno",
+          "peso_percentual": 3.1,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Reboco Interno",
+          "peso_percentual": 14.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Fiação Elétrica",
+          "peso_percentual": 6.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Contrapiso",
+          "peso_percentual": 6.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Pintura Final",
+          "peso_percentual": 6.2,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Telhado",
+          "peso_percentual": 2.1,
+          "vale_pro_pavimento_inteiro": false
+        }
+      ]
+    },
+    {
+      "id": "elev",
+      "nome": "Elevador",
+      "cor": "#6b4f9e",
+      "servicos": [
+        {
+          "nome": "Escavação do poço",
+          "peso_percentual": 4.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Estrutura do poço e da caixa",
+          "peso_percentual": 12.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Impermeabilização do poço",
+          "peso_percentual": 4.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Conferência de prumo da caixa",
+          "peso_percentual": 2.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Gancho de içamento na laje",
+          "peso_percentual": 1.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Casa de máquinas",
+          "peso_percentual": 5.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Ponto de força e iluminação",
+          "peso_percentual": 3.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Escada de marinheiro do poço",
+          "peso_percentual": 1.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Montagem das guias",
+          "peso_percentual": 10.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Montagem da máquina e cabos",
+          "peso_percentual": 12.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Cabine",
+          "peso_percentual": 10.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Portas de pavimento",
+          "peso_percentual": 10.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Requadro das portas",
+          "peso_percentual": 4.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Botoeiras e indicadores",
+          "peso_percentual": 4.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Ajustes e testes",
+          "peso_percentual": 8.0,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Vistoria e liberação",
+          "peso_percentual": 10.0,
+          "vale_pro_pavimento_inteiro": false
+        }
+      ]
+    },
+    {
+      "id": "fach",
+      "nome": "Fachada – descida",
+      "cor": "#b5651d",
+      "servicos": [
+        {
+          "nome": "Reboco externo",
+          "peso_percentual": 100.0,
+          "vale_pro_pavimento_inteiro": false
+        }
+      ]
+    },
+    {
+      "id": "cxf",
+      "nome": "Caixa d'água – fibra",
+      "cor": "#2f8a8a",
+      "servicos": [
+        {
+          "nome": "Base / berço de apoio",
+          "peso_percentual": 14.3,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Içamento e posicionamento",
+          "peso_percentual": 17.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Fixação do reservatório",
+          "peso_percentual": 10.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação de entrada e saída",
+          "peso_percentual": 14.3,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Barrilete e registros",
+          "peso_percentual": 14.3,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Extravasor e limpeza",
+          "peso_percentual": 7.1,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Boia / automação de nível",
+          "peso_percentual": 7.1,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Teste de estanqueidade",
+          "peso_percentual": 10.7,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tampa de inspeção",
+          "peso_percentual": 3.6,
+          "vale_pro_pavimento_inteiro": false
+        }
+      ]
+    },
+    {
+      "id": "cxc",
+      "nome": "Caixa d'água – concreto armado",
+      "cor": "#7a6a5a",
+      "servicos": [
+        {
+          "nome": "Fôrma e armação",
+          "peso_percentual": 17.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Concretagem",
+          "peso_percentual": 21.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Desforma e cura",
+          "peso_percentual": 7.1,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Impermeabilização interna",
+          "peso_percentual": 11.9,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tubulação de entrada e saída",
+          "peso_percentual": 9.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Barrilete e registros",
+          "peso_percentual": 9.5,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Extravasor e limpeza",
+          "peso_percentual": 4.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Boia / automação de nível",
+          "peso_percentual": 4.8,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Teste de estanqueidade",
+          "peso_percentual": 7.1,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Tampa de inspeção",
+          "peso_percentual": 2.4,
+          "vale_pro_pavimento_inteiro": false
+        },
+        {
+          "nome": "Escada de acesso",
+          "peso_percentual": 3.6,
+          "vale_pro_pavimento_inteiro": false
+        }
+      ]
+    }
+  ],
+  "servicos_que_valem_pro_pavimento_inteiro": [
+    "Estrutura"
+  ],
+  "linha_do_tempo_do_resumo": [
+    "Estrutura",
+    "Alvenaria",
+    "Instalações",
+    "Reboco interno (serviço Reboco Interno)",
+    "Shafts",
+    "Reboco externo (serviço Reboco externo nas descidas da fachada)",
+    "Revestimentos (sem chapisco e reboco interno)",
+    "Acabamentos",
+    "Entrega (data prevista)"
+  ],
+  "fachada": {
+    "partes": [
+      "Embasamento",
+      "Torre",
+      "Reservatório"
+    ],
+    "fachadas": [
+      "Norte",
+      "Sul",
+      "Leste",
+      "Oeste"
+    ],
+    "descidas_exemplo_ilha_de_capri": {
+      "emb": {
+        "N": 6,
+        "S": 6,
+        "L": 4,
+        "O": 4
+      },
+      "tor": {
+        "N": 5,
+        "S": 5,
+        "L": 3,
+        "O": 3
+      },
+      "res": {
+        "N": 2,
+        "S": 2,
+        "L": 1,
+        "O": 1
+      }
+    },
+    "servicos": [
+      "Reboco externo"
+    ]
+  },
+  "estrutura_exemplo_ilha_de_capri": {
+    "pavimentos_de_cima_pra_baixo": [
+      {
+        "nome": "Cobertura",
+        "locais": [
+          {
+            "nome": "Casa de máquinas",
+            "categoria": "cob"
+          },
+          {
+            "nome": "Laje técnica",
+            "categoria": "cob"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          }
+        ]
+      },
+      {
+        "nome": "Lazer",
+        "locais": [
+          {
+            "nome": "Salão de Festas",
+            "categoria": "lazer"
+          },
+          {
+            "nome": "Piscina",
+            "categoria": "lazer"
+          },
+          {
+            "nome": "Academia",
+            "categoria": "lazer"
+          },
+          {
+            "nome": "Brinquedoteca",
+            "categoria": "lazer"
+          },
+          {
+            "nome": "Salão de Jogos",
+            "categoria": "lazer"
+          },
+          {
+            "nome": "Quiosque 01",
+            "categoria": "lazer"
+          },
+          {
+            "nome": "Quiosque 02",
+            "categoria": "lazer"
+          },
+          {
+            "nome": "Área externa",
+            "categoria": "lazer"
+          },
+          {
+            "nome": "Hall",
+            "categoria": "hall"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          }
+        ]
+      },
+      {
+        "nome": "Pav 12",
+        "locais": [
+          {
+            "nome": "Apto 1201",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 1202",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 1203",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 1204",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 1205",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Hall",
+            "categoria": "hall"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          }
+        ]
+      },
+      {
+        "nome": "Pav 11",
+        "locais": [
+          {
+            "nome": "Apto 1101",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 1102",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 1103",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 1104",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 1105",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Hall",
+            "categoria": "hall"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          }
+        ]
+      },
+      {
+        "nome": "Pav 10",
+        "locais": [
+          {
+            "nome": "Apto 1001",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 1002",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 1003",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 1004",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 1005",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Hall",
+            "categoria": "hall"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          }
+        ]
+      },
+      {
+        "nome": "Pav 09",
+        "locais": [
+          {
+            "nome": "Apto 901",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 902",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 903",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 904",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 905",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Hall",
+            "categoria": "hall"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          }
+        ]
+      },
+      {
+        "nome": "Pav 08",
+        "locais": [
+          {
+            "nome": "Apto 801",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 802",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 803",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 804",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 805",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Hall",
+            "categoria": "hall"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          }
+        ]
+      },
+      {
+        "nome": "Pav 07",
+        "locais": [
+          {
+            "nome": "Apto 701",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 702",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 703",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 704",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 705",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Hall",
+            "categoria": "hall"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          }
+        ]
+      },
+      {
+        "nome": "Pav 06",
+        "locais": [
+          {
+            "nome": "Apto 601",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 602",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 603",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 604",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 605",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Hall",
+            "categoria": "hall"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          }
+        ]
+      },
+      {
+        "nome": "Pav 05",
+        "locais": [
+          {
+            "nome": "Apto 501",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 502",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 503",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 504",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 505",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Hall",
+            "categoria": "hall"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          }
+        ]
+      },
+      {
+        "nome": "Pav 04",
+        "locais": [
+          {
+            "nome": "Apto 401",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 402",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 403",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 404",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Apto 405",
+            "categoria": "tipo"
+          },
+          {
+            "nome": "Hall",
+            "categoria": "hall"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          }
+        ]
+      },
+      {
+        "nome": "G3",
+        "locais": [
+          {
+            "nome": "Garagem",
+            "categoria": "garagem"
+          },
+          {
+            "nome": "Hall",
+            "categoria": "hall"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          }
+        ]
+      },
+      {
+        "nome": "G2",
+        "locais": [
+          {
+            "nome": "Garagem",
+            "categoria": "garagem"
+          },
+          {
+            "nome": "Hall",
+            "categoria": "hall"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          }
+        ]
+      },
+      {
+        "nome": "G1 / Térreo",
+        "locais": [
+          {
+            "nome": "Garagem",
+            "categoria": "garagem"
+          },
+          {
+            "nome": "Hall",
+            "categoria": "hall"
+          },
+          {
+            "nome": "Escadaria",
+            "categoria": "esc"
+          },
+          {
+            "nome": "Hall de entrada",
+            "categoria": "comum"
+          },
+          {
+            "nome": "Portaria",
+            "categoria": "comum"
+          }
+        ]
+      }
+    ],
+    "sistemas": [
+      {
+        "nome": "Elevadores",
+        "tipo": "comum",
+        "itens": [
+          {
+            "nome": "Elevador 1 – social",
+            "categoria": "elev"
+          },
+          {
+            "nome": "Elevador 2 – serviço",
+            "categoria": "elev"
+          }
+        ]
+      },
+      {
+        "nome": "Fachadas (reboco externo)",
+        "tipo": "fachada",
+        "itens": "gerado a partir das descidas x pavimentos"
+      },
+      {
+        "nome": "Caixa d'água",
+        "tipo": "comum",
+        "itens": [
+          {
+            "nome": "Reservatório superior",
+            "categoria": "cxc"
+          },
+          {
+            "nome": "Reservatório inferior",
+            "categoria": "cxc"
+          }
+        ]
+      }
+    ],
+    "inicio": "",
+    "entrega": ""
+  },
+  "predefinicoes_de_relatorio": [
+    {
+      "nome": "Escadaria completa",
+      "f": {
+        "pav": [],
+        "sis": [],
+        "cat": [
+          "esc"
+        ],
+        "serv": []
+      },
+      "lay": "tipo",
+      "resumo": false
+    },
+    {
+      "nome": "Infra dos apartamentos",
+      "f": {
+        "pav": [],
+        "sis": [],
+        "cat": [
+          "tipo"
+        ],
+        "serv": [
+          "Tubulação Elétrica Parede",
+          "Tubulação Elétrica Teto",
+          "Tubulação Hidráulica Parede",
+          "Tubulação Hidráulica Teto",
+          "Tubulação Gás",
+          "Tubulação Split",
+          "Fiação Elétrica"
+        ]
+      },
+      "lay": "tipo",
+      "resumo": false
+    },
+    {
+      "nome": "Shafts dos halls",
+      "f": {
+        "pav": [],
+        "sis": [],
+        "cat": [
+          "hall"
+        ],
+        "serv": [
+          "Shaft – água fria",
+          "Shaft – gás primário",
+          "Shaft – recalque",
+          "Shaft – telecomunicações",
+          "Shaft – elétrica (prumada)",
+          "Shaft – esgoto e pluvial",
+          "Shaft – incêndio (hidrante)"
+        ]
+      },
+      "lay": "tipo",
+      "resumo": false
+    },
+    {
+      "nome": "Garagens",
+      "f": {
+        "pav": [
+          "i349ywy",
+          "i38a9xp",
+          "i3cvvih"
+        ],
+        "sis": [],
+        "cat": [],
+        "serv": []
+      },
+      "lay": "pav",
+      "resumo": true
+    },
+    {
+      "nome": "Só sistemas",
+      "f": {
+        "pav": [],
+        "sis": [
+          "i3ikojk",
+          "i3lfqfo"
+        ],
+        "cat": [],
+        "serv": []
+      },
+      "lay": "tipo",
+      "resumo": false
+    },
+    {
+      "nome": "Apartamentos",
+      "f": {
+        "pav": [],
+        "sis": [],
+        "cat": [
+          "tipo"
+        ],
+        "serv": []
+      },
+      "lay": "tipo",
+      "resumo": false,
+      "fmt": {
+        "folha": "v",
+        "linhas": "local",
+        "texto": "v",
+        "letra": "n",
+        "det": "un",
+        "fit": "s"
+      },
+      "soini": false
+    }
+  ],
+  "formatacao_de_relatorio_usada_por_ultimo": {
+    "folha": "h",
+    "linhas": "local",
+    "texto": "v",
+    "letra": "n",
+    "det": "un",
+    "fit": "s",
+    "fill": "s",
+    "f3": "s"
+  }
+}

@@ -64,6 +64,10 @@ export async function carregarAndamento(obraIdPedida?: string): Promise<DadosAnd
     ),
   ]);
 
+  // a paginação busca por id (ordem estável); aqui volta para a ordem cadastrada
+  locais.sort((a: any, b: any) => a.ordem - b.ordem);
+  itens.sort((a: any, b: any) => a.ordem - b.ordem);
+
   const ids = Array.from(new Set(apRows.map((r) => r.atualizado_por).filter(Boolean))) as string[];
   const { data: nomes } = ids.length ? await supabase.rpc("nomes_perfis", { uids: ids }) : { data: [] as { id: string; nome_completo: string }[] };
   const nomePorId = new Map(((nomes ?? []) as { id: string; nome_completo: string }[]).map((n) => [n.id, n.nome_completo]));

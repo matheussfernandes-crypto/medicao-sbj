@@ -329,14 +329,14 @@ html, body { margin: 0; padding: 0; background: #fff; }
               <div className="absolute z-30 mt-1 w-[420px] max-w-[92vw] bg-white border border-border rounded-lg shadow-panel p-3 space-y-2.5">
                 {(
                   [
-                    ["Folha", <Seg key="a" valor={fmt.folha} onChange={(v) => setFmt({ ...fmt, folha: v })} opcoes={[["h", "A3 Horizontal"], ["v", "A3 Vertical"]]} />],
-                    ["Nas linhas da tabela", <Seg key="b" valor={fmt.linhas} onChange={(v) => setFmt({ ...fmt, linhas: v })} opcoes={[["serv", "Serviços"], ["local", "Pavimentos / locais"]]} />],
-                    ["Texto do topo das colunas", <Seg key="c" valor={fmt.texto} onChange={(v) => setFmt({ ...fmt, texto: v })} opcoes={[["h", "Horizontal"], ["v", "Vertical"]]} />],
-                    ["Apartamentos e locais", <Seg key="d" valor={fmt.det} onChange={(v) => setFmt({ ...fmt, det: v })} opcoes={[["ju", "Juntos por pavimento"], ["un", "Um por um"]]} />],
-                    ["Ocupar a folha toda", <Seg key="e" valor={fmt.fill ? "s" : "n"} onChange={(v) => setFmt({ ...fmt, fill: v === "s" })} opcoes={[["n", "Não"], ["s", "Sim"]]} />],
-                    ["Fachada", <Seg key="f" valor={fmt.fachada} onChange={(v) => setFmt({ ...fmt, fachada: v })} opcoes={[["3d", "Prédio em 3D grande"], ["tab", "Tabela"]]} />],
-                    ["Bloco grande", <Seg key="g" valor={fmt.fit} onChange={(v) => setFmt({ ...fmt, fit: v })} opcoes={[["cont", "Continua na outra folha"], ["enc", "Encolhe pra caber"]]} />],
-                    ["Tamanho da letra", <Seg key="h" valor={fmt.letra} onChange={(v) => setFmt({ ...fmt, letra: v })} opcoes={[["n", "Normal"], ["c", "Compacta"]]} />],
+                    ["Folha", <Seg key="a" valor={fmt.folha} onChange={(v) => setFmt((f0) => ({ ...f0, folha: v }))} opcoes={[["h", "A3 Horizontal"], ["v", "A3 Vertical"]]} />],
+                    ["Nas linhas da tabela", <Seg key="b" valor={fmt.linhas} onChange={(v) => setFmt((f0) => ({ ...f0, linhas: v }))} opcoes={[["serv", "Serviços"], ["local", "Pavimentos / locais"]]} />],
+                    ["Texto do topo das colunas", <Seg key="c" valor={fmt.texto} onChange={(v) => setFmt((f0) => ({ ...f0, texto: v }))} opcoes={[["h", "Horizontal"], ["v", "Vertical"]]} />],
+                    ["Apartamentos e locais", <Seg key="d" valor={fmt.det} onChange={(v) => setFmt((f0) => ({ ...f0, det: v }))} opcoes={[["ju", "Juntos por pavimento"], ["un", "Um por um"]]} />],
+                    ["Ocupar a folha toda", <Seg key="e" valor={fmt.fill ? "s" : "n"} onChange={(v) => setFmt((f0) => ({ ...f0, fill: v === "s" }))} opcoes={[["n", "Não"], ["s", "Sim"]]} />],
+                    ["Fachada", <Seg key="f" valor={fmt.fachada} onChange={(v) => setFmt((f0) => ({ ...f0, fachada: v }))} opcoes={[["3d", "Prédio em 3D grande"], ["tab", "Tabela"]]} />],
+                    ["Bloco grande", <Seg key="g" valor={fmt.fit} onChange={(v) => setFmt((f0) => ({ ...f0, fit: v }))} opcoes={[["cont", "Continua na outra folha"], ["enc", "Encolhe pra caber"]]} />],
+                    ["Tamanho da letra", <Seg key="h" valor={fmt.letra} onChange={(v) => setFmt((f0) => ({ ...f0, letra: v }))} opcoes={[["n", "Normal"], ["c", "Compacta"]]} />],
                   ] as [string, React.ReactNode][]
                 ).map(([t, c]) => (
                   <div key={t}>
@@ -357,9 +357,9 @@ html, body { margin: 0; padding: 0; background: #fff; }
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-          <Seg valor={mon.modo} onChange={(v) => setMon({ ...mon, modo: v })} opcoes={[["tipo", "Folha por tipo de local"], ["pav", "Folha por pavimento"]]} />
-          <Chave ligada={mon.esconder} onChange={(v) => setMon({ ...mon, esconder: v })} texto="Esconder o que não começou" />
-          <Chave ligada={mon.resumo} onChange={(v) => setMon({ ...mon, resumo: v })} texto="Página de resumo" />
+          <Seg valor={mon.modo} onChange={(v) => setMon((m0) => ({ ...m0, modo: v }))} opcoes={[["tipo", "Folha por tipo de local"], ["pav", "Folha por pavimento"]]} />
+          <Chave ligada={mon.esconder} onChange={(v) => setMon((m0) => ({ ...m0, esconder: v }))} texto="Esconder o que não começou" />
+          <Chave ligada={mon.resumo} onChange={(v) => setMon((m0) => ({ ...m0, resumo: v }))} texto="Página de resumo" />
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-ink-500">
               {folhas ? `${totalPaginas} página${totalPaginas === 1 ? "" : "s"}` : "montando…"} · A3 {fmt.folha === "h" ? "horizontal" : "vertical"} · {fmt.folha === "h" ? "420 × 297" : "297 × 420"} mm

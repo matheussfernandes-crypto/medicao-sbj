@@ -14,8 +14,45 @@ export type Servico = {
 export type Vinculo = { categoria_id: string; servico_id: string; peso: number; peso_fixo: boolean };
 export type Local = { id: string; pavimento_id: string; nome: string; categoria_id: string; ordem: number };
 export type Pavimento = { id: string; nome: string; ordem: number };
-export type SistemaItem = { id: string; sistema_id: string; nome: string; categoria_id: string; ordem: number };
-export type Sistema = { id: string; nome: string; tipo: "comum" | "fachada"; ordem: number };
+export type SistemaItem = {
+  id: string;
+  sistema_id: string;
+  nome: string;
+  categoria_id: string;
+  ordem: number;
+  parte?: "emb" | "tor" | "res" | null;
+  face?: "N" | "S" | "L" | "O" | null;
+  descida?: number | null;
+  pavimento_id?: string | null;
+};
+export type DescidasConfig = Record<"emb" | "tor" | "res", Record<"N" | "S" | "L" | "O", number>>;
+export type Sistema = { id: string; nome: string; tipo: "comum" | "fachada"; ordem: number; config?: { descidas?: DescidasConfig } | null };
+
+// Status de um apontamento: 0 = não iniciado, 1 = andamento, 2 = finalizado, 3 = ausência (fora da conta)
+export type Status = 0 | 1 | 2 | 3;
+export type Apontamento = {
+  alvo: string; // id do local ou do item de sistema
+  servico_id: string;
+  status: Status;
+  observacao: string | null;
+  por: string | null;
+  em: string | null;
+};
+
+export type DadosAndamento = {
+  obras: ObraInfo[];
+  obra: ObraInfo;
+  fases: Fase[];
+  categorias: Categoria[];
+  servicos: Servico[];
+  vinculos: Vinculo[];
+  pavimentos: Pavimento[];
+  locais: Local[];
+  sistemas: Sistema[];
+  itens: SistemaItem[];
+  apontamentos: Apontamento[];
+  usuario: { id: string; nome: string; setor: string };
+};
 export type Percentual = { nivel: string; ref_id: string | null; pct: number };
 
 export type DadosConfig = {

@@ -19,7 +19,7 @@ async function admin() {
 
 function ok(error: { message: string } | null) {
   if (error) throw new Error(error.message);
-  revalidatePath("/andamento-novo");
+  revalidatePath("/andamento-novo", "layout");
 }
 
 type S = Awaited<ReturnType<typeof admin>>;
@@ -87,7 +87,7 @@ export async function moverFase(id: string, dir: -1 | 1) {
     const { error } = await s.from("an_fase").update({ ordem: k }).eq("id", arr[k].id);
     if (error) throw new Error(error.message);
   }
-  revalidatePath("/andamento-novo");
+  revalidatePath("/andamento-novo", "layout");
 }
 
 // ---------- categorias ----------

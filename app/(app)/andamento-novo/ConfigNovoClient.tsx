@@ -176,7 +176,7 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
           <select
             className="border border-border rounded-lg px-3 py-2 text-sm min-w-[220px] bg-white"
             value={obra.id}
-            onChange={(e) => router.push(`/andamento-novo?obra=${e.target.value}`)}
+            onChange={(e) => router.push(`/andamento-novo/config?obra=${e.target.value}`)}
           >
             {obras.map((o) => (
               <option key={o.id} value={o.id}>
@@ -202,7 +202,7 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
             exec(async () => {
               const id = await acoes.criarObraNova(input);
               setNovaObraAberta(false);
-              router.push(`/andamento-novo?obra=${id}`);
+              router.push(`/andamento-novo/config?obra=${id}`);
             })
           }
         />

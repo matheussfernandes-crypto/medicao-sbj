@@ -22,6 +22,7 @@ import {
   ClipboardPen,
   CheckCheck,
   FileSpreadsheet,
+  Layers,
 } from "lucide-react";
 
 export type NavItem = {
@@ -83,6 +84,13 @@ export const NAV_ITEMS: NavItem[] = [
     icon: HardHat,
     description: "Fluxograma de andamento por pavimento e unidade, com relatório e histórico.",
     allowedSetores: ["ESTAGIARIO", "ADMIN"],
+  },
+  {
+    label: "Andamento (novo)",
+    href: "/andamento-novo",
+    icon: Layers,
+    description: "Reformulação do Andamento: pavimentos, locais, categorias, serviços e pesos (em construção).",
+    allowedSetores: ["ADMIN"],
   },
   {
     label: "Dashboard",

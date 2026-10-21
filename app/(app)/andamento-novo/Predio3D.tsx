@@ -75,7 +75,7 @@ export default function Predio3D({ vista, descidas, niveis, cor, destaque, onCel
     );
   });
 
-  const margemLado = rotulos ? 135 : 8;
+  const margemLado = rotulos ? 178 : 8; // simétrica: o prédio fica centralizado no quadro
   const margemTopo = 10;
   const margemBase = rotulos ? 70 : 8;
   const cx = (minX + maxPx) / 2;
@@ -167,7 +167,7 @@ export default function Predio3D({ vista, descidas, niveis, cor, destaque, onCel
     });
 
     // cotas (direita): linha vertical com traços inclinados nas pontas, chamadas tracejadas e texto horizontal em negrito
-    const xDim = vbX + largura - 78;
+    const xDim = vbX + largura - 118;
     caixas.forEach((c) => {
       const cantos: [number, number][] = [[-c.X / 2, -c.Y / 2], [c.X / 2, -c.Y / 2], [c.X / 2, c.Y / 2], [-c.X / 2, c.Y / 2]];
       const dir = cantos.reduce((a, b) => (P(b[0], b[1], 0)[0] > P(a[0], a[1], 0)[0] ? b : a));
@@ -182,7 +182,7 @@ export default function Predio3D({ vista, descidas, niveis, cor, destaque, onCel
           <line x1={xDim} y1={pyB} x2={xDim} y2={pyT} stroke="#111827" strokeWidth={1.2} />
           {tick(pyB)}
           {tick(pyT)}
-          <text x={xDim + 10} y={meio + fonte / 3} fontSize={fonte} fontWeight={700} fill="#111827">
+          <text x={xDim + 10} y={meio + fonte / 3} fontSize={fonte - 0.5} fontWeight={700} fill="#111827">
             {NOME_PARTE[c.parte].toUpperCase()}
           </text>
         </g>

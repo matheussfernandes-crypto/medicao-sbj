@@ -20,7 +20,8 @@ type Props = {
   onCelula?: (parte: Parte, face: Face, descida: number, nivelId: string, e: React.MouseEvent) => void;
   onNivel?: (nivelId: string) => void;
   rotulos?: boolean; // nomes dos pavimentos, cotas e nomes das fachadas
-  alturaMax?: number; // altura desejada do desenho, em px
+  alturaMax?: number; // altura desejada do prédio, em px (sem margens)
+  alturaTotal?: number; // altura máxima do SVG inteiro (o desenho encolhe para caber)
   fonte?: number;
 };
 
@@ -31,7 +32,7 @@ const C30 = 0.866;
 
 // Prédio em isométrica. s = +1 (vista Norte + Leste) ou -1 (vista Sul + Oeste):
 //   x_tela = (s·x − s·y)·0,866 ; y_tela = (s·x + s·y)·0,5 − z
-export default function Predio3D({ vista, descidas, niveis, cor, destaque, onCelula, onNivel, rotulos = true, alturaMax = 560, fonte = 11 }: Props) {
+export default function Predio3D({ vista, descidas, niveis, cor, destaque, onCelula, onNivel, rotulos = true, alturaMax = 560, alturaTotal, fonte = 11 }: Props) {
   const s = vista === "NE" ? 1 : -1;
 
   type Caixa = { parte: Parte; X: number; Y: number; H: number; z0: number; linhas: Nivel[]; rowH: number };
@@ -214,7 +215,7 @@ export default function Predio3D({ vista, descidas, niveis, cor, destaque, onCel
   }
 
   return (
-    <svg viewBox={`${vbX.toFixed(1)} ${vbY.toFixed(1)} ${largura.toFixed(1)} ${altura.toFixed(1)}`} className="w-full h-auto" style={{ maxWidth: largura * 1.25, outline: "none" }} role="img" aria-label={vista === "NE" ? "Vista Norte e Leste" : "Vista Sul e Oeste"}>
+    <svg viewBox={`${vbX.toFixed(1)} ${vbY.toFixed(1)} ${largura.toFixed(1)} ${altura.toFixed(1)}`} className={alturaTotal ? "w-full" : "w-full h-auto"} style={{ maxWidth: alturaTotal ? undefined : largura * 1.25, height: alturaTotal, outline: "none" }} role="img" aria-label={vista === "NE" ? "Vista Norte e Leste" : "Vista Sul e Oeste"}>
       {elementos}
       {rotulosEl}
     </svg>

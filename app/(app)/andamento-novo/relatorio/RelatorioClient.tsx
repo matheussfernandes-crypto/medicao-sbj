@@ -200,8 +200,8 @@ export default function RelatorioClient({ dados, salvas }: { dados: DadosAndamen
   // ---------- predefinições ----------
   function aplicarPredef(p: Predefinicao) {
     setFiltros(normalizarFiltros(ctx, p.filtros));
-    if (p.formato) setFmt((f) => ({ ...f, ...p.formato }));
-    if (p.montagem) setMon((m) => ({ ...m, ...p.montagem }));
+    setFmt({ ...FORMATO_PADRAO, ...p.formato });
+    setMon({ ...MONTAGEM_PADRAO, ...p.montagem });
     setMenu(null);
   }
   async function salvarAtual() {

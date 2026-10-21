@@ -79,9 +79,11 @@ const cabecalhoBloco = (bloco: BlocoGrade, soma: Soma, continuacao?: boolean) =>
 
 // quebra o rótulo vertical quando a palavra não cabe na coluna
 function usarVertical(fmt: Formato, rotulos: string[], larguraColuna: number, fonte: number) {
-  if (fmt.texto === "v") return true;
   const maior = Math.max(...rotulos.map((r) => r.length), 1);
-  return maior * fonte * 0.56 > larguraColuna - 6;
+  const largTexto = maior * fonte * 0.56;
+  // "vertical" só quando o nome realmente aperta a coluna; coluna larga mantém o texto deitado
+  if (fmt.texto === "v") return largTexto * 1.35 > larguraColuna - 6;
+  return largTexto > larguraColuna - 6;
 }
 
 export function BlocoGradeView({ bloco, ctx, fmt, largura, fatias, continuacao }: PropsGrade) {
@@ -294,6 +296,7 @@ export function BlocoFachada3D({ bloco, ctx, largura, altura }: { bloco: BlocoFa
   });
   const vertical = largura < altura;
   const alturaDesenho = vertical ? Math.min(560, altura / 2 - 80) : altura - 70;
+  const alturaSvg = vertical ? altura / 2 - 70 : altura - 60;
   return (
     <div data-bloco={bloco.id} className="rel-bloco">
       <div className="flex items-center gap-3 mb-2" data-cab="1">
@@ -306,11 +309,11 @@ export function BlocoFachada3D({ bloco, ctx, largura, altura }: { bloco: BlocoFa
         <div className={vertical ? "flex flex-col gap-2" : "flex-1 grid grid-cols-2 gap-3"}>
           <div>
             <p className="text-center font-semibold text-[12px]" style={{ color: "#1f4a52" }}>Vista Norte + Leste</p>
-            <Predio3D vista="NE" descidas={descidas} niveis={niveis} cor={cor} alturaMax={alturaDesenho} fonte={12} />
+            <Predio3D vista="NE" descidas={descidas} niveis={niveis} cor={cor} alturaMax={alturaDesenho} alturaTotal={alturaSvg} fonte={12} />
           </div>
           <div>
             <p className="text-center font-semibold text-[12px]" style={{ color: "#1f4a52" }}>Vista Sul + Oeste</p>
-            <Predio3D vista="SW" descidas={descidas} niveis={niveis} cor={cor} alturaMax={alturaDesenho} fonte={12} />
+            <Predio3D vista="SW" descidas={descidas} niveis={niveis} cor={cor} alturaMax={alturaDesenho} alturaTotal={alturaSvg} fonte={12} />
           </div>
         </div>
         <div className={vertical ? "mt-3 grid grid-cols-2 gap-4" : ""} style={{ width: vertical ? "100%" : 250 }}>

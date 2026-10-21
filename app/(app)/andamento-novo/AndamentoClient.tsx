@@ -581,6 +581,8 @@ export default function AndamentoClient({ dados }: { dados: DadosAndamento }) {
             alternarModoSel={alternarModoSel}
             sel={sel}
             setSel={setSel}
+            abrirCelula={abrirCelula}
+            somaPorAlvo={somaPorAlvo}
           />
         ) : (
           <>

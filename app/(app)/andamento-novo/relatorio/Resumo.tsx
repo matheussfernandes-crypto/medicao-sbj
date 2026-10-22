@@ -5,13 +5,13 @@ import { COR_STATUS, acumular, partes, pct, somaZero, somarAlvo, type Soma } fro
 import { calcularNiveis, chaveItemFachada, descidasDoSistema, mapaItensFachada } from "../fachada";
 import Predio3D, { NOME_FACE, NOME_PARTE, type Face, type Parte } from "../Predio3D";
 import { Barra, fmtPct, fmtPct0 } from "../ui";
-import { agruparPorFase, pesoNaCategoria, status, type Ctx, type Escopo, type Formato } from "./modelo";
+import { agruparPorFase, status, type Ctx, type Escopo, type FotoRel } from "./modelo";
 import type { Servico } from "../types";
 
 const VERDE = COR_STATUS[2];
 const LARANJA = COR_STATUS[1];
 
-function Quadro({ titulo, children, className = "" }: { titulo: string; children: React.ReactNode; className?: string }) {
+function Quadro({ titulo, children, className = "" }: { titulo: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
     <div className={`rounded-xl border border-border bg-white p-3 ${className}`} style={{ breakInside: "avoid" }}>
       <h3 className="font-semibold text-[13px] mb-2" style={{ color: "#1f4a52" }}>
@@ -60,7 +60,37 @@ const parseData = (v: string | null) => (v ? new Date(v + "T00:00:00") : null);
 
 type Etapa = { nome: string; s: Soma; tem: boolean };
 
-export default function Resumo({ ctx, escopo, fmt, largura, altura }: { ctx: Ctx; escopo: Escopo; fmt: Formato; largura: number; altura: number }) {
+// fotos escolhidas na aba Fotos: 4 (ou 6) lado a lado, altura fixa, legenda à esquerda e data à direita
+function FotosResumo({ fotos, mais, vertical }: { fotos: FotoRel[]; mais: number; vertical: boolean }) {
+  if (!fotos.length) return null;
+  const n = fotos.length;
+  const colunas = vertical && n <= 4 ? Math.min(4, n) : n <= 4 ? 4 : 3;
+  const fh = vertical ? (n > 4 ? 190 : 200) : 180;
+  return (
+    <Quadro
+      titulo={
+        <>
+          Fotos da obra <small style={{ fontWeight: 400, color: "#5f7076", fontSize: 11 }}>· escolhidas na aba Fotos{mais > 0 ? ` · mais ${mais} no Registro fotográfico` : ""}</small>
+        </>
+      }
+    >
+      <div className="rel-fotos rs" style={{ gridTemplateColumns: `repeat(${colunas}, 1fr)`, ["--fh" as string]: `${fh}px` }}>
+        {fotos.map((f) => (
+          <figure key={f.id}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={f.url} alt={f.legenda} />
+            <figcaption>
+              <span>{f.legenda}</span>
+              <small>{f.data}</small>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </Quadro>
+  );
+}
+
+export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotosMais = 0 }: { ctx: Ctx; escopo: Escopo; largura: number; altura: number; fotos?: FotoRel[]; fotosMais?: number }) {
   const { dados, idx } = ctx;
   const obra = dados.obra;
   const vertical = largura < altura;
@@ -270,6 +300,11 @@ export default function Resumo({ ctx, escopo, fmt, largura, altura }: { ctx: Ctx
             ))}
           </div>
         </Quadro>
+        {fotos.length > 0 && (
+          <div className="col-span-2" style={{ gridColumn: "1 / -1" }}>
+            <FotosResumo fotos={fotos} mais={fotosMais} vertical={vertical} />
+          </div>
+        )}
       </div>
     );
   }
@@ -430,6 +465,8 @@ export default function Resumo({ ctx, escopo, fmt, largura, altura }: { ctx: Ctx
           )}
         </Quadro>
       </div>
+
+      <FotosResumo fotos={fotos} mais={fotosMais} vertical={vertical} />
 
       <Quadro titulo="Frentes em andamento">
         {gruposFrentes.length === 0 ? (

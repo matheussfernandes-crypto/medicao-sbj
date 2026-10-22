@@ -1,64 +1,54 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import "./relatorio.css";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Download, Printer, Trash2 } from "lucide-react";
 import * as acoesRel from "./acoesRel";
-import { BlocoFachada3D, BlocoFachadaTabela, BlocoGradeView, medidaFatias } from "./Blocos";
-import Folha, { dimensoes } from "./Folha";
+import { BlocoFachada3D } from "./Blocos";
+import { Chave, Linha, Seg } from "./controles";
 import { ChipsFiltro, PainelFiltros, chipsDeFiltros, normalizarFiltros } from "./Filtros";
+import Folha, { dimensoes } from "./Folha";
+import PainelFotos from "./PainelFotos";
+import PainelMontar from "./PainelMontar";
 import Resumo from "./Resumo";
+import { bandaFachada, construir, fotosDe, limparMedidas, type Plano, type Resultado } from "./engine";
 import { predefinicoesPadrao, type Predefinicao } from "./predefinicoes";
 import {
   FILTROS_VAZIOS,
   FORMATO_PADRAO,
+  MONTAGEM_NOVA,
   MONTAGEM_PADRAO,
-  agruparPorFase,
   calcularEscopo,
-  montarBlocos,
   montarCtx,
-  paginar,
-  tituloDaFolha,
-  type Bloco,
-  type BlocoGrade,
+  status as statusDe,
   type Filtros,
-  type Folha as FolhaPag,
   type Formato,
-  type Medida,
+  type FotoRel,
+  type FotosSel,
   type Montagem,
+  type MontagemSalva,
 } from "./modelo";
 import { acumular, mapaApontamentos, montarIndice, pct, somaZero } from "../calculo";
 import type { DadosAndamento } from "../types";
 
-const SEM_QUEBRAS = new Set<string>();
-import { status as statusDe } from "./modelo";
-
 const ROTULO_ST = ["Não iniciado", "Andamento", "Finalizado", "Ausência"];
+const copia = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 
-function Seg<T extends string>({ valor, opcoes, onChange }: { valor: T; opcoes: [T, string][]; onChange: (v: T) => void }) {
-  return (
-    <div className="flex border border-border rounded-md overflow-hidden">
-      {opcoes.map(([v, nome]) => (
-        <button key={v} type="button" onClick={() => onChange(v)} className={`px-2.5 py-1.5 text-xs ${valor === v ? "bg-primaryDark text-white" : "bg-white hover:bg-surface-subtle"}`}>
-          {nome}
-        </button>
-      ))}
-    </div>
-  );
-}
+type Painel = null | "filtros" | "predef" | "formato" | "mont" | "fotos";
 
-function Chave({ ligada, onChange, texto }: { ligada: boolean; onChange: (v: boolean) => void; texto: string }) {
-  return (
-    <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-      <span className={`relative w-9 h-5 rounded-full transition ${ligada ? "bg-primary" : "bg-gray-300"}`} onClick={() => onChange(!ligada)}>
-        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${ligada ? "left-[18px]" : "left-0.5"}`} />
-      </span>
-      {texto}
-    </label>
-  );
-}
-
-export default function RelatorioClient({ dados, salvas }: { dados: DadosAndamento; salvas: Predefinicao[] }) {
+export default function RelatorioClient({
+  dados,
+  salvas,
+  montagensIniciais,
+  fotos,
+  fotosIniciais,
+}: {
+  dados: DadosAndamento;
+  salvas: Predefinicao[];
+  montagensIniciais: MontagemSalva[];
+  fotos: FotoRel[];
+  fotosIniciais: FotosSel;
+}) {
   const obra = dados.obra;
   const idx = useMemo(() => montarIndice(dados.categorias, dados.servicos, dados.vinculos), [dados]);
   const ap = useMemo(() => mapaApontamentos(dados.apontamentos), [dados.apontamentos]);
@@ -67,11 +57,17 @@ export default function RelatorioClient({ dados, salvas }: { dados: DadosAndamen
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_VAZIOS);
   const [fmt, setFmt] = useState<Formato>(FORMATO_PADRAO);
   const [mon, setMon] = useState<Montagem>(MONTAGEM_PADRAO);
-  const [menu, setMenu] = useState<null | "filtros" | "predef" | "formato">(null);
+  const [painel, setPainel] = useState<Painel>(null);
   const [minhas, setMinhas] = useState<Predefinicao[]>(salvas);
   const [nomeNova, setNomeNova] = useState("");
   const [erro, setErro] = useState<string | null>(null);
-  const chaveSalva = `an-rel-v2-${obra.id}`;
+  const [fotosSimples, setFotosSimples] = useState<FotosSel>(fotosIniciais);
+  const [montagens, setMontagens] = useState<MontagemSalva[]>(montagensIniciais);
+  const [montId, setMontId] = useState<string | null>(montagensIniciais[0]?.id ?? null);
+  const [modoMont, setModoMont] = useState(false);
+  const [fotosOrigem, setFotosOrigem] = useState<"simples" | "mont">("simples");
+  const [pronto, setPronto] = useState(false);
+  const chaveSalva = `an-rel-v3-${obra.id}`;
 
   // última configuração usada (por obra) fica guardada neste navegador
   useEffect(() => {
@@ -83,72 +79,102 @@ export default function RelatorioClient({ dados, salvas }: { dados: DadosAndamen
         setMon({ ...MONTAGEM_PADRAO, ...r.mon });
       }
     } catch {}
+    setPronto(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chaveSalva]);
   useEffect(() => {
+    if (!pronto) return;
     try {
       localStorage.setItem(chaveSalva, JSON.stringify({ filtros, fmt, mon }));
     } catch {}
-  }, [chaveSalva, filtros, fmt, mon]);
+  }, [chaveSalva, filtros, fmt, mon, pronto]);
 
   const padroes = useMemo(() => predefinicoesPadrao(ctx), [ctx]);
-  const escopo = useMemo(() => calcularEscopo(ctx, filtros), [ctx, filtros]);
-  const blocos = useMemo(() => montarBlocos(ctx, escopo, fmt, mon), [ctx, escopo, fmt, mon]);
-  const dim = dimensoes(fmt.folha);
+  const todasPredefs = useMemo(() => [...padroes, ...minhas], [padroes, minhas]);
+  const montAtual = montagens.find((m) => m.id === montId) ?? null;
+  const emMont = modoMont && !!montAtual;
+
+  // ---------- gravação (com pequena espera) ----------
+  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const agendar = (chave: string, fn: () => Promise<unknown>) => {
+    clearTimeout(timers.current[chave]);
+    timers.current[chave] = setTimeout(() => fn().catch((e: any) => setErro(e.message ?? "Não foi possível salvar.")), 700);
+  };
+  const mudarFotosSimples = (fs: FotosSel) => {
+    setFotosSimples(fs);
+    agendar("fotos", () => acoesRel.salvarFotosRelatorio(obra.id, fs));
+  };
+  const mudarMontagem = (m: MontagemSalva) => {
+    setMontagens((l) => l.map((x) => (x.id === m.id ? m : x)));
+    agendar("m" + m.id, () => acoesRel.atualizarMontagem(m.id, m.nome, m.dados));
+  };
+  async function novaMontagem(base?: MontagemSalva) {
+    try {
+      const m = await acoesRel.criarMontagem(obra.id, base ? base.nome + " (cópia)" : "Nova montagem", base ? copia(base.dados) : MONTAGEM_NOVA(fotosSimples));
+      setMontagens((l) => [...l, m]);
+      setMontId(m.id);
+    } catch (e: any) {
+      setErro(e.message);
+    }
+  }
+  async function excluirMontagem() {
+    if (!montAtual || !window.confirm(`Excluir a montagem "${montAtual.nome}"?`)) return;
+    try {
+      await acoesRel.excluirMontagem(montAtual.id);
+      const resto = montagens.filter((m) => m.id !== montAtual.id);
+      setMontagens(resto);
+      setMontId(resto[0]?.id ?? null);
+      if (!resto.length) setModoMont(false);
+    } catch (e: any) {
+      setErro(e.message);
+    }
+  }
+
+  // ---------- o que vai no relatório ----------
+  const escopoSimples = useMemo(() => calcularEscopo(ctx, filtros), [ctx, filtros]);
+  const escopoResumo = useMemo(() => (emMont ? calcularEscopo(ctx, FILTROS_VAZIOS) : escopoSimples), [ctx, emMont, escopoSimples]);
   const chips = useMemo(() => chipsDeFiltros(ctx, filtros), [ctx, filtros]);
-  const textoFiltros = chips.map((c) => c.texto).join(" · ");
+
+  const plano: Plano = useMemo(
+    () =>
+      emMont
+        ? { titulo: montAtual!.nome, folha: montAtual!.dados.folha, fill: montAtual!.dados.fill, titulos: montAtual!.dados.titulos, resumo: montAtual!.dados.resumo, sumario: montAtual!.dados.sumario, fotos: montAtual!.dados.fotos, fotosLista: fotos, secoes: montAtual!.dados.secoes, esconder: false }
+        : { titulo: "", folha: fmt.folha, fill: fmt.fill, titulos: fmt.titulos, resumo: mon.resumo, sumario: false, fotos: fotosSimples, fotosLista: fotos, secoes: [{ nome: "", filtro: filtros, linhas: fmt.linhas, det: fmt.det }], esconder: mon.esconder },
+    [emMont, montAtual, fotos, fmt, mon, fotosSimples, filtros]
+  );
 
   const pctEscopo = useMemo(() => {
     const s = somaZero();
-    const somar = (alvo: string, catId: string) =>
-      (idx.servicosDaCat.get(catId) ?? []).forEach(({ servico, peso }) => escopo.servOk(servico) && acumular(s, peso, statusDe(ap, alvo, servico.id)));
-    escopo.locais.forEach((l) => somar(l.id, l.categoria_id));
-    escopo.itens.forEach((i) => somar(i.id, i.categoria_id));
+    const somar = (alvo: string, catId: string) => (idx.servicosDaCat.get(catId) ?? []).forEach(({ servico, peso }) => escopoResumo.servOk(servico) && acumular(s, peso, statusDe(ap, alvo, servico.id)));
+    escopoResumo.locais.forEach((l) => somar(l.id, l.categoria_id));
+    escopoResumo.itens.forEach((i) => somar(i.id, i.categoria_id));
     return pct(s);
-  }, [escopo, idx, ap]);
+  }, [escopoResumo, idx, ap]);
 
-  // largura de coluna única para todos os blocos ("serviços nas linhas"): a menor que ainda cabe
-  const larguraCelula = useMemo(() => {
-    if (fmt.linhas !== "serv") return undefined;
-    const grades = blocos.filter((b): b is BlocoGrade => b.tipo === "grade");
-    if (!grades.length) return undefined;
-    const menor = Math.min(...grades.map((b) => (dim.larguraUtil - 230 - 16) / Math.max(1, b.colunas.length)));
-    return Math.max(22, Math.min(96, Math.floor(menor)));
-  }, [blocos, fmt.linhas, dim.larguraUtil]);
-
-  // ---------- medição e paginação ----------
+  // ---------- montagem das folhas (mede no navegador) ----------
   const medRef = useRef<HTMLDivElement>(null);
-  const chaveMedida = useMemo(() => blocos.map((b) => b.id).join("|") + JSON.stringify(fmt) + JSON.stringify(mon.esconder) + dim.w + "|" + larguraCelula + "|" + dados.apontamentos.length + "|" + obra.id, [blocos, fmt, mon.esconder, dim.w, larguraCelula, dados.apontamentos.length, obra.id]);
-  // blocos que não couberam na medição real são empurrados para a folha seguinte (nada fica cortado)
-  const [quebras, setQuebras] = useState<{ chave: string; ids: Set<string> }>({ chave: "", ids: new Set() });
-  const quebrasAtuais = quebras.chave === chaveMedida ? quebras.ids : SEM_QUEBRAS;
-  const [medidas, setMedidas] = useState<{ chave: string; lista: Medida[] } | null>(null);
-
-  useLayoutEffect(() => {
-    const medir = () => {
-      const raiz = medRef.current;
-      if (!raiz) return;
-      const lista: Medida[] = blocos.map((b) => {
-        const el = raiz.querySelector(`[data-medida="${b.id}"]`) as HTMLElement | null;
-        const total = el ? el.getBoundingClientRect().height : 0;
-        const fatias = el ? Array.from(el.querySelectorAll("[data-fatia]")).map((f) => f.getBoundingClientRect().height) : [];
-        const cab = Math.max(0, total - fatias.reduce((a, x) => a + x, 0));
-        return { id: b.id, altura: b.tipo === "fachada" ? dim.alturaUtil : total, cabecalho: cab, fatias: b.tipo === "fachada" ? [] : fatias };
-      });
-      setMedidas({ chave: chaveMedida, lista });
+  const [res, setRes] = useState<Resultado | null>(null);
+  const chavePlano = useMemo(() => JSON.stringify({ ...plano, fotosLista: fotos.length }) + "|" + dados.apontamentos.length + "|" + obra.id, [plano, fotos.length, dados.apontamentos.length, obra.id]);
+  useEffect(() => {
+    let vivo = true;
+    const rodar = () => {
+      if (!vivo || !medRef.current) return;
+      limparMedidas();
+      try {
+        setRes(construir(ctx, plano, medRef.current));
+      } catch (e: any) {
+        setErro("Não foi possível montar o relatório: " + (e?.message ?? e));
+      }
     };
-    medir();
-    const t = setTimeout(medir, 250); // depois que fontes/imagens assentam
-    return () => clearTimeout(t);
+    // espera as fontes assentarem, para as medidas de texto saírem certas
+    const f = (document as any).fonts?.ready as Promise<unknown> | undefined;
+    if (f) f.then(rodar);
+    else rodar();
+    return () => {
+      vivo = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chaveMedida]);
-
-  const folhas: FolhaPag[] | null = useMemo(
-    () => (medidas && medidas.chave === chaveMedida ? paginar(medidas.lista, dim.alturaUtil, fmt.fit, 14, quebrasAtuais) : null),
-    [medidas, chaveMedida, dim.alturaUtil, fmt.fit, quebrasAtuais]
-  );
-  const blocoPorId = useMemo(() => new Map(blocos.map((b) => [b.id, b])), [blocos]);
-  const medidaPorId = useMemo(() => new Map((medidas?.lista ?? []).map((m) => [m.id, m])), [medidas]);
+  }, [chavePlano]);
 
   // ---------- escala da prévia na tela ----------
   const larguraRef = useRef<HTMLDivElement>(null);
@@ -161,94 +187,89 @@ export default function RelatorioClient({ dados, salvas }: { dados: DadosAndamen
     setLarguraTela(el.clientWidth);
     return () => ro.disconnect();
   }, []);
+  const dim = dimensoes(plano.folha);
   const escalaTela = Math.min(1, Math.max(0.2, (larguraTela - 4) / dim.w));
-
   const emitidoEm = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
-  const nomeBloco = (b: Bloco) => (b.tipo === "grade" ? (b.id.startsWith("pav:") ? b.titulo.split(" · ")[0] : b.titulo) : "Fachada");
 
-  function renderBloco(b: Bloco, fatias: number[] | null, continuacao: boolean, escala: number, comMargem = true) {
-    return (
-      <div key={b.id + (continuacao ? "-c" : "") + (fatias ? fatias.join(",") : "")} style={{ zoom: escala, marginBottom: comMargem ? 14 : 0 }}>
-        {b.tipo === "grade" && <BlocoGradeView bloco={b} ctx={ctx} fmt={fmt} largura={dim.larguraUtil / escala} larguraCelula={larguraCelula} fatias={fatias} continuacao={continuacao} />}
-        {b.tipo === "fachada" && <BlocoFachada3D bloco={b} ctx={ctx} largura={dim.larguraUtil} altura={dim.alturaUtil} />}
-        {b.tipo === "fachada-tab" && <BlocoFachadaTabela bloco={b} ctx={ctx} fmt={fmt} />}
-      </div>
-    );
-  }
+  const lista = fotosDe(plano.fotos, fotos);
+  const fotosResumo = lista.slice(0, plano.fotos.n);
+  const subRel = plano.titulo ? plano.titulo : "Relatório de andamento de obra";
 
-  const totalPaginas = (mon.resumo ? 1 : 0) + (folhas?.length ?? 0);
   const folhasRender: React.ReactNode[] = [];
-  let numero = 0;
-  if (mon.resumo) {
-    numero++;
-    folhasRender.push(
-      <Folha key="resumo" folha={fmt.folha} obraNome={obra.nome} titulo={escopo.filtrado ? "Resumo do filtro" : "Resumo da obra"} filtros={textoFiltros || undefined} pct={pctEscopo} emitidoEm={emitidoEm} usuario={dados.usuario.nome} numero={numero} total={totalPaginas}>
-        <Resumo ctx={ctx} escopo={escopo} fmt={fmt} largura={dim.larguraUtil} altura={dim.alturaUtil} />
-      </Folha>
-    );
+  if (res) {
+    const nsec = plano.secoes.length;
+    res.seq.forEach((p, i) => {
+      const comum = { folha: res.folha, obraNome: obra.nome, emitidoEm, usuario: dados.usuario.nome, numero: p.n, total: res.N };
+      if (p.tipo === "resumo") {
+        folhasRender.push(
+          <Folha key={"p" + i} {...comum} sub={subRel} titulo={escopoResumo.filtrado && !emMont ? "RESUMO DO FILTRO" : "RESUMO DA OBRA"} pct={pctEscopo}>
+            <Resumo ctx={ctx} escopo={escopoResumo} largura={res.IN} altura={res.LIVRE} fotos={fotosResumo} fotosMais={Math.max(0, lista.length - plano.fotos.n)} />
+          </Folha>
+        );
+      } else if (p.tipo === "sumario") {
+        folhasRender.push(
+          <Folha key={"p" + i} {...comum} sub={subRel} titulo="SUMÁRIO" pct={null}>
+            <div className="rel-sum">
+              {res.sumario.map((l, k) => (
+                <div key={k} className="rel-sum-r">
+                  <span className="n">{l.n}</span>
+                  <div>
+                    <b>{l.titulo}</b>
+                    <small>{l.sub}</small>
+                  </div>
+                  <span className="pg">{l.pg}</span>
+                </div>
+              ))}
+            </div>
+          </Folha>
+        );
+      } else if (p.tipo === "fotos") {
+        const cols = res.folha === "v" ? 3 : 4;
+        folhasRender.push(
+          <Folha key={"p" + i} {...comum} sub={subRel} titulo="REGISTRO FOTOGRÁFICO" pct={null}>
+            <div className="rel-fotos" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 18 }}>
+              {p.fotos.map((f) => (
+                <figure key={f.id}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.url} alt={f.legenda} />
+                  <figcaption>
+                    <span>{f.legenda}</span>
+                    <small>{f.data}</small>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </Folha>
+        );
+      } else {
+        const sub = emMont && nsec > 1 ? `${subRel} · Seção ${p.si + 1} de ${nsec}` : subRel;
+        folhasRender.push(
+          <Folha key={"p" + i} {...comum} sub={sub} titulo={p.titulo} pct={p.pct} fixa>
+            <div className="rel-tab">
+              {p.partes.map((pt, k) =>
+                "html" in pt ? (
+                  <div key={k} dangerouslySetInnerHTML={{ __html: pt.html }} />
+                ) : (
+                  <div key={k}>
+                    <div dangerouslySetInnerHTML={{ __html: bandaFachada(ctx, pt.fach) }} />
+                    <BlocoFachada3D servico={pt.fach.servico} ctx={ctx} largura={res.IN} altura={res.LIVRE - 40} />
+                  </div>
+                )
+              )}
+            </div>
+          </Folha>
+        );
+      }
+    });
   }
-  (folhas ?? []).forEach((f, fi) => {
-    numero++;
-    const blocosDaFolha = f.itens.map((it) => blocoPorId.get(it.blocoId)!).filter(Boolean);
-    const usado = f.itens.reduce((a, it) => {
-      const m = medidaPorId.get(it.blocoId);
-      return a + (m ? (it.fatias ? m.cabecalho + it.fatias.reduce((s, i) => s + (m.fatias[i] ?? 0), 0) : m.altura) * it.escala : 0) + 14;
-    }, 0);
-    const temFachada3d = blocosDaFolha.some((b) => b.tipo === "fachada");
-    const escalaFill = fmt.fill && !temFachada3d && usado > 0 ? Math.min(1.6, (dim.alturaUtil / usado) * 0.96) : 1;
-    folhasRender.push(
-      <Folha
-        key={"f" + fi}
-        folha={fmt.folha}
-        obraNome={obra.nome}
-        titulo={tituloDaFolha(blocosDaFolha.map(nomeBloco))}
-        filtros={textoFiltros || undefined}
-        pct={pctEscopo}
-        emitidoEm={emitidoEm}
-        usuario={dados.usuario.nome}
-        numero={numero}
-        total={totalPaginas}
-        primeiraSemResumo={!mon.resumo && fi === 0}
-        escala={escalaFill > 1.02 ? escalaFill : 1}
-      >
-        {f.itens.map((it) => renderBloco(blocoPorId.get(it.blocoId)!, it.fatias, it.continuacao, it.escala))}
-      </Folha>
-    );
-  });
-
-  // depois de desenhadas, confere cada folha com mais de um bloco: se o conteúdo passa da altura, o último bloco vai para a próxima
-  useEffect(() => {
-    if (!folhas) return;
-    const t = setTimeout(() => {
-      const pilha = pilhaRef.current;
-      if (!pilha) return;
-      const novos = new Set(quebrasAtuais);
-      let mudou = false;
-      pilha.querySelectorAll<HTMLElement>(".rel-folha").forEach((el) => {
-        const i = Number(el.dataset.folha) - 1 - (mon.resumo ? 1 : 0);
-        const f = i >= 0 ? folhas[i] : undefined;
-        if (!f || f.itens.length < 2) return;
-        const hnat = Number((el.querySelector(".rel-conteudo > div") as HTMLElement | null)?.dataset.hnat ?? 0);
-        if (hnat > dim.alturaUtil + 2) {
-          const ultimo = f.itens[f.itens.length - 1].blocoId;
-          if (!novos.has(ultimo)) {
-            novos.add(ultimo);
-            mudou = true;
-          }
-        }
-      });
-      if (mudou) setQuebras({ chave: chaveMedida, ids: novos });
-    }, 700);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [folhas]);
 
   // ---------- predefinições ----------
   function aplicarPredef(p: Predefinicao) {
     setFiltros(normalizarFiltros(ctx, p.filtros));
     setFmt({ ...FORMATO_PADRAO, ...p.formato });
-    setMon({ ...MONTAGEM_PADRAO, ...p.montagem });
-    setMenu(null);
+    setMon({ ...MONTAGEM_PADRAO, ...(p.montagem ? { resumo: p.montagem.resumo ?? true, esconder: p.montagem.esconder ?? false } : {}) });
+    setModoMont(false);
+    setPainel(null);
   }
   async function salvarAtual() {
     const nome = nomeNova.trim();
@@ -290,7 +311,7 @@ export default function RelatorioClient({ dados, salvas }: { dados: DadosAndamen
     doc.open();
     doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>${obra.nome} — Andamento</title><base href="${location.origin}/">${css}
 <style>
-@page { size: A3 ${fmt.folha === "h" ? "landscape" : "portrait"}; margin: 0; }
+@page { size: A3 ${plano.folha === "h" ? "landscape" : "portrait"}; margin: 0; }
 html, body { margin: 0; padding: 0; background: #fff; }
 * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .rel-pilha { display: block !important; zoom: 1 !important; }
@@ -298,15 +319,29 @@ html, body { margin: 0; padding: 0; background: #fff; }
 .rel-folha:last-child { break-after: auto; page-break-after: auto; }
 </style></head><body>${pilha.outerHTML}</body></html>`);
     doc.close();
-    const disparar = () =>
-      setTimeout(() => {
-        janela.focus();
-        janela.print();
-        setTimeout(() => quadro.remove(), 60000);
-      }, 700);
+    const disparar = () => {
+      // espera as fotos carregarem antes de imprimir
+      const imgs = Array.from(doc.images);
+      const pendentes = imgs.filter((i) => !i.complete);
+      const fim = () =>
+        setTimeout(() => {
+          janela.focus();
+          janela.print();
+          setTimeout(() => quadro.remove(), 60000);
+        }, 500);
+      if (!pendentes.length) return fim();
+      let falta = pendentes.length;
+      const um = () => --falta <= 0 && fim();
+      pendentes.forEach((i) => {
+        i.addEventListener("load", um);
+        i.addEventListener("error", um);
+      });
+      setTimeout(fim, 8000);
+    };
     if (doc.readyState === "complete") disparar();
     else quadro.onload = disparar;
   }
+
   // ---------- CSV (segue os filtros) ----------
   function exportarCSV() {
     const linhas: string[][] = [["Pavimento / Sistema", "Local / Item", "Categoria", "Fase", "Serviço", "Status", "Observação"]];
@@ -314,13 +349,13 @@ html, body { margin: 0; padding: 0; background: #fff; }
     const emitir = (onde: string, alvoId: string, alvoNome: string, catId: string) => {
       const cat = idx.catPorId.get(catId);
       (idx.servicosDaCat.get(catId) ?? []).forEach(({ servico }) => {
-        if (!escopo.servOk(servico)) return;
+        if (!escopoSimples.servOk(servico)) return;
         const a = ap.get(alvoId + "|" + servico.id);
         linhas.push([onde, alvoNome, cat?.nome ?? "", faseNome(servico), servico.nome, ROTULO_ST[a?.status ?? 0], a?.observacao ?? ""]);
       });
     };
-    escopo.locais.forEach((l) => emitir(ctx.pavPorId.get(l.pavimento_id)?.nome ?? "", l.id, l.nome, l.categoria_id));
-    escopo.itens.forEach((i) => emitir(ctx.sisPorId.get(i.sistema_id)?.nome ?? "", i.id, i.nome, i.categoria_id));
+    escopoSimples.locais.forEach((l) => emitir(ctx.pavPorId.get(l.pavimento_id)?.nome ?? "", l.id, l.nome, l.categoria_id));
+    escopoSimples.itens.forEach((i) => emitir(ctx.sisPorId.get(i.sistema_id)?.nome ?? "", i.id, i.nome, i.categoria_id));
     const csv = linhas.map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n");
     const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" }));
     const a = document.createElement("a");
@@ -331,6 +366,14 @@ html, body { margin: 0; padding: 0; background: #fff; }
   }
 
   const qtdFiltros = chips.length;
+  const botao = (id: Exclude<Painel, null>, texto: React.ReactNode) => (
+    <button className={`text-sm px-3 py-1.5 border rounded-md flex items-center gap-1 ${painel === id ? "bg-primary/10 border-primary" : "border-border bg-white"}`} onClick={() => setPainel(painel === id ? null : id)} aria-expanded={painel === id}>
+      {texto} <ChevronDown className="w-3.5 h-3.5" />
+    </button>
+  );
+  const donoFotos = fotosOrigem === "mont" && montAtual ? `montagem "${montAtual.nome}"` : "relatório simples desta obra";
+  const fsPainel = fotosOrigem === "mont" && montAtual ? montAtual.dados.fotos : fotosSimples;
+  const mudarFsPainel = (fs: FotosSel) => (fotosOrigem === "mont" && montAtual ? mudarMontagem({ ...montAtual, dados: { ...montAtual.dados, fotos: fs } }) : mudarFotosSimples(fs));
 
   return (
     <div className="space-y-3">
@@ -346,98 +389,150 @@ html, body { margin: 0; padding: 0; background: #fff; }
       {/* barra de controles */}
       <div className="card space-y-3 print:hidden">
         <div className="flex flex-wrap items-center gap-2 relative">
-          <button className={`text-sm px-3 py-1.5 border rounded-md flex items-center gap-1 ${menu === "filtros" ? "bg-primary/10 border-primary" : "border-border bg-white"}`} onClick={() => setMenu(menu === "filtros" ? null : "filtros")}>
-            Filtrar{qtdFiltros ? ` (${qtdFiltros})` : ""} <ChevronDown className="w-3.5 h-3.5" />
-          </button>
-          <div className="relative">
-            <button className={`text-sm px-3 py-1.5 border rounded-md flex items-center gap-1 ${menu === "predef" ? "bg-primary/10 border-primary" : "border-border bg-white"}`} onClick={() => setMenu(menu === "predef" ? null : "predef")}>
-              Predefinições <ChevronDown className="w-3.5 h-3.5" />
-            </button>
-            {menu === "predef" && (
-              <div className="absolute z-30 mt-1 w-72 bg-white border border-border rounded-lg shadow-panel p-2 max-h-96 overflow-auto">
-                {[...padroes, ...minhas].length === 0 && <p className="text-xs text-ink-500 px-2 py-1.5">Nenhuma predefinição ainda. Monte os filtros e salve abaixo.</p>}
-                {[...padroes, ...minhas].map((p) => (
-                  <div key={p.id} className="flex items-center gap-1 hover:bg-surface-subtle rounded">
-                    <button className="flex-1 text-left text-sm px-2 py-1.5" onClick={() => aplicarPredef(p)}>
-                      {p.nome}
-                    </button>
-                    {!p.padrao && (
-                      <button className="p-1 text-danger" title="Excluir" onClick={() => excluirPredef(p.id)}>
-                        <Trash2 className="w-3.5 h-3.5" />
+          {!emMont && botao("filtros", <>Filtrar{qtdFiltros ? ` (${qtdFiltros})` : ""}</>)}
+          {!emMont && (
+            <div className="relative">
+              {botao("predef", "Predefinições")}
+              {painel === "predef" && (
+                <div className="absolute z-30 mt-1 w-72 bg-white border border-border rounded-lg shadow-panel p-2 max-h-96 overflow-auto">
+                  {todasPredefs.length === 0 && <p className="text-xs text-ink-500 px-2 py-1.5">Nenhuma predefinição ainda. Monte os filtros e salve abaixo.</p>}
+                  {todasPredefs.map((p) => (
+                    <div key={p.id} className="flex items-center gap-1 hover:bg-surface-subtle rounded">
+                      <button className="flex-1 text-left text-sm px-2 py-1.5" onClick={() => aplicarPredef(p)}>
+                        {p.nome}
                       </button>
-                    )}
+                      {!p.padrao && (
+                        <button className="p-1 text-danger" title="Excluir" onClick={() => excluirPredef(p.id)}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <div className="border-t border-border mt-1 pt-2 flex gap-1">
+                    <input value={nomeNova} onChange={(e) => setNomeNova(e.target.value)} placeholder="+ Salvar filtro atual como…" className="flex-1 border border-border rounded px-2 py-1 text-xs" />
+                    <button className="text-xs px-2 py-1 bg-primary text-white rounded disabled:opacity-50" disabled={!nomeNova.trim()} onClick={salvarAtual}>
+                      Salvar
+                    </button>
                   </div>
-                ))}
-                <div className="border-t border-border mt-1 pt-2 flex gap-1">
-                  <input value={nomeNova} onChange={(e) => setNomeNova(e.target.value)} placeholder="+ Salvar filtro atual como…" className="flex-1 border border-border rounded px-2 py-1 text-xs" />
-                  <button className="text-xs px-2 py-1 bg-primary text-white rounded disabled:opacity-50" disabled={!nomeNova.trim()} onClick={salvarAtual}>
-                    Salvar
-                  </button>
                 </div>
-              </div>
-            )}
-          </div>
-          <div className="relative">
-            <button className={`text-sm px-3 py-1.5 border rounded-md flex items-center gap-1 ${menu === "formato" ? "bg-primary/10 border-primary" : "border-border bg-white"}`} onClick={() => setMenu(menu === "formato" ? null : "formato")}>
-              Formatação <ChevronDown className="w-3.5 h-3.5" />
-            </button>
-            {menu === "formato" && (
-              <div className="absolute z-30 mt-1 w-[420px] max-w-[92vw] bg-white border border-border rounded-lg shadow-panel p-3 space-y-2.5">
-                {(
-                  [
-                    ["Folha", <Seg key="a" valor={fmt.folha} onChange={(v) => setFmt((f0) => ({ ...f0, folha: v }))} opcoes={[["h", "A3 Horizontal"], ["v", "A3 Vertical"]]} />],
-                    ["Nas linhas da tabela", <Seg key="b" valor={fmt.linhas} onChange={(v) => setFmt((f0) => ({ ...f0, linhas: v }))} opcoes={[["serv", "Serviços"], ["local", "Pavimentos / locais"]]} />],
-                    ["Texto do topo das colunas", <Seg key="c" valor={fmt.texto} onChange={(v) => setFmt((f0) => ({ ...f0, texto: v }))} opcoes={[["h", "Horizontal"], ["v", "Vertical"]]} />],
-                    ["Apartamentos e locais", <Seg key="d" valor={fmt.det} onChange={(v) => setFmt((f0) => ({ ...f0, det: v }))} opcoes={[["ju", "Juntos por pavimento"], ["un", "Um por um"]]} />],
-                    ["Ocupar a folha toda", <Seg key="e" valor={fmt.fill ? "s" : "n"} onChange={(v) => setFmt((f0) => ({ ...f0, fill: v === "s" }))} opcoes={[["n", "Não"], ["s", "Sim"]]} />],
-                    ["Fachada", <Seg key="f" valor={fmt.fachada} onChange={(v) => setFmt((f0) => ({ ...f0, fachada: v }))} opcoes={[["3d", "Prédio em 3D grande"], ["tab", "Tabela"]]} />],
-                    ["Bloco grande", <Seg key="g" valor={fmt.fit} onChange={(v) => setFmt((f0) => ({ ...f0, fit: v }))} opcoes={[["cont", "Continua na outra folha"], ["enc", "Encolhe pra caber"]]} />],
-                    ["Tamanho da letra", <Seg key="h" valor={fmt.letra} onChange={(v) => setFmt((f0) => ({ ...f0, letra: v }))} opcoes={[["n", "Normal"], ["c", "Compacta"]]} />],
-                  ] as [string, React.ReactNode][]
-                ).map(([t, c]) => (
-                  <div key={t}>
-                    <div className="text-[11px] uppercase text-ink-500 mb-1">{t}</div>
-                    {c}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <Link href={`/andamento-novo/relatorio-otimizado?obra=${obra.id}`} className="text-sm px-3 py-1.5 border border-accent bg-accent/30 text-primaryDark font-semibold rounded-md">
-            Ver modelo otimizado
-          </Link>
-          <div className="flex-1 min-w-[200px]">
-            <ChipsFiltro
-              chips={chips}
-              onRemover={(g) => setFiltros(normalizarFiltros(ctx, { ...filtros, [g]: [] }))}
-              onLimpar={() => setFiltros(FILTROS_VAZIOS)}
-            />
-          </div>
+              )}
+            </div>
+          )}
+          {!emMont && botao("formato", "Formatação")}
+          {botao("mont", "Montar relatório")}
+          <button
+            className={`text-sm px-3 py-1.5 border rounded-md flex items-center gap-1 ${painel === "fotos" ? "bg-primary/10 border-primary" : "border-border bg-white"}`}
+            onClick={() => {
+              setFotosOrigem(emMont ? "mont" : "simples");
+              setPainel(painel === "fotos" ? null : "fotos");
+            }}
+            aria-expanded={painel === "fotos"}
+          >
+            Fotos do resumo <ChevronDown className="w-3.5 h-3.5" />
+          </button>
+          {!emMont && (
+            <div className="flex-1 min-w-[200px]">
+              <ChipsFiltro chips={chips} onRemover={(g) => setFiltros(normalizarFiltros(ctx, { ...filtros, [g]: [] }))} onLimpar={() => setFiltros(FILTROS_VAZIOS)} />
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-          <Seg valor={mon.modo} onChange={(v) => setMon((m0) => ({ ...m0, modo: v }))} opcoes={[["tipo", "Folha por ambiente"], ["pav", "Folha por pavimento"]]} />
-          <Chave ligada={mon.esconder} onChange={(v) => setMon((m0) => ({ ...m0, esconder: v }))} texto="Esconder o que não começou" />
-          <Chave ligada={mon.resumo} onChange={(v) => setMon((m0) => ({ ...m0, resumo: v }))} texto="Página de resumo" />
+          {!emMont && <Chave ligada={mon.resumo} onChange={(v) => setMon((m0) => ({ ...m0, resumo: v }))} texto="Página de resumo" />}
+          {!emMont && <Chave ligada={mon.esconder} onChange={(v) => setMon((m0) => ({ ...m0, esconder: v }))} texto="Esconder o que não começou" />}
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-ink-500">
-              {folhas ? `${totalPaginas} página${totalPaginas === 1 ? "" : "s"}` : "montando…"} · A3 {fmt.folha === "h" ? "horizontal" : "vertical"} · {fmt.folha === "h" ? "420 × 297" : "297 × 420"} mm
+              {res
+                ? `${res.N} página${res.N === 1 ? "" : "s"} · A3 ${res.folha === "h" ? "horizontal · 420 × 297" : "vertical · 297 × 420"} mm · tabelas a ${Math.round(res.k * 100)}% · células de ${Math.round(res.cw[0]) === Math.round(res.cw[1]) ? Math.round(res.cw[0]) : `${Math.round(res.cw[0])} a ${Math.round(res.cw[1])}`} px`
+                : "montando…"}
             </span>
-            <button onClick={exportarCSV} className="flex items-center gap-1.5 px-3 py-2 border border-border rounded-lg text-sm bg-white">
-              <Download className="w-4 h-4" /> CSV
-            </button>
-            <button onClick={imprimir} disabled={!folhas} className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-lg text-sm disabled:opacity-50">
-              <Printer className="w-4 h-4" /> Imprimir / salvar PDF (A3)
+            {!emMont && (
+              <button onClick={exportarCSV} className="flex items-center gap-1.5 px-3 py-2 border border-border rounded-lg text-sm bg-white">
+                <Download className="w-4 h-4" /> CSV
+              </button>
+            )}
+            <button onClick={imprimir} disabled={!res} className="flex items-center gap-1.5 px-3 py-2 bg-accent text-primaryDark font-semibold rounded-lg text-sm disabled:opacity-50">
+              <Printer className="w-4 h-4" /> Gerar PDF (A3)
             </button>
           </div>
         </div>
+
+        {painel === "formato" && !emMont && (
+          <div className="space-y-2.5 border-t border-border pt-3">
+            <Linha titulo="Folha">
+              <Seg valor={fmt.folha} onChange={(v) => setFmt((f0) => ({ ...f0, folha: v }))} opcoes={[["v", "▯ Vertical"], ["h", "▭ Horizontal"]]} />
+            </Linha>
+            <Linha titulo="Nas linhas da tabela">
+              <Seg valor={fmt.linhas} onChange={(v) => setFmt((f0) => ({ ...f0, linhas: v }))} opcoes={[["local", "Pavimentos e locais"], ["serv", "Serviços"]]} />
+            </Linha>
+            <Linha titulo="Títulos das colunas">
+              <Seg valor={fmt.titulos} onChange={(v) => setFmt((f0) => ({ ...f0, titulos: v }))} opcoes={[["h", "Horizontal"], ["v", "Vertical"]]} />
+            </Linha>
+            <Linha titulo="Apartamentos e locais">
+              <Seg valor={fmt.det} onChange={(v) => setFmt((f0) => ({ ...f0, det: v }))} opcoes={[["un", "Um por um"], ["ju", "Juntos por pavimento"]]} />
+            </Linha>
+            <Linha titulo="Tamanho">
+              <Seg valor={fmt.fill ? "s" : "n"} onChange={(v) => setFmt((f0) => ({ ...f0, fill: v === "s" }))} opcoes={[["s", "Estender até ocupar a folha"], ["n", "Manter tamanho normal"]]} />
+            </Linha>
+            <p className="text-xs text-ink-500">As células têm sempre o mesmo tamanho e a escala é uma só para o relatório inteiro. "Estender" aumenta até a maior escala que ainda deixa cada bloco inteiro numa folha e alarga as colunas até a margem.</p>
+          </div>
+        )}
+
+        {painel === "mont" && (
+          <PainelMontar
+            ctx={ctx}
+            montagens={montagens}
+            atualId={montId}
+            predefs={todasPredefs}
+            filtroAtual={filtros}
+            fmtAtual={fmt}
+            emPrevia={emMont}
+            onSelecionar={(id) => setMontId(id)}
+            onNova={() => novaMontagem()}
+            onDuplicar={() => montAtual && novaMontagem(montAtual)}
+            onExcluir={excluirMontagem}
+            onMudar={mudarMontagem}
+            onPrevia={() => {
+              setModoMont(true);
+              setPainel(null);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onSairPrevia={() => {
+              setModoMont(false);
+              setPainel(null);
+            }}
+            onEscolherFotos={() => {
+              setFotosOrigem("mont");
+              setPainel("fotos");
+            }}
+          />
+        )}
+
+        {painel === "fotos" && <PainelFotos fotos={fotos} fs={fsPainel} onChange={mudarFsPainel} dono={donoFotos} />}
       </div>
 
-      {menu === "filtros" && <PainelFiltros ctx={ctx} filtros={filtros} onChange={setFiltros} onFechar={() => setMenu(null)} />}
+      {painel === "filtros" && !emMont && <PainelFiltros ctx={ctx} filtros={filtros} onChange={setFiltros} onFechar={() => setPainel(null)} />}
+
+      {emMont && montAtual && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#e9c868] px-4 py-2.5 text-sm print:hidden" style={{ background: "#fbf3d7" }}>
+          <span>
+            Prévia da montagem <b>{montAtual.nome}</b>
+          </span>
+          <span className="flex-1" />
+          <button className="text-xs px-2.5 py-1 border border-border rounded-md bg-white" onClick={() => setPainel("mont")}>
+            Editar montagem
+          </button>
+          <button className="text-xs px-2.5 py-1 border border-border rounded-md bg-white" onClick={() => setModoMont(false)}>
+            Voltar ao relatório simples
+          </button>
+        </div>
+      )}
 
       {/* prévia das folhas */}
       <div ref={larguraRef} className="w-full">
-        {blocos.length === 0 && !mon.resumo ? (
+        {!res ? (
+          <div className="card text-sm text-ink-500">Montando o relatório…</div>
+        ) : folhasRender.length === 0 ? (
           <div className="card text-sm text-ink-500">Nada para mostrar com estes filtros.</div>
         ) : (
           <div style={{ zoom: escalaTela }}>
@@ -448,18 +543,8 @@ html, body { margin: 0; padding: 0; background: #fff; }
         )}
       </div>
 
-      {/* medidor invisível: mede cada bloco na largura real da folha */}
-      <div ref={medRef} aria-hidden style={{ position: "absolute", left: -99999, top: 0, width: dim.larguraUtil, visibility: "hidden", pointerEvents: "none" }}>
-        {blocos.map((b) => (
-          <div key={b.id} data-medida={b.id}>
-            {b.tipo === "grade" && <BlocoGradeView bloco={b} ctx={ctx} fmt={fmt} largura={dim.larguraUtil} larguraCelula={larguraCelula} />}
-            {b.tipo === "fachada" && <div style={{ height: 10 }} />}
-            {b.tipo === "fachada-tab" && <BlocoFachadaTabela bloco={b} ctx={ctx} fmt={fmt} />}
-          </div>
-        ))}
-      </div>
+      {/* área de medição das tabelas (fora da tela) */}
+      <div ref={medRef} aria-hidden className="rel-tab rel-meas" />
     </div>
   );
 }
-
-export { medidaFatias, agruparPorFase };

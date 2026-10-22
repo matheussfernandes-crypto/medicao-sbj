@@ -3,26 +3,44 @@ import type { Apontamento, Categoria, DadosAndamento, Fase, Local, Pavimento, Se
 
 // ============================ opções do relatório ============================
 
-export type Filtros = { pav: string[]; sis: string[]; cat: string[]; serv: string[] };
+// fases: nomes das fases (só usado nas seções do "Montar relatório")
+export type Filtros = { pav: string[]; sis: string[]; cat: string[]; serv: string[]; fases?: string[] };
 export type Formato = {
   folha: "h" | "v"; // A3 horizontal / vertical
-  linhas: "serv" | "local"; // o que vai nas linhas da tabela
-  texto: "h" | "v"; // texto do topo das colunas
+  linhas: "serv" | "local"; // o que vai nas linhas da tabela: serviços | pavimentos e locais
+  titulos: "h" | "v"; // títulos das colunas: horizontal (quebra linha) | vertical
   det: "ju" | "un"; // apartamentos e locais: juntos por pavimento | um por um
-  fill: boolean; // ocupar a folha toda
-  fachada: "3d" | "tab";
-  fit: "cont" | "enc"; // bloco grande: continua na outra folha | encolhe pra caber
-  letra: "n" | "c"; // normal | compacta
+  fill: boolean; // tamanho: estender até ocupar a folha | manter tamanho normal
 };
-export type Montagem = { modo: "tipo" | "pav"; resumo: boolean; esconder: boolean };
+export type Montagem = { resumo: boolean; esconder: boolean };
 
 export const FILTROS_VAZIOS: Filtros = { pav: [], sis: [], cat: [], serv: [] };
-export const FORMATO_PADRAO: Formato = { folha: "h", linhas: "serv", texto: "v", det: "ju", fill: false, fachada: "3d", fit: "enc", letra: "n" };
-export const MONTAGEM_PADRAO: Montagem = { modo: "tipo", resumo: true, esconder: false };
+export const FORMATO_PADRAO: Formato = { folha: "v", linhas: "local", titulos: "h", det: "un", fill: true };
+export const MONTAGEM_PADRAO: Montagem = { resumo: true, esconder: false };
 
 // A3 = 420 x 297 mm = 1587,4 x 1122,5 px (96 dpi). A folha fica 1-2 px menor: assim nunca passa da página impressa.
 export const A3 = { h: { w: 1585, h: 1120 }, v: { w: 1120, h: 1585 } };
 export const MARGEM_FOLHA = 34;
+
+// ---- fotos do resumo (escolhidas na aba Fotos) ----
+export type FotosSel = { sel: string[]; leg: Record<string, string>; n: 4 | 6 };
+export const FOTOS_VAZIAS: FotosSel = { sel: [], leg: {}, n: 4 };
+export type FotoRel = { id: string; url: string; legenda: string; data: string }; // data já formatada (dd/mm/aaaa)
+
+// ---- montagens: várias seções (filtro + formatação) num PDF só ----
+export type Secao = { nome: string; filtro: Filtros; linhas: "serv" | "local"; det: "ju" | "un" };
+export type MontagemDados = {
+  folha: "h" | "v";
+  fill: boolean;
+  titulos: "h" | "v";
+  resumo: boolean;
+  sumario: boolean;
+  fotos: FotosSel;
+  secoes: Secao[];
+};
+export type MontagemSalva = { id: string; nome: string; dados: MontagemDados };
+
+export const MONTAGEM_NOVA = (fotos: FotosSel): MontagemDados => ({ folha: "v", fill: true, titulos: "h", resumo: true, sumario: true, fotos: JSON.parse(JSON.stringify(fotos)), secoes: [] });
 
 // ============================ contexto ============================
 
@@ -101,202 +119,18 @@ export function agruparPorFase(servicos: Servico[], ctx: Ctx): GrupoFase[] {
   return Array.from(m.values()).filter((g) => g.servicos.length);
 }
 
-// ============================ blocos ============================
-
-export type Coluna = {
-  id: string; // id do local, item ou pavimento (modo "juntos")
-  rotulo: string;
-  grupoId?: string; // pavimento, no modo "um por um"
-  grupoRotulo?: string;
-  alvos: string[]; // ids de locais/itens que a coluna reúne
-  pavId?: string;
-};
-
-export type BlocoGrade = {
-  id: string;
-  tipo: "grade";
-  cat: Categoria;
-  titulo: string; // ex.: "Escadaria" ou "Pav 12 · Apartamentos"
-  sub?: string;
-  colunas: Coluna[]; // de cima para baixo (ordem natural do prédio)
-  fases: GrupoFase[];
-  agrupado: boolean; // colunas agrupadas por pavimento (um por um)
-};
-export type BlocoFachada = { id: string; tipo: "fachada"; servico: Servico; titulo: string };
-export type BlocoFachadaTab = { id: string; tipo: "fachada-tab"; servico: Servico; titulo: string; sistemaId: string };
-export type Bloco = BlocoGrade | BlocoFachada | BlocoFachadaTab;
+// nome da fase de um serviço (para filtrar por fase)
+export const faseDoServico = (s: Servico, ctx: Ctx) => (s.fase_id && ctx.faseOrdem.get(s.fase_id)?.nome) || s.grupo;
 
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
 
 // nome do local igual ao do ambiente (Hall, Escadaria, Garagem…) não diz de qual pavimento é: usa o nome do pavimento
-function rotuloDoLocal(l: Local, pavNome: string, cat: Categoria) {
+export function rotuloDoLocal(l: Local, pavNome: string, cat: Categoria) {
   const n = norm(l.nome);
   return n === norm(cat.nome) || /^(hall|escadaria|garagem)$/.test(n) ? pavNome : l.nome;
-}
-
-// colunas de um conjunto de locais da mesma categoria
-function colunasDeLocais(locais: Local[], ctx: Ctx, det: "ju" | "un", cat: Categoria): Coluna[] {
-  const porPav = new Map<string, Local[]>();
-  locais.forEach((l) => porPav.set(l.pavimento_id, [...(porPav.get(l.pavimento_id) ?? []), l]));
-  const pavsOrdenados = ctx.pavs.filter((p) => porPav.has(p.id));
-  if (det === "ju") return pavsOrdenados.map((p) => ({ id: p.id, rotulo: p.nome, alvos: porPav.get(p.id)!.map((l) => l.id), pavId: p.id }));
-  return pavsOrdenados.flatMap((p) =>
-    porPav.get(p.id)!.map((l) => ({ id: l.id, rotulo: rotuloDoLocal(l, p.nome, cat), grupoId: p.id, grupoRotulo: p.nome, alvos: [l.id], pavId: p.id }))
-  );
-}
-
-const temApontamento = (ctx: Ctx, alvos: string[], s: Servico) => alvos.some((a) => status(ctx.ap, a, s.id) === 1 || status(ctx.ap, a, s.id) === 2);
-
-export function montarBlocos(ctx: Ctx, esc: Escopo, fmt: Formato, mon: Montagem): Bloco[] {
-  const blocos: Bloco[] = [];
-  const { idx } = ctx;
-  const cats = ctx.dados.categorias;
-
-  const fasesDoBloco = (cat: Categoria, alvos: string[]) => {
-    let servs = (idx.servicosDaCat.get(cat.id) ?? []).map((x) => x.servico).filter(esc.servOk);
-    if (mon.esconder) servs = servs.filter((s) => temApontamento(ctx, alvos, s));
-    return agruparPorFase(servs, ctx);
-  };
-
-  // ---- locais ----
-  const locaisPorCat = (c: Categoria) => esc.locais.filter((l) => l.categoria_id === c.id);
-  if (mon.modo === "tipo" || fmt.det === "un") {
-    cats.forEach((cat) => {
-      const ls = locaisPorCat(cat);
-      if (!ls.length) return;
-      const colunas = colunasDeLocais(ls, ctx, fmt.det, cat);
-      const alvos = ls.map((l) => l.id);
-      const fases = fasesDoBloco(cat, alvos);
-      if (!fases.length) return;
-      blocos.push({ id: "cat:" + cat.id, tipo: "grade", cat, titulo: cat.nome, sub: `em ${new Set(ls.map((l) => l.pavimento_id)).size} pavimentos`, colunas, fases, agrupado: fmt.det === "un" });
-    });
-  } else {
-    // folha por pavimento: um bloco por pavimento × categoria
-    ctx.pavs.forEach((p) => {
-      cats.forEach((cat) => {
-        const ls = esc.locais.filter((l) => l.pavimento_id === p.id && l.categoria_id === cat.id);
-        if (!ls.length) return;
-        const fases = fasesDoBloco(cat, ls.map((l) => l.id));
-        if (!fases.length) return;
-        const colunas: Coluna[] = ls.map((l) => ({ id: l.id, rotulo: rotuloDoLocal(l, p.nome, cat), alvos: [l.id], pavId: p.id }));
-        blocos.push({ id: `pav:${p.id}:${cat.id}`, tipo: "grade", cat, titulo: `${p.nome} · ${cat.nome}`, colunas, fases, agrupado: false });
-      });
-    });
-  }
-
-  // ---- sistemas (blocos próprios) ----
-  ctx.dados.sistemas.forEach((sis) => {
-    const its = esc.itens.filter((i) => i.sistema_id === sis.id);
-    if (!its.length) return;
-    if (sis.tipo === "fachada") {
-      const cat = cats.find((c) => c.chave === "fach");
-      if (!cat) return;
-      const servs = (idx.servicosDaCat.get(cat.id) ?? []).map((x) => x.servico).filter(esc.servOk);
-      servs.forEach((s) => {
-        if (mon.esconder && !temApontamento(ctx, its.map((i) => i.id), s)) return;
-        blocos.push(
-          fmt.fachada === "3d"
-            ? { id: `fach3d:${s.id}`, tipo: "fachada", servico: s, titulo: `${sis.nome} · ${s.nome}` }
-            : { id: `fachtab:${s.id}`, tipo: "fachada-tab", servico: s, titulo: `${sis.nome} · ${s.nome}`, sistemaId: sis.id }
-        );
-      });
-      return;
-    }
-    cats.forEach((cat) => {
-      const grupo = its.filter((i) => i.categoria_id === cat.id);
-      if (!grupo.length) return;
-      const fases = fasesDoBloco(cat, grupo.map((i) => i.id));
-      if (!fases.length) return;
-      const colunas: Coluna[] = grupo.map((i) => ({ id: i.id, rotulo: i.nome, alvos: [i.id] }));
-      blocos.push({ id: `sis:${sis.id}:${cat.id}`, tipo: "grade", cat, titulo: `${sis.nome}`, sub: cat.nome, colunas, fases, agrupado: false });
-    });
-  });
-  return blocos;
-}
-
-// ============================ números de uma célula ============================
-
-export type Numeros = { n: number; f: number; a: number; aus: number };
-export function numeros(ctx: Ctx, alvos: string[], s: Servico): Numeros {
-  const r = { n: 0, f: 0, a: 0, aus: 0 };
-  alvos.forEach((id) => {
-    const st = status(ctx.ap, id, s.id);
-    if (st === 3) r.aus++;
-    else {
-      r.n++;
-      if (st === 2) r.f++;
-      else if (st === 1) r.a++;
-    }
-  });
-  return r;
 }
 
 // peso do serviço dentro da categoria (para % de fase)
 export function pesoNaCategoria(ctx: Ctx, catId: string, servId: string) {
   return (ctx.idx.servicosDaCat.get(catId) ?? []).find((x) => x.servico.id === servId)?.peso ?? 0;
-}
-
-// título da folha: junta os grupos presentes ("HALL · ESCADARIA" ou "A · B e mais 2")
-export function tituloDaFolha(nomes: string[]): string {
-  const unicos = Array.from(new Set(nomes));
-  if (unicos.length <= 2) return unicos.join(" · ").toUpperCase();
-  return `${unicos.slice(0, 2).join(" · ")} e mais ${unicos.length - 2}`.toUpperCase();
-}
-
-// ============================ paginação ============================
-
-export type Medida = { id: string; altura: number; cabecalho: number; fatias: number[] }; // alturas em px (escala 1)
-export type ItemFolha = { blocoId: string; fatias: number[] | null; continuacao: boolean; escala: number };
-export type Folha = { itens: ItemFolha[] };
-
-// Encaixa os blocos, um embaixo do outro, em folhas de altura útil `capacidade`.
-// - se o bloco não cabe no que sobra, vai inteiro pra próxima folha
-// - se é maior que uma folha inteira: "encolhe" (fit = enc) ou continua na outra (corte sempre entre fatias/fases)
-export function paginar(medidas: Medida[], capacidade: number, fit: "cont" | "enc", respiro = 14, quebras: Set<string> = new Set()): Folha[] {
-  const folhas: Folha[] = [{ itens: [] }];
-  let usado = 0;
-  const nova = () => {
-    folhas.push({ itens: [] });
-    usado = 0;
-  };
-  const atual = () => folhas[folhas.length - 1];
-
-  medidas.forEach((m) => {
-    if (quebras.has(m.id) && atual().itens.length) nova(); // bloco que não coube na medição real: começa folha nova
-    const resto = capacidade - usado;
-    if (m.altura <= resto) {
-      atual().itens.push({ blocoId: m.id, fatias: null, continuacao: false, escala: 1 });
-      usado += m.altura + respiro;
-      return;
-    }
-    if (m.altura <= capacidade) {
-      if (atual().itens.length) nova();
-      atual().itens.push({ blocoId: m.id, fatias: null, continuacao: false, escala: 1 });
-      usado = m.altura + respiro;
-      return;
-    }
-    // maior que uma folha inteira
-    if (atual().itens.length) nova();
-    if (fit === "enc" || m.fatias.length <= 1) {
-      atual().itens.push({ blocoId: m.id, fatias: null, continuacao: false, escala: capacidade / m.altura });
-      usado = capacidade;
-      return;
-    }
-    let fatia = 0;
-    let primeira = true;
-    while (fatia < m.fatias.length) {
-      let h = m.cabecalho + (primeira ? 0 : 22);
-      const grupo: number[] = [];
-      while (fatia < m.fatias.length && (grupo.length === 0 || h + m.fatias[fatia] <= capacidade)) {
-        h += m.fatias[fatia];
-        grupo.push(fatia);
-        fatia++;
-      }
-      atual().itens.push({ blocoId: m.id, fatias: grupo, continuacao: !primeira, escala: h > capacidade ? capacidade / h : 1 });
-      usado = h + respiro;
-      primeira = false;
-      if (fatia < m.fatias.length) nova();
-    }
-  });
-  return folhas.filter((f) => f.itens.length);
 }

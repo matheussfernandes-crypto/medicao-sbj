@@ -5,7 +5,7 @@ import { A3, MARGEM_FOLHA } from "./modelo";
 import { fmtPct0 } from "../ui";
 
 export const ALTURA_CABECALHO = 124;
-export const ALTURA_RODAPE = 26;
+export const ALTURA_RODAPE = 34;
 
 // Mede o conteúdo na largura real e reduz a escala só se ele passar da altura da folha (nada fica cortado).
 function AutoEscala({ escala, altura, largura, children }: { escala: number; altura: number; largura: number; children: React.ReactNode }) {
@@ -63,32 +63,28 @@ export default function Folha({
   folha,
   obraNome,
   titulo,
-  filtros,
+  sub = "Relatório de andamento de obra",
   pct,
   emitidoEm,
   usuario,
   numero,
   total,
-  primeiraSemResumo,
   children,
   escala = 1,
   fixa = false,
-  legenda,
 }: {
   folha: "h" | "v";
   obraNome: string;
   titulo: string;
-  filtros?: string;
-  pct: number;
+  sub?: string; // subtítulo da faixa (nome da montagem, por exemplo)
+  pct: number | null;
   emitidoEm: string;
   usuario: string;
   numero: number;
   total: number;
-  primeiraSemResumo?: boolean;
   children: React.ReactNode;
   escala?: number;
-  fixa?: boolean; // modelo otimizado: sem reduzir/ampliar o conteúdo (escala única em todo o relatório)
-  legenda?: React.ReactNode; // rodapé: legenda de cores
+  fixa?: boolean; // conteúdo já calculado para caber (escala única do relatório): não reduz nem amplia
 }) {
   const { w, h, larguraUtil } = dimensoes(folha);
   return (
@@ -113,14 +109,12 @@ export default function Folha({
           <img src="/logo-topbar.png" alt="SBJ" style={{ height: 58, width: "auto" }} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#cfe3e5" }}>
-              SBJ Construtora e Incorporadora · {primeiraSemResumo ? "Relatório de andamento de obra" : "Andamento de obra"}
+              SBJ Construtora e Incorporadora · {sub}
             </div>
-            {primeiraSemResumo && (
-              <span style={{ display: "inline-block", background: "#f5c84c", color: "#1f4a52", fontWeight: 800, fontSize: 12, borderRadius: 5, padding: "1px 9px", marginTop: 3 }}>{obraNome}</span>
-            )}
+            <span style={{ display: "inline-block", background: "#f5c84c", color: "#1f4a52", fontWeight: 800, fontSize: 12, borderRadius: 5, padding: "1px 9px", marginTop: 3 }}>{obraNome}</span>
             {(() => {
               // o título nunca é cortado: quebra em até 2 linhas e a fonte diminui conforme o tamanho do texto
-              const texto = primeiraSemResumo ? titulo : `${obraNome} — ${titulo}`;
+              const texto = titulo;
               const fs = texto.length <= 34 ? 27 : texto.length <= 52 ? 23 : texto.length <= 80 ? 19 : 16;
               return (
                 <div style={{ fontSize: fs, fontWeight: 800, lineHeight: 1.1, maxWidth: larguraUtil - 330, overflowWrap: "anywhere" }}>{texto}</div>
@@ -129,15 +123,14 @@ export default function Folha({
             <div style={{ fontSize: 11, color: "#d7e7e8" }}>
               Emitido em {emitidoEm} · por {usuario}
             </div>
-            {filtros && (
-              <div style={{ fontSize: filtros.length < 130 ? 11 : filtros.length < 220 ? 9.5 : 8.5, color: "#f5c84c", marginTop: 1, lineHeight: 1.15, maxWidth: larguraUtil - 330 }}>Filtros: {filtros}</div>
-            )}
           </div>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 52, fontWeight: 800, lineHeight: 1, color: "#f5c84c" }}>{fmtPct0(pct)}%</div>
-          <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.06em", color: "#d7e7e8" }}>concluído</div>
-        </div>
+        {pct != null && (
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 52, fontWeight: 800, lineHeight: 1, color: "#f5c84c" }}>{fmtPct0(pct)}%</div>
+            <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.06em", color: "#d7e7e8" }}>concluído</div>
+          </div>
+        )}
       </div>
 
       <div className="rel-conteudo" style={{ height: h - MARGEM_FOLHA * 2 - ALTURA_CABECALHO - 12 - ALTURA_RODAPE, marginTop: 12, overflow: "hidden" }}>
@@ -153,10 +146,11 @@ export default function Folha({
       </div>
 
       <div style={{ position: "absolute", left: MARGEM_FOLHA, right: MARGEM_FOLHA, bottom: MARGEM_FOLHA - 6, height: ALTURA_RODAPE, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "#65707d", borderTop: "1px solid #e1e6e9" }}>
-        {legenda ? <span>{legenda}</span> : <span>Engenharia SBJ · {obraNome}</span>}
         <span>
-          {legenda ? `${obraNome} · ${emitidoEm} · ${usuario} · ` : ""}Página {numero} de {total}
-          {legenda ? "" : ` · ${titulo}`}
+          Engenharia SBJ · <b style={{ color: "#2c6975", fontWeight: 600 }}>{obraNome}</b>
+        </span>
+        <span>
+          Página {numero} de {total} · {titulo}
         </span>
       </div>
     </div>

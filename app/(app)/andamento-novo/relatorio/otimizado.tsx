@@ -14,6 +14,7 @@ export const FONTE = 12; // 9 pt
 export const FONTE_PEQ = 11; // 8,3 pt (textos dentro da célula)
 const ALT_BANNER = 40;
 const ALT_BANNER_CONT = 26;
+const BARRA_COL = 30; // coluna da mini barra à direita
 const ESPACO_ANTES = 22;
 const ESPACO_DEPOIS = 10;
 
@@ -49,7 +50,7 @@ export function geometria(larguraUtil: number, alturaUtil: number, ambientes: Am
   const pavs = ambientes.flatMap((a) => a.grupos.map((g) => g.rotulo));
   const colPav = larguraTexto(pavs, 60, 130);
   const colLoc = larguraTexto(locais, 60, 170);
-  const colDir = colLoc + 38 + 44;
+  const colDir = colLoc + 38 + BARRA_COL;
   // faixa das fases: fase estreita (menos de NARROW colunas) leva o texto na vertical, então a faixa fica mais alta
   const nomesEstreitos = ambientes.flatMap((a) => a.fases.filter(faseEstreita).map((f) => f.nome + " 100%"));
   const altFase = nomesEstreitos.length ? Math.min(150, Math.ceil((larguraTexto(nomesEstreitos, 40, 400) + 4) / 10) * 10) : 56;
@@ -340,7 +341,7 @@ export function MatrizOtim({ item, ctx, g }: { item: ItemMatriz; ctx: Ctx; g: Ge
           ))}
           <col style={{ width: g.colLoc }} />
           <col style={{ width: 38 }} />
-          <col style={{ width: 44 }} />
+          <col style={{ width: BARRA_COL }} />
         </colgroup>
         <thead>
           <tr style={{ height: g.altFase }}>
@@ -432,7 +433,7 @@ export function MatrizOtim({ item, ctx, g }: { item: ItemMatriz; ctx: Ctx; g: Ge
                   <td style={{ paddingLeft: 10, whiteSpace: "nowrap", overflow: "hidden", fontSize: FONTE, borderTop: li === 0 ? "2px solid #1f4a52" : "1px solid #e1e6e9", background: zebra ? "#eef3f4" : "#fff", height: CEL, boxSizing: "border-box" }}>{l.nome}</td>
                   <td style={{ textAlign: "right", fontWeight: 800, fontSize: FONTE, color: cat.cor, borderTop: li === 0 ? "2px solid #1f4a52" : "1px solid #e1e6e9", background: zebra ? "#eef3f4" : "#fff", boxSizing: "border-box" }}>{fmtPct0(pct(soma))}%</td>
                   <td style={{ padding: "0 3px 0 4px", borderTop: li === 0 ? "2px solid #1f4a52" : "1px solid #e1e6e9", background: zebra ? "#eef3f4" : "#fff", boxSizing: "border-box" }}>
-                    <div style={{ width: 36 }}>
+                    <div style={{ width: BARRA_COL - 8 }}>
                       <Barra s={soma} h={6} cor={cat.cor} />
                     </div>
                   </td>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, ChevronUp, Copy, Lock, LockOpen, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Copy, GripVertical, Lock, LockOpen, Pencil, Plus, Trash2, X } from "lucide-react";
 import * as acoes from "./actions";
 import {
   gerarEstrutura,
@@ -337,6 +337,8 @@ function MatrizCard(props: {
   const [novoServ, setNovoServ] = useState<Record<string, string>>({});
   const [novaFase, setNovaFase] = useState("");
   const [fasesAbertas, setFasesAbertas] = useState(false);
+  const [arrastando, setArrastando] = useState<string | null>(null);
+  const [sobre, setSobre] = useState<string | null>(null);
 
   const grupos = useMemo(() => {
     const m = new Map<string, Servico[]>();
@@ -372,6 +374,7 @@ function MatrizCard(props: {
             <tr>
               <th className="sticky top-0 left-0 z-30 bg-surface-subtle text-left px-3 py-2 border-b border-r border-border min-w-[260px]">Serviço</th>
               {editando && <th className="sticky top-0 z-20 bg-surface-subtle px-2 py-2 border-b border-r border-border min-w-[120px]">Fase</th>}
+              {editando && <th className="sticky top-0 z-20 bg-surface-subtle px-2 py-2 border-b border-r border-border min-w-[120px]">Grupo</th>}
               {categorias.map((c) => (
                 <th
                   key={c.id}
@@ -426,8 +429,10 @@ function MatrizCard(props: {
                 <GrupoLinhas key={grupo}>
                   <tr>
                     <td
-                      colSpan={categorias.length + 1 + (editando ? 2 : 0)}
-                      className="sticky left-0 bg-surface-subtle px-3 py-1.5 border-b border-border font-semibold text-primaryDark cursor-pointer"
+                      colSpan={categorias.length + 1 + (editando ? 3 : 0)}
+                      onDragOver={(e) => { if (arrastando) { e.preventDefault(); setSobre("g:" + grupo); } }}
+                      onDrop={(e) => { e.preventDefault(); if (arrastando) { const id = arrastando; setArrastando(null); setSobre(null); exec(() => acoes.moverServico(id, grupo, lista[0]?.id ?? null)); } }}
+                      className={`sticky left-0 px-3 py-1.5 border-b border-border font-semibold text-primaryDark cursor-pointer ${sobre === "g:" + grupo ? "bg-accent/50" : "bg-surface-subtle"}`}
                       onClick={() => setFechados((f) => { const n = new Set(f); n.has(grupo) ? n.delete(grupo) : n.add(grupo); return n; })}
                     >
                       {fechado ? <ChevronRight className="w-3.5 h-3.5 inline mr-1" /> : <ChevronDown className="w-3.5 h-3.5 inline mr-1" />}
@@ -435,11 +440,55 @@ function MatrizCard(props: {
                     </td>
                   </tr>
                   {!fechado &&
-                    lista.map((s) => (
-                      <tr key={s.id} className="hover:bg-accent/20">
+                    lista.map((s, li) => (
+                      <tr
+                        key={s.id}
+                        className={`hover:bg-accent/20 ${editando && sobre === s.id && arrastando !== s.id ? "outline outline-2 outline-primary" : ""} ${arrastando === s.id ? "opacity-40" : ""}`}
+                        onDragOver={editando ? (e) => { if (arrastando && arrastando !== s.id) { e.preventDefault(); setSobre(s.id); } } : undefined}
+                        onDragLeave={editando ? () => setSobre((v) => (v === s.id ? null : v)) : undefined}
+                        onDrop={
+                          editando
+                            ? (e) => {
+                                e.preventDefault();
+                                if (!arrastando || arrastando === s.id) return;
+                                const id = arrastando;
+                                setArrastando(null);
+                                setSobre(null);
+                                exec(() => acoes.moverServico(id, grupo, s.id));
+                              }
+                            : undefined
+                        }
+                      >
                         <td className="sticky left-0 z-10 bg-white px-3 py-1 border-b border-r border-border whitespace-nowrap">
                           {editando ? (
                             <span className="flex items-center gap-1.5">
+                              <span
+                                draggable
+                                onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", s.id); setArrastando(s.id); }}
+                                onDragEnd={() => { setArrastando(null); setSobre(null); }}
+                                title="Arraste para mudar a ordem"
+                                className="cursor-grab text-ink-400 hover:text-primary"
+                              >
+                                <GripVertical className="w-3.5 h-3.5" />
+                              </span>
+                              <span className="flex flex-col leading-none">
+                                <button
+                                  title="Subir"
+                                  disabled={li === 0 || ocupado}
+                                  className="disabled:opacity-25"
+                                  onClick={() => exec(() => acoes.moverServico(s.id, grupo, lista[li - 1].id))}
+                                >
+                                  <ChevronUp className="w-3 h-3" />
+                                </button>
+                                <button
+                                  title="Descer"
+                                  disabled={li === lista.length - 1 || ocupado}
+                                  className="disabled:opacity-25"
+                                  onClick={() => exec(() => acoes.moverServico(s.id, grupo, lista[li + 2]?.id ?? null))}
+                                >
+                                  <ChevronDown className="w-3 h-3" />
+                                </button>
+                              </span>
                               <button
                                 title="Excluir serviço"
                                 className="text-danger"
@@ -474,6 +523,22 @@ function MatrizCard(props: {
                             </select>
                           </td>
                         )}
+                        {editando && (
+                          <td className="px-1 py-1 border-b border-r border-border">
+                            <select
+                              value={s.grupo}
+                              onChange={(e) => exec(() => acoes.moverServico(s.id, e.target.value, null))}
+                              className="border border-border rounded px-1 py-0.5 text-[11px] w-full bg-white"
+                              title="Mover para outro grupo (vai para o fim dele)"
+                            >
+                              {grupos.map(([g]) => (
+                                <option key={g} value={g}>
+                                  {g}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        )}
                         {categorias.map((c) => (
                           <td
                             key={c.id}
@@ -494,7 +559,7 @@ function MatrizCard(props: {
                     ))}
                   {editando && !fechado && (
                     <tr>
-                      <td colSpan={categorias.length + 3} className="sticky left-0 bg-white px-3 py-1.5 border-b border-border">
+                      <td colSpan={categorias.length + 4} className="sticky left-0 bg-white px-3 py-1.5 border-b border-border">
                         <span className="flex gap-2">
                           <input
                             value={novoServ[grupo] ?? ""}

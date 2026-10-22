@@ -57,6 +57,7 @@ type PropsGrade = {
   ctx: Ctx;
   fmt: Formato;
   largura: number;
+  larguraCelula?: number; // largura da coluna no modo "serviços nas linhas" (igual em todos os blocos)
   fatias?: number[] | null; // quais fatias (fases/pavimentos) desenhar; null = todas
   continuacao?: boolean;
 };
@@ -86,7 +87,7 @@ function usarVertical(fmt: Formato, rotulos: string[], larguraColuna: number, fo
   return largTexto > larguraColuna - 6;
 }
 
-export function BlocoGradeView({ bloco, ctx, fmt, largura, fatias, continuacao }: PropsGrade) {
+export function BlocoGradeView({ bloco, ctx, fmt, largura, larguraCelula, fatias, continuacao }: PropsGrade) {
   const fonte = fmt.letra === "c" ? 10.5 : 12;
   const alt = fmt.letra === "c" ? 17 : 22;
   const soma = useMemo(() => somaBloco(ctx, bloco), [ctx, bloco]);
@@ -106,7 +107,7 @@ export function BlocoGradeView({ bloco, ctx, fmt, largura, fatias, continuacao }
           return grupos.reverse().flatMap((g) => g);
         })()
       : [...bloco.colunas].reverse();
-    const colW = (largura - 230) / Math.max(1, colunas.length);
+    const colW = larguraCelula ?? (largura - 230) / Math.max(1, colunas.length);
     const vert = usarVertical(fmt, colunas.map((c) => c.rotulo), colW, fonte);
     const grupos: { id: string; rotulo: string; cols: Coluna[] }[] = [];
     if (bloco.agrupado) colunas.forEach((c) => {
@@ -118,11 +119,11 @@ export function BlocoGradeView({ bloco, ctx, fmt, largura, fatias, continuacao }
     return (
       <div data-bloco={bloco.id} className="rel-bloco" style={{ borderLeft: `5px solid ${bloco.cat.cor}`, paddingLeft: 8, fontSize: fonte }}>
         {cabecalhoBloco(bloco, soma, continuacao)}
-        <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "separate", borderSpacing: 0 }}>
+        <table style={{ width: larguraCelula ? 230 + colunas.length * larguraCelula : "100%", tableLayout: "fixed", borderCollapse: "separate", borderSpacing: 0 }}>
           <colgroup>
             <col style={{ width: 230 }} />
             {colunas.map((c) => (
-              <col key={c.id} />
+              <col key={c.id} style={larguraCelula ? { width: larguraCelula } : undefined} />
             ))}
           </colgroup>
           <thead data-cab="1">

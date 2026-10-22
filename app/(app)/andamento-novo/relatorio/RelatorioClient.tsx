@@ -19,6 +19,7 @@ import {
   paginar,
   tituloDaFolha,
   type Bloco,
+  type BlocoGrade,
   type Filtros,
   type Folha as FolhaPag,
   type Formato,
@@ -27,6 +28,8 @@ import {
 } from "./modelo";
 import { acumular, mapaApontamentos, montarIndice, pct, somaZero } from "../calculo";
 import type { DadosAndamento } from "../types";
+
+const SEM_QUEBRAS = new Set<string>();
 import { status as statusDe } from "./modelo";
 
 const ROTULO_ST = ["Não iniciado", "Andamento", "Finalizado", "Ausência"];
@@ -103,9 +106,21 @@ export default function RelatorioClient({ dados, salvas }: { dados: DadosAndamen
     return pct(s);
   }, [escopo, idx, ap]);
 
+  // largura de coluna única para todos os blocos ("serviços nas linhas"): a menor que ainda cabe
+  const larguraCelula = useMemo(() => {
+    if (fmt.linhas !== "serv") return undefined;
+    const grades = blocos.filter((b): b is BlocoGrade => b.tipo === "grade");
+    if (!grades.length) return undefined;
+    const menor = Math.min(...grades.map((b) => (dim.larguraUtil - 230 - 16) / Math.max(1, b.colunas.length)));
+    return Math.max(22, Math.min(96, Math.floor(menor)));
+  }, [blocos, fmt.linhas, dim.larguraUtil]);
+
   // ---------- medição e paginação ----------
   const medRef = useRef<HTMLDivElement>(null);
-  const chaveMedida = useMemo(() => blocos.map((b) => b.id).join("|") + JSON.stringify(fmt) + JSON.stringify(mon.esconder) + dim.w + "|" + dados.apontamentos.length + "|" + obra.id, [blocos, fmt, mon.esconder, dim.w, dados.apontamentos.length, obra.id]);
+  const chaveMedida = useMemo(() => blocos.map((b) => b.id).join("|") + JSON.stringify(fmt) + JSON.stringify(mon.esconder) + dim.w + "|" + larguraCelula + "|" + dados.apontamentos.length + "|" + obra.id, [blocos, fmt, mon.esconder, dim.w, larguraCelula, dados.apontamentos.length, obra.id]);
+  // blocos que não couberam na medição real são empurrados para a folha seguinte (nada fica cortado)
+  const [quebras, setQuebras] = useState<{ chave: string; ids: Set<string> }>({ chave: "", ids: new Set() });
+  const quebrasAtuais = quebras.chave === chaveMedida ? quebras.ids : SEM_QUEBRAS;
   const [medidas, setMedidas] = useState<{ chave: string; lista: Medida[] } | null>(null);
 
   useLayoutEffect(() => {
@@ -127,7 +142,10 @@ export default function RelatorioClient({ dados, salvas }: { dados: DadosAndamen
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chaveMedida]);
 
-  const folhas: FolhaPag[] | null = useMemo(() => (medidas && medidas.chave === chaveMedida ? paginar(medidas.lista, dim.alturaUtil, fmt.fit) : null), [medidas, chaveMedida, dim.alturaUtil, fmt.fit]);
+  const folhas: FolhaPag[] | null = useMemo(
+    () => (medidas && medidas.chave === chaveMedida ? paginar(medidas.lista, dim.alturaUtil, fmt.fit, 14, quebrasAtuais) : null),
+    [medidas, chaveMedida, dim.alturaUtil, fmt.fit, quebrasAtuais]
+  );
   const blocoPorId = useMemo(() => new Map(blocos.map((b) => [b.id, b])), [blocos]);
   const medidaPorId = useMemo(() => new Map((medidas?.lista ?? []).map((m) => [m.id, m])), [medidas]);
 
@@ -150,7 +168,7 @@ export default function RelatorioClient({ dados, salvas }: { dados: DadosAndamen
   function renderBloco(b: Bloco, fatias: number[] | null, continuacao: boolean, escala: number, comMargem = true) {
     return (
       <div key={b.id + (continuacao ? "-c" : "") + (fatias ? fatias.join(",") : "")} style={{ zoom: escala, marginBottom: comMargem ? 14 : 0 }}>
-        {b.tipo === "grade" && <BlocoGradeView bloco={b} ctx={ctx} fmt={fmt} largura={dim.larguraUtil / escala} fatias={fatias} continuacao={continuacao} />}
+        {b.tipo === "grade" && <BlocoGradeView bloco={b} ctx={ctx} fmt={fmt} largura={dim.larguraUtil / escala} larguraCelula={larguraCelula} fatias={fatias} continuacao={continuacao} />}
         {b.tipo === "fachada" && <BlocoFachada3D bloco={b} ctx={ctx} largura={dim.larguraUtil} altura={dim.alturaUtil} />}
         {b.tipo === "fachada-tab" && <BlocoFachadaTabela bloco={b} ctx={ctx} fmt={fmt} />}
       </div>
@@ -196,6 +214,33 @@ export default function RelatorioClient({ dados, salvas }: { dados: DadosAndamen
       </Folha>
     );
   });
+
+  // depois de desenhadas, confere cada folha com mais de um bloco: se o conteúdo passa da altura, o último bloco vai para a próxima
+  useEffect(() => {
+    if (!folhas) return;
+    const t = setTimeout(() => {
+      const pilha = pilhaRef.current;
+      if (!pilha) return;
+      const novos = new Set(quebrasAtuais);
+      let mudou = false;
+      pilha.querySelectorAll<HTMLElement>(".rel-folha").forEach((el) => {
+        const i = Number(el.dataset.folha) - 1 - (mon.resumo ? 1 : 0);
+        const f = i >= 0 ? folhas[i] : undefined;
+        if (!f || f.itens.length < 2) return;
+        const hnat = Number((el.querySelector(".rel-conteudo > div") as HTMLElement | null)?.dataset.hnat ?? 0);
+        if (hnat > dim.alturaUtil + 2) {
+          const ultimo = f.itens[f.itens.length - 1].blocoId;
+          if (!novos.has(ultimo)) {
+            novos.add(ultimo);
+            mudou = true;
+          }
+        }
+      });
+      if (mudou) setQuebras({ chave: chaveMedida, ids: novos });
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folhas]);
 
   // ---------- predefinições ----------
   function aplicarPredef(p: Predefinicao) {
@@ -309,6 +354,7 @@ html, body { margin: 0; padding: 0; background: #fff; }
             </button>
             {menu === "predef" && (
               <div className="absolute z-30 mt-1 w-72 bg-white border border-border rounded-lg shadow-panel p-2 max-h-96 overflow-auto">
+                {[...padroes, ...minhas].length === 0 && <p className="text-xs text-ink-500 px-2 py-1.5">Nenhuma predefinição ainda. Monte os filtros e salve abaixo.</p>}
                 {[...padroes, ...minhas].map((p) => (
                   <div key={p.id} className="flex items-center gap-1 hover:bg-surface-subtle rounded">
                     <button className="flex-1 text-left text-sm px-2 py-1.5" onClick={() => aplicarPredef(p)}>
@@ -366,7 +412,7 @@ html, body { margin: 0; padding: 0; background: #fff; }
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-          <Seg valor={mon.modo} onChange={(v) => setMon((m0) => ({ ...m0, modo: v }))} opcoes={[["tipo", "Folha por tipo de local"], ["pav", "Folha por pavimento"]]} />
+          <Seg valor={mon.modo} onChange={(v) => setMon((m0) => ({ ...m0, modo: v }))} opcoes={[["tipo", "Folha por ambiente"], ["pav", "Folha por pavimento"]]} />
           <Chave ligada={mon.esconder} onChange={(v) => setMon((m0) => ({ ...m0, esconder: v }))} texto="Esconder o que não começou" />
           <Chave ligada={mon.resumo} onChange={(v) => setMon((m0) => ({ ...m0, resumo: v }))} texto="Página de resumo" />
           <div className="ml-auto flex items-center gap-2">
@@ -402,7 +448,7 @@ html, body { margin: 0; padding: 0; background: #fff; }
       <div ref={medRef} aria-hidden style={{ position: "absolute", left: -99999, top: 0, width: dim.larguraUtil, visibility: "hidden", pointerEvents: "none" }}>
         {blocos.map((b) => (
           <div key={b.id} data-medida={b.id}>
-            {b.tipo === "grade" && <BlocoGradeView bloco={b} ctx={ctx} fmt={fmt} largura={dim.larguraUtil} />}
+            {b.tipo === "grade" && <BlocoGradeView bloco={b} ctx={ctx} fmt={fmt} largura={dim.larguraUtil} larguraCelula={larguraCelula} />}
             {b.tipo === "fachada" && <div style={{ height: 10 }} />}
             {b.tipo === "fachada-tab" && <BlocoFachadaTabela bloco={b} ctx={ctx} fmt={fmt} />}
           </div>

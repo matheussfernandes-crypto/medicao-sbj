@@ -47,7 +47,7 @@ export function chipsDeFiltros(ctx: Ctx, f: Filtros): Chip[] {
   lista("pav", "Pavimentos", ctx.pavs.filter((p) => f.pav.includes(p.id)).map((p) => p.nome), ctx.pavs.length);
   lista("sis", "Sistemas", ctx.dados.sistemas.filter((s) => f.sis.includes(s.id)).map((s) => s.nome), ctx.dados.sistemas.length);
   const d = disponiveis(ctx, { ...f, serv: [] });
-  lista("cat", "Tipos de local", d.cats.filter((c) => f.cat.includes(c.id)).map((c) => c.nome), d.cats.length);
+  lista("cat", "Ambientes", d.cats.filter((c) => f.cat.includes(c.id)).map((c) => c.nome), d.cats.length);
   if (f.serv.length) {
     const sel = new Set(f.serv);
     const grupos = agruparPorFase(d.servicos, ctx);
@@ -86,7 +86,7 @@ export function PainelFiltros({ ctx, filtros, onChange, onFechar }: { ctx: Ctx; 
   const menu: [Aba, string][] = [
     ["pav", "Pavimentos"],
     ["sis", "Sistemas"],
-    ["cat", "Tipos de local"],
+    ["cat", "Ambientes"],
     ["serv", "Serviços"],
   ];
 

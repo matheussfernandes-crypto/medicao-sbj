@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { A3, MARGEM_FOLHA } from "./modelo";
 import { fmtPct0 } from "../ui";
 
-export const ALTURA_CABECALHO = 112;
+export const ALTURA_CABECALHO = 124;
 export const ALTURA_RODAPE = 26;
 
 // Mede o conteúdo na largura real e reduz a escala só se ele passar da altura da folha (nada fica cortado).
@@ -21,6 +21,7 @@ function AutoEscala({ escala, altura, largura, children }: { escala: number; alt
       el.style.transform = "none";
       el.style.width = `${largura / escala}px`;
       // 1) largura: tabela mais larga que a folha encolhe até caber
+      el.dataset.hnat = String(Math.round(el.offsetHeight * escala)); // altura natural (para detectar bloco que não coube)
       const larguraLayout = largura / escala;
       const fw = el.scrollWidth > larguraLayout + 1 ? larguraLayout / el.scrollWidth : 1;
       let novo = escala * fw * 0.995;
@@ -113,13 +114,20 @@ export default function Folha({
             {primeiraSemResumo && (
               <span style={{ display: "inline-block", background: "#f5c84c", color: "#1f4a52", fontWeight: 800, fontSize: 12, borderRadius: 5, padding: "1px 9px", marginTop: 3 }}>{obraNome}</span>
             )}
-            <div style={{ fontSize: 27, fontWeight: 800, lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: larguraUtil - 330 }}>
-              {primeiraSemResumo ? titulo : `${obraNome} — ${titulo}`}
-            </div>
+            {(() => {
+              // o título nunca é cortado: quebra em até 2 linhas e a fonte diminui conforme o tamanho do texto
+              const texto = primeiraSemResumo ? titulo : `${obraNome} — ${titulo}`;
+              const fs = texto.length <= 34 ? 27 : texto.length <= 52 ? 23 : texto.length <= 80 ? 19 : 16;
+              return (
+                <div style={{ fontSize: fs, fontWeight: 800, lineHeight: 1.1, maxWidth: larguraUtil - 330, overflowWrap: "anywhere" }}>{texto}</div>
+              );
+            })()}
             <div style={{ fontSize: 11, color: "#d7e7e8" }}>
               Emitido em {emitidoEm} · por {usuario}
             </div>
-            {filtros && <div style={{ fontSize: 11, color: "#f5c84c", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: larguraUtil - 330 }}>Filtros: {filtros}</div>}
+            {filtros && (
+              <div style={{ fontSize: filtros.length < 130 ? 11 : filtros.length < 220 ? 9.5 : 8.5, color: "#f5c84c", marginTop: 1, lineHeight: 1.15, maxWidth: larguraUtil - 330 }}>Filtros: {filtros}</div>
+            )}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>

@@ -446,7 +446,7 @@ export default function AndamentoClient({ dados }: { dados: DadosAndamento }) {
     );
   }
 
-  // ---------- Tipos de local ----------
+  // ---------- Ambientes ----------
   function ViewTipos() {
     const comLocais = categoriasPresentes(locais);
     const cat = comLocais.find((c) => c.id === catSel) ?? comLocais[0];
@@ -677,7 +677,7 @@ export default function AndamentoClient({ dados }: { dados: DadosAndamento }) {
             ))}
           </div>
           <div className="card">
-            <h2 className="font-semibold text-primaryDark mb-2">Tipos de local</h2>
+            <h2 className="font-semibold text-primaryDark mb-2">Ambientes</h2>
             {comLocais.map((c) => (
               <button key={c.id} type="button" onClick={() => { setCatSel(c.id); irPara("tipo"); }} className="w-full text-left py-1.5 px-1 rounded hover:bg-surface-subtle">
                 <div className="flex items-center gap-2 text-xs">
@@ -700,7 +700,7 @@ export default function AndamentoClient({ dados }: { dados: DadosAndamento }) {
   const cartoes: { k: Modo; nome: string; s: Soma; resumo: string }[] = [
     { k: "geral", nome: "Visão geral", s: agregados.obraS, resumo: `${pavs.length} pavimentos · ${sistemas.length} sistemas` },
     { k: "pav", nome: "Pavimentos", s: agregados.locaisS, resumo: `${locais.length} locais` },
-    { k: "tipo", nome: "Tipos de local", s: agregados.obraS, resumo: `${categoriasPresentes(locais).length} categorias` },
+    { k: "tipo", nome: "Ambientes", s: agregados.obraS, resumo: `${categoriasPresentes(locais).length} ambientes` },
     { k: "sis", nome: "Sistemas", s: agregados.sisTodos, resumo: `${itens.length} itens` },
   ];
 

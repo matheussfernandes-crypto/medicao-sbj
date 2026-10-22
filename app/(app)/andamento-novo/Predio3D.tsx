@@ -36,19 +36,37 @@ export default function Predio3D({ vista, descidas, niveis, cor, destaque, onCel
   const s = vista === "NE" ? 1 : -1;
 
   type Caixa = { parte: Parte; X: number; Y: number; H: number; z0: number; linhas: Nivel[]; rowH: number };
+
+  // Tamanho das caixas: o embasamento é a base; a torre fica contida e recuada dentro dele (80% de largura e
+  // profundidade) e o reservatório tem no máximo 50% da torre. O nº de descidas só divide cada face em colunas.
+  const contagem = (parte: Parte) => ({ X: Math.max(descidas[parte].N, descidas[parte].S, 0), Y: Math.max(descidas[parte].L, descidas[parte].O, 0) });
+  const ativa = (parte: Parte) => niveis[parte].length > 0 && (contagem(parte).X > 0 || contagem(parte).Y > 0);
+  const equilibrar = (X: number, Y: number) => {
+    // proporção agradável mesmo com contagens de descidas muito diferentes entre as fachadas
+    X = Math.max(X, 1);
+    Y = Math.max(Y, 1);
+    const limite = 1.8;
+    if (X / Y > limite) Y = X / limite;
+    else if (Y / X > limite) X = Y / limite;
+    return { X, Y };
+  };
+  const base = ativa("emb") ? equilibrar(contagem("emb").X, contagem("emb").Y) : ativa("tor") ? equilibrar(contagem("tor").X, contagem("tor").Y) : equilibrar(contagem("res").X, contagem("res").Y);
+  const torre = ativa("emb") ? { X: base.X * 0.8, Y: base.Y * 0.8 } : base;
+  const dims: Record<Parte, { X: number; Y: number }> = {
+    emb: base,
+    tor: torre,
+    res: ativa("tor") || ativa("emb") ? { X: torre.X * 0.5, Y: torre.Y * 0.5 } : base,
+  };
+
   const caixas: Caixa[] = [];
   let z = 0;
   ORDEM.forEach((parte) => {
     const linhas = niveis[parte];
-    const d = descidas[parte];
-    const X = Math.max(d.N, d.S, 0);
-    const Y = Math.max(d.L, d.O, 0);
-    if (!linhas.length || (X === 0 && Y === 0)) return;
+    if (!ativa(parte)) return;
     const H = parte === "res" ? ALTURA_RES : linhas.length * ALTURA_PAV;
-    caixas.push({ parte, X: X || 1, Y: Y || 1, H, z0: z, linhas, rowH: H / linhas.length });
+    caixas.push({ parte, X: dims[parte].X, Y: dims[parte].Y, H, z0: z, linhas, rowH: H / linhas.length });
     z += H;
-  });
-  if (!caixas.length) return <div className="text-xs text-ink-500 p-4">Sem descidas definidas.</div>;
+  });  if (!caixas.length) return <div className="text-xs text-ink-500 p-4">Sem descidas definidas.</div>;
 
   const Htot = z;
   const maxX = Math.max(...caixas.map((c) => c.X));

@@ -126,14 +126,22 @@ export type BlocoFachada = { id: string; tipo: "fachada"; servico: Servico; titu
 export type BlocoFachadaTab = { id: string; tipo: "fachada-tab"; servico: Servico; titulo: string; sistemaId: string };
 export type Bloco = BlocoGrade | BlocoFachada | BlocoFachadaTab;
 
+const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+
+// nome do local igual ao do ambiente (Hall, Escadaria, Garagem…) não diz de qual pavimento é: usa o nome do pavimento
+function rotuloDoLocal(l: Local, pavNome: string, cat: Categoria) {
+  const n = norm(l.nome);
+  return n === norm(cat.nome) || /^(hall|escadaria|garagem)$/.test(n) ? pavNome : l.nome;
+}
+
 // colunas de um conjunto de locais da mesma categoria
-function colunasDeLocais(locais: Local[], ctx: Ctx, det: "ju" | "un"): Coluna[] {
+function colunasDeLocais(locais: Local[], ctx: Ctx, det: "ju" | "un", cat: Categoria): Coluna[] {
   const porPav = new Map<string, Local[]>();
   locais.forEach((l) => porPav.set(l.pavimento_id, [...(porPav.get(l.pavimento_id) ?? []), l]));
   const pavsOrdenados = ctx.pavs.filter((p) => porPav.has(p.id));
   if (det === "ju") return pavsOrdenados.map((p) => ({ id: p.id, rotulo: p.nome, alvos: porPav.get(p.id)!.map((l) => l.id), pavId: p.id }));
   return pavsOrdenados.flatMap((p) =>
-    porPav.get(p.id)!.map((l) => ({ id: l.id, rotulo: l.nome, grupoId: p.id, grupoRotulo: p.nome, alvos: [l.id], pavId: p.id }))
+    porPav.get(p.id)!.map((l) => ({ id: l.id, rotulo: rotuloDoLocal(l, p.nome, cat), grupoId: p.id, grupoRotulo: p.nome, alvos: [l.id], pavId: p.id }))
   );
 }
 
@@ -156,7 +164,7 @@ export function montarBlocos(ctx: Ctx, esc: Escopo, fmt: Formato, mon: Montagem)
     cats.forEach((cat) => {
       const ls = locaisPorCat(cat);
       if (!ls.length) return;
-      const colunas = colunasDeLocais(ls, ctx, fmt.det);
+      const colunas = colunasDeLocais(ls, ctx, fmt.det, cat);
       const alvos = ls.map((l) => l.id);
       const fases = fasesDoBloco(cat, alvos);
       if (!fases.length) return;
@@ -170,7 +178,7 @@ export function montarBlocos(ctx: Ctx, esc: Escopo, fmt: Formato, mon: Montagem)
         if (!ls.length) return;
         const fases = fasesDoBloco(cat, ls.map((l) => l.id));
         if (!fases.length) return;
-        const colunas: Coluna[] = ls.map((l) => ({ id: l.id, rotulo: l.nome, alvos: [l.id], pavId: p.id }));
+        const colunas: Coluna[] = ls.map((l) => ({ id: l.id, rotulo: rotuloDoLocal(l, p.nome, cat), alvos: [l.id], pavId: p.id }));
         blocos.push({ id: `pav:${p.id}:${cat.id}`, tipo: "grade", cat, titulo: `${p.nome} · ${cat.nome}`, colunas, fases, agrupado: false });
       });
     });
@@ -244,7 +252,7 @@ export type Folha = { itens: ItemFolha[] };
 // Encaixa os blocos, um embaixo do outro, em folhas de altura útil `capacidade`.
 // - se o bloco não cabe no que sobra, vai inteiro pra próxima folha
 // - se é maior que uma folha inteira: "encolhe" (fit = enc) ou continua na outra (corte sempre entre fatias/fases)
-export function paginar(medidas: Medida[], capacidade: number, fit: "cont" | "enc", respiro = 14): Folha[] {
+export function paginar(medidas: Medida[], capacidade: number, fit: "cont" | "enc", respiro = 14, quebras: Set<string> = new Set()): Folha[] {
   const folhas: Folha[] = [{ itens: [] }];
   let usado = 0;
   const nova = () => {
@@ -254,6 +262,7 @@ export function paginar(medidas: Medida[], capacidade: number, fit: "cont" | "en
   const atual = () => folhas[folhas.length - 1];
 
   medidas.forEach((m) => {
+    if (quebras.has(m.id) && atual().itens.length) nova(); // bloco que não coube na medição real: começa folha nova
     const resto = capacidade - usado;
     if (m.altura <= resto) {
       atual().itens.push({ blocoId: m.id, fatias: null, continuacao: false, escala: 1 });

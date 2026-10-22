@@ -390,7 +390,7 @@ export default function Resumo({ ctx, escopo, fmt, largura, altura }: { ctx: Ctx
             <BarraLinha key={p.id} nome={p.nome} s={dadosR.porPav.get(p.id)!} />
           ))}
         </Quadro>
-        <Quadro titulo="Por tipo de local">
+        <Quadro titulo="Por ambiente">
           {cats.map((c) => (
             <BarraLinha key={c.id} nome={c.nome} s={dadosR.porCat.get(c.id)!} cor={c.cor} />
           ))}

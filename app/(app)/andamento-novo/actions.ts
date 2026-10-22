@@ -121,6 +121,11 @@ export async function definirFaseServico(id: string, faseId: string | null) {
   const s = await admin();
   ok((await s.from("an_servico").update({ fase_id: faseId }).eq("id", id)).error);
 }
+// Ordem de execução: move o serviço (dentro do grupo ou para outro grupo). Não altera apontamentos nem pesos.
+export async function moverServico(id: string, grupo: string, antesDe: string | null) {
+  const s = await admin();
+  await rpc(s, "an_mover_servico", { p_serv: id, p_grupo: grupo, p_antes: antesDe });
+}
 export async function excluirServico(id: string) {
   const s = await admin();
   await rpc(s, "an_excluir_servico", { p_serv: id });

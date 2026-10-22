@@ -8,9 +8,9 @@ export default async function AndamentoNovoPage({ searchParams }: { searchParams
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { data: perfil } = await supabase.from("perfis").select("setor").eq("id", user!.id).single();
-  // Tela em construção (reformulação do Andamento): só o administrador vê.
-  if (perfil?.setor !== "ADMIN") redirect("/dashboard");
+  // Configuração: ADM ou quem tem a permissão específica da tela nova (ex.: Cauê).
+  const { data: pode } = await supabase.rpc("an_pode_configurar", { uid: user!.id });
+  if (!pode) redirect("/andamento-novo");
 
   const { data: obrasRows } = await supabase.from("obras").select("id, nome, data_inicio, data_entrega_prevista").order("nome");
   const obras = (obrasRows ?? []) as ObraInfo[];

@@ -181,6 +181,27 @@ function dividirColunas(fases: GrupoFase[], max: number): GrupoFase[][] {
   return paginas;
 }
 
+// quantas folhas o corte por pavimento gasta com no máximo `limite` linhas cada
+function folhasGastas(linhas: number[], limite: number) {
+  let n = 1;
+  let atual = 0;
+  linhas.forEach((l) => {
+    if (atual > 0 && atual + l > limite) {
+      n++;
+      atual = 0;
+    }
+    atual += l;
+  });
+  return n;
+}
+
+// menor limite de linhas por folha que mantém o mesmo número de folhas: folhas parecidas em vez de 20/20/5
+function limiteBalanceado(linhas: number[], capacidade: number) {
+  const minimo = folhasGastas(linhas, capacidade);
+  for (let l = Math.max(1, ...linhas); l < capacidade; l++) if (folhasGastas(linhas, l) === minimo) return l;
+  return capacidade;
+}
+
 export function montarFolhasOtimizadas(ambientes: Ambiente[], fachadas: (BlocoFachada | BlocoFachadaTab)[], g: Geometria): FolhaOtim[] {
   const folhas: FolhaOtim[] = [];
   let atual: ItemOtim[] = [];
@@ -205,12 +226,19 @@ export function montarFolhasOtimizadas(ambientes: Ambiente[], fachadas: (BlocoFa
       // o bloco inteiro cabe numa folha vazia mas não no que sobra: vai todo para a próxima (nunca cortado)
       const inteiro = cabecalho(false, true) + linhasTotal * CEL + ESPACO_DEPOIS;
       if (atual.length && inteiro <= g.alturaUtil && usado + cabecalho(false, false) + linhasTotal * CEL + ESPACO_DEPOIS > g.alturaUtil) fechar();
+      // bloco maior que uma folha: começa em folha nova e reparte os pavimentos por igual entre as folhas
+      const capLinhas = Math.floor((g.alturaUtil - cabecalho(false, true) - ESPACO_DEPOIS) / CEL);
+      let limite = Infinity;
+      if (linhasTotal > capLinhas) {
+        if (atual.length) fechar();
+        limite = limiteBalanceado(amb.grupos.map((gr) => gr.locais.length), capLinhas);
+      }
       let primeira = true;
       let fila = amb.grupos.map((gr) => ({ ...gr }));
       while (fila.length) {
         const topo = atual.length === 0;
         const cab = cabecalho(!primeira || fi > 0, topo);
-        let livre = g.alturaUtil - usado - cab - ESPACO_DEPOIS;
+        let livre = Math.min(g.alturaUtil - usado - cab - ESPACO_DEPOIS, limite * CEL);
         const escolhidos: GrupoLinhas[] = [];
         while (fila.length) {
           const gr = fila[0];

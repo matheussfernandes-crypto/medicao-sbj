@@ -44,20 +44,26 @@ const faseEstreita = (f: GrupoFase) => Math.max(...f.nome.split(/\s+/).map((p) =
 
 const larguraTexto = (nomes: string[], min: number, max: number) => Math.max(min, Math.min(max, Math.ceil(Math.max(0, ...nomes.map((n) => n.length)) * FONTE * 0.58 + 16)));
 
+// colunas de texto (pavimento, local, repetição à direita) pelo maior nome do próprio ambiente; sobra o resto para as células
+export function colunasDe(amb: Ambiente, larguraUtil: number) {
+  const colPav = larguraTexto(amb.grupos.map((g) => g.rotulo), 60, 130);
+  const colLoc = larguraTexto(amb.grupos.flatMap((g) => g.locais.map((l) => l.nome)), 60, 170);
+  const colDir = colLoc + 38 + BARRA_COL;
+  const colunasMax = Math.max(8, Math.floor((larguraUtil - colPav - colLoc - colDir - 8 * 2) / CEL));
+  return { colPav, colLoc, colDir, colunasMax };
+}
+
 export function geometria(larguraUtil: number, alturaUtil: number, ambientes: Ambiente[]): Geometria {
   const servicos = ambientes.flatMap((a) => a.fases.flatMap((f) => f.servicos.map((s) => s.nome)));
-  const locais = ambientes.flatMap((a) => a.grupos.flatMap((g) => g.locais.map((l) => l.nome)));
-  const pavs = ambientes.flatMap((a) => a.grupos.map((g) => g.rotulo));
-  const colPav = larguraTexto(pavs, 60, 130);
-  const colLoc = larguraTexto(locais, 60, 170);
-  const colDir = colLoc + 38 + BARRA_COL;
+  const colPav = 0,
+    colLoc = 0,
+    colDir = 0;
   // faixa das fases: fase estreita (menos de NARROW colunas) leva o texto na vertical, então a faixa fica mais alta
   const nomesEstreitos = ambientes.flatMap((a) => a.fases.filter(faseEstreita).map((f) => f.nome + " 100%"));
   const altFase = nomesEstreitos.length ? Math.min(150, Math.ceil((larguraTexto(nomesEstreitos, 40, 400) + 4) / 10) * 10) : 56;
   // altura do cabeçalho: a mesma em todas as folhas, pelo maior nome do relatório inteiro
   const altNomes = Math.min(230, Math.ceil((larguraTexto(servicos, 40, 400) + 4) / 10) * 10);
-  const colunasMax = Math.max(8, Math.floor((larguraUtil - colPav - colLoc - colDir - 8 * 2) / CEL));
-  return { larguraUtil, alturaUtil, colPav, colLoc, colDir, altNomes, altFase, colunasMax };
+  return { larguraUtil, alturaUtil, colPav, colLoc, colDir, altNomes, altFase, colunasMax: 0 };
 }
 
 const ordenarAmbientes = (cats: Categoria[]) =>
@@ -186,7 +192,7 @@ export function montarFolhasOtimizadas(ambientes: Ambiente[], fachadas: (BlocoFa
   const cabecalho = (continuacao: boolean, topo: boolean) => (topo ? 0 : ESPACO_ANTES) + (continuacao ? ALT_BANNER_CONT : ALT_BANNER) + g.altFase + g.altNomes + 2;
 
   ambientes.forEach((amb) => {
-    const faixas = dividirColunas(amb.fases, g.colunasMax);
+    const faixas = dividirColunas(amb.fases, colunasDe(amb, g.larguraUtil).colunasMax);
     const linhasTotal = amb.grupos.reduce((a, gr) => a + gr.locais.length, 0);
     faixas.forEach((fases, fi) => {
       // Apartamentos sempre em folha nova; faixas de colunas seguintes também
@@ -298,8 +304,9 @@ function CelulaOtim({ ctx, alvos, s, rowSpan, zebra, guia, divFase }: { ctx: Ctx
   );
 }
 
-export function MatrizOtim({ item, ctx, g }: { item: ItemMatriz; ctx: Ctx; g: Geometria }) {
+export function MatrizOtim({ item, ctx, g: geo }: { item: ItemMatriz; ctx: Ctx; g: Geometria }) {
   const { amb, fases, grupos, continuacao } = item;
+  const g = { ...geo, ...colunasDe(amb, geo.larguraUtil) };
   const cat = amb.cat;
   const colunas: { s: Servico; faseIdx: number; primeiraDaFase: boolean }[] = fases.flatMap((f, fi) => f.servicos.map((s, si) => ({ s, faseIdx: fi, primeiraDaFase: si === 0 && fi > 0 })));
   const todasLocais = grupos.flatMap((gr) => gr.locais);

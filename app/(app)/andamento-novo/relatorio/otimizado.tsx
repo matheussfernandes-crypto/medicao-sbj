@@ -12,7 +12,7 @@ import type { Categoria, Local, Servico, SistemaItem, Status } from "../types";
 export const CEL = 21; // 5,5 mm a 96 dpi
 export const FONTE = 12; // 9 pt
 export const FONTE_PEQ = 11; // 8,3 pt (textos dentro da célula)
-const ALT_BANNER = 40;
+const ALT_BANNER = 36;
 const ALT_BANNER_CONT = 26;
 const BARRA_COL = 30; // coluna da mini barra à direita
 const ESPACO_ANTES = 22;
@@ -50,7 +50,10 @@ export function colunasDe(amb: Ambiente, larguraUtil: number) {
   const colLoc = larguraTexto(amb.grupos.flatMap((g) => g.locais.map((l) => l.nome)), 60, 170);
   const colDir = colLoc + 38 + BARRA_COL;
   const colunasMax = Math.max(8, Math.floor((larguraUtil - colPav - colLoc - colDir - 8 * 2) / CEL));
-  return { colPav, colLoc, colDir, colunasMax };
+  // faixa das fases: só fica alta se este ambiente tem fase estreita (texto na vertical)
+  const estreitos = amb.fases.filter(faseEstreita).map((f) => f.nome + " 100%");
+  const altFase = estreitos.length ? Math.min(150, Math.ceil((larguraTexto(estreitos, 40, 400) + 4) / 10) * 10) : 56;
+  return { colPav, colLoc, colDir, colunasMax, altFase };
 }
 
 export function geometria(larguraUtil: number, alturaUtil: number, ambientes: Ambiente[]): Geometria {
@@ -59,8 +62,7 @@ export function geometria(larguraUtil: number, alturaUtil: number, ambientes: Am
     colLoc = 0,
     colDir = 0;
   // faixa das fases: fase estreita (menos de NARROW colunas) leva o texto na vertical, então a faixa fica mais alta
-  const nomesEstreitos = ambientes.flatMap((a) => a.fases.filter(faseEstreita).map((f) => f.nome + " 100%"));
-  const altFase = nomesEstreitos.length ? Math.min(150, Math.ceil((larguraTexto(nomesEstreitos, 40, 400) + 4) / 10) * 10) : 56;
+  const altFase = 0;
   // altura do cabeçalho: a mesma em todas as folhas, pelo maior nome do relatório inteiro
   const altNomes = Math.min(230, Math.ceil((larguraTexto(servicos, 40, 400) + 4) / 10) * 10);
   return { larguraUtil, alturaUtil, colPav, colLoc, colDir, altNomes, altFase, colunasMax: 0 };
@@ -189,10 +191,13 @@ export function montarFolhasOtimizadas(ambientes: Ambiente[], fachadas: (BlocoFa
     usado = 0;
   };
   // altura do cabeçalho (faixa do ambiente + fases + nomes dos serviços) de um trecho
-  const cabecalho = (continuacao: boolean, topo: boolean) => (topo ? 0 : ESPACO_ANTES) + (continuacao ? ALT_BANNER_CONT : ALT_BANNER) + g.altFase + g.altNomes + 2;
+  let altFase = 56;
+  const cabecalho = (continuacao: boolean, topo: boolean) => (topo ? 0 : ESPACO_ANTES) + (continuacao ? ALT_BANNER_CONT : ALT_BANNER) + altFase + g.altNomes + 2;
 
   ambientes.forEach((amb) => {
-    const faixas = dividirColunas(amb.fases, colunasDe(amb, g.larguraUtil).colunasMax);
+    const dim = colunasDe(amb, g.larguraUtil);
+    altFase = dim.altFase;
+    const faixas = dividirColunas(amb.fases, dim.colunasMax);
     const linhasTotal = amb.grupos.reduce((a, gr) => a + gr.locais.length, 0);
     faixas.forEach((fases, fi) => {
       // Apartamentos sempre em folha nova; faixas de colunas seguintes também

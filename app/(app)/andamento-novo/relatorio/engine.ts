@@ -278,7 +278,7 @@ function tabLocal(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un
     fPh = "800 9px " + FF;
   const merged = (g: Grupo) => hasPav && g.rows.length === 1 && g.rows[0].label === g.pav;
   const pavW = hasPav ? Math.ceil(Math.max(...gs.filter((g) => !merged(g)).map((g) => tw(g.pav!, fPv)), 30) + 14) : 0;
-  let locW = Math.ceil(Math.max(44, ...gs.flatMap((g) => (merged(g) ? [] : g.rows.map((r) => tw(r.label, fLc))))) + 14);
+  let locW = Math.ceil(Math.max(44, ...gs.flatMap((g) => (merged(g) ? [] : g.rows.map((r) => tw(r.label, fLc))))) + 18);
   gs.filter(merged).forEach((g) => {
     const need = tw(g.pav!, fPv) + 18;
     if (pavW + locW < need) locW = Math.ceil(need - pavW);
@@ -349,7 +349,7 @@ function tabServ(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un"
   if (!c.sis) gs.forEach((g) => (g.rows = [...g.rows].reverse()));
   const servs = fases.flatMap((f) => f[1]),
     hasPav = !c.sis;
-  const svW = Math.ceil(Math.max(80, ...servs.map((s) => tw(s.nome, "400 10px " + FF)), ...fases.map(([n]) => tw(n.toUpperCase() + " · 100%", "800 9.5px " + FF) + n.length * 0.5)) + 18);
+  const svW = Math.ceil(Math.max(80, ...servs.map((s) => tw(s.nome, "400 10px " + FF)), ...fases.map(([n]) => tw(n.toUpperCase() + " · 100%", "800 9.5px " + FF) + n.length * 0.5)) + 28);
   const single = (g: Grupo) => g.rows.length === 1;
   const lab1 = (g: Grupo) => {
     const r = g.rows[0];

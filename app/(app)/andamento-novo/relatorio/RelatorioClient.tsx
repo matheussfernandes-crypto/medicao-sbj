@@ -244,7 +244,7 @@ export default function RelatorioClient({
       } else {
         const sub = emMont && nsec > 1 ? `${subRel} · Seção ${p.si + 1} de ${nsec}` : subRel;
         folhasRender.push(
-          <Folha key={"p" + i} {...comum} sub={sub} titulo={p.titulo} pct={p.pct} fixa>
+          <Folha key={"p" + i} {...comum} sub={sub} titulo={p.titulo} pct={p.pct} fixa={!p.partes.some((pt) => "fach" in pt)}>
             <div className="rel-tab">
               {p.partes.map((pt, k) =>
                 "html" in pt ? (

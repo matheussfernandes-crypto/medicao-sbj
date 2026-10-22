@@ -207,7 +207,7 @@ export function blocosDe(E: Amb, sec: Secao, esconder: boolean): BlocoE[] {
       if (fasesF.size) servs = servs.filter((s) => fasesF.has(faseDoServico(s, ctx)));
       servs.forEach((s) => {
         if (esconder && !its.some((i) => [1, 2].includes(E.st(i.id, s.id)))) return;
-        out.push({ tipo: "fach", c: mcat(fachCat, true), its, servs: [mserv(s)], servico: s });
+        out.push({ tipo: "fach", c: mcat(fachCat, true, "Fachada"), its, servs: [mserv(s)], servico: s });
       });
     }
   }

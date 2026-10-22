@@ -32,12 +32,12 @@ export function BlocoFachada3D({ servico, ctx, largura, altura }: { servico: Ser
     acumular(pp[i.parte], 1, st);
   });
   const vertical = largura < altura;
-  const alturaDesenho = vertical ? Math.min(560, altura / 2 - 80) : altura - 40;
-  const alturaSvg = vertical ? altura / 2 - 70 : altura - 30;
+  const alturaDesenho = vertical ? Math.max(400, altura - 300) : altura - 40;
+  const alturaSvg = vertical ? Math.max(400, altura - 290) : altura - 30;
   return (
     <div style={{ height: altura, width: "100%" }}>
       <div className={vertical ? "" : "flex gap-4"} style={{ width: "100%", padding: "12px 16px" }}>
-        <div className={vertical ? "flex flex-col gap-2" : "flex-1 grid grid-cols-2 gap-3"}>
+        <div className={vertical ? "grid grid-cols-2 gap-3" : "flex-1 grid grid-cols-2 gap-3"}>
           <div>
             <p className="text-center font-semibold text-[12px]" style={{ color: "#5f7076" }}>
               Vista Norte + Leste

@@ -12,7 +12,6 @@ import type { Categoria, Local, Servico, SistemaItem, Status } from "../types";
 export const CEL = 21; // 5,5 mm a 96 dpi
 export const FONTE = 12; // 9 pt
 export const FONTE_PEQ = 11; // 8,3 pt (textos dentro da célula)
-const ALT_FASE = 24;
 const ALT_BANNER = 40;
 const ALT_BANNER_CONT = 26;
 const ESPACO_ANTES = 22;
@@ -38,7 +37,8 @@ export type ItemFachada = { tipo: "fachada"; bloco: BlocoFachada | BlocoFachadaT
 export type ItemOtim = ItemMatriz | ItemFachada;
 export type FolhaOtim = { itens: ItemOtim[]; titulo: string };
 
-export type Geometria = { larguraUtil: number; alturaUtil: number; colPav: number; colLoc: number; colDir: number; altNomes: number; colunasMax: number };
+export type Geometria = { larguraUtil: number; alturaUtil: number; colPav: number; colLoc: number; colDir: number; altNomes: number; altFase: number; colunasMax: number };
+const NARROW = 4;
 
 const larguraTexto = (nomes: string[], min: number, max: number) => Math.max(min, Math.min(max, Math.ceil(Math.max(0, ...nomes.map((n) => n.length)) * FONTE * 0.58 + 16)));
 
@@ -48,11 +48,14 @@ export function geometria(larguraUtil: number, alturaUtil: number, ambientes: Am
   const pavs = ambientes.flatMap((a) => a.grupos.map((g) => g.rotulo));
   const colPav = larguraTexto(pavs, 60, 130);
   const colLoc = larguraTexto(locais, 60, 170);
-  const colDir = colLoc + 38 + 22;
+  const colDir = colLoc + 38 + 44;
+  // faixa das fases: fase estreita (menos de NARROW colunas) leva o texto na vertical, então a faixa fica mais alta
+  const nomesEstreitos = ambientes.flatMap((a) => a.fases.filter((f) => f.servicos.length < NARROW).map((f) => f.nome + " · 100%"));
+  const altFase = nomesEstreitos.length ? Math.min(150, Math.ceil((larguraTexto(nomesEstreitos, 40, 400) + 4) / 10) * 10) : 26;
   // altura do cabeçalho: a mesma em todas as folhas, pelo maior nome do relatório inteiro
   const altNomes = Math.min(230, Math.ceil((larguraTexto(servicos, 40, 400) + 4) / 10) * 10);
   const colunasMax = Math.max(8, Math.floor((larguraUtil - colPav - colLoc - colDir - 8 * 2) / CEL));
-  return { larguraUtil, alturaUtil, colPav, colLoc, colDir, altNomes, colunasMax };
+  return { larguraUtil, alturaUtil, colPav, colLoc, colDir, altNomes, altFase, colunasMax };
 }
 
 const ordenarAmbientes = (cats: Categoria[]) =>
@@ -178,7 +181,7 @@ export function montarFolhasOtimizadas(ambientes: Ambiente[], fachadas: (BlocoFa
     usado = 0;
   };
   // altura do cabeçalho (faixa do ambiente + fases + nomes dos serviços) de um trecho
-  const cabecalho = (continuacao: boolean, topo: boolean) => (topo ? 0 : ESPACO_ANTES) + (continuacao ? ALT_BANNER_CONT : ALT_BANNER) + ALT_FASE + g.altNomes + 2;
+  const cabecalho = (continuacao: boolean, topo: boolean) => (topo ? 0 : ESPACO_ANTES) + (continuacao ? ALT_BANNER_CONT : ALT_BANNER) + g.altFase + g.altNomes + 2;
 
   ambientes.forEach((amb) => {
     const faixas = dividirColunas(amb.fases, g.colunasMax);
@@ -302,7 +305,7 @@ export function MatrizOtim({ item, ctx, g }: { item: ItemMatriz; ctx: Ctx; g: Ge
   const somaFase = (f: GrupoFase) => somaAmbiente(ctx, cat, amb.grupos.flatMap((gr) => gr.locais.map((l) => l.id)), f.servicos);
 
   return (
-    <div style={{ width: largura, margin: "0 auto", marginTop: item.topo ? 0 : ESPACO_ANTES, marginBottom: ESPACO_DEPOIS, fontSize: FONTE, color: "#1f2937" }}>
+    <div style={{ width: g.larguraUtil, marginTop: item.topo ? 0 : ESPACO_ANTES, marginBottom: ESPACO_DEPOIS, fontSize: FONTE, color: "#1f2937" }}>
       {/* faixa do ambiente */}
       <div
         style={{
@@ -334,22 +337,30 @@ export function MatrizOtim({ item, ctx, g }: { item: ItemMatriz; ctx: Ctx; g: Ge
           {colunas.map((c, i) => (
             <col key={i} style={{ width: CEL + (c.primeiraDaFase ? 2 : 0) }} />
           ))}
-          <col style={{ width: g.colDir - 60 }} />
+          <col style={{ width: g.colLoc }} />
           <col style={{ width: 38 }} />
-          <col style={{ width: 22 }} />
+          <col style={{ width: 44 }} />
         </colgroup>
         <thead>
-          <tr style={{ height: ALT_FASE }}>
+          <tr style={{ height: g.altFase }}>
             <th colSpan={2} />
-            {fases.map((f, fi) => (
-              <th
-                key={f.id}
-                colSpan={f.servicos.length}
-                style={{ fontSize: FONTE, fontWeight: 800, color: cat.cor, borderBottom: `3px solid ${cat.cor}`, borderLeft: fi > 0 ? "2px solid #1f4a52" : undefined, textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", padding: "0 2px" }}
-              >
-                {f.nome} · {fmtPct0(pct(somaFase(f)))}%
-              </th>
-            ))}
+            {fases.map((f, fi) => {
+              const estreita = f.servicos.length < NARROW;
+              const texto = `${f.nome} · ${fmtPct0(pct(somaFase(f)))}%`;
+              return (
+                <th
+                  key={f.id}
+                  colSpan={f.servicos.length}
+                  style={{ height: g.altFase, fontSize: FONTE, fontWeight: 800, color: cat.cor, borderBottom: `3px solid ${cat.cor}`, borderLeft: fi > 0 ? "2px solid #1f4a52" : undefined, textAlign: "center", verticalAlign: "bottom", overflow: "hidden", padding: "0 2px", boxSizing: "border-box" }}
+                >
+                  {estreita ? (
+                    <div style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", margin: "0 auto", whiteSpace: "nowrap", paddingTop: 2 }}>{texto}</div>
+                  ) : (
+                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", lineHeight: "16px" }}>{texto}</div>
+                  )}
+                </th>
+              );
+            })}
             <th colSpan={3} />
           </tr>
           <tr style={{ height: g.altNomes }}>
@@ -414,7 +425,7 @@ export function MatrizOtim({ item, ctx, g }: { item: ItemMatriz; ctx: Ctx; g: Ge
                   <td style={{ paddingLeft: 10, whiteSpace: "nowrap", overflow: "hidden", fontSize: FONTE, borderTop: li === 0 ? "2px solid #1f4a52" : "1px solid #e1e6e9", background: zebra ? "#eef3f4" : "#fff", height: CEL, boxSizing: "border-box" }}>{l.nome}</td>
                   <td style={{ textAlign: "right", fontWeight: 800, fontSize: FONTE, color: cat.cor, borderTop: li === 0 ? "2px solid #1f4a52" : "1px solid #e1e6e9", background: zebra ? "#eef3f4" : "#fff", boxSizing: "border-box" }}>{fmtPct0(pct(soma))}%</td>
                   <td style={{ padding: "0 3px 0 4px", borderTop: li === 0 ? "2px solid #1f4a52" : "1px solid #e1e6e9", background: zebra ? "#eef3f4" : "#fff", boxSizing: "border-box" }}>
-                    <div style={{ width: 15 }}>
+                    <div style={{ width: 36 }}>
                       <Barra s={soma} h={6} cor={cat.cor} />
                     </div>
                   </td>

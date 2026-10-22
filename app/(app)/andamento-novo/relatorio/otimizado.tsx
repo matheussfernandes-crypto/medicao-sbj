@@ -38,7 +38,8 @@ export type ItemOtim = ItemMatriz | ItemFachada;
 export type FolhaOtim = { itens: ItemOtim[]; titulo: string };
 
 export type Geometria = { larguraUtil: number; alturaUtil: number; colPav: number; colLoc: number; colDir: number; altNomes: number; altFase: number; colunasMax: number };
-const NARROW = 4;
+// fase cuja palavra mais longa não cabe na largura das suas colunas: o texto da faixa vai na vertical
+const faseEstreita = (f: GrupoFase) => Math.max(...f.nome.split(/\s+/).map((p) => p.length)) * FONTE * 0.62 + 6 > f.servicos.length * CEL;
 
 const larguraTexto = (nomes: string[], min: number, max: number) => Math.max(min, Math.min(max, Math.ceil(Math.max(0, ...nomes.map((n) => n.length)) * FONTE * 0.58 + 16)));
 
@@ -50,8 +51,8 @@ export function geometria(larguraUtil: number, alturaUtil: number, ambientes: Am
   const colLoc = larguraTexto(locais, 60, 170);
   const colDir = colLoc + 38 + 44;
   // faixa das fases: fase estreita (menos de NARROW colunas) leva o texto na vertical, então a faixa fica mais alta
-  const nomesEstreitos = ambientes.flatMap((a) => a.fases.filter((f) => f.servicos.length < NARROW).map((f) => f.nome + " · 100%"));
-  const altFase = nomesEstreitos.length ? Math.min(150, Math.ceil((larguraTexto(nomesEstreitos, 40, 400) + 4) / 10) * 10) : 26;
+  const nomesEstreitos = ambientes.flatMap((a) => a.fases.filter(faseEstreita).map((f) => f.nome + " 100%"));
+  const altFase = nomesEstreitos.length ? Math.min(150, Math.ceil((larguraTexto(nomesEstreitos, 40, 400) + 4) / 10) * 10) : 56;
   // altura do cabeçalho: a mesma em todas as folhas, pelo maior nome do relatório inteiro
   const altNomes = Math.min(230, Math.ceil((larguraTexto(servicos, 40, 400) + 4) / 10) * 10);
   const colunasMax = Math.max(8, Math.floor((larguraUtil - colPav - colLoc - colDir - 8 * 2) / CEL));
@@ -345,8 +346,8 @@ export function MatrizOtim({ item, ctx, g }: { item: ItemMatriz; ctx: Ctx; g: Ge
           <tr style={{ height: g.altFase }}>
             <th colSpan={2} />
             {fases.map((f, fi) => {
-              const estreita = f.servicos.length < NARROW;
-              const texto = `${f.nome} · ${fmtPct0(pct(somaFase(f)))}%`;
+              const estreita = faseEstreita(f);
+              const p = fmtPct0(pct(somaFase(f)));
               return (
                 <th
                   key={f.id}
@@ -354,9 +355,15 @@ export function MatrizOtim({ item, ctx, g }: { item: ItemMatriz; ctx: Ctx; g: Ge
                   style={{ height: g.altFase, fontSize: FONTE, fontWeight: 800, color: cat.cor, borderBottom: `3px solid ${cat.cor}`, borderLeft: fi > 0 ? "2px solid #1f4a52" : undefined, textAlign: "center", verticalAlign: "bottom", overflow: "hidden", padding: "0 2px", boxSizing: "border-box" }}
                 >
                   {estreita ? (
-                    <div style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", margin: "0 auto", whiteSpace: "nowrap", paddingTop: 2 }}>{texto}</div>
+                    <div style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", margin: "0 auto", whiteSpace: "nowrap", paddingTop: 2 }}>
+                      {f.nome} {p}%
+                    </div>
                   ) : (
-                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", lineHeight: "16px" }}>{texto}</div>
+                    <div style={{ lineHeight: "16px", overflowWrap: "normal" }}>
+                      {f.nome}
+                      <br />
+                      {p}%
+                    </div>
                   )}
                 </th>
               );

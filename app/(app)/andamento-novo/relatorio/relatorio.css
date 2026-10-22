@@ -16,7 +16,7 @@
 
 /* tabelas */
 .rel-tab table.tb { table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 10px; color: #1d2b2f; }
-.rel-tab table.tb th, .rel-tab table.tb td { padding: 0; overflow: hidden; }
+.rel-tab table.tb th, .rel-tab table.tb td { padding: 0; overflow: hidden; text-transform: none; letter-spacing: normal; }
 .rel-tab table.tb td.c { height: 17px; border-right: 2px solid #fff; border-bottom: 2px solid #fff; background: #e3e7e9; background-clip: padding-box; }
 .rel-tab table.tb td.c.s2 { background: #24914f; }
 .rel-tab table.tb td.c.s1 { background: #f0a020; }

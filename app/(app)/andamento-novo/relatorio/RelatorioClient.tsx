@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Download, Printer, Trash2 } from "lucide-react";
 import * as acoesRel from "./acoesRel";
@@ -402,6 +403,9 @@ html, body { margin: 0; padding: 0; background: #fff; }
               </div>
             )}
           </div>
+          <Link href={`/andamento-novo/relatorio-otimizado?obra=${obra.id}`} className="text-sm px-3 py-1.5 border border-accent bg-accent/30 text-primaryDark font-semibold rounded-md">
+            Ver modelo otimizado
+          </Link>
           <div className="flex-1 min-w-[200px]">
             <ChipsFiltro
               chips={chips}

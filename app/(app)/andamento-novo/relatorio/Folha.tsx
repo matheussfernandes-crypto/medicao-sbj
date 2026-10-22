@@ -72,6 +72,8 @@ export default function Folha({
   primeiraSemResumo,
   children,
   escala = 1,
+  fixa = false,
+  legenda,
 }: {
   folha: "h" | "v";
   obraNome: string;
@@ -85,6 +87,8 @@ export default function Folha({
   primeiraSemResumo?: boolean;
   children: React.ReactNode;
   escala?: number;
+  fixa?: boolean; // modelo otimizado: sem reduzir/ampliar o conteúdo (escala única em todo o relatório)
+  legenda?: React.ReactNode; // rodapé: legenda de cores
 }) {
   const { w, h, larguraUtil } = dimensoes(folha);
   return (
@@ -137,15 +141,22 @@ export default function Folha({
       </div>
 
       <div className="rel-conteudo" style={{ height: h - MARGEM_FOLHA * 2 - ALTURA_CABECALHO - 12 - ALTURA_RODAPE, marginTop: 12, overflow: "hidden" }}>
-        <AutoEscala escala={escala} altura={h - MARGEM_FOLHA * 2 - ALTURA_CABECALHO - 12 - ALTURA_RODAPE} largura={larguraUtil}>
-          {children}
-        </AutoEscala>
+        {fixa ? (
+          <div data-hnat={0} style={{ width: larguraUtil }}>
+            {children}
+          </div>
+        ) : (
+          <AutoEscala escala={escala} altura={h - MARGEM_FOLHA * 2 - ALTURA_CABECALHO - 12 - ALTURA_RODAPE} largura={larguraUtil}>
+            {children}
+          </AutoEscala>
+        )}
       </div>
 
       <div style={{ position: "absolute", left: MARGEM_FOLHA, right: MARGEM_FOLHA, bottom: MARGEM_FOLHA - 6, height: ALTURA_RODAPE, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "#65707d", borderTop: "1px solid #e1e6e9" }}>
-        <span>Engenharia SBJ · {obraNome}</span>
+        {legenda ? <span>{legenda}</span> : <span>Engenharia SBJ · {obraNome}</span>}
         <span>
-          Página {numero} de {total} · {titulo}
+          {legenda ? `${obraNome} · ${emitidoEm} · ${usuario} · ` : ""}Página {numero} de {total}
+          {legenda ? "" : ` · ${titulo}`}
         </span>
       </div>
     </div>

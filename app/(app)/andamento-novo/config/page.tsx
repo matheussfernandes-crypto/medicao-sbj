@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ConfigNovoClient from "../ConfigNovoClient";
+import { carregarAndamento } from "../dados";
+import { mapaApontamentos, montarIndice, pct } from "../calculo";
+import { alvosDeItens, alvosDeLocais, montarFatias, somaRecorte } from "../fatias";
 import type { DadosConfig, ObraInfo } from "../types";
 
 export default async function AndamentoNovoPage({ searchParams }: { searchParams: { obra?: string } }) {
@@ -17,20 +20,20 @@ export default async function AndamentoNovoPage({ searchParams }: { searchParams
   const obra = obras.find((o) => o.id === searchParams.obra) ?? obras[0];
   if (!obra) return <div className="card text-sm text-ink-500">Nenhuma obra cadastrada.</div>;
 
-  const [{ data: fases }, { data: categorias }, { data: servicos }, { data: pavimentos }, { data: sistemas }, { data: contagensRows }, { data: perc }] =
+  const [{ data: fases }, { data: categorias }, { data: servicos }, { data: pavimentos }, { data: sistemas }, { data: contagensRows }, andamento] =
     await Promise.all([
       supabase.from("an_fase").select("id, nome, ordem").eq("obra_id", obra.id).order("ordem"),
       supabase.from("an_categoria").select("id, chave, nome, cor, ordem").eq("obra_id", obra.id).order("ordem"),
       supabase
         .from("an_servico")
-        .select("id, nome, grupo, fase_id, vale_pavimento_inteiro, ordem")
+        .select("id, nome, grupo, fase_id, vale_pavimento_inteiro, ordem, fatia")
         .eq("obra_id", obra.id)
         .eq("arquivado", false)
         .order("ordem"),
       supabase.from("an_pavimento").select("id, nome, ordem").eq("obra_id", obra.id).order("ordem"),
-      supabase.from("an_sistema").select("id, nome, tipo, ordem").eq("obra_id", obra.id).order("ordem"),
+      supabase.from("an_sistema").select("id, nome, tipo, ordem, fatia, config").eq("obra_id", obra.id).order("ordem"),
       supabase.rpc("an_contagens"),
-      supabase.rpc("an_percentuais", { p_obra: obra.id, p_andamento: 0.5 }),
+      carregarAndamento(obra.id),
     ]);
 
   const catIds = (categorias ?? []).map((c) => c.id);
@@ -54,18 +57,30 @@ export default async function AndamentoNovoPage({ searchParams }: { searchParams
     (contagens[k] ??= {})[r.chave] = r.n;
   }
 
+  // % pelas fatias da obra (mesma conta das telas de andamento e do relatório)
+  const percentuais: DadosConfig["percentuais"] = [];
+  if (andamento) {
+    const idx = montarIndice(andamento.categorias, andamento.servicos, andamento.vinculos);
+    const fat = montarFatias(andamento);
+    const ap = mapaApontamentos(andamento.apontamentos);
+    const rec = (ls: typeof andamento.locais, is: typeof andamento.itens) => pct(somaRecorte(fat, idx, ap, [...alvosDeLocais(ls), ...alvosDeItens(is)]));
+    percentuais.push({ nivel: "obra", ref_id: null, pct: rec(andamento.locais, andamento.itens) });
+    andamento.pavimentos.forEach((p) => percentuais.push({ nivel: "pavimento", ref_id: p.id, pct: rec(andamento.locais.filter((l) => l.pavimento_id === p.id), []) }));
+    andamento.sistemas.forEach((s) => percentuais.push({ nivel: "sistema", ref_id: s.id, pct: rec([], andamento.itens.filter((i) => i.sistema_id === s.id)) }));
+  }
+
   const dados: DadosConfig = {
     obras,
     obra,
     fases: (fases ?? []) as any,
     categorias: (categorias ?? []) as any,
-    servicos: (servicos ?? []) as any,
+    servicos: ((servicos ?? []) as any[]).map((s) => ({ ...s, fatia: Number(s.fatia ?? 0) })),
     vinculos: ((vinculos ?? []) as any[]).map((v) => ({ ...v, peso: Number(v.peso) })),
     pavimentos: (pavimentos ?? []) as any,
     locais: (locais ?? []) as any,
-    sistemas: (sistemas ?? []) as any,
+    sistemas: ((sistemas ?? []) as any[]).map((s) => ({ ...s, fatia: Number(s.fatia ?? 0) })),
     itens: (itens ?? []) as any,
-    percentuais: ((perc ?? []) as any[]).map((p) => ({ nivel: p.nivel, ref_id: p.ref_id, pct: Number(p.pct) })),
+    percentuais,
     contagens,
   };
 

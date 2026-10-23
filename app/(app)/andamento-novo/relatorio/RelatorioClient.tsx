@@ -20,7 +20,6 @@ import {
   MONTAGEM_PADRAO,
   calcularEscopo,
   montarCtx,
-  status as statusDe,
   type Filtros,
   type Formato,
   type FotoRel,
@@ -28,7 +27,8 @@ import {
   type Montagem,
   type MontagemSalva,
 } from "./modelo";
-import { acumular, mapaApontamentos, montarIndice, pct, somaZero } from "../calculo";
+import { mapaApontamentos, montarIndice, pct } from "../calculo";
+import { alvosDeItens, alvosDeLocais, somaRecorte } from "../fatias";
 import type { DadosAndamento } from "../types";
 
 const ROTULO_ST = ["Não iniciado", "Andamento", "Finalizado", "Ausência"];
@@ -144,12 +144,9 @@ export default function RelatorioClient({
   );
 
   const pctEscopo = useMemo(() => {
-    const s = somaZero();
-    const somar = (alvo: string, catId: string) => (idx.servicosDaCat.get(catId) ?? []).forEach(({ servico, peso }) => escopoResumo.servOk(servico) && acumular(s, peso, statusDe(ap, alvo, servico.id)));
-    escopoResumo.locais.forEach((l) => somar(l.id, l.categoria_id));
-    escopoResumo.itens.forEach((i) => somar(i.id, i.categoria_id));
-    return pct(s);
-  }, [escopoResumo, idx, ap]);
+    const alvos = [...alvosDeLocais(escopoResumo.locais), ...alvosDeItens(escopoResumo.itens)];
+    return pct(somaRecorte(ctx.fat, idx, ap, alvos, (s) => escopoResumo.servOk(s)));
+  }, [escopoResumo, idx, ap, ctx.fat]);
 
   // ---------- montagem das folhas (mede no navegador) ----------
   const medRef = useRef<HTMLDivElement>(null);

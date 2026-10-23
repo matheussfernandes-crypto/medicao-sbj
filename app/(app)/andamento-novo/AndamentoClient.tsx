@@ -12,14 +12,13 @@ import {
   ROTULO_STATUS,
   acumular,
   chaveAp,
-  juntar,
   mapaApontamentos,
   montarIndice,
   pct,
   somaZero,
-  somarAlvo,
   type Soma,
 } from "./calculo";
+import { alvosDeItens, alvosDeLocais, montarFatias, somaRecorte } from "./fatias";
 import type { Apontamento, Categoria, DadosAndamento, Local, Servico, SistemaItem, Status } from "./types";
 
 type Modo = "geral" | "pav" | "tipo" | "sis";
@@ -70,38 +69,26 @@ export default function AndamentoClient({ dados }: { dados: DadosAndamento }) {
   const itemPorId = useMemo(() => new Map(itens.map((i) => [i.id, i])), [itens]);
   const sisPorId = useMemo(() => new Map(sistemas.map((s) => [s.id, s])), [sistemas]);
 
-  // ---------- somas ponderadas ----------
+  // ---------- somas pelas fatias da obra ----------
+  const fat = useMemo(() => montarFatias({ servicos, sistemas, itens, categorias, vinculos }), [servicos, sistemas, itens, categorias, vinculos]);
   const somaPorAlvo = useMemo(() => {
     const m = new Map<string, Soma>();
-    locais.forEach((l) => m.set(l.id, somarAlvo(l.id, l.categoria_id, idx, ap)));
-    itens.forEach((i) => m.set(i.id, somarAlvo(i.id, i.categoria_id, idx, ap)));
+    locais.forEach((l) => m.set(l.id, somaRecorte(fat, idx, ap, alvosDeLocais([l]))));
+    itens.forEach((i) => m.set(i.id, somaRecorte(fat, idx, ap, alvosDeItens([i]))));
     return m;
-  }, [locais, itens, idx, ap]);
+  }, [locais, itens, idx, ap, fat]);
 
+  // cada recorte (obra, pavimento, ambiente, sistema) reescala as fatias para somar 100% dentro dele
   const agregados = useMemo(() => {
-    const obraS = somaZero(),
-      locaisS = somaZero(),
-      sisTodos = somaZero();
+    const rec = (ls: Local[], is: SistemaItem[]) => somaRecorte(fat, idx, ap, [...alvosDeLocais(ls), ...alvosDeItens(is)]);
     const porPav = new Map<string, Soma>(),
       porCat = new Map<string, Soma>(),
       porSis = new Map<string, Soma>();
-    const mais = (m: Map<string, Soma>, k: string, s: Soma) => m.set(k, juntar(m.get(k) ?? somaZero(), s));
-    locais.forEach((l) => {
-      const s = somaPorAlvo.get(l.id)!;
-      Object.assign(obraS, juntar(obraS, s));
-      Object.assign(locaisS, juntar(locaisS, s));
-      mais(porPav, l.pavimento_id, s);
-      mais(porCat, l.categoria_id, s);
-    });
-    itens.forEach((i) => {
-      const s = somaPorAlvo.get(i.id)!;
-      Object.assign(obraS, juntar(obraS, s));
-      Object.assign(sisTodos, juntar(sisTodos, s));
-      mais(porSis, i.sistema_id, s);
-      mais(porCat, i.categoria_id, s);
-    });
-    return { obraS, locaisS, sisTodos, porPav, porCat, porSis };
-  }, [locais, itens, somaPorAlvo]);
+    pavimentos.forEach((p) => porPav.set(p.id, rec(locais.filter((l) => l.pavimento_id === p.id), [])));
+    categorias.forEach((c) => porCat.set(c.id, rec(locais.filter((l) => l.categoria_id === c.id), itens.filter((i) => i.categoria_id === c.id))));
+    sistemas.forEach((s) => porSis.set(s.id, rec([], itens.filter((i) => i.sistema_id === s.id))));
+    return { obraS: rec(locais, itens), locaisS: rec(locais, []), sisTodos: rec([], itens), porPav, porCat, porSis };
+  }, [locais, itens, pavimentos, categorias, sistemas, fat, idx, ap]);
 
   const pctGeral = pct(agregados.obraS);
 
@@ -331,7 +318,7 @@ export default function AndamentoClient({ dados }: { dados: DadosAndamento }) {
               {cats.map((c) => {
                 const linhas: LinhaGrade[] = locs.filter((l) => l.categoria_id === c.id).map((l) => ({ alvoId: l.id, rotulo: l.nome }));
                 const cols = servicosDaCategoria(c, true);
-                const sc = linhas.reduce((a, l) => juntar(a, somaPorAlvo.get(l.alvoId) ?? somaZero()), somaZero());
+                const sc = somaRecorte(fat, idx, ap, alvosDeLocais(locs.filter((l) => l.categoria_id === c.id)));
                 return (
                   <div key={c.id} className="border border-border rounded-lg bg-white p-3" style={{ borderLeft: `5px solid ${c.cor}` }}>
                     <div className="flex items-center gap-3 mb-2">

@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, ChevronUp, Copy, GripVertical, Lock, LockOpen, Pencil, Plus, Trash2, X } from "lucide-react";
 import * as acoes from "./actions";
+import { montarIndice } from "./calculo";
+import { montarFatias, servicosDosLocais } from "./fatias";
 import {
   gerarEstrutura,
   previaEstrutura,
@@ -12,6 +14,9 @@ import {
   type Fase,
   type ParamsObraNova,
   type Servico,
+  type Sistema,
+  type SistemaItem,
+  type Vinculo,
 } from "./types";
 
 // ---------- peças pequenas ----------
@@ -257,14 +262,16 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
         locaisPorCat={locaisPorCat}
       />
 
-      {/* 3. pesos */}
-      <PesosCard
+      {/* 3. fatias da obra */}
+      <FatiasCard
         aberta={aberta.pesos}
         onAlternar={() => alternar("pesos")}
         categorias={categorias}
         servicos={servicos}
+        sistemas={sistemas}
+        itens={itens}
+        vinculos={vinculos}
         fases={fases}
-        vinc={vinc}
         ocupado={ocupado}
         exec={exec}
       />
@@ -367,7 +374,7 @@ function MatrizCard(props: {
         </div>
       }
     >
-      <p className="text-xs text-ink-500 mb-2">Marque em quais categorias cada serviço existe. A categoria do local define os serviços (e os pesos) dele.</p>
+      <p className="text-xs text-ink-500 mb-2">Marque em quais categorias cada serviço existe. A categoria do local define os serviços dele; o peso de cada serviço fica em "Fatias da obra".</p>
       <div className="overflow-auto border border-border rounded-lg" style={{ maxHeight: "70vh" }}>
         <table className="border-separate border-spacing-0 text-xs">
           <thead>
@@ -653,147 +660,247 @@ function GrupoLinhas({ children }: { children: React.ReactNode }) {
 // ============================================================================
 // Pesos
 
-function PesosCard(props: {
+// ============================================================================
+// Fatias da obra: cada serviço dos locais e cada sistema vale uma fatia; serviços + sistemas somam 100%.
+
+const fmt2 = (v: number) => (Math.round(v * 100) / 100).toFixed(2).replace(/\.?0+$/, "").replace(".", ",") || "0";
+const arred2 = (v: number) => Math.round(v * 100) / 100;
+const lerNumero = (t: string) => parseFloat(t.replace("%", "").replace(",", ".").trim());
+
+function agruparServicosPorFase(lista: Servico[], fases: Fase[]) {
+  const m = new Map<string, { chave: string; titulo: string; itens: Servico[] }>();
+  [...fases].sort((a, b) => a.ordem - b.ordem).forEach((f) => m.set(f.id, { chave: f.id, titulo: f.nome, itens: [] }));
+  lista.forEach((s) => {
+    const chave = s.fase_id && m.has(s.fase_id) ? s.fase_id : "g:" + s.grupo;
+    if (!m.has(chave)) m.set(chave, { chave, titulo: s.grupo, itens: [] });
+    m.get(chave)!.itens.push(s);
+  });
+  return Array.from(m.values()).filter((g) => g.itens.length);
+}
+
+// campo de % editável: grava ao sair do campo ou com Enter
+function CampoPct({ valor, desabilitado, destaque, onOk }: { valor: number; desabilitado: boolean; destaque?: boolean; onOk: (n: number) => void }) {
+  const [txt, setTxt] = useState<string | null>(null);
+  function confirmar() {
+    if (txt === null) return;
+    const n = lerNumero(txt);
+    setTxt(null);
+    if (!Number.isFinite(n) || n < 0 || Math.abs(n - valor) < 0.005) return;
+    onOk(n);
+  }
+  return (
+    <span className="whitespace-nowrap">
+      <input
+        inputMode="decimal"
+        value={txt ?? fmt2(valor)}
+        disabled={desabilitado}
+        onFocus={(e) => e.target.select()}
+        onChange={(e) => setTxt(e.target.value)}
+        onBlur={confirmar}
+        onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+        className={`w-16 border rounded px-1.5 py-0.5 text-right tabular-nums ${destaque ? "border-primary bg-primary/5 font-semibold" : "border-border"}`}
+      />
+      <span className="text-xs text-ink-500 ml-0.5">%</span>
+    </span>
+  );
+}
+
+// muda o subtotal de um conjunto mantendo a proporção entre os itens (se estava zerado, divide igual)
+function escalar(valores: number[], novo: number) {
+  const atual = valores.reduce((a, x) => a + x, 0);
+  return valores.map((v) => arred2(atual > 0 ? (v * novo) / atual : novo / valores.length));
+}
+
+function FatiasCard(props: {
   aberta: boolean;
   onAlternar: () => void;
   categorias: Categoria[];
   servicos: Servico[];
+  sistemas: Sistema[];
+  itens: SistemaItem[];
+  vinculos: Vinculo[];
   fases: Fase[];
-  vinc: Map<string, { peso: number; peso_fixo: boolean }>;
   ocupado: boolean;
   exec: (fn: () => Promise<unknown>) => void;
 }) {
-  const { categorias, servicos, fases, vinc, ocupado, exec } = props;
-  const [catId, setCatId] = useState(categorias[0]?.id ?? "");
-  const [rascunho, setRascunho] = useState<Record<string, string>>({});
-  const cat = categorias.find((c) => c.id === catId) ?? categorias[0];
+  const { categorias, servicos, sistemas, itens, vinculos, fases, ocupado, exec } = props;
+  const fat = useMemo(() => montarFatias({ servicos, sistemas, itens, categorias, vinculos }), [servicos, sistemas, itens, categorias, vinculos]);
+  const idx = useMemo(() => montarIndice(categorias, servicos, vinculos), [categorias, servicos, vinculos]);
+  const doLocais = useMemo(() => servicosDosLocais(fat, servicos, idx, categorias), [fat, servicos, idx, categorias]);
+  const grupos = useMemo(() => agruparServicosPorFase(doLocais, fases), [doLocais, fases]);
+  const [sisAberto, setSisAberto] = useState<string | null>(null);
 
-  const linhas = useMemo(() => {
-    if (!cat) return [];
-    return servicos.filter((s) => vinc.has(cat.id + "|" + s.id));
-  }, [cat, servicos, vinc]);
+  const fatiaDe = (s: Servico) => fat.servico.get(s.id) ?? 0;
+  const somaLocais = doLocais.reduce((a, s) => a + fatiaDe(s), 0);
+  const somaSistemas = sistemas.reduce((a, s) => a + (fat.sistema.get(s.id) ?? 0), 0);
+  const total = somaLocais + somaSistemas;
+  const dif = 100 - total;
+  const totalOk = Math.abs(dif) < 0.05;
 
-  const porFase = useMemo(() => {
-    const ordem = [...fases].sort((a, b) => a.ordem - b.ordem);
-    const m = new Map<string, { titulo: string; itens: Servico[] }>();
-    ordem.forEach((f) => m.set(f.id, { titulo: f.nome, itens: [] }));
-    linhas.forEach((s) => {
-      const chave = s.fase_id && m.has(s.fase_id) ? s.fase_id : "g:" + s.grupo;
-      if (!m.has(chave)) m.set(chave, { titulo: s.grupo, itens: [] });
-      m.get(chave)!.itens.push(s);
-    });
-    return Array.from(m.values()).filter((g) => g.itens.length);
-  }, [linhas, fases]);
+  const salvarFatias = (lista: { t: "s" | "y"; id: string; v: number }[]) => exec(() => acoes.definirFatias(lista));
 
-  if (!cat) return null;
-  const peso = (s: Servico) => vinc.get(cat.id + "|" + s.id)?.peso ?? 0;
-  const soma = linhas.reduce((a, s) => a + peso(s), 0);
-  const somaOk = Math.abs(soma - 100) < 0.05;
+  function ajustarParaCem() {
+    if (total <= 0) return;
+    const f = 100 / total;
+    const lista = [...doLocais.map((s) => ({ t: "s" as const, id: s.id, v: arred2(fatiaDe(s) * f) })), ...sistemas.map((s) => ({ t: "y" as const, id: s.id, v: arred2((fat.sistema.get(s.id) ?? 0) * f) }))];
+    const soma = lista.reduce((a, x) => a + x.v, 0);
+    const maior = lista.reduce((m, x) => (x.v > m.v ? x : m), lista[0]);
+    maior.v = arred2(maior.v + (100 - soma)); // acerta a diferença de arredondamento no maior
+    salvarFatias(lista);
+  }
 
-  function confirmar(s: Servico) {
-    const txt = rascunho[s.id];
-    if (txt === undefined) return;
-    setRascunho((r) => {
-      const { [s.id]: _, ...resto } = r;
-      return resto;
-    });
-    const n = parseFloat(txt.replace("%", "").replace(",", ".").trim());
-    if (!Number.isFinite(n) || Math.abs(n - peso(s)) < 0.05) return;
-    exec(() => acoes.definirPeso(cat.id, s.id, n));
+  // ---- pesos internos de um sistema (um bloco por categoria do sistema) ----
+  const pesoDe = (cat: string, serv: string) => vinculos.find((v) => v.categoria_id === cat && v.servico_id === serv)?.peso ?? 0;
+  function blocoInterno(sis: Sistema) {
+    const cats = categorias.filter((c) => itens.some((i) => i.sistema_id === sis.id && i.categoria_id === c.id));
+    if (!cats.length) return <p className="text-xs text-ink-500 py-1">Este sistema ainda não tem itens cadastrados.</p>;
+    return (
+      <div className="space-y-3 pl-2">
+        {cats.map((c) => {
+          const lista = (idx.servicosDaCat.get(c.id) ?? []).map((x) => x.servico);
+          const soma = lista.reduce((a, s) => a + pesoDe(c.id, s.id), 0);
+          const somaOk = Math.abs(soma - 100) < 0.05;
+          return (
+            <div key={c.id}>
+              {cats.length > 1 && (
+                <div className="text-xs font-semibold mb-1 flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: c.cor }} />
+                  {c.nome}
+                </div>
+              )}
+              <table className="w-full max-w-xl text-sm">
+                <tbody>
+                  {agruparServicosPorFase(lista, fases).map((g) => {
+                    const sub = g.itens.reduce((a, s) => a + pesoDe(c.id, s.id), 0);
+                    return (
+                      <GrupoLinhas key={g.chave}>
+                        <tr>
+                          <td className="pt-2 pb-1 text-xs font-semibold text-primaryDark border-b border-border">{g.titulo}</td>
+                          <td className="pt-2 pb-1 text-right border-b border-border">
+                            <CampoPct
+                              valor={sub}
+                              destaque
+                              desabilitado={ocupado}
+                              onOk={(n) => {
+                                const novos = escalar(g.itens.map((s) => pesoDe(c.id, s.id)), n);
+                                exec(() => acoes.definirPesosInternos(g.itens.map((s, k) => ({ c: c.id, s: s.id, v: novos[k] }))));
+                              }}
+                            />
+                          </td>
+                        </tr>
+                        {g.itens.map((s) => (
+                          <tr key={s.id} className="border-b border-border/60">
+                            <td className="py-1 pr-2">{s.nome}</td>
+                            <td className="py-1 text-right">
+                              <CampoPct valor={pesoDe(c.id, s.id)} desabilitado={ocupado} onOk={(n) => exec(() => acoes.definirPesosInternos([{ c: c.id, s: s.id, v: n }]))} />
+                            </td>
+                          </tr>
+                        ))}
+                      </GrupoLinhas>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <p className={`text-xs mt-1 ${somaOk ? "text-ink-500" : "text-danger font-semibold"}`}>
+                Soma interna: <b>{fmt2(soma)}%</b> do sistema
+                {!somaOk && (soma < 100 ? `, faltam ${fmt2(100 - soma)}%` : `, passou ${fmt2(soma - 100)}%`)}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    );
   }
 
   return (
-    <Secao titulo="Pesos dos serviços" resumo={`${categorias.length} categorias`} aberta={props.aberta} onAlternar={props.onAlternar}>
+    <Secao titulo="Fatias da obra" resumo={`Soma ${fmt2(total)}%${totalOk ? "" : " — ajustar"}`} aberta={props.aberta} onAlternar={props.onAlternar}>
       <p className="text-xs text-ink-500 mb-2">
-        Cada serviço vale um % dentro da categoria (soma 100%). Ao editar um, os que não estão com cadeado se reajustam; o editado fica fixo (🔒).
+        A obra vale 100%, dividida em fatias: cada serviço dos locais e cada sistema (fachada, elevadores, caixa d&apos;água…) ocupa uma. Dentro de um sistema, os serviços dividem a fatia dele. O avanço de um serviço é (finalizados + ½ em andamento) ÷ itens onde ele existe, então o número de apartamentos ou de trechos de fachada não muda o peso de nada.
       </p>
-      <div className="flex flex-wrap gap-1.5 mb-3">
-        {categorias.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setCatId(c.id)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${c.id === cat.id ? "bg-primary/10 border-primary font-semibold" : "bg-white border-border"}`}
-          >
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: c.cor }} />
-            {c.nome}
+      <div className={`rounded-lg border px-3 py-2 text-sm mb-3 flex flex-wrap items-center gap-3 ${totalOk ? "border-border bg-surface-subtle" : "border-danger/40 bg-danger/5 text-danger"}`}>
+        <span>
+          Soma: <b>{fmt2(total)}%</b>
+          {!totalOk && <> ({dif > 0 ? `faltam ${fmt2(dif)}%` : `passou ${fmt2(-dif)}%`})</>}
+        </span>
+        <span className="text-xs text-ink-500">
+          serviços dos locais {fmt2(somaLocais)}% + sistemas {fmt2(somaSistemas)}%
+        </span>
+        {!totalOk && (
+          <button className={`${btn} ml-auto`} disabled={ocupado} onClick={ajustarParaCem}>
+            Ajustar tudo proporcionalmente para 100%
           </button>
-        ))}
+        )}
       </div>
 
+      <h3 className="text-xs font-bold uppercase tracking-wide text-ink-500 mb-1">Serviços dos locais · {fmt2(somaLocais)}%</h3>
       <table className="w-full max-w-2xl text-sm">
         <thead>
           <tr className="text-left text-[11px] uppercase text-ink-400">
             <th className="pb-1">Serviço</th>
-            <th className="pb-1 text-right pr-3">% do total</th>
-            <th className="pb-1 text-center">Fixo</th>
+            <th className="pb-1 text-right pr-3">% da obra</th>
             <th className="pb-1 text-center" title="Vale para o pavimento inteiro (ex.: Estrutura)">
               Pav. inteiro
             </th>
           </tr>
         </thead>
         <tbody>
-          {porFase.map((g) => (
-            <GrupoLinhas key={g.titulo}>
-              <tr>
-                <td colSpan={4} className="pt-3 pb-1 text-xs font-semibold text-primaryDark border-b border-border">
-                  {g.titulo} <span className="text-ink-400 font-normal">· {fmt(g.itens.reduce((a, s) => a + peso(s), 0))}%</span>
-                </td>
-              </tr>
-              {g.itens.map((s) => {
-                const v = vinc.get(cat.id + "|" + s.id)!;
-                return (
+          {grupos.map((g) => {
+            const sub = g.itens.reduce((a, s) => a + fatiaDe(s), 0);
+            return (
+              <GrupoLinhas key={g.chave}>
+                <tr>
+                  <td className="pt-3 pb-1 text-xs font-semibold text-primaryDark border-b border-border">{g.titulo}</td>
+                  <td className="pt-3 pb-1 pr-3 text-right border-b border-border">
+                    <CampoPct
+                      valor={sub}
+                      destaque
+                      desabilitado={ocupado}
+                      onOk={(n) => {
+                        const novos = escalar(g.itens.map(fatiaDe), n);
+                        salvarFatias(g.itens.map((s, k) => ({ t: "s" as const, id: s.id, v: novos[k] })));
+                      }}
+                    />
+                  </td>
+                  <td className="border-b border-border" />
+                </tr>
+                {g.itens.map((s) => (
                   <tr key={s.id} className="border-b border-border/60">
                     <td className="py-1 pr-2">{s.nome}</td>
-                    <td className="py-1 pr-3 text-right whitespace-nowrap">
-                      <input
-                        inputMode="decimal"
-                        value={rascunho[s.id] ?? fmt(v.peso)}
-                        disabled={ocupado}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => setRascunho((r) => ({ ...r, [s.id]: e.target.value }))}
-                        onBlur={() => confirmar(s)}
-                        onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-                        className={`w-16 border rounded px-1.5 py-0.5 text-right tabular-nums ${v.peso_fixo ? "border-primary bg-primary/5 font-semibold" : "border-border"}`}
-                      />
-                      <span className="text-xs text-ink-500 ml-0.5">%</span>
+                    <td className="py-1 pr-3 text-right">
+                      <CampoPct valor={fatiaDe(s)} desabilitado={ocupado} onOk={(n) => salvarFatias([{ t: "s", id: s.id, v: n }])} />
                     </td>
                     <td className="py-1 text-center">
-                      <button
-                        title={v.peso_fixo ? "Fixo: clique para soltar" : "Solto: clique para fixar"}
-                        onClick={() => exec(() => acoes.alternarFixo(cat.id, s.id, !v.peso_fixo))}
-                        className={v.peso_fixo ? "text-primary" : "text-ink-300"}
-                      >
-                        {v.peso_fixo ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
-                      </button>
-                    </td>
-                    <td className="py-1 text-center">
-                      <input
-                        type="checkbox"
-                        checked={s.vale_pavimento_inteiro}
-                        disabled={ocupado}
-                        onChange={(e) => exec(() => acoes.definirPavInteiro(s.id, e.target.checked))}
-                      />
+                      <input type="checkbox" checked={s.vale_pavimento_inteiro} disabled={ocupado} onChange={(e) => exec(() => acoes.definirPavInteiro(s.id, e.target.checked))} />
                     </td>
                   </tr>
-                );
-              })}
-            </GrupoLinhas>
-          ))}
+                ))}
+              </GrupoLinhas>
+            );
+          })}
         </tbody>
       </table>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button className={btn} disabled={ocupado} onClick={() => exec(() => acoes.igualarPesos(cat.id))}>
-          Dividir igualmente entre todos
-        </button>
-        <button className={btn} disabled={ocupado} onClick={() => exec(() => acoes.pesosPadrao(cat.id))}>
-          Voltar ao padrão SBJ
-        </button>
-        <span className={`text-xs ml-2 ${somaOk ? "text-ink-500" : "text-danger font-semibold"}`}>
-          Soma: <b>{fmt(soma)}%</b>
-          {!somaOk && " (deveria ser 100%)"}
-        </span>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-ink-500 mt-5 mb-1">Sistemas · {fmt2(somaSistemas)}%</h3>
+      <div className="max-w-2xl divide-y divide-border border border-border rounded-lg">
+        {sistemas.length === 0 && <p className="text-xs text-ink-500 p-3">Esta obra ainda não tem sistemas.</p>}
+        {sistemas.map((sis) => {
+          const aberto = sisAberto === sis.id;
+          return (
+            <div key={sis.id} className="p-2.5">
+              <div className="flex items-center gap-2 text-sm">
+                <button type="button" onClick={() => setSisAberto(aberto ? null : sis.id)} className="flex items-center gap-1.5 flex-1 text-left font-medium">
+                  {aberto ? <ChevronDown className="w-4 h-4 text-ink-400" /> : <ChevronRight className="w-4 h-4 text-ink-400" />}
+                  {sis.nome}
+                  <span className="text-xs text-ink-500 font-normal">· serviços do sistema</span>
+                </button>
+                <CampoPct valor={fat.sistema.get(sis.id) ?? 0} destaque desabilitado={ocupado} onOk={(n) => salvarFatias([{ t: "y", id: sis.id, v: n }])} />
+              </div>
+              {aberto && <div className="mt-2">{blocoInterno(sis)}</div>}
+            </div>
+          );
+        })}
       </div>
+      <p className="text-xs text-ink-500 mt-3">Serviço novo entra com fatia 0%: ajuste acima até a soma dar 100%.</p>
     </Secao>
   );
 }

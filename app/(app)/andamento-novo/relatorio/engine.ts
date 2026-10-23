@@ -2,10 +2,11 @@
 // a escala única do relatório, estica na largura e distribui os blocos nas folhas. Porta do "modelo-relatorio.html".
 // Gera HTML em texto para as tabelas (rápido de medir) e deixa para o React o resumo, as fotos e a fachada 3D.
 
-import { acumular, pct, somaZero, type Soma } from "../calculo";
+import { pct, type Soma } from "../calculo";
+import { alvosDeItens, alvosDeLocais, somaRecorte, type AlvoR } from "../fatias";
 import { calcularNiveis } from "../fachada";
 import type { Categoria, Servico } from "../types";
-import { A3, MARGEM_FOLHA, agruparPorFase, calcularEscopo, faseDoServico, pesoNaCategoria, rotuloDoLocal, status, type Ctx, type Filtros, type FotoRel, type FotosSel, type Secao } from "./modelo";
+import { A3, MARGEM_FOLHA, agruparPorFase, calcularEscopo, faseDoServico, rotuloDoLocal, status, type Ctx, type Filtros, type FotoRel, type FotosSel, type Secao } from "./modelo";
 
 export const FF = '"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif';
 const P = (v: number) => Math.round(v) + "%";
@@ -122,7 +123,7 @@ export function fotosDe(fs: FotosSel, lista: FotoRel[]): FotoRel[] {
 }
 
 // ---------- ambiente (contexto + atalhos) ----------
-export type Amb = { ctx: Ctx; st: (alvo: string, sv: string) => 0 | 1 | 2 | 3; peso: (cat: string, sv: string) => number; pavIdx: Map<string, number>; chaveDesc: Map<string, string>; nNiveis: number };
+export type Amb = { ctx: Ctx; alvo: Map<string, AlvoR>; st: (alvo: string, sv: string) => 0 | 1 | 2 | 3; pavIdx: Map<string, number>; chaveDesc: Map<string, string>; nNiveis: number };
 
 function ambiente(ctx: Ctx): Amb {
   const niveis = calcularNiveis(ctx.pavs, ctx.locaisPorPav, ctx.idx);
@@ -130,20 +131,24 @@ function ambiente(ctx: Ctx): Amb {
   ctx.dados.itens.forEach((i) => {
     if (i.parte && i.face && i.descida) chaveDesc.set(i.id, `${i.parte}${i.face}${i.descida}`);
   });
+  const alvo = new Map<string, AlvoR>();
+  alvosDeLocais(ctx.dados.locais).forEach((a) => alvo.set(a.id, a));
+  alvosDeItens(ctx.dados.itens).forEach((a) => alvo.set(a.id, a));
   return {
     ctx,
+    alvo,
     st: (a, s) => status(ctx.ap, a, s),
-    peso: (c, s) => pesoNaCategoria(ctx, c, s),
     pavIdx: new Map(ctx.pavs.map((p, i) => [p.id, i])),
     chaveDesc,
     nNiveis: niveis.emb.length + niveis.tor.length,
   };
 }
 
-function somar(E: Amb, c: MCat, its: MItem[], servs: MServ[]): Soma {
-  const s = somaZero();
-  its.forEach((i) => servs.forEach((sv) => acumular(s, E.peso(c.id, sv.id), E.st(i.id, sv.id))));
-  return s;
+// soma de um recorte (itens × serviços) pelas fatias da obra: serviços reescalados para somar 100% dentro do recorte
+function somar(E: Amb, _c: MCat, its: MItem[], servs: MServ[]): Soma {
+  const ids = new Set(servs.map((s) => s.id));
+  const alvos = its.map((i) => E.alvo.get(i.id)).filter(Boolean) as AlvoR[];
+  return somaRecorte(E.ctx.fat, E.ctx.idx, E.ctx.ap, alvos, (s) => ids.has(s.id));
 }
 
 // ---------- blocos de uma seção ----------
@@ -551,16 +556,9 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
   if (pl.resumo) seq.push({ tipo: "resumo", n: 0 });
   if (pl.sumario) seq.push({ tipo: "sumario", n: 0 });
   const secPags: Pag[] = pags.map((p) => {
-    let W = 0,
-      X = 0;
-    p.blocos.forEach((b) => {
-      const s = somar(E, b.c, b.its, b.servs);
-      W += s.W || s.tot;
-      X += s.W ? s.F + 0.5 * s.A : s.fin + 0.5 * s.and;
-    });
     const nomes = p.cats;
     const titulo = (p.sec.nome ? p.sec.nome : nomes.length <= 3 ? nomes.join(" · ") : nomes.slice(0, 2).join(" · ") + " e mais " + (nomes.length - 2)).toUpperCase();
-    return { tipo: "sec", n: 0, si: p.si, sec: p.sec, partes: p.partes, cats: p.cats, blocos: p.blocos, titulo, pct: W ? (X / W) * 100 : 0 };
+    return { tipo: "sec", n: 0, si: p.si, sec: p.sec, partes: p.partes, cats: p.cats, blocos: p.blocos, titulo, pct: pctBlocos(E, p.blocos) };
   });
   seq.push(...secPags);
   const todas = fotosDe(pl.fotos, pl.fotosLista);
@@ -593,15 +591,22 @@ export function bandaFachada(ctx: Ctx, b: BlocoFach): string {
   return bandaCat(ambiente(ctx), b, b.servs[0].nome);
 }
 
-// percentual de um conjunto de blocos (resumo no cabeçalho)
-export function pctDeBlocos(ctx: Ctx, blocos: BlocoE[]) {
-  const E = ambiente(ctx);
-  let W = 0,
-    X = 0;
+// % de um conjunto de blocos (cabeçalho da folha): um recorte só, com os serviços de cada categoria que aparecem nos blocos
+function pctBlocos(E: Amb, blocos: BlocoE[]): number {
+  const porCat = new Map<string, Set<string>>();
+  const alvos: AlvoR[] = [];
   blocos.forEach((b) => {
-    const s = somar(E, b.c, b.its, b.servs);
-    W += s.W || s.tot;
-    X += s.W ? s.F + 0.5 * s.A : s.fin + 0.5 * s.and;
+    const set = porCat.get(b.c.id) ?? new Set<string>();
+    b.servs.forEach((s) => set.add(s.id));
+    porCat.set(b.c.id, set);
+    b.its.forEach((i) => {
+      const a = E.alvo.get(i.id);
+      if (a && !alvos.includes(a)) alvos.push(a);
+    });
   });
-  return W ? (X / W) * 100 : 0;
+  return pct(somaRecorte(E.ctx.fat, E.ctx.idx, E.ctx.ap, alvos, (s, a) => porCat.get(a.categoria_id)?.has(s.id) ?? false));
+}
+
+export function pctDeBlocos(ctx: Ctx, blocos: BlocoE[]) {
+  return pctBlocos(ambiente(ctx), blocos);
 }

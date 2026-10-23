@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { COR_STATUS, acumular, partes, pct, somaZero, somarAlvo, type Soma } from "../calculo";
+import { COR_STATUS, acumular, partes, pct, somaZero, type Soma } from "../calculo";
+import { alvosDeItens, alvosDeLocais, somaRecorte, type AlvoR } from "../fatias";
 import { calcularNiveis, chaveItemFachada, descidasDoSistema, mapaItensFachada } from "../fachada";
 import Predio3D, { NOME_FACE, NOME_PARTE, type Face, type Parte } from "../Predio3D";
 import { Barra, fmtPct, fmtPct0 } from "../ui";
@@ -95,63 +96,53 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
   const obra = dados.obra;
   const vertical = largura < altura;
 
+  // % por fatias da obra: cada recorte (obra, pavimento, ambiente, sistema, fase…) reescala as fatias para somar 100% dentro dele
   const dadosR = useMemo(() => {
-    // somas por grupo, só com o que está no escopo
-    const total = somaZero();
+    const rec = (alvos: AlvoR[], f?: (s: Servico) => boolean): Soma => somaRecorte(ctx.fat, idx, ctx.ap, alvos, (s) => escopo.servOk(s) && (!f || f(s)));
+    const todos: AlvoR[] = [...alvosDeLocais(escopo.locais), ...alvosDeItens(escopo.itens)];
+    const total = rec(todos);
     const porPav = new Map<string, Soma>(),
       porCat = new Map<string, Soma>(),
       porSis = new Map<string, Soma>(),
       porFase = new Map<string, Soma>(),
       porServ = new Map<string, { s: Soma; nome: string }>();
-    const mais = (m: Map<string, Soma>, k: string, v: Soma) => {
-      const a = m.get(k) ?? somaZero();
-      a.W += v.W; a.F += v.F; a.A += v.A; a.tot += v.tot; a.fin += v.fin; a.and += v.and; a.nao += v.nao; a.aus += v.aus;
-      m.set(k, a);
-    };
     const faseDe = (sv: Servico) => (sv.fase_id && ctx.faseOrdem.get(sv.fase_id)?.nome) || sv.grupo;
-    const percorrer = (alvoId: string, catId: string, pavId?: string, sisId?: string) => {
-      (idx.servicosDaCat.get(catId) ?? []).forEach(({ servico, peso }) => {
+    ctx.pavs.forEach((p) => {
+      const ls = escopo.locais.filter((l) => l.pavimento_id === p.id);
+      if (ls.length) porPav.set(p.id, rec(alvosDeLocais(ls)));
+    });
+    dados.categorias.forEach((c) => {
+      const a = [...alvosDeLocais(escopo.locais.filter((l) => l.categoria_id === c.id)), ...alvosDeItens(escopo.itens.filter((i) => i.categoria_id === c.id))];
+      if (a.length) porCat.set(c.id, rec(a));
+    });
+    dados.sistemas.forEach((sy) => {
+      const its = escopo.itens.filter((i) => i.sistema_id === sy.id);
+      if (its.length) porSis.set(sy.id, rec(alvosDeItens(its)));
+    });
+    const fases = new Set<string>();
+    const nomes = new Set<string>();
+    new Set(todos.map((a) => a.categoria_id)).forEach((cid) =>
+      (idx.servicosDaCat.get(cid) ?? []).forEach(({ servico }) => {
         if (!escopo.servOk(servico)) return;
-        const st = status(ctx.ap, alvoId, servico.id);
-        const tmp = somaZero();
-        acumular(tmp, peso, st);
-        mais(porCat, catId, tmp);
-        if (pavId) mais(porPav, pavId, tmp);
-        if (sisId) mais(porSis, sisId, tmp);
-        const fn = faseDe(servico);
-        mais(porFase, fn, tmp);
-        const k = servico.nome;
-        const atual = porServ.get(k) ?? { s: somaZero(), nome: k };
-        const t2 = somaZero();
-        acumular(t2, 1, st);
-        mais(new Map([[k, atual.s]]), k, t2);
-        porServ.set(k, atual);
-        Object.assign(total, (() => { const x = { ...total }; x.W += tmp.W; x.F += tmp.F; x.A += tmp.A; x.tot += tmp.tot; x.fin += tmp.fin; x.and += tmp.and; x.nao += tmp.nao; x.aus += tmp.aus; return x; })());
-      });
-    };
-    escopo.locais.forEach((l) => percorrer(l.id, l.categoria_id, l.pavimento_id));
-    escopo.itens.forEach((i) => percorrer(i.id, i.categoria_id, undefined, i.sistema_id));
+        fases.add(faseDe(servico));
+        nomes.add(servico.nome);
+      })
+    );
+    fases.forEach((n) => porFase.set(n, rec(todos, (s) => faseDe(s) === n)));
+    nomes.forEach((n) => porServ.set(n, { nome: n, s: rec(todos, (s) => s.nome === n) }));
     return { total, porPav, porCat, porSis, porFase, porServ };
-  }, [ctx, escopo, idx]);
+  }, [ctx, escopo, idx, dados.categorias, dados.sistemas]);
 
   // ---- linha do tempo ----
   const etapas: Etapa[] = useMemo(() => {
+    const todos: AlvoR[] = [...alvosDeLocais(escopo.locais), ...alvosDeItens(escopo.itens)];
     const idDeFase = (n: string) => dados.fases.find((f) => f.nome === n)?.id;
+    const rec = (f: (sv: Servico) => boolean) => somaRecorte(ctx.fat, idx, ctx.ap, todos, (s) => escopo.servOk(s) && f(s));
     const faseSomada = (nomeFase: string, excluir: string[] = []) => {
       const fid = idDeFase(nomeFase);
-      const s = somaZero();
-      const filtro = (sv: Servico) => sv.fase_id === fid && !excluir.includes(sv.nome);
-      escopo.locais.forEach((l) => (idx.servicosDaCat.get(l.categoria_id) ?? []).forEach(({ servico, peso }) => filtro(servico) && acumular(s, peso, status(ctx.ap, l.id, servico.id))));
-      escopo.itens.forEach((i) => (idx.servicosDaCat.get(i.categoria_id) ?? []).forEach(({ servico, peso }) => filtro(servico) && acumular(s, peso, status(ctx.ap, i.id, servico.id))));
-      return s;
+      return rec((sv) => sv.fase_id === fid && !excluir.includes(sv.nome));
     };
-    const servSomada = (nome: string) => {
-      const s = somaZero();
-      const filtro = (sv: Servico) => sv.nome === nome;
-      escopo.locais.forEach((l) => (idx.servicosDaCat.get(l.categoria_id) ?? []).forEach(({ servico, peso }) => filtro(servico) && acumular(s, peso, status(ctx.ap, l.id, servico.id))));
-      escopo.itens.forEach((i) => (idx.servicosDaCat.get(i.categoria_id) ?? []).forEach(({ servico, peso }) => filtro(servico) && acumular(s, peso, status(ctx.ap, i.id, servico.id))));
-      return s;
-    };
+    const servSomada = (nome: string) => rec((sv) => sv.nome === nome);
     const lista: [string, Soma][] = [
       ["Estrutura", faseSomada("Estrutura")],
       ["Alvenaria", faseSomada("Alvenaria")],

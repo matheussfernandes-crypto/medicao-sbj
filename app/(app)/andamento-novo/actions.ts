@@ -156,6 +156,17 @@ export async function pesosPadrao(cat: string) {
   const s = await admin();
   await rpc(s, "an_pesos_padrao", { p_cat: cat });
 }
+// ---------- fatias da obra ----------
+// t: "s" = serviço dos locais, "y" = sistema; v = % da obra
+export async function definirFatias(itens: { t: "s" | "y"; id: string; v: number }[]) {
+  const s = await admin();
+  await rpc(s, "an_definir_fatias", { p: itens });
+}
+// pesos internos de um sistema (% do sistema): categoria × serviço
+export async function definirPesosInternos(itens: { c: string; s: string; v: number }[]) {
+  const s = await admin();
+  await rpc(s, "an_definir_pesos_internos", { p: itens });
+}
 export async function salvarComoModelo(obraId: string) {
   const s = await admin();
   await rpc(s, "an_salvar_como_modelo", { p_obra: obraId });

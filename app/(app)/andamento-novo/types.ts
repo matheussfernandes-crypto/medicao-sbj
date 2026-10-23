@@ -10,6 +10,7 @@ export type Servico = {
   fase_id: string | null;
   vale_pavimento_inteiro: boolean;
   ordem: number;
+  fatia: number; // fatia da obra (só dos serviços dos locais; soma com as dos sistemas = 100%)
 };
 export type Vinculo = { categoria_id: string; servico_id: string; peso: number; peso_fixo: boolean };
 export type Local = { id: string; pavimento_id: string; nome: string; categoria_id: string; ordem: number };
@@ -26,7 +27,7 @@ export type SistemaItem = {
   pavimento_id?: string | null;
 };
 export type DescidasConfig = Record<"emb" | "tor" | "res", Record<"N" | "S" | "L" | "O", number>>;
-export type Sistema = { id: string; nome: string; tipo: "comum" | "fachada"; ordem: number; config?: { descidas?: DescidasConfig } | null };
+export type Sistema = { id: string; nome: string; tipo: "comum" | "fachada"; ordem: number; fatia: number; config?: { descidas?: DescidasConfig } | null };
 
 // Status de um apontamento: 0 = não iniciado, 1 = andamento, 2 = finalizado, 3 = ausência (fora da conta)
 export type Status = 0 | 1 | 2 | 3;

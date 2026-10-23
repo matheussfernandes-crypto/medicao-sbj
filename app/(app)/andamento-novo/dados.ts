@@ -33,9 +33,9 @@ export async function carregarAndamento(obraIdPedida?: string): Promise<DadosAnd
   const [{ data: fases }, { data: categorias }, { data: servicos }, { data: pavimentos }, { data: sistemas }] = await Promise.all([
     supabase.from("an_fase").select("id, nome, ordem").eq("obra_id", obra.id).order("ordem"),
     supabase.from("an_categoria").select("id, chave, nome, cor, ordem").eq("obra_id", obra.id).order("ordem"),
-    supabase.from("an_servico").select("id, nome, grupo, fase_id, vale_pavimento_inteiro, ordem").eq("obra_id", obra.id).eq("arquivado", false).order("ordem"),
+    supabase.from("an_servico").select("id, nome, grupo, fase_id, vale_pavimento_inteiro, ordem, fatia").eq("obra_id", obra.id).eq("arquivado", false).order("ordem"),
     supabase.from("an_pavimento").select("id, nome, ordem").eq("obra_id", obra.id).order("ordem"),
-    supabase.from("an_sistema").select("id, nome, tipo, ordem, config").eq("obra_id", obra.id).order("ordem"),
+    supabase.from("an_sistema").select("id, nome, tipo, ordem, fatia, config").eq("obra_id", obra.id).order("ordem"),
   ]);
 
   const catIds = (categorias ?? []).map((c) => c.id);
@@ -86,11 +86,11 @@ export async function carregarAndamento(obraIdPedida?: string): Promise<DadosAnd
     obra,
     fases: (fases ?? []) as any,
     categorias: (categorias ?? []) as any,
-    servicos: (servicos ?? []) as any,
+    servicos: ((servicos ?? []) as any[]).map((s) => ({ ...s, fatia: Number(s.fatia ?? 0) })),
     vinculos: vinculos.map((v) => ({ ...v, peso: Number(v.peso) })),
     pavimentos: (pavimentos ?? []) as any,
     locais: locais as any,
-    sistemas: (sistemas ?? []) as any,
+    sistemas: ((sistemas ?? []) as any[]).map((s) => ({ ...s, fatia: Number(s.fatia ?? 0) })),
     itens: itens as any,
     apontamentos,
     usuario: { id: user!.id, nome: perfil?.nome_completo ?? "Você", setor: perfil?.setor ?? "" },

@@ -1,4 +1,5 @@
 import { chaveAp, type Indice } from "../calculo";
+import { montarFatias, type Fatias } from "../fatias";
 import type { Apontamento, Categoria, DadosAndamento, Fase, Local, Pavimento, Servico, Sistema, SistemaItem, Status } from "../types";
 
 // ============================ opções do relatório ============================
@@ -47,6 +48,7 @@ export const MONTAGEM_NOVA = (fotos: FotosSel): MontagemDados => ({ folha: "v", 
 export type Ctx = {
   dados: DadosAndamento;
   idx: Indice;
+  fat: Fatias; // fatias da obra (serviços dos locais e sistemas)
   ap: Map<string, Apontamento>;
   pavs: Pavimento[]; // de cima para baixo
   locaisPorPav: Map<string, Local[]>;
@@ -67,6 +69,7 @@ export function montarCtx(dados: DadosAndamento, idx: Indice, ap: Map<string, Ap
   return {
     dados,
     idx,
+    fat: montarFatias(dados),
     ap,
     pavs,
     locaisPorPav,

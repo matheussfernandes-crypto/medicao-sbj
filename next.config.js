@@ -2,7 +2,11 @@
 const nextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "5mb" },
-    serverComponentsExternalPackages: ["@react-pdf/renderer"],
+    // geração do PDF do relatório de andamento no servidor (Chromium sem tela) e PDFs do fechamento
+    serverComponentsExternalPackages: ["@react-pdf/renderer", "@sparticuz/chromium", "puppeteer-core"],
+    outputFileTracingIncludes: {
+      "/api/andamento-novo/relatorio": ["./node_modules/@sparticuz/chromium/bin/**"],
+    },
   },
 };
 

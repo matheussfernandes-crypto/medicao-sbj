@@ -2,7 +2,10 @@
 
 import "./relatorio.css";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Download, Printer, Trash2 } from "lucide-react";
+import { ChevronDown, Download, Loader2, Mail, Printer, Trash2 } from "lucide-react";
+import Link from "next/link";
+import EnviarEmail from "./EnviarEmail";
+import type { ConfigRelatorio, CorpoEmail, MetaRelatorio, RespostaRelatorio } from "./tiposApi";
 import * as acoesRel from "./acoesRel";
 import { BlocoFachada3D } from "./Blocos";
 import { Chave, Linha, Seg } from "./controles";
@@ -46,35 +49,45 @@ export default function RelatorioClient({
   montagensIniciais,
   fotos,
   fotosIniciais,
+  modoPdf = false,
 }: {
   dados: DadosAndamento;
   salvas: Predefinicao[];
   montagensIniciais: MontagemSalva[];
   fotos: FotoRel[];
   fotosIniciais: FotosSel;
+  modoPdf?: boolean; // página que o servidor abre para gerar o PDF: só as folhas, na configuração recebida
 }) {
   const obra = dados.obra;
   const idx = useMemo(() => montarIndice(dados.categorias, dados.servicos, dados.vinculos), [dados]);
   const ap = useMemo(() => mapaApontamentos(dados.apontamentos), [dados.apontamentos]);
   const ctx = useMemo(() => montarCtx(dados, idx, ap), [dados, idx, ap]);
 
-  const [filtros, setFiltros] = useState<Filtros>(FILTROS_VAZIOS);
-  const [fmt, setFmt] = useState<Formato>(FORMATO_PADRAO);
-  const [mon, setMon] = useState<Montagem>(MONTAGEM_PADRAO);
+  const cfgPdf: ConfigRelatorio | null = modoPdf && typeof window !== "undefined" ? ((window as any).__RELATORIO_CFG__ as ConfigRelatorio | undefined) ?? null : null;
+  const [filtros, setFiltros] = useState<Filtros>(cfgPdf?.filtros ?? FILTROS_VAZIOS);
+  const [fmt, setFmt] = useState<Formato>(cfgPdf ? { ...FORMATO_PADRAO, ...cfgPdf.fmt } : FORMATO_PADRAO);
+  const [mon, setMon] = useState<Montagem>(cfgPdf ? { ...MONTAGEM_PADRAO, ...cfgPdf.mon } : MONTAGEM_PADRAO);
   const [painel, setPainel] = useState<Painel>(null);
   const [minhas, setMinhas] = useState<Predefinicao[]>(salvas);
   const [nomeNova, setNomeNova] = useState("");
   const [erro, setErro] = useState<string | null>(null);
-  const [fotosSimples, setFotosSimples] = useState<FotosSel>(fotosIniciais);
-  const [montagens, setMontagens] = useState<MontagemSalva[]>(montagensIniciais);
-  const [montId, setMontId] = useState<string | null>(montagensIniciais[0]?.id ?? null);
-  const [modoMont, setModoMont] = useState(false);
+  const [fotosSimples, setFotosSimples] = useState<FotosSel>(cfgPdf?.fotosSimples ?? fotosIniciais);
+  const [montagens, setMontagens] = useState<MontagemSalva[]>(cfgPdf?.montagem ? [cfgPdf.montagem] : montagensIniciais);
+  const [montId, setMontId] = useState<string | null>(cfgPdf?.montagem?.id ?? montagensIniciais[0]?.id ?? null);
+  const [modoMont, setModoMont] = useState(!!cfgPdf?.montagem);
+  const [gerando, setGerando] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [emailAberto, setEmailAberto] = useState(false);
   const [fotosOrigem, setFotosOrigem] = useState<"simples" | "mont">("simples");
   const [pronto, setPronto] = useState(false);
   const chaveSalva = `an-rel-v3-${obra.id}`;
 
   // última configuração usada (por obra) fica guardada neste navegador
   useEffect(() => {
+    if (modoPdf) {
+      setPronto(true);
+      return;
+    }
     try {
       const r = JSON.parse(localStorage.getItem(chaveSalva) ?? "null");
       if (r) {
@@ -87,7 +100,7 @@ export default function RelatorioClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chaveSalva]);
   useEffect(() => {
-    if (!pronto) return;
+    if (!pronto || modoPdf) return;
     try {
       localStorage.setItem(chaveSalva, JSON.stringify({ filtros, fmt, mon }));
     } catch {}
@@ -189,7 +202,7 @@ export default function RelatorioClient({
     return () => ro.disconnect();
   }, []);
   const larguraMax = res ? Math.max(...res.seq.map((p) => p.PW)) : dimensoes(plano.folha, plano.papel).w;
-  const escalaTela = Math.min(1, Math.max(0.15, (larguraTela - 4) / larguraMax));
+  const escalaTela = modoPdf ? 1 : Math.min(1, Math.max(0.15, (larguraTela - 4) / larguraMax));
   const emitidoEm = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 
   const lista = fotosDe(plano.fotos, fotos);
@@ -294,6 +307,14 @@ export default function RelatorioClient({
 
   // ---------- impressão (quadro oculto só com as folhas; não depende de pop-up) ----------
   const pilhaRef = useRef<HTMLDivElement>(null);
+  // @page de cada tamanho de folha usado (cada seção de uma montagem pode ter o seu) e quebra de página entre folhas
+  const cssImpressao = () => `@page { size: ${plano.papel} ${plano.folha === "h" ? "landscape" : "portrait"}; margin: 0; }
+${Array.from(new Set((res?.seq ?? []).map((p) => `${p.papel}-${p.folha}`))).map((k) => `@page pg-${k} { size: ${k.split("-")[0]} ${k.endsWith("-h") ? "landscape" : "portrait"}; margin: 0; }\n.rel-folha[data-pagina="${k}"] { page: pg-${k}; }`).join("\n")}
+html, body { margin: 0; padding: 0; background: #fff; }
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rel-pilha { display: block !important; zoom: 1 !important; }
+.rel-folha { break-after: page; page-break-after: always; margin: 0 !important; box-shadow: none !important; }
+.rel-folha:last-child { break-after: auto; page-break-after: auto; }`;
   function imprimir() {
     const pilha = pilhaRef.current;
     if (!pilha) return;
@@ -312,13 +333,7 @@ export default function RelatorioClient({
     doc.open();
     doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>${obra.nome} — Andamento</title><base href="${location.origin}/">${css}
 <style>
-@page { size: ${plano.papel} ${plano.folha === "h" ? "landscape" : "portrait"}; margin: 0; }
-${Array.from(new Set((res?.seq ?? []).map((p) => `${p.papel}-${p.folha}`))).map((k) => `@page pg-${k} { size: ${k.split("-")[0]} ${k.endsWith("-h") ? "landscape" : "portrait"}; margin: 0; }\n.rel-folha[data-pagina="${k}"] { page: pg-${k}; }`).join("\n")}
-html, body { margin: 0; padding: 0; background: #fff; }
-* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-.rel-pilha { display: block !important; zoom: 1 !important; }
-.rel-folha { break-after: page; page-break-after: always; margin: 0 !important; box-shadow: none !important; }
-.rel-folha:last-child { break-after: auto; page-break-after: auto; }
+${cssImpressao()}
 </style></head><body>${pilha.outerHTML}</body></html>`);
     doc.close();
     const disparar = () => {
@@ -344,6 +359,77 @@ html, body { margin: 0; padding: 0; background: #fff; }
     else quadro.onload = disparar;
   }
 
+  // ---------- PDF e e-mail feitos no servidor (o mesmo PDF; fica guardado e registrado) ----------
+  const predefAtual = useMemo(
+    () => todasPredefs.find((p) => JSON.stringify(p.filtros) === JSON.stringify(filtros) && JSON.stringify({ ...FORMATO_PADRAO, ...p.formato }) === JSON.stringify(fmt)) ?? null,
+    [todasPredefs, filtros, fmt]
+  );
+  const hojeBR = new Date().toLocaleDateString("pt-BR");
+  const textoFiltroRel = emMont
+    ? `Montagem com ${montAtual!.dados.secoes.length} seção(ões)${montAtual!.dados.secoes.length ? ": " + montAtual!.dados.secoes.map((s, i) => s.nome || `Seção ${i + 1}`).join(", ") : ""}`
+    : predefAtual
+      ? `Predefinição: ${predefAtual.nome}`
+      : chips.length
+        ? chips.map((c) => c.texto).join(" · ")
+        : "Obra inteira";
+  const configRel = (): ConfigRelatorio => ({ filtros, fmt, mon, fotosSimples, montagem: emMont ? montAtual : null });
+  const metaRel = (): MetaRelatorio => ({ tipo: emMont ? "montagem" : "simples", montagemNome: emMont ? montAtual!.nome : null, filtroResumo: textoFiltroRel, folha: textoFolha(plano.papel, plano.folha).split(" · ")[0], comResumo: plano.resumo });
+  async function chamarApi(corpo: unknown): Promise<RespostaRelatorio> {
+    const r = await fetch("/api/andamento-novo/relatorio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
+    if (!r.ok && r.status !== 200) {
+      const j = await r.json().catch(() => null);
+      return { ok: false, erro: j?.erro ?? `Erro ${r.status} no servidor.` };
+    }
+    return r.json();
+  }
+  async function gerarPdfServidor() {
+    setGerando(true);
+    setErro(null);
+    setAviso(null);
+    try {
+      const r = await chamarApi({ acao: "pdf", obraId: obra.id, config: configRel(), meta: metaRel() });
+      if (!r.ok) throw new Error(r.erro ?? "Não foi possível gerar o PDF.");
+      if (r.url) {
+        const a = document.createElement("a");
+        a.href = r.url;
+        a.download = "";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      setAviso(`PDF gerado (${r.paginas} página${r.paginas === 1 ? "" : "s"}) e registrado em "Relatórios gerados".`);
+    } catch (e: any) {
+      setErro(e.message ?? "Não foi possível gerar o PDF.");
+    } finally {
+      setGerando(false);
+    }
+  }
+  const enviarPorEmail = (e: CorpoEmail) => chamarApi({ acao: "email", obraId: obra.id, config: configRel(), meta: metaRel(), email: e });
+
+  // modo PDF (servidor): avisa quando as folhas estão prontas (fontes e fotos carregadas)
+  useEffect(() => {
+    if (!modoPdf || !res) return;
+    let vivo = true;
+    (async () => {
+      try {
+        await (document as any).fonts?.ready;
+        await Promise.all(Array.from(document.images).map((i) => (i.complete ? null : new Promise((ok) => { i.addEventListener("load", ok); i.addEventListener("error", ok); }))));
+        await new Promise((ok) => setTimeout(ok, 400));
+        if (!vivo) return;
+        (window as any).__relatorioInfo = { paginas: res.N, pct: pctEscopo };
+        document.documentElement.setAttribute("data-pronto", "1");
+      } catch (e) {
+        document.documentElement.setAttribute("data-erro", String(e));
+      }
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [modoPdf, res, pctEscopo]);
+  useEffect(() => {
+    if (modoPdf && erro) document.documentElement.setAttribute("data-erro", erro);
+  }, [modoPdf, erro]);
+
   // ---------- CSV (segue os filtros) ----------
   function exportarCSV() {
     const linhas: string[][] = [["Pavimento / Sistema", "Local / Item", "Categoria", "Fase", "Serviço", "Status", "Observação"]];
@@ -368,6 +454,17 @@ html, body { margin: 0; padding: 0; background: #fff; }
     URL.revokeObjectURL(url);
   }
 
+  if (modoPdf)
+    return (
+      <div>
+        <style dangerouslySetInnerHTML={{ __html: cssImpressao() }} />
+        <div ref={pilhaRef} className="rel-pilha" style={{ display: "block" }}>
+          {folhasRender}
+        </div>
+        <div ref={medRef} aria-hidden className="rel-tab rel-meas" />
+      </div>
+    );
+
   const qtdFiltros = chips.length;
   const botao = (id: Exclude<Painel, null>, texto: React.ReactNode) => (
     <button className={`text-sm px-3 py-1.5 border rounded-md flex items-center gap-1 ${painel === id ? "bg-primary/10 border-primary" : "border-border bg-white"}`} onClick={() => setPainel(painel === id ? null : id)} aria-expanded={painel === id}>
@@ -387,6 +484,27 @@ html, body { margin: 0; padding: 0; background: #fff; }
             fechar
           </button>
         </div>
+      )}
+
+      {aviso && (
+        <div className="card text-sm flex justify-between print:hidden" style={{ background: "#e1f3e6", borderColor: "#b7dfc3", color: "#1c7440" }}>
+          <span>
+            {aviso} <Link href={`/andamento-novo/relatorios-gerados?obra=${obra.id}`} className="underline">Ver relatórios gerados</Link>
+          </span>
+          <button className="underline text-xs" onClick={() => setAviso(null)}>
+            fechar
+          </button>
+        </div>
+      )}
+      {emailAberto && (
+        <EnviarEmail
+          obraId={obra.id}
+          assuntoPadrao={`${emMont ? montAtual!.nome : "Relatório de andamento"} – ${obra.nome} – ${hojeBR}`}
+          mensagemPadrao={`Segue em anexo o relatório ${emMont ? `"${montAtual!.nome}" ` : "de andamento "}da obra ${obra.nome}, emitido em ${hojeBR} por ${dados.usuario.nome}. Obra concluída: ${Math.round(pctEscopo)}%.`}
+          anexo={{ tipo: emMont ? `Montagem "${montAtual!.nome}"` : "Relatório simples", filtro: textoFiltroRel, folha: textoFolha(plano.papel, plano.folha).split(" · ")[0], paginas: res?.N ?? null }}
+          onEnviar={enviarPorEmail}
+          onFechar={() => setEmailAberto(false)}
+        />
       )}
 
       {/* barra de controles */}
@@ -454,8 +572,14 @@ html, body { margin: 0; padding: 0; background: #fff; }
                 <Download className="w-4 h-4" /> CSV
               </button>
             )}
-            <button onClick={imprimir} disabled={!res} className="flex items-center gap-1.5 px-3 py-2 bg-accent text-primaryDark font-semibold rounded-lg text-sm disabled:opacity-50">
-              <Printer className="w-4 h-4" /> Gerar PDF ({plano.papel})
+            <button onClick={imprimir} disabled={!res} className="flex items-center gap-1.5 px-3 py-2 border border-border rounded-lg text-sm bg-white disabled:opacity-50" title="Imprime direto pelo navegador (não fica guardado no registro)">
+              <Printer className="w-4 h-4" /> Imprimir
+            </button>
+            <button onClick={() => setEmailAberto(true)} disabled={!res || gerando} className="flex items-center gap-1.5 px-3 py-2 border border-primary text-primaryDark font-semibold rounded-lg text-sm bg-white disabled:opacity-50">
+              <Mail className="w-4 h-4" /> Gerar e enviar por e-mail
+            </button>
+            <button onClick={gerarPdfServidor} disabled={!res || gerando} className="flex items-center gap-1.5 px-3 py-2 bg-accent text-primaryDark font-semibold rounded-lg text-sm disabled:opacity-50">
+              {gerando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />} {gerando ? "Gerando…" : `Gerar PDF (${plano.papel})`}
             </button>
           </div>
         </div>

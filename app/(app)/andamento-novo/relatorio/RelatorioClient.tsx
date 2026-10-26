@@ -312,10 +312,9 @@ export default function RelatorioClient({
     // medidas em mm: o Chrome só conhece A3/A4/A5 pelo nome; A2 e A1 precisam do tamanho escrito
     const tam = (papel: Papel, folha: "h" | "v") => (folha === "v" ? `${PAPEIS[papel].mm[0]}mm ${PAPEIS[papel].mm[1]}mm` : `${PAPEIS[papel].mm[1]}mm ${PAPEIS[papel].mm[0]}mm`);
     const chaves = Array.from(new Set((res?.seq ?? []).map((p) => `${p.papel}-${p.folha}`)));
+    const paginas = chaves.map((k) => `@page pg-${k} { size: ${tam(k.split("-")[0] as Papel, k.endsWith("-h") ? "h" : "v")}; margin: 0; } .rel-folha[data-pagina="${k}"] { page: pg-${k}; }`).join("\n");
     return `@page { size: ${tam(plano.papel, plano.folha)}; margin: 0; }
-${chaves.map((k) => `@page pg-${k} { size: ${tam(k.split("-")[0] as Papel, k.endsWith("-h") ? "h" : "v")}; margin: 0; }
-.rel-folha[data-pagina="${k}"] { page: pg-${k}; }`).join("
-")}
+${paginas}
 html, body { margin: 0; padding: 0; background: #fff; }
 * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .rel-pilha { display: block !important; zoom: 1 !important; }

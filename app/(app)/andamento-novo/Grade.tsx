@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { COR_STATUS, chaveAp, pct, type Soma } from "./calculo";
 import { IconeX, fmtPct0 } from "./ui";
@@ -35,6 +35,25 @@ type Props = {
 export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, setSel, onCelula, tituloGrupo, tituloLinha = "Local", tam = 26, corDestaque = "#2c6975" }: Props) {
   const arraste = useRef<{ l: number; c: number; modo: "add" | "rem"; base: Set<string> } | null>(null);
   const tit = useTitulosV(colunas.map((s) => s.nome));
+  const caixa = useRef<HTMLDivElement>(null);
+  // a grade cabe na tela sem rolar: a altura de cada linha se ajusta ao espaço que sobra até o fim da janela (mínimo 7 px; abaixo disso rola)
+  const [espaco, setEspaco] = useState<{ h: number; w: number }>({ h: 0, w: 0 });
+  useLayoutEffect(() => {
+    const medir = () => {
+      const el = caixa.current;
+      if (!el) return;
+      const topo = el.getBoundingClientRect().top + window.scrollY;
+      setEspaco({ h: Math.max(window.innerHeight * 0.6, window.innerHeight - topo - 16), w: window.innerWidth });
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    const ro = new ResizeObserver(medir);
+    ro.observe(document.body);
+    return () => {
+      window.removeEventListener("resize", medir);
+      ro.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     const soltar = () => {
@@ -97,10 +116,17 @@ export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, 
   const larguraPct = 46;
   // coluna de status: igual em todas; no computador a tabela ocupa a largura do quadro (sem rolar para o lado); no celular rola, com Pavimento e Local fixos
   const minStatus = Math.max(22, 20 + LARG_LINHA * (tit.nl - 1));
-  const larguraMin = (temGrupo ? larguraGrupo : 0) + larguraLocal + larguraPct + colunas.length * minStatus;
+  const celular = espaco.w > 0 && espaco.w < 768;
+  const larguraMin = celular ? (temGrupo ? larguraGrupo : 0) + larguraLocal + larguraPct + colunas.length * minStatus : 0;
+  const altCab = tit.alt + 13;
+  const hLinha = !celular && espaco.h > 0 && linhas.length ? Math.max(7, Math.min(tam, Math.floor((espaco.h - altCab - 2) / linhas.length))) : tam;
+  const fsLinha = Math.max(7, Math.min(12, hLinha - 3));
+  const apertado = hLinha < 20;
+  const estiloRot = apertado ? { padding: "0 8px", fontSize: fsLinha, lineHeight: hLinha + "px" } : undefined;
+  const cabe = hLinha * linhas.length + altCab <= espaco.h;
 
   return (
-    <div className="overflow-auto border border-border rounded-lg bg-white" style={{ maxHeight: "72vh", userSelect: modoSel ? "none" : undefined }} onMouseMove={modoSel ? autoRolar : undefined}>
+    <div ref={caixa} className="overflow-auto border border-border rounded-lg bg-white" style={{ maxHeight: celular ? "72vh" : cabe || !espaco.h ? undefined : espaco.h, userSelect: modoSel ? "none" : undefined }} onMouseMove={modoSel ? autoRolar : undefined}>
       <table className="border-separate border-spacing-0 text-xs" style={{ tableLayout: "fixed", width: "100%", minWidth: larguraMin }}>
         <colgroup>
           {temGrupo && <col style={{ width: larguraGrupo }} />}
@@ -154,7 +180,7 @@ export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, 
                     rowSpan={spans[l]}
                     onClick={modoSel ? () => alternarGrupo(linhas.slice(l, l + spans[l]).flatMap((x) => colunas.map((s) => chaveAp(x.alvoId, s.id)))) : undefined}
                     className={`sticky left-0 z-10 bg-white px-2 py-1 border-b border-r border-border font-semibold align-top whitespace-nowrap ${modoSel ? "cursor-pointer hover:bg-accent/30" : ""}`}
-                    style={{ minWidth: larguraGrupo }}
+                    style={{ minWidth: larguraGrupo, ...(apertado ? { padding: "2px 8px", fontSize: Math.max(8, fsLinha + 1), lineHeight: 1.15 } : {}) }}
                   >
                     {ln.grupoRotulo}
                     {ln.grupoSub && <div className="font-normal text-[10px] text-ink-400">{ln.grupoSub}</div>}
@@ -163,7 +189,7 @@ export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, 
                 <td
                   onClick={modoSel ? () => alternarGrupo(colunas.map((s) => chaveAp(ln.alvoId, s.id))) : undefined}
                   className={`sticky z-10 bg-white px-2 py-1 border-b border-r border-border whitespace-nowrap text-ink-700 ${modoSel ? "cursor-pointer hover:bg-accent/30" : ""}`}
-                  style={{ left: temGrupo ? larguraGrupo : 0 }}
+                  style={{ left: temGrupo ? larguraGrupo : 0, overflow: "hidden", ...estiloRot }}
                 >
                   {ln.rotulo}
                 </td>
@@ -179,7 +205,7 @@ export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, 
                       onMouseDown={modoSel ? (e) => iniciar(e, l, c) : undefined}
                       onMouseEnter={modoSel ? () => aplicar(l, c) : undefined}
                       className="border-b border-r border-border cursor-pointer relative hover:brightness-95"
-                      style={{ background: COR_STATUS[st], height: tam, boxShadow: marcada ? `inset 0 0 0 2px ${corDestaque}` : undefined }}
+                      style={{ background: COR_STATUS[st], height: hLinha, boxShadow: marcada ? `inset 0 0 0 2px ${corDestaque}` : undefined }}
                     >
                       {st === 3 && (
                         <span className="absolute inset-0 flex items-center justify-center">
@@ -195,7 +221,7 @@ export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, 
                     </td>
                   );
                 })}
-                <td className="px-2 py-1 border-b border-border text-right font-semibold tabular-nums" style={{ color: corDestaque }}>
+                <td className="px-2 py-1 border-b border-border text-right font-semibold tabular-nums" style={{ color: corDestaque, ...estiloRot }}>
                   {soma ? fmtPct0(pct(soma)) : "0"}%
                 </td>
               </tr>

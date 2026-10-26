@@ -114,32 +114,36 @@ function MiniFachada({ ctx, sis, servico, niveis, titulo }: { ctx: Ctx; sis: Sis
           <span>{fmtPct0(pct(total))}%</span>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-1" style={{ justifyItems: "center" }}>
-        {(["NE", "SW"] as const).map((v) => (
-          <div key={v} style={{ display: "flex", justifyContent: "center", width: "100%" }}>
-            <Predio3D
-              vista={v}
-              descidas={descidas}
-              niveis={niveis}
-              rotulos={false}
-              alturaMax={titulo ? 120 : 150}
-              cor={(parte, face, d, nivelId) => {
-                const it = porChave.get(chaveItemFachada(parte, face, d, nivelId));
-                return it ? COR_STATUS[status(ctx.ap, it.id, servico.id)] : "#e3e7e9";
-              }}
-            />
+      <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+        <div className="grid grid-cols-2 gap-1" style={{ flex: "1 1 62%", justifyItems: "center" }}>
+          {(["NE", "SW"] as const).map((v) => (
+            <div key={v} style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+              <Predio3D
+                vista={v}
+                descidas={descidas}
+                niveis={niveis}
+                rotulos={false}
+                alturaMax={230}
+                cor={(parte, face, d, nivelId) => {
+                  const it = porChave.get(chaveItemFachada(parte, face, d, nivelId));
+                  return it ? COR_STATUS[status(ctx.ap, it.id, servico.id)] : "#e3e7e9";
+                }}
+              />
+            </div>
+          ))}
+        </div>
+        <div style={{ flex: "1 1 38%", minWidth: 0 }}>
+          {(["N", "S", "L", "O"] as Face[]).map((f) => (
+            <BarraLinha key={f} nome={NOME_FACE[f]} s={pf[f]} />
+          ))}
+          <div className="text-[11px] text-ink-500 mt-1.5 flex gap-x-2 gap-y-0.5 flex-wrap">
+            {(["emb", "tor", "res"] as Parte[]).map((p2) => (
+              <span key={p2}>
+                {NOME_PARTE[p2]}: <b className="text-ink-900">{fmtPct0(pct(pp[p2]))}%</b>
+              </span>
+            ))}
           </div>
-        ))}
-      </div>
-      {(["N", "S", "L", "O"] as Face[]).map((f) => (
-        <BarraLinha key={f} nome={NOME_FACE[f]} s={pf[f]} />
-      ))}
-      <div className="text-[11px] text-ink-500 mt-1.5 flex gap-2 flex-wrap">
-        {(["emb", "tor", "res"] as Parte[]).map((p2) => (
-          <span key={p2}>
-            {NOME_PARTE[p2]}: <b className="text-ink-900">{fmtPct0(pct(pp[p2]))}%</b>
-          </span>
-        ))}
+        </div>
       </div>
     </div>
   );
@@ -356,7 +360,19 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
         </Quadro>
         {fotos.length > 0 && (
           <div className="col-span-2" style={{ gridColumn: "1 / -1" }}>
-            <FotosResumo fotos={fotos} mais={fotosMais} vertical={vertical} />
+            <Quadro titulo={servsFach.length > 1 ? "Fachada" : servsFach[0]?.nome ?? "Fachada"}>
+        {sisFach && servsFach.length ? (
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(servsFach.length, 2)}, 1fr)`, gap: 18 }}>
+            {servsFach.map((sv) => (
+              <MiniFachada key={sv.id} ctx={ctx} sis={sisFach} servico={sv} niveis={niveis} titulo={servsFach.length > 1} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-[12px] text-ink-500">Sem fachada cadastrada.</p>
+        )}
+      </Quadro>
+
+      <FotosResumo fotos={fotos} mais={fotosMais} vertical={vertical} />
           </div>
         )}
       </div>
@@ -457,7 +473,7 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
         </div>
       </Quadro>
 
-      <div style={{ display: "grid", gridTemplateColumns: vertical ? "1fr 1fr" : "repeat(4, 1fr)", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
         <Quadro titulo="Visão geral">
           <div className="flex items-center gap-3">
             <Rosca s={dadosR.total} tam={120} />
@@ -485,17 +501,6 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
           {cats.map((c) => (
             <BarraLinha key={c.id} nome={c.nome} s={dadosR.porCat.get(c.id)!} cor={c.cor} />
           ))}
-        </Quadro>
-        <Quadro titulo={servsFach.length > 1 ? "Fachada" : servsFach[0]?.nome ?? "Fachada"}>
-          {sisFach && servsFach.length ? (
-            <div className="space-y-3">
-              {servsFach.map((sv) => (
-                <MiniFachada key={sv.id} ctx={ctx} sis={sisFach} servico={sv} niveis={niveis} titulo={servsFach.length > 1} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-[12px] text-ink-500">Sem fachada cadastrada.</p>
-          )}
         </Quadro>
       </div>
 

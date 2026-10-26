@@ -96,7 +96,7 @@ export default function Folha({
         className="rel-faixa"
         style={{
           height: ALTURA_CABECALHO,
-          background: "linear-gradient(120deg,#1f4a52,#2c6975 70%,#3a8794)",
+          background: "#2a6270", // cor chapada: degradê grande pesa no PDF e some em alguns leitores de celular
           boxShadow: "inset 0 -6px 0 #f5c84c",
           borderRadius: 10,
           color: "#fff",

@@ -41,7 +41,8 @@ async function gerarPdf(origin: string, obraId: string, config: ConfigRelatorio)
     const erro = await page.evaluate(() => document.documentElement.getAttribute("data-erro"));
     if (erro) throw new Error(erro);
     const info = (await page.evaluate(() => (window as any).__relatorioInfo)) as { paginas: number; pct: number } | undefined;
-    const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+    // sem estrutura de acessibilidade (tagged) e sem marcadores: arquivo menor e mais leve de abrir no celular
+    const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true, tagged: false, outline: false });
     return { pdf: Buffer.from(pdf), paginas: info?.paginas ?? 0, pct: info?.pct ?? 0 };
   } finally {
     await browser.close();

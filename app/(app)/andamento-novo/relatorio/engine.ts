@@ -303,10 +303,11 @@ function cel(E: Amb, items: MItem[], s: MServ, attr = "") {
     k = "sp";
     const a = (f / n) * 100,
       b = ((f + w) / n) * 100;
-    sty = `background:linear-gradient(90deg,#24914f ${a}%,#f0a020 ${a}% ${b}%,#e3e7e9 ${b}%)`;
+    // duas barras cheias sobre o fundo cinza (sem degradê: cada degradê vira um objeto pesado no PDF e some em alguns leitores de celular)
+    sty = `<i style="width:${a}%"></i><i class="w" style="left:${a}%;width:${b - a}%"></i>`;
     t = `${f} de ${n} finalizados${w ? `, ${w} em andamento` : ""}`;
   }
-  return `<td class="c ${k}" ${attr}${sty ? ` style="${sty}"` : ""} title="${esc(s.nome)}: ${t}"></td>`;
+  return `<td class="c ${k}" ${attr} title="${esc(s.nome)}: ${t}">${sty}</td>`;
 }
 
 // MODO 1: pavimentos e locais nas linhas, serviços nas colunas

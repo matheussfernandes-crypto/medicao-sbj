@@ -308,13 +308,20 @@ export default function RelatorioClient({
   // ---------- impressão (quadro oculto só com as folhas; não depende de pop-up) ----------
   const pilhaRef = useRef<HTMLDivElement>(null);
   // @page de cada tamanho de folha usado (cada seção de uma montagem pode ter o seu) e quebra de página entre folhas
-  const cssImpressao = () => `@page { size: ${plano.papel} ${plano.folha === "h" ? "landscape" : "portrait"}; margin: 0; }
-${Array.from(new Set((res?.seq ?? []).map((p) => `${p.papel}-${p.folha}`))).map((k) => `@page pg-${k} { size: ${k.split("-")[0]} ${k.endsWith("-h") ? "landscape" : "portrait"}; margin: 0; }\n.rel-folha[data-pagina="${k}"] { page: pg-${k}; }`).join("\n")}
+  const cssImpressao = () => {
+    // medidas em mm: o Chrome só conhece A3/A4/A5 pelo nome; A2 e A1 precisam do tamanho escrito
+    const tam = (papel: Papel, folha: "h" | "v") => (folha === "v" ? `${PAPEIS[papel].mm[0]}mm ${PAPEIS[papel].mm[1]}mm` : `${PAPEIS[papel].mm[1]}mm ${PAPEIS[papel].mm[0]}mm`);
+    const chaves = Array.from(new Set((res?.seq ?? []).map((p) => `${p.papel}-${p.folha}`)));
+    return `@page { size: ${tam(plano.papel, plano.folha)}; margin: 0; }
+${chaves.map((k) => `@page pg-${k} { size: ${tam(k.split("-")[0] as Papel, k.endsWith("-h") ? "h" : "v")}; margin: 0; }
+.rel-folha[data-pagina="${k}"] { page: pg-${k}; }`).join("
+")}
 html, body { margin: 0; padding: 0; background: #fff; }
 * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .rel-pilha { display: block !important; zoom: 1 !important; }
 .rel-folha { break-after: page; page-break-after: always; margin: 0 !important; box-shadow: none !important; }
 .rel-folha:last-child { break-after: auto; page-break-after: auto; }`;
+  };
   function imprimir() {
     const pilha = pilhaRef.current;
     if (!pilha) return;

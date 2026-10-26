@@ -26,6 +26,10 @@ import {
   type FotosSel,
   type Montagem,
   type MontagemSalva,
+  PAPEL_LISTA,
+  PAPEIS,
+  textoFolha,
+  type Papel,
 } from "./modelo";
 import { mapaApontamentos, montarIndice, pct } from "../calculo";
 import { alvosDeItens, alvosDeLocais, somaRecorte } from "../fatias";
@@ -138,8 +142,8 @@ export default function RelatorioClient({
   const plano: Plano = useMemo(
     () =>
       emMont
-        ? { titulo: montAtual!.nome, folha: montAtual!.dados.folha, fill: montAtual!.dados.fill, titulos: montAtual!.dados.titulos, resumo: montAtual!.dados.resumo, sumario: montAtual!.dados.sumario, fotos: montAtual!.dados.fotos, fotosLista: fotos, secoes: montAtual!.dados.secoes, esconder: false }
-        : { titulo: "", folha: fmt.folha, fill: fmt.fill, titulos: fmt.titulos, resumo: mon.resumo, sumario: false, fotos: fotosSimples, fotosLista: fotos, secoes: [{ nome: "", filtro: filtros, linhas: fmt.linhas, det: fmt.det }], esconder: mon.esconder },
+        ? { titulo: montAtual!.nome, papel: montAtual!.dados.papel ?? "A3", folha: montAtual!.dados.folha, fill: montAtual!.dados.fill, resumo: montAtual!.dados.resumo, sumario: montAtual!.dados.sumario, fotos: montAtual!.dados.fotos, fotosLista: fotos, secoes: montAtual!.dados.secoes, esconder: false }
+        : { titulo: "", papel: fmt.papel ?? "A3", folha: fmt.folha, fill: fmt.fill, resumo: mon.resumo, sumario: false, fotos: fotosSimples, fotosLista: fotos, secoes: [{ nome: "", filtro: filtros, linhas: fmt.linhas, det: fmt.det }], esconder: mon.esconder },
     [emMont, montAtual, fotos, fmt, mon, fotosSimples, filtros]
   );
 
@@ -184,8 +188,8 @@ export default function RelatorioClient({
     setLarguraTela(el.clientWidth);
     return () => ro.disconnect();
   }, []);
-  const dim = dimensoes(plano.folha);
-  const escalaTela = Math.min(1, Math.max(0.2, (larguraTela - 4) / dim.w));
+  const larguraMax = res ? Math.max(...res.seq.map((p) => p.PW)) : dimensoes(plano.folha, plano.papel).w;
+  const escalaTela = Math.min(1, Math.max(0.15, (larguraTela - 4) / larguraMax));
   const emitidoEm = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 
   const lista = fotosDe(plano.fotos, fotos);
@@ -196,11 +200,11 @@ export default function RelatorioClient({
   if (res) {
     const nsec = plano.secoes.length;
     res.seq.forEach((p, i) => {
-      const comum = { folha: res.folha, obraNome: obra.nome, emitidoEm, usuario: dados.usuario.nome, numero: p.n, total: res.N };
+      const comum = { folha: p.folha, papel: p.papel, obraNome: obra.nome, emitidoEm, usuario: dados.usuario.nome, numero: p.n, total: res.N };
       if (p.tipo === "resumo") {
         folhasRender.push(
           <Folha key={"p" + i} {...comum} sub={subRel} titulo={escopoResumo.filtrado && !emMont ? "RESUMO DO FILTRO" : "RESUMO DA OBRA"} pct={pctEscopo}>
-            <Resumo ctx={ctx} escopo={escopoResumo} largura={res.IN} altura={res.LIVRE} fotos={fotosResumo} fotosMais={Math.max(0, lista.length - plano.fotos.n)} />
+            <Resumo ctx={ctx} escopo={escopoResumo} largura={p.IN} altura={p.LIVRE} fotos={fotosResumo} fotosMais={Math.max(0, lista.length - plano.fotos.n)} />
           </Folha>
         );
       } else if (p.tipo === "sumario") {
@@ -221,7 +225,7 @@ export default function RelatorioClient({
           </Folha>
         );
       } else if (p.tipo === "fotos") {
-        const cols = res.folha === "v" ? 3 : 4;
+        const cols = p.folha === "v" ? 3 : 4;
         folhasRender.push(
           <Folha key={"p" + i} {...comum} sub={subRel} titulo="REGISTRO FOTOGRÁFICO" pct={null}>
             <div className="rel-fotos" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 18 }}>
@@ -249,7 +253,7 @@ export default function RelatorioClient({
                 ) : (
                   <div key={k}>
                     <div dangerouslySetInnerHTML={{ __html: bandaFachada(ctx, pt.fach) }} />
-                    <BlocoFachada3D servico={pt.fach.servico} ctx={ctx} largura={res.IN} altura={res.LIVRE - 40} />
+                    <BlocoFachada3D servico={pt.fach.servico} ctx={ctx} largura={p.IN} altura={p.LIVRE - 40} />
                   </div>
                 )
               )}
@@ -308,7 +312,8 @@ export default function RelatorioClient({
     doc.open();
     doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>${obra.nome} — Andamento</title><base href="${location.origin}/">${css}
 <style>
-@page { size: A3 ${plano.folha === "h" ? "landscape" : "portrait"}; margin: 0; }
+@page { size: ${plano.papel} ${plano.folha === "h" ? "landscape" : "portrait"}; margin: 0; }
+${Array.from(new Set((res?.seq ?? []).map((p) => `${p.papel}-${p.folha}`))).map((k) => `@page pg-${k} { size: ${k.split("-")[0]} ${k.endsWith("-h") ? "landscape" : "portrait"}; margin: 0; }\n.rel-folha[data-pagina="${k}"] { page: pg-${k}; }`).join("\n")}
 html, body { margin: 0; padding: 0; background: #fff; }
 * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .rel-pilha { display: block !important; zoom: 1 !important; }
@@ -440,7 +445,7 @@ html, body { margin: 0; padding: 0; background: #fff; }
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-ink-500">
               {res
-                ? `${res.N} página${res.N === 1 ? "" : "s"} · A3 ${res.folha === "h" ? "horizontal · 420 × 297" : "vertical · 297 × 420"} mm · tabelas a ${Math.round(res.k * 100)}% · células de ${Math.round(res.cw[0]) === Math.round(res.cw[1]) ? Math.round(res.cw[0]) : `${Math.round(res.cw[0])} a ${Math.round(res.cw[1])}`} px`
+                ? `${res.N} página${res.N === 1 ? "" : "s"} · ${textoFolha(res.papel, res.folha)} · tabelas a ${Math.round(res.k * 100)}% · células de ${Math.round(res.cw[0]) === Math.round(res.cw[1]) ? Math.round(res.cw[0]) : `${Math.round(res.cw[0])} a ${Math.round(res.cw[1])}`} px`
                 : "montando…"}
             </span>
             {!emMont && (
@@ -449,21 +454,21 @@ html, body { margin: 0; padding: 0; background: #fff; }
               </button>
             )}
             <button onClick={imprimir} disabled={!res} className="flex items-center gap-1.5 px-3 py-2 bg-accent text-primaryDark font-semibold rounded-lg text-sm disabled:opacity-50">
-              <Printer className="w-4 h-4" /> Gerar PDF (A3)
+              <Printer className="w-4 h-4" /> Gerar PDF ({plano.papel})
             </button>
           </div>
         </div>
 
         {painel === "formato" && !emMont && (
           <div className="space-y-2.5 border-t border-border pt-3">
-            <Linha titulo="Folha">
+            <Linha titulo="Tamanho da folha">
+              <Seg valor={fmt.papel ?? "A3"} onChange={(v) => setFmt((f0) => ({ ...f0, papel: v }))} opcoes={PAPEL_LISTA.map((p) => [p, `${p} · ${PAPEIS[p].mm[0]} × ${PAPEIS[p].mm[1]} mm`] as [Papel, string])} />
+            </Linha>
+            <Linha titulo="Orientação">
               <Seg valor={fmt.folha} onChange={(v) => setFmt((f0) => ({ ...f0, folha: v }))} opcoes={[["v", "▯ Vertical"], ["h", "▭ Horizontal"]]} />
             </Linha>
             <Linha titulo="Nas linhas da tabela">
               <Seg valor={fmt.linhas} onChange={(v) => setFmt((f0) => ({ ...f0, linhas: v }))} opcoes={[["local", "Pavimentos e locais"], ["serv", "Serviços"]]} />
-            </Linha>
-            <Linha titulo="Títulos das colunas">
-              <Seg valor={fmt.titulos} onChange={(v) => setFmt((f0) => ({ ...f0, titulos: v }))} opcoes={[["h", "Horizontal"], ["v", "Vertical"]]} />
             </Linha>
             <Linha titulo="Apartamentos e locais">
               <Seg valor={fmt.det} onChange={(v) => setFmt((f0) => ({ ...f0, det: v }))} opcoes={[["un", "Um por um"], ["ju", "Juntos por pavimento"]]} />
@@ -483,6 +488,7 @@ html, body { margin: 0; padding: 0; background: #fff; }
             predefs={todasPredefs}
             filtroAtual={filtros}
             fmtAtual={fmt}
+            monAtual={mon}
             emPrevia={emMont}
             onSelecionar={(id) => setMontId(id)}
             onNova={() => novaMontagem()}
@@ -539,6 +545,19 @@ html, body { margin: 0; padding: 0; background: #fff; }
           </div>
         )}
       </div>
+
+      {res && (
+        <div className="space-y-1 print:hidden">
+          <p className="text-xs text-ink-500">
+            {res.N} página{res.N === 1 ? "" : "s"} · {textoFolha(res.papel, res.folha)}
+          </p>
+          {res.avisos.map((a) => (
+            <p key={a} className="text-xs rounded-md border px-3 py-1.5" style={{ background: "#fdf6e0", borderColor: "#f0d58a", color: "#7a5a00" }}>
+              {a}
+            </p>
+          ))}
+        </div>
+      )}
 
       {/* área de medição das tabelas (fora da tela) */}
       <div ref={medRef} aria-hidden className="rel-tab rel-meas" />

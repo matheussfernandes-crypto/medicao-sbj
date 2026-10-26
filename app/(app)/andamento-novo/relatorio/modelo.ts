@@ -6,21 +6,35 @@ import type { Apontamento, Categoria, DadosAndamento, Fase, Local, Pavimento, Se
 
 // fases: nomes das fases (só usado nas seções do "Montar relatório")
 export type Filtros = { pav: string[]; sis: string[]; cat: string[]; serv: string[]; fases?: string[] };
+export type Papel = "A4" | "A3" | "A2" | "A1";
 export type Formato = {
-  folha: "h" | "v"; // A3 horizontal / vertical
+  papel: Papel; // tamanho da folha
+  folha: "h" | "v"; // orientação: horizontal / vertical
   linhas: "serv" | "local"; // o que vai nas linhas da tabela: serviços | pavimentos e locais
-  titulos: "h" | "v"; // títulos das colunas: horizontal (quebra linha) | vertical
   det: "ju" | "un"; // apartamentos e locais: juntos por pavimento | um por um
   fill: boolean; // tamanho: estender até ocupar a folha | manter tamanho normal
 };
 export type Montagem = { resumo: boolean; esconder: boolean };
 
 export const FILTROS_VAZIOS: Filtros = { pav: [], sis: [], cat: [], serv: [] };
-export const FORMATO_PADRAO: Formato = { folha: "v", linhas: "local", titulos: "h", det: "un", fill: true };
+export const FORMATO_PADRAO: Formato = { papel: "A3", folha: "v", linhas: "local", det: "un", fill: true };
 export const MONTAGEM_PADRAO: Montagem = { resumo: true, esconder: false };
 
-// A3 = 420 x 297 mm = 1587,4 x 1122,5 px (96 dpi). A folha fica 1-2 px menor: assim nunca passa da página impressa.
-export const A3 = { h: { w: 1585, h: 1120 }, v: { w: 1120, h: 1585 } };
+// Tamanhos em px a 96 dpi (em pé). Cada folha fica 1-2 px menor que o papel: assim nunca passa da página impressa.
+// A4 794×1123 · A3 1123×1587 · A2 1587×2245 · A1 2245×3179
+export const PAPEIS: Record<Papel, { w: number; h: number; mm: [number, number]; nome: string }> = {
+  A4: { w: 792, h: 1121, mm: [210, 297], nome: "A4" },
+  A3: { w: 1121, h: 1585, mm: [297, 420], nome: "A3" },
+  A2: { w: 1585, h: 2243, mm: [420, 594], nome: "A2" },
+  A1: { w: 2243, h: 3177, mm: [594, 841], nome: "A1" },
+};
+export const PAPEL_LISTA: Papel[] = ["A4", "A3", "A2", "A1"];
+export const dimFolha = (papel: Papel, folha: "h" | "v") => (folha === "v" ? { w: PAPEIS[papel].w, h: PAPEIS[papel].h } : { w: PAPEIS[papel].h, h: PAPEIS[papel].w });
+// "A2 horizontal · 594 × 420 mm"
+export const textoFolha = (papel: Papel, folha: "h" | "v") => {
+  const [a, b] = PAPEIS[papel].mm;
+  return `${papel} ${folha === "h" ? "horizontal" : "vertical"} · ${folha === "h" ? b : a} × ${folha === "h" ? a : b} mm`;
+};
 export const MARGEM_FOLHA = 34;
 
 // ---- fotos do resumo (escolhidas na aba Fotos) ----
@@ -29,11 +43,22 @@ export const FOTOS_VAZIAS: FotosSel = { sel: [], leg: {}, n: 4 };
 export type FotoRel = { id: string; url: string; legenda: string; data: string }; // data já formatada (dd/mm/aaaa)
 
 // ---- montagens: várias seções (filtro + formatação) num PDF só ----
-export type Secao = { nome: string; filtro: Filtros; linhas: "serv" | "local"; det: "ju" | "un" };
+// Seção de uma montagem. Campos opcionais: se faltarem, valem os da montagem. Seção feita de predefinição leva a formatação dela (pre).
+export type Secao = {
+  nome: string;
+  filtro: Filtros;
+  linhas: "serv" | "local";
+  det: "ju" | "un";
+  esconder?: boolean;
+  fill?: boolean;
+  papel?: Papel;
+  folha?: "h" | "v";
+  pre?: { id: string; nome: string; fmt: { linhas: "serv" | "local"; det: "ju" | "un"; esconder: boolean; fill: boolean; papel: Papel; folha: "h" | "v" } };
+};
 export type MontagemDados = {
+  papel?: Papel;
   folha: "h" | "v";
   fill: boolean;
-  titulos: "h" | "v";
   resumo: boolean;
   sumario: boolean;
   fotos: FotosSel;
@@ -41,7 +66,7 @@ export type MontagemDados = {
 };
 export type MontagemSalva = { id: string; nome: string; dados: MontagemDados };
 
-export const MONTAGEM_NOVA = (fotos: FotosSel): MontagemDados => ({ folha: "v", fill: true, titulos: "h", resumo: true, sumario: true, fotos: JSON.parse(JSON.stringify(fotos)), secoes: [] });
+export const MONTAGEM_NOVA = (fotos: FotosSel): MontagemDados => ({ papel: "A3", folha: "v", fill: true, resumo: true, sumario: true, fotos: JSON.parse(JSON.stringify(fotos)), secoes: [] });
 
 // ============================ contexto ============================
 

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { BotaoIcone, Chave, Chip, Linha, Seg } from "./controles";
 import type { Predefinicao } from "./predefinicoes";
-import type { Ctx, Filtros, Formato, MontagemDados, MontagemSalva, Secao } from "./modelo";
+import { PAPEIS, PAPEL_LISTA, type Ctx, type Filtros, type Formato, type Montagem, type MontagemDados, type MontagemSalva, type Papel, type Secao } from "./modelo";
 
 const copia = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 
@@ -14,6 +14,7 @@ type Props = {
   predefs: Predefinicao[];
   filtroAtual: Filtros;
   fmtAtual: Formato;
+  monAtual: Montagem;
   emPrevia: boolean;
   onSelecionar: (id: string) => void;
   onNova: () => void;
@@ -28,11 +29,15 @@ type Props = {
 function resumoSecao(ctx: Ctx, s: Secao) {
   const cats = s.filtro.cat.length ? ctx.dados.categorias.filter((c) => s.filtro.cat.includes(c.id)).map((c) => c.nome).join(", ") : "Todos os ambientes";
   const pavs = s.filtro.pav.length ? ctx.pavs.filter((p) => s.filtro.pav.includes(p.id)).map((p) => p.nome) : [];
-  const partes = [cats, pavs.length ? "Pavimentos: " + (pavs.length > 4 ? pavs.length + " pavimentos" : pavs.join(", ")) : "", s.filtro.fases?.length ? "Fases: " + s.filtro.fases.join(", ") : "", s.linhas === "serv" ? "serviços nas linhas" : "pavimentos nas linhas", s.det === "ju" ? "juntos por pavimento" : ""];
+  const partes = [cats, pavs.length ? "Pavimentos: " + (pavs.length > 4 ? pavs.length + " pavimentos" : pavs.join(", ")) : "", s.filtro.fases?.length ? "Fases: " + s.filtro.fases.join(", ") : "", s.linhas === "serv" ? "serviços nas linhas" : "pavimentos nas linhas", s.det === "ju" ? "juntos por pavimento" : "", s.esconder ? "esconde o que não começou" : "", s.papel || s.folha ? `folha ${s.papel ?? ""} ${s.folha === "h" ? "horizontal" : s.folha === "v" ? "vertical" : ""}`.replace(/\s+/g, " ").trim() : ""];
   return partes.filter(Boolean).join(" · ");
 }
 
-function EditorSecao({ ctx, s, onChange }: { ctx: Ctx; s: Secao; onChange: (s: Secao) => void }) {
+type FmtPre = NonNullable<Secao["pre"]>["fmt"];
+const fmtDaSecao = (s: Secao, base: { papel: Papel; folha: "h" | "v"; fill: boolean; esconder: boolean }): FmtPre => ({ linhas: s.linhas, det: s.det, esconder: s.esconder ?? base.esconder, fill: s.fill ?? base.fill, papel: s.papel ?? base.papel, folha: s.folha ?? base.folha });
+const mesmaFmt = (a: FmtPre, b: FmtPre) => a.linhas === b.linhas && a.det === b.det && a.esconder === b.esconder && a.fill === b.fill && a.papel === b.papel && a.folha === b.folha;
+
+function EditorSecao({ ctx, s, padrao, onChange }: { ctx: Ctx; s: Secao; padrao: { papel: Papel; folha: "h" | "v"; fill: boolean }; onChange: (s: Secao) => void }) {
   const fases = useMemo(() => {
     const nomes = [...ctx.dados.fases].sort((a, b) => a.ordem - b.ordem).map((f) => f.nome);
     ctx.dados.servicos.forEach((sv) => {
@@ -68,6 +73,18 @@ function EditorSecao({ ctx, s, onChange }: { ctx: Ctx; s: Secao; onChange: (s: S
       </Linha>
       <Linha titulo="Apartamentos e locais">
         <Seg valor={s.det} onChange={(v) => onChange({ ...s, det: v })} opcoes={[["un", "Um por um"], ["ju", "Juntos por pavimento"]]} />
+      </Linha>
+      <Linha titulo="Esconder o que não começou">
+        <Seg valor={s.esconder ? "s" : "n"} onChange={(v) => onChange({ ...s, esconder: v === "s" })} opcoes={[["n", "Não"], ["s", "Sim"]]} />
+      </Linha>
+      <Linha titulo="Tamanho">
+        <Seg valor={s.fill === undefined ? "m" : s.fill ? "s" : "n"} onChange={(v) => onChange({ ...s, fill: v === "m" ? undefined : v === "s" })} opcoes={[["m", "Da montagem"], ["s", "Estender"], ["n", "Manter"]]} />
+      </Linha>
+      <Linha titulo="Folha desta seção">
+        <Seg valor={(s.papel ?? "m") as Papel | "m"} onChange={(v) => onChange({ ...s, papel: v === "m" ? undefined : v })} opcoes={[["m", `Da montagem (${padrao.papel})`] as [Papel | "m", string], ...PAPEL_LISTA.map((p) => [p, p] as [Papel | "m", string])]} />
+      </Linha>
+      <Linha titulo="Orientação desta seção">
+        <Seg valor={s.folha ?? "m"} onChange={(v) => onChange({ ...s, folha: v === "m" ? undefined : v })} opcoes={[["m", "Da montagem"], ["v", "Vertical"], ["h", "Horizontal"]]} />
       </Linha>
       <Grupo titulo="Ambientes" campo="cat" itens={ctx.dados.categorias.map((c) => ({ id: c.id, nome: c.nome, cor: c.cor }))} />
       <Grupo titulo="Pavimentos" campo="pav" itens={ctx.pavs.map((p) => ({ id: p.id, nome: p.nome }))} />
@@ -119,14 +136,14 @@ export default function PainelMontar(p: Props) {
       ) : (
         <>
           <input className="w-full border border-border rounded-md px-3 py-1.5 text-sm font-semibold" aria-label="Nome da montagem" value={m.nome} onChange={(e) => p.onMudar({ ...m, nome: e.target.value })} />
-          <Linha titulo="Folha (vale pro PDF todo)">
+          <Linha titulo="Tamanho da folha (vale pro PDF todo)">
+            <Seg valor={m.dados.papel ?? "A3"} onChange={(v) => mudaDados({ papel: v })} opcoes={PAPEL_LISTA.map((p) => [p, `${p} · ${PAPEIS[p].mm[0]} × ${PAPEIS[p].mm[1]} mm`] as [Papel, string])} />
+          </Linha>
+          <Linha titulo="Orientação">
             <Seg valor={m.dados.folha} onChange={(v) => mudaDados({ folha: v })} opcoes={[["v", "▯ Vertical"], ["h", "▭ Horizontal"]]} />
           </Linha>
           <Linha titulo="Tamanho">
             <Seg valor={m.dados.fill ? "s" : "n"} onChange={(v) => mudaDados({ fill: v === "s" })} opcoes={[["s", "Estender até ocupar a folha"], ["n", "Manter tamanho normal"]]} />
-          </Linha>
-          <Linha titulo="Títulos das colunas">
-            <Seg valor={m.dados.titulos} onChange={(v) => mudaDados({ titulos: v })} opcoes={[["h", "Horizontal"], ["v", "Vertical"]]} />
           </Linha>
           <div className="flex flex-wrap gap-5">
             <Chave ligada={m.dados.resumo} onChange={(v) => mudaDados({ resumo: v })} texto="Resumo geral na 1ª página" />
@@ -158,7 +175,20 @@ export default function PainelMontar(p: Props) {
                   <BotaoIcone titulo="Tirar seção" vermelho onClick={() => { setAberta(null); setSecoes(secoes.filter((_, j) => j !== i)); }}>✕</BotaoIcone>
                 </div>
                 <div className="text-xs text-ink-500">{resumoSecao(ctx, s)}</div>
-                {aberta === i && <EditorSecao ctx={ctx} s={s} onChange={(n) => setSecoes(secoes.map((x, j) => (j === i ? n : x)))} />}
+                {s.pre && (() => {
+                  const igual = mesmaFmt(fmtDaSecao(s, { papel: m.dados.papel ?? "A3", folha: m.dados.folha, fill: m.dados.fill, esconder: false }), s.pre.fmt);
+                  return (
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className={`rounded-full px-2.5 py-0.5 font-semibold ${igual ? "bg-primary/10 text-primaryDark" : "bg-accent/60 text-primaryDark"}`}>{igual ? `Formatação da predefinição ${s.pre.nome}` : "Formatação alterada"}</span>
+                      {!igual && (
+                        <button className="underline text-primaryDark" onClick={() => setSecoes(secoes.map((x, j) => (j === i ? { ...x, ...s.pre!.fmt } : x)))}>
+                          Voltar à formatação da predefinição
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
+                {aberta === i && <EditorSecao ctx={ctx} s={s} padrao={{ papel: m.dados.papel ?? "A3", folha: m.dados.folha, fill: m.dados.fill }} onChange={(n) => setSecoes(secoes.map((x, j) => (j === i ? n : x)))} />}
               </div>
             ))}
           </div>
@@ -173,7 +203,11 @@ export default function PainelMontar(p: Props) {
               onChange={(e) => {
                 const pr = p.predefs[Number(e.target.value)];
                 if (!pr) return;
-                setSecoes([...secoes, { nome: pr.nome, filtro: copia(pr.filtros), linhas: pr.formato?.linhas ?? "local", det: pr.formato?.det ?? "un" }]);
+                // usa EXATAMENTE a formatação da predefinição; predefinição antiga (sem formatação) usa a do relatório simples
+                const f = pr.formato && Object.keys(pr.formato).length ? { ...p.fmtAtual, ...pr.formato } : p.fmtAtual;
+                const esc = pr.montagem && typeof pr.montagem.esconder === "boolean" ? pr.montagem.esconder : p.monAtual.esconder;
+                const fmt: FmtPre = { linhas: f.linhas, det: f.det, esconder: esc, fill: f.fill, papel: f.papel ?? "A3", folha: f.folha };
+                setSecoes([...secoes, { nome: pr.nome, filtro: copia(pr.filtros), ...fmt, pre: { id: pr.id, nome: pr.nome, fmt } }]);
               }}
             >
               <option value="">{p.predefs.length ? "De uma predefinição salva…" : "Nenhuma predefinição salva ainda"}</option>
@@ -186,7 +220,7 @@ export default function PainelMontar(p: Props) {
             <button className="text-xs px-2.5 py-1.5 border border-border rounded-md bg-white" onClick={() => { setSecoes([...secoes, { nome: `Seção ${secoes.length + 1}`, filtro: { pav: [], sis: [], cat: [], serv: [], fases: [] }, linhas: "local", det: "un" }]); setAberta(secoes.length); }}>
               + Em branco (escolher aqui)
             </button>
-            <button className="text-xs px-2.5 py-1.5 border border-border rounded-md bg-white" onClick={() => { setSecoes([...secoes, { nome: "", filtro: copia(p.filtroAtual), linhas: p.fmtAtual.linhas, det: p.fmtAtual.det }]); setAberta(secoes.length); }}>
+            <button className="text-xs px-2.5 py-1.5 border border-border rounded-md bg-white" onClick={() => { setSecoes([...secoes, { nome: "", filtro: copia(p.filtroAtual), linhas: p.fmtAtual.linhas, det: p.fmtAtual.det, esconder: p.monAtual.esconder, fill: p.fmtAtual.fill, papel: p.fmtAtual.papel ?? "A3", folha: p.fmtAtual.folha }]); setAberta(secoes.length); }}>
               + Com o filtro atual
             </button>
           </div>

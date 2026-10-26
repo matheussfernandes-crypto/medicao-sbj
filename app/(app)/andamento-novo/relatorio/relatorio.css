@@ -7,7 +7,7 @@
 .rel-tab .brow { display: flex; gap: 26px; align-items: flex-start; margin-bottom: 20px; }
 .rel-tab .blk { flex: none; min-width: 0; }
 .rel-tab .cband { height: 34px; border-radius: 5px; background: var(--cc); color: #fff; display: flex; align-items: center; gap: 12px; padding: 0 14px; margin-bottom: 6px; }
-.rel-tab .cband > b { font-size: 15px; font-weight: 800; white-space: nowrap; }
+.rel-tab .cband > b { font-size: 15px; font-weight: 800; white-space: nowrap; color: #fff; text-shadow: none; -webkit-text-stroke: 0; }
 .rel-tab .cband > span { font-size: 11.5px; color: rgba(255, 255, 255, 0.82); white-space: nowrap; }
 .rel-tab .cband .cbar { margin-left: auto; width: 120px; height: 7px; border-radius: 99px; background: rgba(255, 255, 255, 0.85); overflow: hidden; display: block; }
 .rel-tab .cband .cbar i { display: block; height: 100%; background: #f5c84c; }
@@ -28,10 +28,14 @@
 .rel-tab table.tb th.hz { vertical-align: bottom; padding: 5px 2px; font-size: 8px; letter-spacing: -0.01em; }
 /* fase */
 .rel-tab table.tb th.ph { background: color-mix(in srgb, var(--cc) 15%, #fff); color: color-mix(in srgb, var(--cc) 75%, #000); font-weight: 800; font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; border-bottom: 2px solid var(--cc); border-radius: 4px 4px 0 0; vertical-align: middle; text-align: center; line-height: 1.15; }
-.rel-tab table.tb th.ph b { font-weight: 800; color: color-mix(in srgb, var(--cc) 90%, #000); }
+/* todo título de fase tem a mesma formatação, seja horizontal, em pé, em duas linhas ou junto com o serviço */
+.rel-tab table.tb th.ph, .rel-tab table.tb th.ph * { color: color-mix(in srgb, var(--cc) 75%, #000); font-weight: 800; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; }
+.rel-tab table.tb th.ph b { color: inherit; font-weight: 800; }
 .rel-tab table.tb th.ph.pv { vertical-align: bottom; padding-bottom: 4px; }
 .rel-tab table.tb th.ph.pm { vertical-align: bottom; padding-bottom: 4px; border-bottom: 0; }
-.rel-tab table.tb th.sh { vertical-align: bottom; padding-bottom: 4px; background: color-mix(in srgb, var(--cc) 6%, #fff); border-right: 2px solid #fff; }
+/* todo título de serviço: mesma cor e mesmo peso */
+.rel-tab table.tb th.sh, .rel-tab table.tb th.sh * { color: #1f4a52; font-weight: 600; }
+.rel-tab table.tb th.sh { vertical-align: bottom; text-align: center; padding-bottom: 4px; background: color-mix(in srgb, var(--cc) 6%, #fff); border-right: 2px solid #fff; }
 .rel-tab table.tb .gp { background: transparent !important; border: 0 !important; padding: 0; }
 .rel-tab table.tb tr.gr td { height: 7px; padding: 0; border: 0; }
 .rel-tab table.tb tr.gr.fino td { height: 3px; }
@@ -47,8 +51,8 @@
 .rel-tab table.tb th.gv { vertical-align: bottom; padding-bottom: 4px; font-size: 9.5px; font-weight: 700; color: #1f4a52; background: #f4f7f8; border-right: 2px solid #fff; }
 .rel-tab table.tb th.lv { vertical-align: bottom; padding-bottom: 4px; background: #f4f7f8; border-right: 2px solid #fff; }
 .rel-tab table.tb th.z { background: #e9eff1; }
-.rel-tab table.tb tr.phr > th { background: color-mix(in srgb, var(--cc) 15%, #fff); border-top: 8px solid #fff; box-shadow: inset 3px 0 0 var(--cc); text-align: left; padding: 2px 8px; height: 20px; font-size: 9.5px; font-weight: 600; color: color-mix(in srgb, var(--cc) 80%, #000); white-space: nowrap; }
-.rel-tab table.tb tr.phr > th b { text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; }
+.rel-tab table.tb tr.phr > th { background: color-mix(in srgb, var(--cc) 15%, #fff); border-top: 8px solid #fff; box-shadow: inset 3px 0 0 var(--cc); text-align: left; padding: 2px 8px; height: 20px; font-size: 9.5px; font-weight: 600; color: color-mix(in srgb, var(--cc) 75%, #000); white-space: nowrap; }
+.rel-tab table.tb tr.phr > th b { text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; color: inherit; }
 .rel-tab table.tb th.sl { text-align: left; font-weight: 400; padding: 0 8px 0 4px; white-space: nowrap; border-bottom: 1px solid #eef1f2; }
 
 /* sumário e registro fotográfico */

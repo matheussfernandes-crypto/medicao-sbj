@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { A3, MARGEM_FOLHA } from "./modelo";
+import { MARGEM_FOLHA, dimFolha, type Papel } from "./modelo";
 import { fmtPct0 } from "../ui";
 
 export const ALTURA_CABECALHO = 124;
@@ -51,16 +51,17 @@ function AutoEscala({ escala, altura, largura, children }: { escala: number; alt
   );
 }
 
-export function dimensoes(folha: "h" | "v") {
-  const { w, h } = A3[folha];
+export function dimensoes(folha: "h" | "v", papel: Papel = "A3") {
+  const { w, h } = dimFolha(papel, folha);
   const larguraUtil = w - MARGEM_FOLHA * 2;
   const alturaUtil = h - MARGEM_FOLHA * 2 - ALTURA_CABECALHO - 12 - ALTURA_RODAPE;
   return { w, h, larguraUtil, alturaUtil };
 }
 
-// Uma folha A3 de verdade (1587×1123 px a 96 dpi, ou em pé), com cabeçalho, conteúdo e rodapé.
+// Uma folha de verdade (A4, A3, A2 ou A1; 96 dpi), com cabeçalho, conteúdo e rodapé. Margem, cabeçalho e rodapé têm o mesmo tamanho em todas.
 export default function Folha({
   folha,
+  papel = "A3",
   obraNome,
   titulo,
   sub = "Relatório de andamento de obra",
@@ -74,6 +75,7 @@ export default function Folha({
   fixa = false,
 }: {
   folha: "h" | "v";
+  papel?: Papel;
   obraNome: string;
   titulo: string;
   sub?: string; // subtítulo da faixa (nome da montagem, por exemplo)
@@ -86,9 +88,10 @@ export default function Folha({
   escala?: number;
   fixa?: boolean; // conteúdo já calculado para caber (escala única do relatório): não reduz nem amplia
 }) {
-  const { w, h, larguraUtil } = dimensoes(folha);
+  const { w, h, larguraUtil } = dimensoes(folha, papel);
+  const estreita = w < 900; // A4 em pé: logo e % um pouco menores para o cabeçalho não apertar
   return (
-    <div className="rel-folha" data-folha={numero} style={{ width: w, height: h, padding: MARGEM_FOLHA, background: "#fff", position: "relative", overflow: "hidden", boxSizing: "border-box", fontFamily: "inherit", color: "#1f2937" }}>
+    <div className="rel-folha" data-folha={numero} data-pagina={`${papel}-${folha}`} style={{ width: w, height: h, padding: MARGEM_FOLHA, background: "#fff", position: "relative", overflow: "hidden", boxSizing: "border-box", fontFamily: "inherit", color: "#1f2937" }}>
       <div
         className="rel-faixa"
         style={{
@@ -106,7 +109,7 @@ export default function Folha({
       >
         <div style={{ display: "flex", alignItems: "center", gap: 18, minWidth: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-topbar.png" alt="SBJ" style={{ height: 58, width: "auto" }} />
+          <img src="/logo-topbar.png" alt="SBJ" style={{ height: estreita ? 46 : 58, width: "auto" }} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#cfe3e5" }}>
               SBJ Construtora e Incorporadora · {sub}
@@ -115,9 +118,9 @@ export default function Folha({
             {(() => {
               // o título nunca é cortado: quebra em até 2 linhas e a fonte diminui conforme o tamanho do texto
               const texto = titulo;
-              const fs = texto.length <= 34 ? 27 : texto.length <= 52 ? 23 : texto.length <= 80 ? 19 : 16;
+              const fs = (texto.length <= 34 ? 27 : texto.length <= 52 ? 23 : texto.length <= 80 ? 19 : 16) - (estreita ? 4 : 0);
               return (
-                <div style={{ fontSize: fs, fontWeight: 800, lineHeight: 1.1, maxWidth: larguraUtil - 330, overflowWrap: "anywhere" }}>{texto}</div>
+                <div style={{ fontSize: fs, fontWeight: 800, lineHeight: 1.1, maxWidth: larguraUtil - (estreita ? 240 : 330), overflowWrap: "anywhere" }}>{texto}</div>
               );
             })()}
             <div style={{ fontSize: 11, color: "#d7e7e8" }}>
@@ -127,7 +130,7 @@ export default function Folha({
         </div>
         {pct != null && (
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 52, fontWeight: 800, lineHeight: 1, color: "#f5c84c" }}>{fmtPct0(pct)}%</div>
+            <div style={{ fontSize: estreita ? 40 : 52, fontWeight: 800, lineHeight: 1, color: "#f5c84c" }}>{fmtPct0(pct)}%</div>
             <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.06em", color: "#d7e7e8" }}>concluído</div>
           </div>
         )}

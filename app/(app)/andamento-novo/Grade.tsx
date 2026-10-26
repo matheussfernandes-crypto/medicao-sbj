@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { Check } from "lucide-react";
 import { COR_STATUS, chaveAp, pct, type Soma } from "./calculo";
 import { IconeX, fmtPct0 } from "./ui";
+import { LARG_LINHA, useTitulosV } from "./titulosVerticais";
 import type { Apontamento, Servico, Status } from "./types";
 
 export type LinhaGrade = {
@@ -33,6 +34,7 @@ type Props = {
 // ou no nome do local (linha).
 export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, setSel, onCelula, tituloGrupo, tituloLinha = "Local", tam = 26, corDestaque = "#2c6975" }: Props) {
   const arraste = useRef<{ l: number; c: number; modo: "add" | "rem"; base: Set<string> } | null>(null);
+  const tit = useTitulosV(colunas.map((s) => s.nome));
 
   useEffect(() => {
     const soltar = () => {
@@ -91,20 +93,33 @@ export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, 
   }
   const temGrupo = linhas.some((l) => l.grupoId);
   const larguraGrupo = 120;
+  const larguraLocal = 110;
+  const larguraPct = 46;
+  // coluna de status: igual em todas; no computador a tabela ocupa a largura do quadro (sem rolar para o lado); no celular rola, com Pavimento e Local fixos
+  const minStatus = Math.max(22, 20 + LARG_LINHA * (tit.nl - 1));
+  const larguraMin = (temGrupo ? larguraGrupo : 0) + larguraLocal + larguraPct + colunas.length * minStatus;
 
   return (
     <div className="overflow-auto border border-border rounded-lg bg-white" style={{ maxHeight: "72vh", userSelect: modoSel ? "none" : undefined }} onMouseMove={modoSel ? autoRolar : undefined}>
-      <table className="border-separate border-spacing-0 text-xs">
+      <table className="border-separate border-spacing-0 text-xs" style={{ tableLayout: "fixed", width: "100%", minWidth: larguraMin }}>
+        <colgroup>
+          {temGrupo && <col style={{ width: larguraGrupo }} />}
+          <col style={{ width: larguraLocal }} />
+          {colunas.map((s) => (
+            <col key={s.id} />
+          ))}
+          <col style={{ width: larguraPct }} />
+        </colgroup>
         <thead>
           <tr>
             {temGrupo && (
-              <th className="sticky top-0 left-0 z-30 bg-surface-subtle px-2 py-2 text-left border-b border-r border-border" style={{ minWidth: larguraGrupo }}>
+              <th className="sticky top-0 left-0 z-30 bg-surface-subtle px-2 py-2 text-left border-b border-r border-border" style={{ width: larguraGrupo }}>
                 {tituloGrupo ?? "Pavimento"}
               </th>
             )}
             <th
               className="sticky top-0 z-30 bg-surface-subtle px-2 py-2 text-left border-b border-r border-border"
-              style={{ left: temGrupo ? larguraGrupo : 0, minWidth: 110 }}
+              style={{ left: temGrupo ? larguraGrupo : 0, width: larguraLocal }}
             >
               {tituloLinha}
             </th>
@@ -114,9 +129,16 @@ export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, 
                 title={modoSel ? `Selecionar a coluna: ${s.nome}` : s.nome}
                 onClick={modoSel ? () => alternarGrupo(linhas.map((_, l) => chave(l, c))) : undefined}
                 className={`sticky top-0 z-20 bg-surface-subtle border-b border-r border-border font-semibold text-primaryDark ${modoSel ? "cursor-pointer hover:bg-accent/40" : ""}`}
-                style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", height: 132, padding: "6px 2px", minWidth: tam }}
+                style={{ height: tit.alt, padding: "6px 0", verticalAlign: "bottom", textAlign: "center" }}
               >
-                {s.nome}
+                <div style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", display: "inline-block", whiteSpace: "nowrap", fontSize: tit.fs, lineHeight: LARG_LINHA + "px", color: "#1f4a52" }}>
+                  {(tit.linhas[c] ?? [s.nome]).map((l, i, a) => (
+                    <span key={i}>
+                      {l}
+                      {i < a.length - 1 && <br />}
+                    </span>
+                  ))}
+                </div>
               </th>
             ))}
             <th className="sticky top-0 z-20 bg-surface-subtle px-2 py-2 border-b border-border text-right">%</th>
@@ -157,7 +179,7 @@ export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, 
                       onMouseDown={modoSel ? (e) => iniciar(e, l, c) : undefined}
                       onMouseEnter={modoSel ? () => aplicar(l, c) : undefined}
                       className="border-b border-r border-border cursor-pointer relative hover:brightness-95"
-                      style={{ background: COR_STATUS[st], width: tam, minWidth: tam, height: tam, boxShadow: marcada ? `inset 0 0 0 2px ${corDestaque}` : undefined }}
+                      style={{ background: COR_STATUS[st], height: tam, boxShadow: marcada ? `inset 0 0 0 2px ${corDestaque}` : undefined }}
                     >
                       {st === 3 && (
                         <span className="absolute inset-0 flex items-center justify-center">

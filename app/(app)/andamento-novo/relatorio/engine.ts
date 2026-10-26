@@ -6,7 +6,7 @@ import { pct, type Soma } from "../calculo";
 import { alvosDeItens, alvosDeLocais, somaRecorte, type AlvoR } from "../fatias";
 import { calcularNiveis } from "../fachada";
 import type { Categoria, Servico } from "../types";
-import { A3, MARGEM_FOLHA, agruparPorFase, calcularEscopo, faseDoServico, rotuloDoLocal, status, type Ctx, type Filtros, type FotoRel, type FotosSel, type Secao } from "./modelo";
+import { MARGEM_FOLHA, dimFolha, agruparPorFase, calcularEscopo, faseDoServico, rotuloDoLocal, status, type Ctx, type Filtros, type FotoRel, type FotosSel, type Papel, type Secao } from "./modelo";
 
 export const FF = '"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif';
 const P = (v: number) => Math.round(v) + "%";
@@ -32,8 +32,7 @@ const tw = (t: string, font: string) => {
 };
 export const limparMedidas = () => TWC.clear();
 
-// títulos das colunas e largura da célula de status em uso na hora de gerar cada tabela
-let TIT: "h" | "v" = "h";
+// largura da célula de status em uso na hora de gerar cada tabela
 let CW = 20;
 
 // ---------- hifenização simples em português (hífen invisível U+00AD: só aparece se a linha quebrar ali) ----------
@@ -83,6 +82,40 @@ const hy = (t: string, font = "600 8px " + FF, w = CW - 4) =>
     })
     .join(" ");
 
+// ---------- títulos dos serviços: sempre na vertical, quebrando só entre palavras (nunca no meio da palavra, nunca com hífen) ----------
+const ALT_TITULO = 130; // altura máxima do cabeçalho dos serviços
+const LINHA_TITULO = 11; // largura de cada linha vertical
+function quebraPalavras(nome: string, fonte: string, disp: number): string[] {
+  const linhas: string[] = [];
+  let cur = "";
+  nome.split(/\s+/).forEach((w) => {
+    const t = cur ? cur + " " + w : w;
+    if (!cur || tw(t, fonte) <= disp) cur = t;
+    else {
+      linhas.push(cur);
+      cur = w;
+    }
+  });
+  if (cur) linhas.push(cur);
+  return linhas;
+}
+type TitulosV = { fs: number; linhas: string[][]; alt: number; nl: number };
+// maior fonte (9 → 8 px) em que toda palavra cabe na altura máxima; o título quebra em quantas linhas precisar
+function titulosVerticais(nomes: string[]): TitulosV {
+  const disp = ALT_TITULO - 8;
+  let r: TitulosV | null = null;
+  for (const fs of [9, 8.5, 8]) {
+    const fonte = "600 " + fs + "px " + FF;
+    const linhas = nomes.map((n) => quebraPalavras(n, fonte, disp));
+    const maior = Math.max(0, ...linhas.flatMap((ls) => ls.map((l) => tw(l, fonte))));
+    r = { fs, linhas, alt: Math.ceil(maior) + 8, nl: Math.max(1, ...linhas.map((l) => l.length)) };
+    if (maior <= disp) break;
+  }
+  return r!;
+}
+// largura base da coluna de status: 20 px, mais 11 px por linha extra do maior título
+export const larguraBase = (nomes: string[]) => 20 + LINHA_TITULO * (titulosVerticais(nomes).nl - 1);
+
 // ---------- modelo de dados do motor ----------
 export type MServ = { id: string; nome: string; inteiro: boolean };
 export type MFase = [string, MServ[]];
@@ -91,15 +124,15 @@ export type MCat = { id: string; chave: string; nome: string; cor: string; sis: 
 type Linha = { label: string; items: MItem[]; agg?: boolean };
 type Grupo = { pav: string | null; rows: Linha[] };
 
-export type BlocoTab = { tipo: "tab"; c: MCat; its: MItem[]; servs: MServ[]; fases: MFase[]; sec: Secao; ncol: number; html: string; w: number; h: number; cw: number; cwb: number; tit: "h" | "v" };
+export type BlocoTab = { tipo: "tab"; c: MCat; its: MItem[]; servs: MServ[]; fases: MFase[]; sec: Secao; ncol: number; html: string; w: number; h: number; cw: number; cwb: number; k: number };
 export type BlocoFach = { tipo: "fach"; c: MCat; its: MItem[]; servs: [MServ]; servico: Servico };
 export type BlocoE = BlocoTab | BlocoFach;
 
 export type Plano = {
   titulo: string; // nome da montagem ("" no relatório simples)
+  papel: Papel;
   folha: "h" | "v";
   fill: boolean;
-  titulos: "h" | "v";
   resumo: boolean;
   sumario: boolean;
   fotos: FotosSel;
@@ -109,13 +142,15 @@ export type Plano = {
 };
 
 export type Parte = { html: string } | { fach: BlocoFach };
+// medidas de cada folha: cada seção de uma montagem pode ter o seu tamanho e orientação
+export type DimPag = { papel: Papel; folha: "h" | "v"; PW: number; PH: number; IN: number; LIVRE: number };
 export type Pag =
-  | { tipo: "resumo"; n: number }
-  | { tipo: "sumario"; n: number }
-  | { tipo: "fotos"; n: number; fotos: FotoRel[] }
-  | { tipo: "sec"; n: number; si: number; sec: Secao; partes: Parte[]; cats: string[]; blocos: BlocoE[]; titulo: string; pct: number };
+  | ({ tipo: "resumo"; n: number } & DimPag)
+  | ({ tipo: "sumario"; n: number } & DimPag)
+  | ({ tipo: "fotos"; n: number; fotos: FotoRel[] } & DimPag)
+  | ({ tipo: "sec"; n: number; si: number; sec: Secao; partes: Parte[]; cats: string[]; blocos: BlocoE[]; titulo: string; pct: number } & DimPag);
 export type SumLinha = { n: string | number; titulo: string; sub: string; pg: number | string };
-export type Resultado = { seq: Pag[]; N: number; PW: number; PH: number; IN: number; LIVRE: number; k: number; cw: [number, number]; folha: "h" | "v"; sumario: SumLinha[]; extras: FotoRel[] };
+export type Resultado = { seq: Pag[]; N: number; PW: number; PH: number; IN: number; LIVRE: number; k: number; cw: [number, number]; papel: Papel; folha: "h" | "v"; sumario: SumLinha[]; extras: FotoRel[]; avisos: string[] };
 
 export function fotosDe(fs: FotosSel, lista: FotoRel[]): FotoRel[] {
   const m = new Map(lista.map((f) => [f.id, f]));
@@ -184,7 +219,7 @@ export function blocosDe(E: Amb, sec: Secao, esconder: boolean): BlocoE[] {
       if (fases.length) {
         const servs = fases.flatMap((x) => x[1]);
         const c = mcat(cat, false);
-        out.push({ tipo: "tab", c, its, servs, fases, sec, ncol: 0, html: "", w: 0, h: 0, cw: 20, cwb: 20, tit: "h" });
+        out.push({ tipo: "tab", c, its, servs, fases, sec, ncol: 0, html: "", w: 0, h: 0, cw: 20, cwb: 20, k: 1 });
       }
     }
     // ---- sistemas (Elevadores, Caixa d'água…): sem pavimento ----
@@ -197,7 +232,7 @@ export function blocosDe(E: Amb, sec: Secao, esconder: boolean): BlocoE[] {
       if (!fases.length) return;
       const catsDoSis = new Set(ctx.dados.itens.filter((i) => i.sistema_id === sis.id).map((i) => i.categoria_id));
       const c = mcat(cat, true, catsDoSis.size > 1 ? cat.nome : sis.nome);
-      out.push({ tipo: "tab", c, its, servs: fases.flatMap((x) => x[1]), fases, sec, ncol: 0, html: "", w: 0, h: 0, cw: 20, cwb: 20, tit: "h" });
+      out.push({ tipo: "tab", c, its, servs: fases.flatMap((x) => x[1]), fases, sec, ncol: 0, html: "", w: 0, h: 0, cw: 20, cwb: 20, k: 1 });
     });
   });
 
@@ -288,16 +323,20 @@ function tabLocal(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un
     const need = tw(g.pav!, fPv) + 18;
     if (pavW + locW < need) locW = Math.ceil(need - pavW);
   });
-  const hh = Math.ceil(Math.max(...servs.map((s) => tw(s.nome, fSh))) + 12);
+  const tv = titulosVerticais(servs.map((s) => s.nome));
+  const hh = tv.alt;
+  const idxServ = new Map(servs.map((s, i) => [s.id, i]));
   const PH = fases.map(([n, l]) => {
     const pc = P(pct(somar(E, c, its, l))),
       up = n.toUpperCase(),
       wd = l.length * CW,
       ls = up.length * 0.36;
     const w1 = tw(up + " · " + pc, fPh) + ls + 10,
-      w2 = tw(up, fPh) + ls + 8;
+      palavra = Math.max(...up.split(/\s+/).map((w) => tw(w, fPh))) + ls + 8,
+      w2 = Math.max(palavra, tw(pc, fPh) + 8);
     const same = l.length === 1 && l[0].nome.toLowerCase() === n.toLowerCase();
-    const mode = TIT === "h" ? (same ? "m" : wd >= w1 ? "h1" : "h2") : wd >= w1 ? "h1" : wd >= w2 ? "h2" : same ? "m" : "v";
+    // 1 linha → 2 linhas (nome e %) → junto com o serviço (mesmo nome) → vertical
+    const mode = wd >= w1 ? "h1" : wd >= w2 ? "h2" : same ? "m" : "v";
     return { n, l, pc, up, mode, vlen: tw(up + " · " + pc, fPh) + ls + 14 };
   });
   const phH = Math.max(30, ...PH.filter((p) => p.mode === "v").map((p) => p.vlen));
@@ -307,18 +346,22 @@ function tabLocal(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un
     W = pavW + locW + servs.length * CW + (PH.length - 1) * GP,
     NC = (hasPav ? 2 : 1) + servs.length + PH.length - 1;
   const col = (hasPav ? `<col style="width:${pavW}px">` : "") + `<col style="width:${locW}px">` + PH.map((p, i) => (i > 0 ? `<col style="width:${GP}px">` : "") + p.l.map(() => `<col style="width:${CW}px">`).join("")).join("");
-  let h1 = `<tr${TIT === "v" ? ` style="height:${phH}px"` : ""}><th class="lh" colspan="${hasPav ? 2 : 1}" rowspan="2">${hasPav ? "Pavimento · Local" : "Item"}</th>`;
-  let h2 = `<tr${TIT === "v" ? ` style="height:${svH}px"` : ""}>`;
+  let h1 = `<tr style="height:${phH}px"><th class="lh" colspan="${hasPav ? 2 : 1}" rowspan="2">${hasPav ? "Pavimento · Local" : "Item"}</th>`;
+  let h2 = `<tr style="height:${svH}px">`;
   PH.forEach((p, pi) => {
     if (pi > 0) h1 += `<th class="gp" rowspan="2"></th>`;
     if (p.mode === "m") {
-      h1 += TIT === "h" ? `<th class="ph pm hz" rowspan="2"><b>${hy(p.n.toUpperCase(), "800 9px " + FF, CW - 5)}</b><br>${p.pc}</th>` : `<th class="ph pm" rowspan="2"><span class="vt"><b>${esc(p.up)}</b> · ${p.pc}</span></th>`;
+      h1 += `<th class="ph pm" rowspan="2"><span class="vt">${esc(p.up)} · ${p.pc}</span></th>`;
       return;
     }
-    if (p.mode === "v") h1 += `<th class="ph pv" colspan="${p.l.length}"><span class="vt">${esc(p.up)} · <b>${p.pc}</b></span></th>`;
-    else if (p.mode === "h2") h1 += `<th class="ph hw" colspan="${p.l.length}">${hy(p.up, "800 9px " + FF, p.l.length * CW - 6)}<br><b>${p.pc}</b></th>`;
-    else h1 += `<th class="ph" colspan="${p.l.length}">${esc(p.up)} · <b>${p.pc}</b></th>`;
-    p.l.forEach((s) => (h2 += TIT === "h" ? `<th class="sh hz">${hy(s.nome)}</th>` : `<th class="sh"><span class="vt">${esc(s.nome)}</span></th>`));
+    if (p.mode === "v") h1 += `<th class="ph pv" colspan="${p.l.length}"><span class="vt">${esc(p.up)} · ${p.pc}</span></th>`;
+    else if (p.mode === "h2") h1 += `<th class="ph hw" colspan="${p.l.length}">${esc(p.up)}<br>${p.pc}</th>`;
+    else h1 += `<th class="ph" colspan="${p.l.length}">${esc(p.up)} · ${p.pc}</th>`;
+    // título do serviço: vertical, uma linha vertical por trecho de palavras, sem hífen
+    p.l.forEach((s) => {
+      const ls = tv.linhas[idxServ.get(s.id)!];
+      h2 += `<th class="sh"><span class="vt" style="font-size:${tv.fs}px;line-height:${LINHA_TITULO}px">${ls.map(esc).join("<br>")}</span></th>`;
+    });
   });
   h1 += "</tr>";
   h2 += "</tr>";
@@ -370,15 +413,15 @@ function tabServ(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un"
     ngp = GP ? gs.length - 1 : 0,
     W = svW + ncol * CW + ngp * GP;
   const col = `<col style="width:${svW}px">` + gs.map((g, gi) => (gi > 0 && GP ? `<col style="width:${GP}px">` : "") + g.rows.map(() => `<col style="width:${CW}px">`).join("")).join("");
-  let h1 = `<tr style="height:${TIT === "v" ? r1 : 26}px"><th class="lh" rowspan="2">Serviço</th>`,
-    h2 = `<tr${TIT === "v" ? ` style="height:${r2}px"` : ""}>`;
+  let h1 = `<tr style="height:${r1}px"><th class="lh" rowspan="2">Serviço</th>`,
+    h2 = `<tr style="height:${r2}px">`;
   gs.forEach((g, gi) => {
     const z = gi % 2 ? " z" : "";
     if (gi > 0 && GP) h1 += `<th class="gp" rowspan="2"></th>`;
-    if (single(g)) h1 += TIT === "h" ? `<th class="gv hz${z}" rowspan="2">${hy(lab1(g), "700 9.5px " + FF)}</th>` : `<th class="gv${z}" rowspan="2"><span class="vt">${esc(lab1(g))}</span></th>`;
+    if (single(g)) h1 += `<th class="gv${z}" rowspan="2"><span class="vt">${esc(lab1(g))}</span></th>`;
     else {
       h1 += `<th class="gh${z}" colspan="${g.rows.length}">${esc(g.pav)}</th>`;
-      g.rows.forEach((r) => (h2 += TIT === "h" ? `<th class="lv hz${z}">${hy(r.label)}</th>` : `<th class="lv${z}"><span class="vt">${esc(r.label)}</span></th>`));
+      g.rows.forEach((r) => (h2 += `<th class="lv${z}"><span class="vt">${esc(r.label)}</span></th>`));
     }
   });
   h1 += "</tr>";
@@ -423,16 +466,26 @@ const BAND = 40;
 const GAP = 20;
 const GX = 26;
 
+// medidas úteis de uma folha (largura e altura livres para o conteúdo)
+function dimDe(papel: Papel, folha: "h" | "v"): DimPag {
+  const { w, h } = dimFolha(papel, folha);
+  return { papel, folha, PW: w, PH: h, IN: w - 2 * MARGEM_FOLHA, LIVRE: h - 2 * MARGEM_FOLHA - 124 - 12 - 34 };
+}
+
 export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
   const E = ambiente(ctx);
-  const PW = A3[pl.folha].w,
-    PH = A3[pl.folha].h,
-    IN = PW - 2 * MARGEM_FOLHA,
-    LIVRE = PH - 2 * MARGEM_FOLHA - 124 - 12 - 34;
+  const dimPlano = dimDe(pl.papel, pl.folha);
 
-  const secs = pl.secoes.map((sec) => ({ sec, blocos: blocosDe(E, sec, pl.esconder) }));
-  const tabs = secs.flatMap((S) => S.blocos.filter((b): b is BlocoTab => b.tipo === "tab"));
-  tabs.forEach((b) => (b.ncol = b.sec.linhas === "serv" ? grupos(b.c, b.its, b.sec.det, E).reduce((a, g) => a + g.rows.length, 0) : b.servs.length));
+  // cada seção pode ter o seu papel, orientação, "estender" e "esconder" (seção feita de predefinição); senão vale o da montagem
+  const secs = pl.secoes.map((sec) => {
+    const papel = sec.papel ?? pl.papel,
+      folha = sec.folha ?? pl.folha,
+      fill = sec.fill ?? pl.fill,
+      esconder = sec.esconder ?? pl.esconder;
+    return { sec, dim: dimDe(papel, folha), fill, esconder, grupo: `${papel}|${folha}|${fill ? 1 : 0}`, blocos: blocosDe(E, sec, esconder) };
+  });
+  const tabs = secs.flatMap((S) => S.blocos.filter((b): b is BlocoTab => b.tipo === "tab").map((b) => ({ b, S })));
+  tabs.forEach(({ b }) => (b.ncol = b.sec.linhas === "serv" ? grupos(b.c, b.its, b.sec.det, E).reduce((a, g) => a + g.rows.length, 0) : b.servs.length));
   const html1 = (b: BlocoTab) => (b.sec.linhas === "serv" ? tabServ(E, b.c, b.its, b.fases, b.sec.det) : tabLocal(E, b.c, b.its, b.fases, b.sec.det));
   const medirHtml = (b: BlocoTab) => {
     MEAS.innerHTML = b.html;
@@ -440,39 +493,41 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
     b.w = t.offsetWidth;
     b.h = t.offsetHeight;
   };
-  // títulos horizontais ou verticais (vale para todas as tabelas); largura base da coluna: 38 px (horizontal) / 20 px (vertical)
-  tabs.forEach((b) => {
-    b.tit = pl.titulos;
-    b.cwb = pl.titulos === "h" ? 38 : 20;
-    TIT = b.tit;
+  // títulos sempre na vertical; largura base da coluna: 20 px (+11 px por linha extra do maior título)
+  tabs.forEach(({ b }) => {
+    b.cwb = b.sec.linhas === "local" ? larguraBase(b.servs.map((s) => s.nome)) : 20;
     CW = b.cwb;
     b.cw = CW;
     b.html = html1(b);
     medirHtml(b);
   });
-  // escala única: a menor que ainda deixa cada tabela inteira na folha (com "Estender", até 1,6)
-  let k = tabs.length ? Math.min(...tabs.map((b) => Math.min(IN / b.w, (LIVRE - BAND) / b.h))) : 1;
-  k = pl.fill ? Math.min(1.6, k) : Math.min(1, k);
-  const cwMaxDe = (b: BlocoTab) => (b.tit === "h" ? 160 : 36);
+  // escala única por tamanho de folha: a menor que ainda deixa cada tabela inteira na folha (com "Estender", até 1,6)
+  const kPorGrupo = new Map<string, number>();
+  tabs.forEach(({ b, S }) => {
+    const kb = Math.min(S.dim.IN / b.w, (S.dim.LIVRE - BAND) / b.h);
+    kPorGrupo.set(S.grupo, Math.min(kPorGrupo.get(S.grupo) ?? Infinity, kb));
+  });
+  kPorGrupo.forEach((v, g) => kPorGrupo.set(g, g.endsWith("|1") ? Math.min(1.6, v) : Math.min(1, v)));
+  tabs.forEach(({ b, S }) => (b.k = kPorGrupo.get(S.grupo) ?? 1));
+  const cwMaxDe = (b: BlocoTab) => Math.max(36, b.cwb);
   const regen = (b: BlocoTab, cw: number) => {
-    TIT = b.tit;
     CW = cw;
     b.cw = cw;
     b.html = html1(b);
     medirHtml(b);
     CW = 20;
   };
-  const wB = (b: BlocoTab) => b.w * k,
-    hB = (b: BlocoTab) => BAND + b.h * k;
+  const wB = (b: BlocoTab) => b.w * b.k,
+    hB = (b: BlocoTab) => BAND + b.h * b.k;
 
   type Linha2 = { bs: BlocoTab[]; w: number; h: number };
-  type PagTmp = { tipo: "sec"; si: number; sec: Secao; rows: Linha2[]; cats: string[]; blocos: BlocoE[]; partes: Parte[]; cheia?: boolean };
+  type PagTmp = { tipo: "sec"; si: number; sec: Secao; dim: DimPag; fill: boolean; rows: Linha2[]; cats: string[]; blocos: BlocoE[]; partes: Parte[]; cheia?: boolean };
   const pags: PagTmp[] = [];
 
   secs.forEach((S, si) => {
     const minhas: PagTmp[] = [];
     const nova = (): PagTmp => {
-      const p: PagTmp = { tipo: "sec", si, sec: S.sec, rows: [], cats: [], blocos: [], partes: [] };
+      const p: PagTmp = { tipo: "sec", si, sec: S.sec, dim: S.dim, fill: S.fill, rows: [], cats: [], blocos: [], partes: [] };
       pags.push(p);
       minhas.push(p);
       return p;
@@ -481,7 +536,7 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
     // tenta pôr o bloco na folha, numa linha nova embaixo (nada lado a lado)
     const tenta = (p: { cheia?: boolean; rows: Linha2[] }, b: BlocoTab, real: boolean) => {
       if (p.cheia) return false;
-      if (altura(p) + (p.rows.length ? GAP : 0) + hB(b) <= LIVRE) {
+      if (altura(p) + (p.rows.length ? GAP : 0) + hB(b) <= S.dim.LIVRE) {
         if (real) p.rows.push({ bs: [b], w: wB(b), h: hB(b) });
         return true;
       }
@@ -522,12 +577,13 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
     if (!S.blocos.length) nova().partes.push({ html: `<div class="rel-vazio">Nada nesta seção com esses filtros.</div>` });
   });
 
-  // esticar: cada tabela alarga as células até ocupar a largura (máx. 160 px horizontal / 36 px vertical); a faixa ocupa sempre a largura toda
+  // esticar: cada tabela alarga as células até ocupar a largura; a faixa ocupa sempre a largura toda
   const cws: number[] = [];
   pags.forEach((p) => {
     p.rows.forEach((r) => {
-      if (pl.fill) {
-        const sobra = IN - r.w,
+      if (p.fill) {
+        const k = r.bs[0].k;
+        const sobra = p.dim.IN - r.w,
           nc = r.bs.reduce((a, b) => a + b.ncol, 0);
         if (sobra > 4) {
           const b0 = r.bs[0],
@@ -543,7 +599,7 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
       const html = `<div class="brow">${r.bs
         .map((b) => {
           if (!p.cats.includes(b.c.nome)) p.cats.push(b.c.nome);
-          return `<div class="blk" style="width:${IN}px">${bandaCat(E, b)}<div class="tw" style="width:${wB(b)}px;height:${b.h * k}px"><div style="width:${b.w}px;transform:scale(${k});transform-origin:0 0">${b.html}</div></div></div>`;
+          return `<div class="blk" style="width:${p.dim.IN}px">${bandaCat(E, b)}<div class="tw" style="width:${wB(b)}px;height:${b.h * b.k}px"><div style="width:${b.w}px;transform:scale(${b.k});transform-origin:0 0">${b.html}</div></div></div>`;
         })
         .join("")}</div>`;
       p.partes.push({ html });
@@ -553,18 +609,18 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
 
   // ---- sequência de folhas ----
   const seq: Pag[] = [];
-  if (pl.resumo) seq.push({ tipo: "resumo", n: 0 });
-  if (pl.sumario) seq.push({ tipo: "sumario", n: 0 });
+  if (pl.resumo) seq.push({ tipo: "resumo", n: 0, ...dimPlano });
+  if (pl.sumario) seq.push({ tipo: "sumario", n: 0, ...dimPlano });
   const secPags: Pag[] = pags.map((p) => {
     const nomes = p.cats;
     const titulo = (p.sec.nome ? p.sec.nome : nomes.length <= 3 ? nomes.join(" · ") : nomes.slice(0, 2).join(" · ") + " e mais " + (nomes.length - 2)).toUpperCase();
-    return { tipo: "sec", n: 0, si: p.si, sec: p.sec, partes: p.partes, cats: p.cats, blocos: p.blocos, titulo, pct: pctBlocos(E, p.blocos) };
+    return { tipo: "sec", n: 0, si: p.si, sec: p.sec, partes: p.partes, cats: p.cats, blocos: p.blocos, titulo, pct: pctBlocos(E, p.blocos), ...p.dim };
   });
   seq.push(...secPags);
   const todas = fotosDe(pl.fotos, pl.fotosLista);
   const extras = pl.resumo ? todas.slice(pl.fotos.n) : [];
   const porPg = pl.folha === "v" ? 12 : 8;
-  for (let i = 0; i < extras.length; i += porPg) seq.push({ tipo: "fotos", n: 0, fotos: extras.slice(i, i + porPg) });
+  for (let i = 0; i < extras.length; i += porPg) seq.push({ tipo: "fotos", n: 0, fotos: extras.slice(i, i + porPg), ...dimPlano });
   seq.forEach((p, i) => (p.n = i + 1));
 
   // sumário
@@ -573,7 +629,7 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
     if (pl.resumo) sumario.push({ n: "R", titulo: "Resumo geral", sub: "Números, linha do tempo, quadros, 3D, fotos e frentes", pg: 1 });
     pl.secoes.forEach((s, i) => {
       const pg = seq.find((x) => x.tipo === "sec" && x.si === i);
-      const cats = [...new Set(blocosDe(E, s, pl.esconder).map((b) => b.c.nome))];
+      const cats = [...new Set(secs[i].blocos.map((b) => b.c.nome))];
       const resto = textoFiltro(E, s.filtro);
       sumario.push({ n: i + 1, titulo: s.nome || cats.join(", "), sub: cats.join(" · ") + (resto ? " · " + resto : ""), pg: pg ? pg.n : "—" });
     });
@@ -581,9 +637,12 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
     if (rf) sumario.push({ n: "F", titulo: "Registro fotográfico", sub: `${extras.length} fotos`, pg: rf.n });
   }
 
+  const k = kPorGrupo.size ? Math.min(...kPorGrupo.values()) : 1;
+  const avisos: string[] = [];
+  if (k < 0.55) avisos.push(`Neste tamanho de folha a tabela fica muito pequena (${Math.round(k * 100)}%): use um papel maior ou a folha na horizontal.`);
   const cwMin = cws.length ? Math.min(...cws) : 20,
     cwMax = cws.length ? Math.max(...cws) : 20;
-  return { seq, N: seq.length, PW, PH, IN, LIVRE, k, cw: [cwMin, cwMax], folha: pl.folha, sumario, extras };
+  return { seq, N: seq.length, PW: dimPlano.PW, PH: dimPlano.PH, IN: dimPlano.IN, LIVRE: dimPlano.LIVRE, k, cw: [cwMin, cwMax], papel: pl.papel, folha: pl.folha, sumario, extras, avisos };
 }
 
 // faixa da categoria para a folha da fachada (React usa por dangerouslySetInnerHTML)

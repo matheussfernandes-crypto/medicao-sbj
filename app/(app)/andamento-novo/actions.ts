@@ -46,6 +46,7 @@ export async function criarObraNova(input: {
   inicio: string | null;
   entrega: string | null;
   params: ParamsObraNova;
+  obraGeralId?: string | null; // opcional: LIGA a uma obra do cadastro geral (somente leitura; a original não é alterada)
 }) {
   const s = await admin();
   const estrutura = gerarEstrutura(input.params);
@@ -55,8 +56,19 @@ export async function criarObraNova(input: {
     p_estrutura: estrutura,
     p_inicio: input.inicio || null,
     p_entrega: input.entrega || null,
+    p_obra_id: input.obraGeralId || null,
   });
   return id as string;
+}
+
+// Exclusão REVERSÍVEL, só no Andamento novo: marca a obra como excluída (30 dias para restaurar). Não mexe na tabela geral de obras.
+export async function excluirObra(id: string) {
+  const s = await admin();
+  await rpc(s, "an_excluir_obra", { p_id: id });
+}
+export async function restaurarObra(id: string) {
+  const s = await admin();
+  await rpc(s, "an_restaurar_obra", { p_id: id });
 }
 
 // ---------- fases ----------

@@ -1,6 +1,7 @@
 // Modelo novo do Andamento de Obra: pavimento > local, sistema > item, categoria define serviços e pesos.
 
-export type ObraInfo = { id: string; nome: string; data_inicio: string | null; data_entrega_prevista: string | null };
+// obra_geral_id: ligação opcional (só leitura) com a obra do cadastro geral; as fotos usam essa ligação
+export type ObraInfo = { id: string; nome: string; data_inicio: string | null; data_entrega_prevista: string | null; obra_geral_id?: string | null };
 export type Fase = { id: string; nome: string; ordem: number };
 export type Categoria = { id: string; chave: string; nome: string; cor: string; ordem: number };
 export type Servico = {
@@ -71,6 +72,8 @@ export type DadosConfig = {
   percentuais: Percentual[];
   // nº de serviços por categoria (chave) no Modelo padrão e em cada obra — usado na prévia da obra nova
   contagens: Record<string, Record<string, number>>;
+  excluidas: { id: string; nome: string; excluida_em: string }[]; // obras excluídas do Andamento novo há menos de 30 dias
+  obrasGerais: { id: string; nome: string }[]; // obras do cadastro geral ainda não ligadas (só para ligar, sem alterar)
 };
 
 export const CORES_CATEGORIA = ["#2c6975", "#3d7d5a", "#a35d3d", "#56606b", "#c0782b", "#8a6d3b", "#4a6fa5", "#6b4f9e", "#b5651d", "#2f8a8a", "#7a6a5a", "#a3406b"];

@@ -1,12 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import HistoricoNovoClient, { type LinhaHistorico } from "./HistoricoNovoClient";
 import ObraSelect from "../ObraSelect";
+import { listarObrasAndamento } from "../obrasAndamento";
 
 const ST = ["Não iniciado", "Andamento", "Finalizado", "Ausência"];
 
 export default async function HistoricoNovoPage({ searchParams }: { searchParams: { obra?: string } }) {
   const supabase = createClient();
-  const { data: obras } = await supabase.from("obras").select("id, nome").order("nome");
+  const obras = await listarObrasAndamento(supabase);
   const obra = (obras ?? []).find((o) => o.id === searchParams.obra) ?? (obras ?? [])[0];
   if (!obra) return <div className="card text-sm text-ink-500">Nenhuma obra cadastrada.</div>;
 

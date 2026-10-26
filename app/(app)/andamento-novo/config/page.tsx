@@ -4,7 +4,8 @@ import ConfigNovoClient from "../ConfigNovoClient";
 import { carregarAndamento } from "../dados";
 import { mapaApontamentos, montarIndice, pct } from "../calculo";
 import { alvosDeItens, alvosDeLocais, montarFatias, somaRecorte } from "../fatias";
-import type { DadosConfig, ObraInfo } from "../types";
+import { listarObrasAndamento, listarObrasExcluidas } from "../obrasAndamento";
+import type { DadosConfig } from "../types";
 
 export default async function AndamentoNovoPage({ searchParams }: { searchParams: { obra?: string } }) {
   const supabase = createClient();
@@ -15,10 +16,17 @@ export default async function AndamentoNovoPage({ searchParams }: { searchParams
   const { data: pode } = await supabase.rpc("an_pode_configurar", { uid: user!.id });
   if (!pode) redirect("/andamento-novo");
 
-  const { data: obrasRows } = await supabase.from("obras").select("id, nome, data_inicio, data_entrega_prevista").order("nome");
-  const obras = (obrasRows ?? []) as ObraInfo[];
+  // quem passou de 30 dias na lista de excluídas é apagado de vez (só dados do módulo)
+  await supabase.rpc("an_purgar_obras_excluidas");
+  const obras = await listarObrasAndamento(supabase);
+  const excluidas = await listarObrasExcluidas(supabase);
+  // obras do cadastro geral que ainda não estão no Andamento novo (só leitura: serve para LIGAR, nunca para alterar)
+  const { data: geraisRows } = await supabase.from("obras").select("id, nome").order("nome");
+  const { data: ligadasRows } = await supabase.from("andamento_novo_obras").select("obra_id").not("obra_id", "is", null).is("excluida_em", null);
+  const ligadas = new Set((ligadasRows ?? []).map((r: any) => r.obra_id));
+  const obrasGerais = ((geraisRows ?? []) as { id: string; nome: string }[]).filter((o) => !ligadas.has(o.id));
   const obra = obras.find((o) => o.id === searchParams.obra) ?? obras[0];
-  if (!obra) return <div className="card text-sm text-ink-500">Nenhuma obra cadastrada.</div>;
+  if (!obra) return <div className="card text-sm text-ink-500">Nenhuma obra cadastrada no Andamento de Obra (novo).</div>;
 
   const [{ data: fases }, { data: categorias }, { data: servicos }, { data: pavimentos }, { data: sistemas }, { data: contagensRows }, andamento] =
     await Promise.all([
@@ -82,6 +90,8 @@ export default async function AndamentoNovoPage({ searchParams }: { searchParams
     itens: (itens ?? []) as any,
     percentuais,
     contagens,
+    excluidas,
+    obrasGerais,
   };
 
   return (

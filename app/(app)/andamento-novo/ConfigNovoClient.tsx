@@ -84,7 +84,7 @@ type Confirmacao = { texto: string; destinos?: Categoria[]; onConfirmar: (destin
 
 export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
   const router = useRouter();
-  const { obra, obras, fases, categorias, servicos, vinculos, pavimentos, locais, sistemas, itens, percentuais, contagens } = dados;
+  const { obra, obras, fases, categorias, servicos, vinculos, pavimentos, locais, sistemas, itens, percentuais, contagens, excluidas, obrasGerais } = dados;
 
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -93,6 +93,9 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
   const [aberta, setAberta] = useState({ obra: true, matriz: false, pesos: true, pavs: true, sis: true });
   const alternar = (k: keyof typeof aberta) => setAberta((a) => ({ ...a, [k]: !a[k] }));
   const [novaObraAberta, setNovaObraAberta] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
+  const [nomeConfirma, setNomeConfirma] = useState("");
+  const [verExcluidas, setVerExcluidas] = useState(false);
 
   async function exec(fn: () => Promise<unknown>) {
     setErro(null);
@@ -193,13 +196,72 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
         <button className={btn} onClick={() => setNovaObraAberta((v) => !v)}>
           {novaObraAberta ? "Fechar cadastro" : "+ Cadastrar nova obra"}
         </button>
+        <button className={`${btn} text-danger border-danger/40`} onClick={() => { setExcluindo((v) => !v); setNomeConfirma(""); }}>
+          Excluir obra
+        </button>
+        {excluidas.length > 0 && (
+          <button className={btn} onClick={() => setVerExcluidas((v) => !v)}>
+            Obras excluídas ({excluidas.length})
+          </button>
+        )}
         <span className="text-xs text-ink-500 ml-auto">
           Andamento geral (em andamento = 0,5): <b className="text-ink-900">{fmt(pctObra)}%</b>
         </span>
       </div>
 
+      {excluindo && (
+        <div className="card border-danger/40 bg-red-50 space-y-2 text-sm">
+          <p className="text-danger font-semibold">Excluir "{obra.nome}" do Andamento de Obra (novo)?</p>
+          <p className="text-ink-700">
+            A obra será removida <b>só do Andamento de Obra (novo)</b>. Ela continua existindo na medição e no resto do sistema. Os dados do andamento ficam guardados por 30 dias e podem ser restaurados em "Obras excluídas".
+          </p>
+          <label className="block text-xs text-ink-500">
+            Para confirmar, digite o nome da obra: <b className="text-ink-900">{obra.nome}</b>
+            <input value={nomeConfirma} onChange={(e) => setNomeConfirma(e.target.value)} className="mt-1 border border-border rounded-lg px-3 py-2 text-sm bg-white w-full max-w-sm" autoComplete="off" />
+          </label>
+          <div className="flex gap-2">
+            <button
+              className="px-3 py-1.5 bg-danger text-white rounded-md text-xs font-semibold disabled:opacity-50"
+              disabled={ocupado || nomeConfirma.trim().toLowerCase() !== obra.nome.trim().toLowerCase()}
+              onClick={() =>
+                exec(async () => {
+                  await acoes.excluirObra(obra.id);
+                  setExcluindo(false);
+                  setNomeConfirma("");
+                  router.push("/andamento-novo/config");
+                })
+              }
+            >
+              Excluir obra
+            </button>
+            <button className={btn} onClick={() => setExcluindo(false)}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {verExcluidas && excluidas.length > 0 && (
+        <div className="card text-sm space-y-2">
+          <h2 className="font-semibold text-primaryDark">Obras excluídas do Andamento (novo)</h2>
+          {excluidas.map((o) => {
+            const dias = Math.max(0, 30 - Math.floor((Date.now() - new Date(o.excluida_em).getTime()) / 86400000));
+            return (
+              <div key={o.id} className="flex items-center gap-3 border-b border-border/60 pb-1.5">
+                <span className="font-medium">{o.nome}</span>
+                <span className="text-xs text-ink-500">excluída em {new Date(o.excluida_em).toLocaleDateString("pt-BR")} · os dados são apagados de vez em {dias} dia{dias === 1 ? "" : "s"}</span>
+                <button className={`${btn} ml-auto`} disabled={ocupado} onClick={() => exec(async () => { await acoes.restaurarObra(o.id); router.push(`/andamento-novo/config?obra=${o.id}`); })}>
+                  Restaurar
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {novaObraAberta && (
         <NovaObra
+          obrasGerais={obrasGerais}
           obras={obras}
           contagens={contagens}
           ocupado={ocupado}
@@ -1127,12 +1189,14 @@ function EstruturaCard(props: {
 // Cadastro de obra nova
 
 function NovaObra(props: {
+  obrasGerais: DadosConfig["obrasGerais"];
   obras: DadosConfig["obras"];
   contagens: DadosConfig["contagens"];
   ocupado: boolean;
-  onCriar: (input: { nome: string; base: string | null; inicio: string | null; entrega: string | null; params: ParamsObraNova }) => void;
+  onCriar: (input: { nome: string; base: string | null; inicio: string | null; entrega: string | null; params: ParamsObraNova; obraGeralId: string | null }) => void;
 }) {
   const [nome, setNome] = useState("");
+  const [ligar, setLigar] = useState<string>("");
   const [base, setBase] = useState<string>("modelo");
   const [inicio, setInicio] = useState("");
   const [entrega, setEntrega] = useState("");
@@ -1149,6 +1213,27 @@ function NovaObra(props: {
       <h2 className="font-semibold text-primaryDark mb-3">Cadastrar nova obra</h2>
       <div className="grid md:grid-cols-[1fr_280px] gap-4">
         <div className="grid sm:grid-cols-2 gap-3">
+          {props.obrasGerais.length > 0 && (
+            <label className="sm:col-span-2 text-xs text-ink-500">
+              Ligar a uma obra que já existe no sistema (opcional — a original não é alterada)
+              <select
+                value={ligar}
+                onChange={(e) => {
+                  setLigar(e.target.value);
+                  const o = props.obrasGerais.find((x) => x.id === e.target.value);
+                  if (o) setNome(o.nome);
+                }}
+                className={campo}
+              >
+                <option value="">Não ligar: obra só do Andamento (novo)</option>
+                {props.obrasGerais.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="sm:col-span-2 text-xs text-ink-500">
             Nome da obra
             <input value={nome} onChange={(e) => setNome(e.target.value)} className={campo} placeholder="Ex.: ILHA DE LIPARI" />
@@ -1234,7 +1319,7 @@ function NovaObra(props: {
         <button
           className={btnPri}
           disabled={props.ocupado || !nome.trim()}
-          onClick={() => props.onCriar({ nome, base: base === "modelo" ? null : base, inicio: inicio || null, entrega: entrega || null, params })}
+          onClick={() => props.onCriar({ nome, base: base === "modelo" ? null : base, inicio: inicio || null, entrega: entrega || null, params, obraGeralId: ligar || null })}
         >
           Criar obra
         </button>

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Apontamento, DadosAndamento, ObraInfo } from "./types";
+import { listarObrasAndamento } from "./obrasAndamento";
+import type { Apontamento, DadosAndamento } from "./types";
 
 // Busca em páginas: o PostgREST devolve no máximo 1000 linhas por consulta.
 async function paginar<T>(consulta: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: any }>): Promise<T[]> {
@@ -22,8 +23,7 @@ export async function carregarAndamento(obraIdPedida?: string): Promise<DadosAnd
   } = await supabase.auth.getUser();
   const { data: perfil } = await supabase.from("perfis").select("nome_completo, setor").eq("id", user!.id).single();
 
-  const { data: obrasRows } = await supabase.from("obras").select("id, nome, data_inicio, data_entrega_prevista").order("nome");
-  const obras = (obrasRows ?? []) as ObraInfo[];
+  const obras = await listarObrasAndamento(supabase);
   const obra = obras.find((o) => o.id === obraIdPedida) ?? obras[0];
   if (!obra) return null;
 

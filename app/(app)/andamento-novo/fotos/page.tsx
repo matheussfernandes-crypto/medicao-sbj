@@ -2,18 +2,27 @@ import { createClient } from "@/lib/supabase/server";
 import FotosPanel from "@/app/(app)/andamento-obra/FotosPanel";
 import type { FotoObra } from "@/app/(app)/andamento-obra/types";
 import ObraSelect from "../ObraSelect";
+import { listarObrasAndamento } from "../obrasAndamento";
 
 // Fotos continuam as mesmas (tabela obra_fotos): sem mudança de tela nesta fase.
 export default async function FotosNovoPage({ searchParams }: { searchParams: { obra?: string } }) {
   const supabase = createClient();
-  const { data: obras } = await supabase.from("obras").select("id, nome").order("nome");
+  const obras = await listarObrasAndamento(supabase);
   const obra = (obras ?? []).find((o) => o.id === searchParams.obra) ?? (obras ?? [])[0];
   if (!obra) return <div className="card text-sm text-ink-500">Nenhuma obra cadastrada.</div>;
 
+  // as fotos ficam na obra do cadastro geral a que esta obra está ligada
+  if (!obra.obra_geral_id)
+    return (
+      <div className="space-y-3">
+        <ObraSelect obras={obras} atual={obra.id} />
+        <div className="card text-sm text-ink-500">Esta obra não está ligada a uma obra do cadastro geral, então ainda não tem fotos.</div>
+      </div>
+    );
   const { data: rows } = await supabase
     .from("obra_fotos")
     .select("id, data_foto, legenda, storage_path, criado_por")
-    .eq("obra_id", obra.id)
+    .eq("obra_id", obra.obra_geral_id)
     .order("data_foto", { ascending: false })
     .order("criado_em", { ascending: false });
   const caminhos = (rows ?? []).map((f) => f.storage_path);
@@ -38,8 +47,8 @@ export default async function FotosNovoPage({ searchParams }: { searchParams: { 
 
   return (
     <div className="space-y-3">
-      <ObraSelect obras={obras ?? []} atual={obra.id} />
-      <FotosPanel obraId={obra.id} obraNome={obra.nome} fotos={fotos} />
+      <ObraSelect obras={obras} atual={obra.id} />
+      <FotosPanel obraId={obra.obra_geral_id} obraNome={obra.nome} fotos={fotos} />
     </div>
   );
 }

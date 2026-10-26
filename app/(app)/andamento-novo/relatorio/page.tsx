@@ -20,7 +20,7 @@ export default async function RelatorioNovoPage({ searchParams }: { searchParams
     supabase.from("an_predefinicao").select("id, nome, filtros, formatacao, montagem").eq("obra_id", obraId).order("criado_em"),
     supabase.from("an_montagem").select("id, nome, dados").eq("obra_id", obraId).order("criado_em"),
     supabase.from("an_relatorio_cfg").select("fotos").eq("obra_id", obraId).maybeSingle(),
-    supabase.from("obra_fotos").select("id, data_foto, legenda, storage_path").eq("obra_id", obraId).order("data_foto", { ascending: false }).order("criado_em", { ascending: false }),
+    dados.obra.obra_geral_id ? supabase.from("obra_fotos").select("id, data_foto, legenda, storage_path").eq("obra_id", dados.obra.obra_geral_id).order("data_foto", { ascending: false }).order("criado_em", { ascending: false }) : Promise.resolve({ data: [] as any[] }),
   ]);
 
   const salvas: Predefinicao[] = (rows ?? []).map((r: any) => ({

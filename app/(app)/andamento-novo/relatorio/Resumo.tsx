@@ -92,7 +92,7 @@ function FotosResumo({ fotos, mais, vertical }: { fotos: FotoRel[]; mais: number
 }
 
 // uma fachada em miniatura (duas vistas centralizadas) com os % por fachada e por parte, para UM serviço
-function MiniFachada({ ctx, sis, servico, niveis, titulo }: { ctx: Ctx; sis: Sistema; servico: Servico; niveis: ReturnType<typeof calcularNiveis>; titulo: boolean }) {
+function MiniFachada({ ctx, sis, servico, niveis }: { ctx: Ctx; sis: Sistema; servico: Servico; niveis: ReturnType<typeof calcularNiveis> }) {
   const itens = useMemo(() => itensDoServico(ctx.itensPorSis.get(sis.id) ?? [], servico.id), [ctx, sis.id, servico.id]);
   const descidas = useMemo(() => descidasDoServico(sis, servico.id), [sis, servico.id]);
   const porChave = useMemo(() => mapaItensFachada(itens), [itens]);
@@ -107,13 +107,17 @@ function MiniFachada({ ctx, sis, servico, niveis, titulo }: { ctx: Ctx; sis: Sis
     acumular(total, 1, st);
   });
   return (
-    <div>
-      {titulo && (
-        <div className="flex items-center justify-between text-[12px] font-bold mb-1" style={{ color: "#1f4a52" }}>
-          <span>{servico.nome}</span>
-          <span>{fmtPct0(pct(total))}%</span>
+    <Quadro
+      titulo={
+        <div className="flex items-center justify-between" style={{ borderBottom: "2px solid #1f4a52", paddingBottom: 5 }}>
+          <span style={{ fontSize: 15, fontWeight: 800 }}>
+            <span style={{ fontWeight: 600, color: "#6b7a80" }}>Fachada · </span>
+            {servico.nome}
+          </span>
+          <span style={{ fontSize: 15, fontWeight: 800, background: "#e8f1f3", borderRadius: 999, padding: "1px 10px" }}>{fmtPct0(pct(total))}%</span>
         </div>
-      )}
+      }
+    >
       <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
         <div className="grid grid-cols-2 gap-1" style={{ flex: "1 1 62%", justifyItems: "center" }}>
           {(["NE", "SW"] as const).map((v) => (
@@ -132,7 +136,7 @@ function MiniFachada({ ctx, sis, servico, niveis, titulo }: { ctx: Ctx; sis: Sis
             </div>
           ))}
         </div>
-        <div style={{ flex: "1 1 38%", minWidth: 0 }}>
+        <div style={{ flex: "1 1 38%", minWidth: 0, borderLeft: "1px solid #dfe5e8", paddingLeft: 12 }}>
           {(["N", "S", "L", "O"] as Face[]).map((f) => (
             <BarraLinha key={f} nome={NOME_FACE[f]} s={pf[f]} />
           ))}
@@ -145,7 +149,7 @@ function MiniFachada({ ctx, sis, servico, niveis, titulo }: { ctx: Ctx; sis: Sis
           </div>
         </div>
       </div>
-    </div>
+    </Quadro>
   );
 }
 
@@ -492,17 +496,17 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
         </Quadro>
       </div>
 
-      <Quadro titulo={servsFach.length > 1 ? "Fachada" : servsFach[0]?.nome ?? "Fachada"}>
-        {sisFach && servsFach.length ? (
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(servsFach.length, 2)}, 1fr)`, gap: 18 }}>
-            {servsFach.map((sv) => (
-              <MiniFachada key={sv.id} ctx={ctx} sis={sisFach} servico={sv} niveis={niveis} titulo={servsFach.length > 1} />
-            ))}
-          </div>
-        ) : (
+      {sisFach && servsFach.length ? (
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(servsFach.length, 2)}, 1fr)`, gap: 12 }}>
+          {servsFach.map((sv) => (
+            <MiniFachada key={sv.id} ctx={ctx} sis={sisFach} servico={sv} niveis={niveis} />
+          ))}
+        </div>
+      ) : (
+        <Quadro titulo="Fachada">
           <p className="text-[12px] text-ink-500">Sem fachada cadastrada.</p>
-        )}
-      </Quadro>
+        </Quadro>
+      )}
 
       <FotosResumo fotos={fotos} mais={fotosMais} vertical={vertical} />
 

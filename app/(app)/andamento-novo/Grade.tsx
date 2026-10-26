@@ -40,10 +40,8 @@ export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, 
   const [espaco, setEspaco] = useState<{ h: number; w: number }>({ h: 0, w: 0 });
   useLayoutEffect(() => {
     const medir = () => {
-      const el = caixa.current;
-      if (!el) return;
-      const topo = el.getBoundingClientRect().top + window.scrollY;
-      setEspaco({ h: Math.max(window.innerHeight * 0.6, window.innerHeight - topo - 16), w: window.innerWidth });
+      if (!caixa.current) return;
+      setEspaco({ h: window.innerHeight - 90, w: window.innerWidth }); // a janela inteira menos a barra do topo: basta subir a página até a grade
     };
     medir();
     window.addEventListener("resize", medir);

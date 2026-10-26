@@ -242,10 +242,12 @@ export function blocosDe(E: Amb, sec: Secao, esconder: boolean): BlocoE[] {
   if (fachCat && sisF) {
     const its0 = escopo.itens.filter((i) => i.sistema_id === sisF.id);
     if (its0.length) {
-      const its: MItem[] = its0.map((i) => ({ id: i.id, pavId: null, pav: null, local: i.nome, ordem: i.ordem }));
       let servs = (ctx.idx.servicosDaCat.get(fachCat.id) ?? []).map((x) => x.servico).filter(escopo.servOk);
       if (fasesF.size) servs = servs.filter((s) => fasesF.has(faseDoServico(s, ctx)));
       servs.forEach((s) => {
+        // trechos (descida × pavimento) deste serviço: cada serviço tem as suas descidas
+        const its: MItem[] = its0.filter((i) => i.servico_id === s.id).map((i) => ({ id: i.id, pavId: null, pav: null, local: i.nome, ordem: i.ordem }));
+        if (!its.length) return;
         if (esconder && !its.some((i) => [1, 2].includes(E.st(i.id, s.id)))) return;
         out.push({ tipo: "fach", c: mcat(fachCat, true, "Fachada"), its, servs: [mserv(s)], servico: s });
       });

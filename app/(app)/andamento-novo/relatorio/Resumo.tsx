@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { COR_STATUS, acumular, partes, pct, somaZero, type Soma } from "../calculo";
 import { alvosDeItens, alvosDeLocais, somaRecorte, type AlvoR } from "../fatias";
-import { calcularNiveis, chaveItemFachada, descidasDoSistema, mapaItensFachada } from "../fachada";
+import { calcularNiveis, chaveItemFachada, descidasDoServico, itensDoServico, mapaItensFachada } from "../fachada";
 import Predio3D, { NOME_FACE, NOME_PARTE, type Face, type Parte } from "../Predio3D";
 import { Barra, fmtPct, fmtPct0 } from "../ui";
 import { agruparPorFase, status, type Ctx, type Escopo, type FotoRel } from "./modelo";
@@ -201,6 +201,7 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
     );
     escopo.itens.forEach((i) =>
       (idx.servicosDaCat.get(i.categoria_id) ?? []).forEach(({ servico }) => {
+        if (i.servico_id && i.servico_id !== servico.id) return; // trecho de fachada: só do serviço dele
         if (!escopo.servOk(servico)) return;
         const st = status(ctx.ap, i.id, servico.id);
         if (st === 3) return;
@@ -244,11 +245,11 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
 
   // ---- fachada (mini 3D) ----
   const sisFach = dados.sistemas.find((s) => s.tipo === "fachada");
-  const itensFach = sisFach ? ctx.itensPorSis.get(sisFach.id) ?? [] : [];
-  const niveis = useMemo(() => calcularNiveis(ctx.pavs, ctx.locaisPorPav, idx), [ctx, idx]);
-  const descidas = useMemo(() => (sisFach ? descidasDoSistema(sisFach) : null), [sisFach]);
-  const porChave = useMemo(() => mapaItensFachada(itensFach), [itensFach]);
   const servFach = (idx.servicosDaCat.get(dados.categorias.find((c) => c.chave === "fach")?.id ?? "") ?? []).map((x) => x.servico).find((s) => s.nome === "Reboco externo");
+  const itensFach = sisFach ? itensDoServico(ctx.itensPorSis.get(sisFach.id) ?? [], servFach?.id) : [];
+  const niveis = useMemo(() => calcularNiveis(ctx.pavs, ctx.locaisPorPav, idx), [ctx, idx]);
+  const descidas = useMemo(() => (sisFach ? descidasDoServico(sisFach, servFach?.id) : null), [sisFach, servFach?.id]);
+  const porChave = useMemo(() => mapaItensFachada(itensFach), [itensFach]);
   const pf: Record<Face, Soma> = { N: somaZero(), S: somaZero(), L: somaZero(), O: somaZero() };
   const pp: Record<Parte, Soma> = { emb: somaZero(), tor: somaZero(), res: somaZero() };
   if (servFach) itensFach.forEach((i) => {

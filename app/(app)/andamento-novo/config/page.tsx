@@ -47,7 +47,7 @@ export default async function AndamentoNovoPage({ searchParams }: { searchParams
       ? supabase.from("an_local").select("id, pavimento_id, nome, categoria_id, ordem").in("pavimento_id", pavIds).order("ordem")
       : Promise.resolve({ data: [] as any[] }),
     sisIds.length
-      ? supabase.from("an_sistema_item").select("id, sistema_id, nome, categoria_id, ordem").in("sistema_id", sisIds).order("ordem")
+      ? supabase.from("an_sistema_item").select("id, sistema_id, nome, categoria_id, ordem, servico_id").in("sistema_id", sisIds).order("ordem")
       : Promise.resolve({ data: [] as any[] }),
   ]);
 

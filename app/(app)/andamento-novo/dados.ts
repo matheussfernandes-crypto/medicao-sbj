@@ -51,7 +51,7 @@ export async function carregarAndamento(obraIdPedida?: string): Promise<DadosAnd
       : Promise.resolve([] as any[]),
     sisIds.length
       ? paginar<any>((de, ate) =>
-          supabase.from("an_sistema_item").select("id, sistema_id, nome, categoria_id, ordem, parte, face, descida, pavimento_id").in("sistema_id", sisIds).order("id").range(de, ate)
+          supabase.from("an_sistema_item").select("id, sistema_id, nome, categoria_id, ordem, parte, face, descida, pavimento_id, servico_id").in("sistema_id", sisIds).order("id").range(de, ate)
         )
       : Promise.resolve([] as any[]),
     paginar<any>((de, ate) =>

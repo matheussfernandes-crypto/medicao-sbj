@@ -25,9 +25,10 @@ export type SistemaItem = {
   face?: "N" | "S" | "L" | "O" | null;
   descida?: number | null;
   pavimento_id?: string | null;
+  servico_id?: string | null; // trechos da fachada são por serviço (cada serviço tem as suas descidas)
 };
 export type DescidasConfig = Record<"emb" | "tor" | "res", Record<"N" | "S" | "L" | "O", number>>;
-export type Sistema = { id: string; nome: string; tipo: "comum" | "fachada"; ordem: number; fatia: number; config?: { descidas?: DescidasConfig } | null };
+export type Sistema = { id: string; nome: string; tipo: "comum" | "fachada"; ordem: number; fatia: number; config?: { descidas?: DescidasConfig; por_servico?: Record<string, DescidasConfig> } | null };
 
 // Status de um apontamento: 0 = não iniciado, 1 = andamento, 2 = finalizado, 3 = ausência (fora da conta)
 export type Status = 0 | 1 | 2 | 3;

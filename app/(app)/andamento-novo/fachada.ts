@@ -24,6 +24,18 @@ export function descidasDoSistema(s: Sistema): DescidasConfig {
   return base;
 }
 
+// descidas de UM serviço da fachada; sem configuração própria vale a base (as do reboco, de onde todos partem)
+export function descidasDoServico(s: Sistema, servicoId: string | null | undefined): DescidasConfig {
+  const proprio = servicoId ? s.config?.por_servico?.[servicoId] : undefined;
+  if (!proprio) return descidasDoSistema(s);
+  const base = JSON.parse(JSON.stringify(DESCIDAS_PADRAO)) as DescidasConfig;
+  (["emb", "tor", "res"] as const).forEach((p) => (["N", "S", "L", "O"] as const).forEach((f) => (base[p][f] = Number(proprio[p]?.[f] ?? 0))));
+  return base;
+}
+
+// trechos (descida × pavimento) de um serviço da fachada
+export const itensDoServico = (itens: SistemaItem[], servicoId: string | null | undefined) => itens.filter((i) => !servicoId || i.servico_id === servicoId);
+
 export const chaveItemFachada = (parte: string, face: string, descida: number, nivelId: string) => `${parte}|${face}|${descida}|${nivelId}`;
 
 export function mapaItensFachada(itens: SistemaItem[]): Map<string, SistemaItem> {

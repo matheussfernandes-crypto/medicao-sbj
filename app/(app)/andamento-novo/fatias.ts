@@ -53,9 +53,9 @@ export function montarFatias(d: EntradaFatias): Fatias {
   return { servico, sistema, interno, catSistema };
 }
 
-export type AlvoR = { id: string; categoria_id: string; sistema_id?: string };
+export type AlvoR = { id: string; categoria_id: string; sistema_id?: string; servico_id?: string | null }; // servico_id: trecho de fachada, que só conta para o serviço dele
 export const alvosDeLocais = (ls: Pick<Local, "id" | "categoria_id">[]): AlvoR[] => ls.map((l) => ({ id: l.id, categoria_id: l.categoria_id }));
-export const alvosDeItens = (is: Pick<SistemaItem, "id" | "categoria_id" | "sistema_id">[]): AlvoR[] => is.map((i) => ({ id: i.id, categoria_id: i.categoria_id, sistema_id: i.sistema_id }));
+export const alvosDeItens = (is: Pick<SistemaItem, "id" | "categoria_id" | "sistema_id" | "servico_id">[]): AlvoR[] => is.map((i) => ({ id: i.id, categoria_id: i.categoria_id, sistema_id: i.sistema_id, servico_id: i.servico_id }));
 
 // soma de um recorte (qualquer conjunto de locais e itens de sistema), opcionalmente só de alguns serviços
 export function somaRecorte(F: Fatias, idx: Indice, ap: Map<string, Apontamento>, alvos: AlvoR[], servOk?: (s: Servico, a: AlvoR) => boolean): Soma {
@@ -64,6 +64,7 @@ export function somaRecorte(F: Fatias, idx: Indice, ap: Map<string, Apontamento>
   const contagem = new Map<string, number>();
   alvos.forEach((a) =>
     (idx.servicosDaCat.get(a.categoria_id) ?? []).forEach(({ servico }) => {
+      if (a.servico_id && a.servico_id !== servico.id) return;
       if (servOk && !servOk(servico, a)) return;
       if (st(a, servico) === 3) return;
       const k = chave(a, servico);
@@ -73,6 +74,7 @@ export function somaRecorte(F: Fatias, idx: Indice, ap: Map<string, Apontamento>
   const soma = somaZero();
   alvos.forEach((a) =>
     (idx.servicosDaCat.get(a.categoria_id) ?? []).forEach(({ servico }) => {
+      if (a.servico_id && a.servico_id !== servico.id) return;
       if (servOk && !servOk(servico, a)) return;
       const status = st(a, servico);
       if (status === 3) return acumular(soma, 0, 3);

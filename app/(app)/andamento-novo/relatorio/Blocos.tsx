@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { COR_STATUS, acumular, pct, somaZero, type Soma } from "../calculo";
-import { calcularNiveis, chaveItemFachada, descidasDoSistema, mapaItensFachada } from "../fachada";
+import { calcularNiveis, chaveItemFachada, descidasDoServico, itensDoServico, mapaItensFachada } from "../fachada";
 import Predio3D, { NOME_FACE, NOME_PARTE, type Face, type Parte } from "../Predio3D";
 import { Barra, fmtPct0 } from "../ui";
 import { status, type Ctx } from "./modelo";
@@ -14,9 +14,9 @@ const CINZA = COR_STATUS[0];
 
 export function BlocoFachada3D({ servico, ctx, largura, altura }: { servico: Servico; ctx: Ctx; largura: number; altura: number }) {
   const sis = ctx.dados.sistemas.find((s) => s.tipo === "fachada");
-  const itens = sis ? ctx.itensPorSis.get(sis.id) ?? [] : [];
+  const itens = sis ? itensDoServico(ctx.itensPorSis.get(sis.id) ?? [], servico.id) : [];
   const niveis = useMemo(() => calcularNiveis(ctx.pavs, ctx.locaisPorPav, ctx.idx), [ctx]);
-  const descidas = useMemo(() => (sis ? descidasDoSistema(sis) : null), [sis]);
+  const descidas = useMemo(() => (sis ? descidasDoServico(sis, servico.id) : null), [sis, servico.id]);
   const porChave = useMemo(() => mapaItensFachada(itens), [itens]);
   if (!sis || !descidas) return null;
   const cor = (parte: Parte, face: Face, d: number, nivelId: string) => {

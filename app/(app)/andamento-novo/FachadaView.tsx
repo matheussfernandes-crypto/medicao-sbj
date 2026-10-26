@@ -8,7 +8,7 @@ import Grade, { type LinhaGrade } from "./Grade";
 import Predio3D, { NOME_FACE, NOME_PARTE, type Destaque, type Face, type Parte } from "./Predio3D";
 import { Barra, BotoesStatus, Legenda, fmtPct, fmtPct0 } from "./ui";
 import { acumular, chaveAp, COR_STATUS, pct, somaZero, somarAlvo, type Indice, type Soma } from "./calculo";
-import { calcularNiveis, chaveItemFachada, descidasDoSistema, mapaItensFachada } from "./fachada";
+import { calcularNiveis, chaveItemFachada, descidasDoServico, itensDoServico, mapaItensFachada } from "./fachada";
 import type { Apontamento, DadosAndamento, Local, Pavimento, Sistema, SistemaItem, Status } from "./types";
 
 type Props = {
@@ -52,10 +52,14 @@ export default function FachadaView(p: Props) {
   }, []);
 
   const niveis = useMemo(() => calcularNiveis(pavs, locaisPorPav, idx), [pavs, locaisPorPav, idx]);
-  const descidas = useMemo(() => descidasDoSistema(sistema), [sistema]);
-  const porChave = useMemo(() => mapaItensFachada(itens), [itens]);
+  // cada serviço da fachada tem as suas descidas e os seus trechos (descida × pavimento)
+  const descidas = useMemo(() => descidasDoServico(sistema, servId), [sistema, servId]);
+  const itensServ = useMemo(() => itensDoServico(itens, servId), [itens, servId]);
+  const porChave = useMemo(() => mapaItensFachada(itensServ), [itensServ]);
   const itemPorId = useMemo(() => new Map(itens.map((i) => [i.id, i])), [itens]);
   const serv = servicos.find((s) => s.id === servId);
+  const [copiarDe, setCopiarDe] = useState("");
+  useEffect(() => setFoco(null), [servId]);
 
   const statusDe = (itemId: string, sid: string) => (ap.get(chaveAp(itemId, sid))?.status ?? 0) as Status;
   const itemDe = (parte: Parte, face: Face, d: number, nivelId: string) => porChave.get(chaveItemFachada(parte, face, d, nivelId));
@@ -83,7 +87,7 @@ export default function FachadaView(p: Props) {
   // clique no nome de um pavimento (só no modo Selecionar várias): marca aquele andar em todas as fachadas
   const clicarNivel = (nivelId: string) => {
     if (!p.modoSel || !serv) return;
-    const chaves = itens.filter((i) => (i.pavimento_id ?? "res") === nivelId).map((i) => chaveAp(i.id, serv.id));
+    const chaves = itensServ.filter((i) => (i.pavimento_id ?? "res") === nivelId).map((i) => chaveAp(i.id, serv.id));
     const todas = chaves.length > 0 && chaves.every((k) => p.sel.has(k));
     const prox = new Set(p.sel);
     chaves.forEach((k) => (todas ? prox.delete(k) : prox.add(k)));
@@ -95,7 +99,7 @@ export default function FachadaView(p: Props) {
     const pf: Record<Face, Soma> = { N: somaZero(), S: somaZero(), L: somaZero(), O: somaZero() };
     const pp: Record<Parte, Soma> = { emb: somaZero(), tor: somaZero(), res: somaZero() };
     if (serv)
-      itens.forEach((i) => {
+      itensServ.forEach((i) => {
         if (!i.face || !i.parte) return;
         const st = statusDe(i.id, serv.id);
         acumular(pf[i.face], 1, st);
@@ -103,11 +107,21 @@ export default function FachadaView(p: Props) {
       });
     return { porFace: pf, porParte: pp };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itens, serv, ap]);
+  }, [itensServ, serv, ap]);
 
   async function mudarDescidas(parte: Parte, face: Face, n: number) {
     try {
-      await acoes.definirDescidas(sistema.id, parte, face, Math.max(0, Math.min(40, n)));
+      await acoes.definirDescidas(sistema.id, servId, parte, face, Math.max(0, Math.min(40, n)));
+      router.refresh();
+    } catch (e: any) {
+      setErro(e.message);
+    }
+  }
+  async function copiarDescidas() {
+    if (!copiarDe || copiarDe === servId) return;
+    try {
+      await acoes.copiarDescidas(sistema.id, copiarDe, servId);
+      setCopiarDe("");
       router.refresh();
     } catch (e: any) {
       setErro(e.message);
@@ -117,7 +131,7 @@ export default function FachadaView(p: Props) {
   if (!cat || !servicos.length) return <div className="card text-sm text-ink-500">A categoria "Fachada – descida" não tem serviços. Configure em "Pavimentos e serviços".</div>;
 
   const itemFoco = foco ? itemPorId.get(foco) : null;
-  const linhasFluxo: LinhaGrade[] = itens.map((i) => ({ alvoId: i.id, rotulo: i.nome }));
+  const linhasFluxo: LinhaGrade[] = itensServ.map((i) => ({ alvoId: i.id, rotulo: i.nome }));
 
   const botaoSel = (
     <button
@@ -229,11 +243,11 @@ export default function FachadaView(p: Props) {
             <button className="flex items-center gap-2 w-full text-left" onClick={() => setAbreFluxo((v) => !v)}>
               {abreFluxo ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               <h2 className="font-semibold text-primaryDark">Fluxograma das descidas</h2>
-              <span className="text-xs text-ink-500">{itens.length} itens</span>
+              <span className="text-xs text-ink-500">{itensServ.length} trechos de {serv?.nome}</span>
             </button>
             {abreFluxo && (
               <div className="mt-3">
-                <Grade linhas={linhasFluxo} colunas={servicos} ap={ap} somaPorAlvo={p.somaPorAlvo} modoSel={p.modoSel} sel={p.sel} setSel={p.setSel} onCelula={p.abrirCelula} tituloLinha="Descida" />
+                <Grade linhas={linhasFluxo} colunas={serv ? [serv] : servicos} ap={ap} somaPorAlvo={p.somaPorAlvo} modoSel={p.modoSel} sel={p.sel} setSel={p.setSel} onCelula={p.abrirCelula} tituloLinha="Descida" />
               </div>
             )}
           </div>
@@ -253,7 +267,7 @@ export default function FachadaView(p: Props) {
                 </button>
               </div>
               <div className="space-y-3">
-                {servicos.map((s) => (
+                {(serv ? [serv] : []).map((s) => (
                   <div key={s.id}>
                     <p className="text-xs font-medium mb-1">{s.nome}</p>
                     <BotoesStatus atual={statusDe(itemFoco.id, s.id)} onSet={(st) => p.aplicar([{ alvo: itemFoco.id, servico: s.id }], st)} />
@@ -287,7 +301,34 @@ export default function FachadaView(p: Props) {
 
           <div className="card">
             <h3 className="text-sm font-semibold text-primaryDark mb-1">Descidas por fachada</h3>
-            <p className="text-[11px] text-ink-500 mb-2">Nº de descidas de balancim. O desenho e os itens se atualizam; os apontamentos existentes são mantidos.</p>
+            <label className="block text-[11px] text-ink-500 mb-2">
+              Serviço
+              <select value={servId} onChange={(e) => setServId(e.target.value)} className="mt-0.5 w-full border border-border rounded-md px-2 py-1 text-sm bg-white text-ink-900">
+                {servicos.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="text-[11px] text-ink-500 mb-2">Cada serviço tem as suas descidas de balancim (nº por parte e fachada). O desenho e os trechos só deste serviço se atualizam; os apontamentos que continuam existindo são mantidos.</p>
+            {servicos.length > 1 && p.podeApontar && (
+              <div className="flex items-center gap-1.5 mb-2">
+                <select value={copiarDe} onChange={(e) => setCopiarDe(e.target.value)} className="flex-1 min-w-0 border border-border rounded-md px-2 py-1 text-xs bg-white">
+                  <option value="">Copiar descidas de…</option>
+                  {servicos
+                    .filter((s) => s.id !== servId)
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.nome}
+                      </option>
+                    ))}
+                </select>
+                <button className="text-xs px-2 py-1 border border-border rounded-md bg-white disabled:opacity-50" disabled={!copiarDe} onClick={copiarDescidas}>
+                  Copiar
+                </button>
+              </div>
+            )}
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-left text-ink-500">

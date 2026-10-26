@@ -348,16 +348,17 @@ html, body { margin: 0; padding: 0; background: #fff; }
   function exportarCSV() {
     const linhas: string[][] = [["Pavimento / Sistema", "Local / Item", "Categoria", "Fase", "Serviço", "Status", "Observação"]];
     const faseNome = (s: { fase_id: string | null; grupo: string }) => (s.fase_id && ctx.faseOrdem.get(s.fase_id)?.nome) || s.grupo;
-    const emitir = (onde: string, alvoId: string, alvoNome: string, catId: string) => {
+    const emitir = (onde: string, alvoId: string, alvoNome: string, catId: string, soServico?: string | null) => {
       const cat = idx.catPorId.get(catId);
       (idx.servicosDaCat.get(catId) ?? []).forEach(({ servico }) => {
+        if (soServico && soServico !== servico.id) return;
         if (!escopoSimples.servOk(servico)) return;
         const a = ap.get(alvoId + "|" + servico.id);
         linhas.push([onde, alvoNome, cat?.nome ?? "", faseNome(servico), servico.nome, ROTULO_ST[a?.status ?? 0], a?.observacao ?? ""]);
       });
     };
     escopoSimples.locais.forEach((l) => emitir(ctx.pavPorId.get(l.pavimento_id)?.nome ?? "", l.id, l.nome, l.categoria_id));
-    escopoSimples.itens.forEach((i) => emitir(ctx.sisPorId.get(i.sistema_id)?.nome ?? "", i.id, i.nome, i.categoria_id));
+    escopoSimples.itens.forEach((i) => emitir(ctx.sisPorId.get(i.sistema_id)?.nome ?? "", i.id, i.nome, i.categoria_id, i.servico_id));
     const csv = linhas.map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n");
     const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" }));
     const a = document.createElement("a");

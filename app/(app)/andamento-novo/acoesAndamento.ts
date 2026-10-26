@@ -56,9 +56,16 @@ export async function trocarReservatorio(itemId: string, chave: "cxf" | "cxc") {
   revalidatePath("/andamento-novo", "layout");
 }
 
-export async function definirDescidas(sistemaId: string, parte: "emb" | "tor" | "res", face: "N" | "S" | "L" | "O", n: number) {
+export async function definirDescidas(sistemaId: string, servicoId: string, parte: "emb" | "tor" | "res", face: "N" | "S" | "L" | "O", n: number) {
   const supabase = await apontador();
-  const { error } = await supabase.rpc("an_definir_descidas", { p_sistema: sistemaId, p_parte: parte, p_face: face, p_n: n });
+  const { error } = await supabase.rpc("an_definir_descidas", { p_sistema: sistemaId, p_servico: servicoId, p_parte: parte, p_face: face, p_n: n });
+  if (error) throw new Error(error.message);
+  revalidatePath("/andamento-novo", "layout");
+}
+// copia as descidas de um serviço da fachada para outro
+export async function copiarDescidas(sistemaId: string, origem: string, destino: string) {
+  const supabase = await apontador();
+  const { error } = await supabase.rpc("an_copiar_descidas", { p_sistema: sistemaId, p_origem: origem, p_destino: destino });
   if (error) throw new Error(error.message);
   revalidatePath("/andamento-novo", "layout");
 }

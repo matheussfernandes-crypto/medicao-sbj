@@ -360,19 +360,7 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
         </Quadro>
         {fotos.length > 0 && (
           <div className="col-span-2" style={{ gridColumn: "1 / -1" }}>
-            <Quadro titulo={servsFach.length > 1 ? "Fachada" : servsFach[0]?.nome ?? "Fachada"}>
-        {sisFach && servsFach.length ? (
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(servsFach.length, 2)}, 1fr)`, gap: 18 }}>
-            {servsFach.map((sv) => (
-              <MiniFachada key={sv.id} ctx={ctx} sis={sisFach} servico={sv} niveis={niveis} titulo={servsFach.length > 1} />
-            ))}
-          </div>
-        ) : (
-          <p className="text-[12px] text-ink-500">Sem fachada cadastrada.</p>
-        )}
-      </Quadro>
-
-      <FotosResumo fotos={fotos} mais={fotosMais} vertical={vertical} />
+            <FotosResumo fotos={fotos} mais={fotosMais} vertical={vertical} />
           </div>
         )}
       </div>
@@ -503,6 +491,18 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
           ))}
         </Quadro>
       </div>
+
+      <Quadro titulo={servsFach.length > 1 ? "Fachada" : servsFach[0]?.nome ?? "Fachada"}>
+        {sisFach && servsFach.length ? (
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(servsFach.length, 2)}, 1fr)`, gap: 18 }}>
+            {servsFach.map((sv) => (
+              <MiniFachada key={sv.id} ctx={ctx} sis={sisFach} servico={sv} niveis={niveis} titulo={servsFach.length > 1} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-[12px] text-ink-500">Sem fachada cadastrada.</p>
+        )}
+      </Quadro>
 
       <FotosResumo fotos={fotos} mais={fotosMais} vertical={vertical} />
 

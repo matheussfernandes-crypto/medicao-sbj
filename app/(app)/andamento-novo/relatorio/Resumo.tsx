@@ -217,6 +217,11 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
       ["Reboco interno", servSomada("Reboco Interno")],
       ["Shafts", faseSomada("Shafts")],
       ["Reboco externo", servSomada("Reboco externo")],
+      // demais serviços da fachada (ex.: Pintura externa) viram etapas logo depois do reboco
+      ...(idx.servicosDaCat.get(dados.categorias.find((c) => c.chave === "fach")?.id ?? "") ?? [])
+        .map((x) => x.servico)
+        .filter((s) => s.nome !== "Reboco externo")
+        .map((s) => [s.nome, servSomada(s.nome)] as [string, Soma]),
       ["Revestimentos", faseSomada("Revestimentos", ["Chapisco Interno", "Reboco Interno"])],
       ["Acabamentos", faseSomada("Acabamentos")],
     ];

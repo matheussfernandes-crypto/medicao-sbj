@@ -7,7 +7,7 @@ import { calcularNiveis, chaveItemFachada, descidasDoServico, itensDoServico, ma
 import Predio3D, { NOME_FACE, NOME_PARTE, type Face, type Parte } from "../Predio3D";
 import { Barra, fmtPct, fmtPct0 } from "../ui";
 import { agruparPorFase, status, type Ctx, type Escopo, type FotoRel } from "./modelo";
-import type { Servico } from "../types";
+import type { Servico, Sistema } from "../types";
 
 const VERDE = COR_STATUS[2];
 const LARANJA = COR_STATUS[1];
@@ -90,6 +90,73 @@ function FotosResumo({ fotos, mais, vertical }: { fotos: FotoRel[]; mais: number
     </Quadro>
   );
 }
+
+// uma fachada em miniatura (duas vistas centralizadas) com os % por fachada e por parte, para UM serviço
+function MiniFachada({ ctx, sis, servico, niveis, titulo }: { ctx: Ctx; sis: Sistema; servico: Servico; niveis: ReturnType<typeof calcularNiveis>; titulo: boolean }) {
+  const itens = useMemo(() => itensDoServico(ctx.itensPorSis.get(sis.id) ?? [], servico.id), [ctx, sis.id, servico.id]);
+  const descidas = useMemo(() => descidasDoServico(sis, servico.id), [sis, servico.id]);
+  const porChave = useMemo(() => mapaItensFachada(itens), [itens]);
+  const pf: Record<Face, Soma> = { N: somaZero(), S: somaZero(), L: somaZero(), O: somaZero() };
+  const pp: Record<Parte, Soma> = { emb: somaZero(), tor: somaZero(), res: somaZero() };
+  const total = somaZero();
+  itens.forEach((i) => {
+    if (!i.face || !i.parte) return;
+    const st = status(ctx.ap, i.id, servico.id);
+    acumular(pf[i.face], 1, st);
+    acumular(pp[i.parte], 1, st);
+    acumular(total, 1, st);
+  });
+  return (
+    <div>
+      {titulo && (
+        <div className="flex items-center justify-between text-[12px] font-bold mb-1" style={{ color: "#1f4a52" }}>
+          <span>{servico.nome}</span>
+          <span>{fmtPct0(pct(total))}%</span>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-1" style={{ justifyItems: "center" }}>
+        {(["NE", "SW"] as const).map((v) => (
+          <div key={v} style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+            <Predio3D
+              vista={v}
+              descidas={descidas}
+              niveis={niveis}
+              rotulos={false}
+              alturaMax={titulo ? 120 : 150}
+              cor={(parte, face, d, nivelId) => {
+                const it = porChave.get(chaveItemFachada(parte, face, d, nivelId));
+                return it ? COR_STATUS[status(ctx.ap, it.id, servico.id)] : "#e3e7e9";
+              }}
+            />
+          </div>
+        ))}
+      </div>
+      {(["N", "S", "L", "O"] as Face[]).map((f) => (
+        <BarraLinha key={f} nome={NOME_FACE[f]} s={pf[f]} />
+      ))}
+      <div className="text-[11px] text-ink-500 mt-1.5 flex gap-2 flex-wrap">
+        {(["emb", "tor", "res"] as Parte[]).map((p2) => (
+          <span key={p2}>
+            {NOME_PARTE[p2]}: <b className="text-ink-900">{fmtPct0(pct(pp[p2]))}%</b>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// sinal de concluído e bandeira da entrega: desenhados (não dependem de fonte/emoji, que somem no PDF)
+const Check = ({ tam = 22, cor = "#fff" }: { tam?: number; cor?: string }) => (
+  <svg width={tam} height={tam} viewBox="0 0 24 24" fill="none" stroke={cor} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" aria-label="concluído">
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </svg>
+);
+const Bandeira = ({ tam = 22 }: { tam?: number }) => (
+  <svg width={tam} height={tam} viewBox="0 0 24 24" fill="none" stroke="#1f4a52" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-label="entrega">
+    <path d="M6 21V3" />
+    <path d="M6 4h12l-2.5 4 2.5 4H6" fill="#f5c84c" />
+  </svg>
+);
 
 export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotosMais = 0 }: { ctx: Ctx; escopo: Escopo; largura: number; altura: number; fotos?: FotoRel[]; fotosMais?: number }) {
   const { dados, idx } = ctx;
@@ -243,21 +310,11 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
     return [prefixo, frente ? `frente: ${frente}` : ""].filter(Boolean).join(" · ");
   };
 
-  // ---- fachada (mini 3D) ----
+  // ---- fachada (mini 3D): um bloco por serviço da fachada (Reboco externo, Pintura externa…), cada um com as suas descidas ----
   const sisFach = dados.sistemas.find((s) => s.tipo === "fachada");
-  const servFach = (idx.servicosDaCat.get(dados.categorias.find((c) => c.chave === "fach")?.id ?? "") ?? []).map((x) => x.servico).find((s) => s.nome === "Reboco externo");
-  const itensFach = sisFach ? itensDoServico(ctx.itensPorSis.get(sisFach.id) ?? [], servFach?.id) : [];
+  const catFach = dados.categorias.find((c) => c.chave === "fach");
+  const servsFach = (idx.servicosDaCat.get(catFach?.id ?? "") ?? []).map((x) => x.servico).filter((s) => escopo.servOk(s) && ctx.itensPorSis.get(sisFach?.id ?? "")?.some((i) => i.servico_id === s.id));
   const niveis = useMemo(() => calcularNiveis(ctx.pavs, ctx.locaisPorPav, idx), [ctx, idx]);
-  const descidas = useMemo(() => (sisFach ? descidasDoServico(sisFach, servFach?.id) : null), [sisFach, servFach?.id]);
-  const porChave = useMemo(() => mapaItensFachada(itensFach), [itensFach]);
-  const pf: Record<Face, Soma> = { N: somaZero(), S: somaZero(), L: somaZero(), O: somaZero() };
-  const pp: Record<Parte, Soma> = { emb: somaZero(), tor: somaZero(), res: somaZero() };
-  if (servFach) itensFach.forEach((i) => {
-    if (!i.face || !i.parte) return;
-    const st = status(ctx.ap, i.id, servFach.id);
-    acumular(pf[i.face], 1, st);
-    acumular(pp[i.parte], 1, st);
-  });
 
   const pavsComDados = ctx.pavs.filter((p) => dadosR.porPav.has(p.id));
   const cats = dados.categorias.filter((c) => dadosR.porCat.has(c.id));
@@ -354,7 +411,7 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
                     boxShadow: atual ? "0 0 0 4px #f5c84c" : undefined,
                   }}
                 >
-                  {feita ? "✓" : e.tem ? `${fmtPct0(p)}%` : "—"}
+                  {feita ? <Check /> : e.tem ? `${fmtPct0(p)}%` : "—"}
                 </div>
                 <div className="text-[12px] font-semibold mt-1 text-center" style={{ color: "#1f4a52" }}>
                   {e.nome}
@@ -368,7 +425,9 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
           })}
           <div className="flex-1 flex flex-col items-center relative">
             <div style={{ position: "absolute", top: 21, right: "50%", width: "100%", height: 4, background: "#dfe5e8" }} />
-            <div style={{ width: 44, height: 44, borderRadius: 22, zIndex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, background: "#fff", border: "3px solid #1f4a52" }}>🏁</div>
+            <div style={{ width: 44, height: 44, borderRadius: 22, zIndex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, background: "#fff", border: "3px solid #1f4a52" }}>
+              <Bandeira />
+            </div>
             <div className="text-[12px] font-semibold mt-1" style={{ color: "#1f4a52" }}>
               Entrega
             </div>
@@ -422,36 +481,13 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
             <BarraLinha key={c.id} nome={c.nome} s={dadosR.porCat.get(c.id)!} cor={c.cor} />
           ))}
         </Quadro>
-        <Quadro titulo="Reboco externo">
-          {descidas && servFach ? (
-            <>
-              <div className="grid grid-cols-2 gap-1">
-                {(["NE", "SW"] as const).map((v) => (
-                  <Predio3D
-                    key={v}
-                    vista={v}
-                    descidas={descidas}
-                    niveis={niveis}
-                    rotulos={false}
-                    alturaMax={150}
-                    cor={(parte, face, d, nivelId) => {
-                      const it = porChave.get(chaveItemFachada(parte, face, d, nivelId));
-                      return it ? COR_STATUS[status(ctx.ap, it.id, servFach.id)] : "#e3e7e9";
-                    }}
-                  />
-                ))}
-              </div>
-              {(["N", "S", "L", "O"] as Face[]).map((f) => (
-                <BarraLinha key={f} nome={NOME_FACE[f]} s={pf[f]} />
+        <Quadro titulo={servsFach.length > 1 ? "Fachada" : servsFach[0]?.nome ?? "Fachada"}>
+          {sisFach && servsFach.length ? (
+            <div className="space-y-3">
+              {servsFach.map((sv) => (
+                <MiniFachada key={sv.id} ctx={ctx} sis={sisFach} servico={sv} niveis={niveis} titulo={servsFach.length > 1} />
               ))}
-              <div className="text-[11px] text-ink-500 mt-1.5 flex gap-2 flex-wrap">
-                {(["emb", "tor", "res"] as Parte[]).map((p2) => (
-                  <span key={p2}>
-                    {NOME_PARTE[p2]}: <b className="text-ink-900">{fmtPct0(pct(pp[p2]))}%</b>
-                  </span>
-                ))}
-              </div>
-            </>
+            </div>
           ) : (
             <p className="text-[12px] text-ink-500">Sem fachada cadastrada.</p>
           )}

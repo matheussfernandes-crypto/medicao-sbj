@@ -233,7 +233,7 @@ export default function Predio3D({ vista, descidas, niveis, cor, destaque, onCel
   }
 
   return (
-    <svg viewBox={`${vbX.toFixed(1)} ${vbY.toFixed(1)} ${largura.toFixed(1)} ${altura.toFixed(1)}`} className={alturaTotal ? "w-full" : "w-full h-auto"} style={{ maxWidth: alturaTotal ? undefined : largura * 1.25, height: alturaTotal, outline: "none" }} role="img" aria-label={vista === "NE" ? "Vista Norte e Leste" : "Vista Sul e Oeste"}>
+    <svg viewBox={`${vbX.toFixed(1)} ${vbY.toFixed(1)} ${largura.toFixed(1)} ${altura.toFixed(1)}`} className={alturaTotal ? "w-full" : "w-full h-auto"} style={{ maxWidth: alturaTotal ? undefined : largura * 1.25, height: alturaTotal, outline: "none", display: "block", margin: "0 auto" }} role="img" aria-label={vista === "NE" ? "Vista Norte e Leste" : "Vista Sul e Oeste"}>
       {elementos}
       {rotulosEl}
     </svg>

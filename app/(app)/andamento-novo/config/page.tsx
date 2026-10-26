@@ -28,6 +28,9 @@ export default async function AndamentoNovoPage({ searchParams }: { searchParams
   const obra = obras.find((o) => o.id === searchParams.obra) ?? obras[0];
   if (!obra) return <div className="card text-sm text-ink-500">Nenhuma obra cadastrada no Andamento de Obra (novo).</div>;
 
+  // categorias, serviços e fatias são do Modelo padrão (um só para todas as obras): se mudou, esta obra recebe a versão nova
+  await supabase.rpc("an_aplicar_modelo", { p_obra: obra.id });
+  const { data: dif } = await supabase.rpc("an_diferencas_modelo", { p_obra: obra.id });
   const [{ data: fases }, { data: categorias }, { data: servicos }, { data: pavimentos }, { data: sistemas }, { data: contagensRows }, andamento] =
     await Promise.all([
       supabase.from("an_fase").select("id, nome, ordem").eq("obra_id", obra.id).order("ordem"),
@@ -92,6 +95,7 @@ export default async function AndamentoNovoPage({ searchParams }: { searchParams
     contagens,
     excluidas,
     obrasGerais,
+    modelo: { segue: obra.segue_modelo !== false, extras: ((dif as any)?.extras ?? []) as { nome: string; status: number }[], faltando: Number((dif as any)?.faltando ?? 0) },
   };
 
   return (

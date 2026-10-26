@@ -61,6 +61,17 @@ export async function criarObraNova(input: {
   return id as string;
 }
 
+// Modelo padrão: um só para todas as obras. Depois de cada edição de configuração a obra publica no modelo (as outras recebem ao abrir).
+export async function publicarModelo(obraId: string) {
+  const s = await admin();
+  await rpc(s, "an_publicar_modelo", { p_obra: obraId });
+}
+// obra que tinha configuração própria volta a seguir o Modelo padrão (serviços com status lançado são mantidos)
+export async function aplicarModeloPadrao(obraId: string) {
+  const s = await admin();
+  await rpc(s, "an_aplicar_modelo", { p_obra: obraId, p_forcar: true });
+}
+
 // Exclusão REVERSÍVEL, só no Andamento novo: marca a obra como excluída (30 dias para restaurar). Não mexe na tabela geral de obras.
 export async function excluirObra(id: string) {
   const s = await admin();

@@ -84,7 +84,7 @@ type Confirmacao = { texto: string; destinos?: Categoria[]; onConfirmar: (destin
 
 export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
   const router = useRouter();
-  const { obra, obras, fases, categorias, servicos, vinculos, pavimentos, locais, sistemas, itens, percentuais, contagens, excluidas, obrasGerais } = dados;
+  const { obra, obras, fases, categorias, servicos, vinculos, pavimentos, locais, sistemas, itens, percentuais, contagens, excluidas, obrasGerais, modelo } = dados;
 
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -102,6 +102,7 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
     setOcupado(true);
     try {
       await fn();
+      await acoes.publicarModelo(obra.id); // categorias, serviços e fatias valem para todas as obras
       router.refresh();
     } catch (e: any) {
       setErro(e.message ?? "Erro ao salvar.");
@@ -208,6 +209,29 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
           Andamento geral (em andamento = 0,5): <b className="text-ink-900">{fmt(pctObra)}%</b>
         </span>
       </div>
+
+      {/* Modelo padrão compartilhado: aviso quando a obra é exceção */}
+      {(!modelo.segue || modelo.extras.some((e) => e.status > 0)) && (
+        <div className="card border-accent bg-accent/20 text-sm space-y-1.5">
+          <p className="font-semibold text-primaryDark">
+            {modelo.segue ? "Esta obra segue o Modelo padrão, mas tem serviços com status lançado que o modelo não tem." : "Esta obra tem configuração própria e NÃO segue o Modelo padrão."}
+          </p>
+          <p className="text-ink-700">
+            {modelo.extras.length} serviço{modelo.extras.length === 1 ? "" : "s"} da obra {modelo.extras.length === 1 ? "não está" : "não estão"} no modelo
+            {modelo.extras.some((e) => e.status > 0) ? " (com status já lançado: " + modelo.extras.filter((e) => e.status > 0).slice(0, 6).map((e) => e.nome).join(", ") + (modelo.extras.filter((e) => e.status > 0).length > 6 ? "…" : "") + ")" : ""}
+            {modelo.faltando ? " e o modelo tem " + modelo.faltando + " serviço(s) que a obra não tem" : ""}.
+          </p>
+          {!modelo.segue && (
+            <>
+              <p className="text-xs text-ink-500">Enquanto for exceção, mudanças aqui valem só para esta obra e o modelo não chega nela.</p>
+              <button className={btnPri} disabled={ocupado} onClick={() => exec(() => acoes.aplicarModeloPadrao(obra.id))}>
+                Aplicar o Modelo padrão nesta obra
+              </button>
+              <span className="text-xs text-ink-500 ml-2">Serviços sem status lançado que não estão no modelo saem; os com status lançado são mantidos.</span>
+            </>
+          )}
+        </div>
+      )}
 
       {excluindo && (
         <div className="card border-danger/40 bg-red-50 space-y-2 text-sm">
@@ -877,7 +901,7 @@ function FatiasCard(props: {
   return (
     <Secao titulo="Fatias da obra" resumo={`Soma ${fmt2(total)}%${totalOk ? "" : " — ajustar"}`} aberta={props.aberta} onAlternar={props.onAlternar}>
       <p className="text-xs text-ink-500 mb-2">
-        A obra vale 100%, dividida em fatias: cada serviço dos locais e cada sistema (fachada, elevadores, caixa d&apos;água…) ocupa uma. Dentro de um sistema, os serviços dividem a fatia dele. O avanço de um serviço é (finalizados + ½ em andamento) ÷ itens onde ele existe, então o número de apartamentos ou de trechos de fachada não muda o peso de nada.
+        <b>Vale para todas as obras</b> (Modelo padrão): categorias, serviços, fases, ordem e fatias são compartilhadas; alterar aqui muda todas. Pavimentos e sistemas são de cada obra. A obra vale 100%, dividida em fatias: cada serviço dos locais e cada sistema (fachada, elevadores, caixa d&apos;água…) ocupa uma. Dentro de um sistema, os serviços dividem a fatia dele. O avanço de um serviço é (finalizados + ½ em andamento) ÷ itens onde ele existe, então o número de apartamentos ou de trechos de fachada não muda o peso de nada.
       </p>
       <div className={`rounded-lg border px-3 py-2 text-sm mb-3 flex flex-wrap items-center gap-3 ${totalOk ? "border-border bg-surface-subtle" : "border-danger/40 bg-danger/5 text-danger"}`}>
         <span>

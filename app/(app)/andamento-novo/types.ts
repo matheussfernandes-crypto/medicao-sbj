@@ -1,7 +1,7 @@
 // Modelo novo do Andamento de Obra: pavimento > local, sistema > item, categoria define serviços e pesos.
 
 // obra_geral_id: ligação opcional (só leitura) com a obra do cadastro geral; as fotos usam essa ligação
-export type ObraInfo = { id: string; nome: string; data_inicio: string | null; data_entrega_prevista: string | null; obra_geral_id?: string | null };
+export type ObraInfo = { id: string; nome: string; data_inicio: string | null; data_entrega_prevista: string | null; obra_geral_id?: string | null; segue_modelo?: boolean };
 export type Fase = { id: string; nome: string; ordem: number };
 export type Categoria = { id: string; chave: string; nome: string; cor: string; ordem: number };
 export type Servico = {
@@ -72,6 +72,7 @@ export type DadosConfig = {
   percentuais: Percentual[];
   // nº de serviços por categoria (chave) no Modelo padrão e em cada obra — usado na prévia da obra nova
   contagens: Record<string, Record<string, number>>;
+  modelo: { segue: boolean; extras: { nome: string; status: number }[]; faltando: number }; // situação da obra frente ao Modelo padrão compartilhado
   excluidas: { id: string; nome: string; excluida_em: string }[]; // obras excluídas do Andamento novo há menos de 30 dias
   obrasGerais: { id: string; nome: string }[]; // obras do cadastro geral ainda não ligadas (só para ligar, sem alterar)
 };

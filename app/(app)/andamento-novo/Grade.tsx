@@ -93,6 +93,12 @@ export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, 
   function autoRolar(e: React.MouseEvent<HTMLDivElement>) {
     if (!arraste.current) return;
     const el = e.currentTarget;
+    if (el.scrollHeight <= el.clientHeight + 1) {
+      // no computador a página é que rola: acompanha o arraste pelas bordas da janela
+      if (e.clientY > window.innerHeight - 50) window.scrollBy(0, 20);
+      else if (e.clientY < 60) window.scrollBy(0, -20);
+      return;
+    }
     const r = el.getBoundingClientRect();
     if (e.clientY > r.bottom - 40) el.scrollTop += 20;
     else if (e.clientY < r.top + 150) el.scrollTop -= 20;
@@ -117,14 +123,13 @@ export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, 
   const celular = espaco.w > 0 && espaco.w < 768;
   const larguraMin = celular ? (temGrupo ? larguraGrupo : 0) + larguraLocal + larguraPct + colunas.length * minStatus : 0;
   const altCab = tit.alt + 13;
-  const hLinha = !celular && espaco.h > 0 && linhas.length ? Math.max(7, Math.min(tam, Math.floor((espaco.h - altCab - 2) / linhas.length))) : tam;
+  const hLinha = tam; // no computador a página rola (nunca a própria grade); as células mantêm a altura cheia
   const fsLinha = Math.max(7, Math.min(12, hLinha - 3));
   const apertado = hLinha < 20;
   const estiloRot = apertado ? { padding: "0 8px", fontSize: fsLinha, lineHeight: hLinha + "px" } : undefined;
-  const cabe = hLinha * linhas.length + altCab <= espaco.h;
 
   return (
-    <div ref={caixa} className="overflow-auto border border-border rounded-lg bg-white" style={{ maxHeight: celular ? "72vh" : cabe || !espaco.h ? undefined : espaco.h, userSelect: modoSel ? "none" : undefined }} onMouseMove={modoSel ? autoRolar : undefined}>
+    <div ref={caixa} className={`border border-border rounded-lg bg-white ${celular ? "overflow-auto" : ""}`} style={{ maxHeight: celular ? "72vh" : undefined, userSelect: modoSel ? "none" : undefined }} onMouseMove={modoSel ? autoRolar : undefined}>
       <table className="border-separate border-spacing-0 text-xs" style={{ tableLayout: "fixed", width: "100%", minWidth: larguraMin }}>
         <colgroup>
           {temGrupo && <col style={{ width: larguraGrupo }} />}

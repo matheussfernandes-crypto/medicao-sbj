@@ -58,6 +58,8 @@ export async function criarObraNova(input: {
     p_entrega: input.entrega || null,
     p_obra_id: input.obraGeralId || null,
   });
+  // a obra nova já nasce com os modelos de relatório da obra de referência (ex.: "Relatório geral")
+  await s.rpc("an_aplicar_relatorios_padrao", { p_destino: id });
   return id as string;
 }
 

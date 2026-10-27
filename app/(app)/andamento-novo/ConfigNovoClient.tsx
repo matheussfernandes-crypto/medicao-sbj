@@ -868,7 +868,7 @@ function FatiasCard(props: {
   return (
     <Secao titulo="Fatias da obra" resumo={`Soma ${fmt2(total)}%${totalOk ? "" : " — ajustar"}`} aberta={props.aberta} onAlternar={props.onAlternar}>
       <p className="text-xs text-ink-500 mb-2">
-        <b>Vale para todas as obras</b> (Modelo padrão): categorias, serviços, fases, ordem e fatias são compartilhadas; alterar aqui muda todas. Pavimentos e sistemas são de cada obra. A obra vale 100%, dividida em fatias: cada serviço dos locais e cada sistema (fachada, elevadores, caixa d&apos;água…) ocupa uma. Dentro de um sistema, os serviços dividem a fatia dele. O avanço de um serviço é (finalizados + ½ em andamento) ÷ itens onde ele existe, então o número de apartamentos ou de trechos de fachada não muda o peso de nada.
+        <b>Vale só para esta obra.</b> Para levar a outras obras, salve como Modelo padrão e aplique. A obra vale 100%, dividida em fatias: cada serviço dos locais e cada sistema (fachada, elevadores, caixa d&apos;água…) ocupa uma. Dentro de um sistema, os serviços dividem a fatia dele. O avanço de um serviço é (finalizados + ½ em andamento) ÷ itens onde ele existe, então o número de apartamentos ou de trechos de fachada não muda o peso de nada.
       </p>
       <div className={`rounded-lg border px-3 py-2 text-sm mb-3 flex flex-wrap items-center gap-3 ${totalOk ? "border-border bg-surface-subtle" : "border-danger/40 bg-danger/5 text-danger"}`}>
         <span>

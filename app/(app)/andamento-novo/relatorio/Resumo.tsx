@@ -325,21 +325,39 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
     const locs = escopo.locais.filter((l) => l.categoria_id === cat.id);
     if (!locs.length) return null;
     const servs = (idx.servicosDaCat.get(cat.id) ?? []).map((x) => x.servico).filter((s) => escopo.servOk(s) && faseDoServico(s, ctx) !== "Itens entregues");
+    // pintura final e limpeza final são as duas últimas etapas: quando só elas faltam, o apartamento está "esperando"
+    const ehPintura = (s: Servico) => /pinturas+final/i.test(s.nome);
+    const ehLimpeza = (s: Servico) => /limpezas+final/i.test(s.nome);
     let prontos = 0,
-      andamento = 0;
+      andamento = 0,
+      soPintura = 0,
+      soLimpeza = 0,
+      pinturaELimpeza = 0;
     const porPav = new Map<string, { n: number; p: number }>();
     locs.forEach((l) => {
-      const sts = servs.map((s) => status(ctx.ap, l.id, s.id)).filter((x) => x !== 3);
+      const cel = servs.map((s) => ({ s, st: status(ctx.ap, l.id, s.id) })).filter((x) => x.st !== 3);
+      const sts = cel.map((x) => x.st);
       const pronto = sts.length > 0 && sts.every((x) => x === 2);
       if (pronto) prontos++;
-      else if (sts.some((x) => x > 0)) andamento++;
+      else if (sts.some((x) => x > 0)) {
+        andamento++;
+        const resto = cel.filter((x) => !ehPintura(x.s) && !ehLimpeza(x.s));
+        if (resto.length > 0 && resto.every((x) => x.st === 2)) {
+          const falta = (f: (s: Servico) => boolean) => cel.some((x) => f(x.s) && x.st !== 2);
+          const fp = falta(ehPintura),
+            fl = falta(ehLimpeza);
+          if (fp && fl) pinturaELimpeza++;
+          else if (fp) soPintura++;
+          else if (fl) soLimpeza++;
+        }
+      }
       const pv = porPav.get(l.pavimento_id) ?? { n: 0, p: 0 };
       pv.n++;
       if (pronto) pv.p++;
       porPav.set(l.pavimento_id, pv);
     });
     const pavsProntos = Array.from(porPav.values()).filter((v) => v.p === v.n).length;
-    return { total: locs.length, prontos, andamento, nao: locs.length - prontos - andamento, pavs: porPav.size, pavsProntos };
+    return { total: locs.length, prontos, andamento, nao: locs.length - prontos - andamento, pavs: porPav.size, pavsProntos, soPintura, soLimpeza, pinturaELimpeza };
   }, [ctx, escopo, idx, dados.categorias]);
 
   const limite = vertical ? 24 : 8;
@@ -521,11 +539,23 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
                 <div>
                   Em andamento: <b>{aptos.andamento}</b> · Não iniciados: <b>{aptos.nao}</b>
                 </div>
+                {aptos.soPintura + aptos.soLimpeza + aptos.pinturaELimpeza > 0 && (
+                  <div>
+                    Só falta o final:{" "}
+                    {[
+                      aptos.soPintura ? `${aptos.soPintura} esperando pintura` : "",
+                      aptos.soLimpeza ? `${aptos.soLimpeza} esperando limpeza` : "",
+                      aptos.pinturaELimpeza ? `${aptos.pinturaELimpeza} esperando pintura e limpeza` : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </div>
+                )}
                 <div>
                   Pavimentos com todos os apartamentos prontos: <b>{aptos.pavsProntos}</b> de {aptos.pavs}
                 </div>
               </div>
-              <div className="text-[10px] text-ink-500 mt-1">Pronto = todos os serviços concluídos, até a Pintura final.</div>
+              <div className="text-[10px] text-ink-500 mt-1">Pronto = todos os serviços concluídos, incluindo a pintura final e a limpeza final.</div>
             </div>
           )}
         </Quadro>

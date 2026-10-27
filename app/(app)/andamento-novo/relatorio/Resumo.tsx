@@ -326,8 +326,8 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
     if (!locs.length) return null;
     const servs = (idx.servicosDaCat.get(cat.id) ?? []).map((x) => x.servico).filter((s) => escopo.servOk(s) && faseDoServico(s, ctx) !== "Itens entregues");
     // pintura final e limpeza final são as duas últimas etapas: quando só elas faltam, o apartamento está "esperando"
-    const ehPintura = (s: Servico) => /pinturas+final/i.test(s.nome);
-    const ehLimpeza = (s: Servico) => /limpezas+final/i.test(s.nome);
+    const ehPintura = (s: Servico) => /pintura\s+final/i.test(s.nome);
+    const ehLimpeza = (s: Servico) => /limpeza\s+final/i.test(s.nome);
     let prontos = 0,
       andamento = 0,
       soPintura = 0,

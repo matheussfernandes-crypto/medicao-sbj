@@ -505,7 +505,6 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
           {cats.map((c) =>
             c.chave === "fach" && dadosR.porFach.length ? (
               <div key={c.id}>
-                <div className="text-[11px] text-ink-500 mt-1.5 mb-0.5">Fachada</div>
                 {dadosR.porFach.map((f) => (
                   <BarraLinha key={f.nome} nome={f.nome} s={f.s} cor={c.cor} />
                 ))}

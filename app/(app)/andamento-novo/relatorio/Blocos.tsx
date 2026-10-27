@@ -11,7 +11,7 @@ import type { Servico, Status } from "../types";
 const CINZA = COR_STATUS[0];
 
 // título de cada vista: discreto, mas com cara de título (centralizado, com uma linha fina embaixo)
-const tituloVista: React.CSSProperties = { textAlign: "center", fontSize: 14, fontWeight: 600, color: "#1f4a52", letterSpacing: "0.02em", width: "fit-content", margin: "0 auto 10px", padding: "0 22px 5px", borderBottom: "1.5px solid #c3d1d4" };
+const tituloVista: React.CSSProperties = { textAlign: "center", fontSize: 14, fontWeight: 600, color: "#1f4a52", letterSpacing: "0.02em", width: "fit-content", margin: "0 auto 14px", padding: "0 22px 5px", borderBottom: "1.5px solid #c3d1d4" };
 
 // ===================== fachada em 3D grande (uma folha por serviço; a faixa da categoria vem de fora) =====================
 
@@ -39,7 +39,7 @@ export function BlocoFachada3D({ servico, ctx, largura, altura }: { servico: Ser
   const alturaSvg = vertical ? Math.max(400, altura - 290) : altura - 30;
   return (
     <div style={{ height: altura, width: "100%" }}>
-      <div className={vertical ? "" : "flex gap-4"} style={{ width: "100%", padding: "12px 16px" }}>
+      <div className={vertical ? "" : "flex gap-4"} style={{ width: "100%", padding: `${Math.round(altura * 0.05)}px 16px 12px` }}>
         <div className={vertical ? "grid grid-cols-2 gap-3" : "flex-1 grid grid-cols-2 gap-3"}>
           <div>
             <p style={tituloVista}>Vista Norte + Leste</p>

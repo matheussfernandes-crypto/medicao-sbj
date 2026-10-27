@@ -368,7 +368,7 @@ function tabLocal(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un
   });
   h1 += "</tr>";
   h2 += "</tr>";
-  let body = "";
+  let body = `<tr class="gr g0"><td colspan="${NC}"></td></tr>`; // um respiro em branco entre os títulos e as células
   gs.forEach((g, gi) =>
     g.rows.forEach((r, ri) => {
       const cls = gi % 2 && hasPav ? "z" : "";

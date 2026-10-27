@@ -6,7 +6,7 @@ import { alvosDeItens, alvosDeLocais, somaRecorte, type AlvoR } from "../fatias"
 import { calcularNiveis, chaveItemFachada, descidasDoServico, itensDoServico, mapaItensFachada } from "../fachada";
 import Predio3D, { NOME_FACE, NOME_PARTE, type Face, type Parte } from "../Predio3D";
 import { Barra, fmtPct, fmtPct0 } from "../ui";
-import { agruparPorFase, status, type Ctx, type Escopo, type FotoRel } from "./modelo";
+import { agruparPorFase, faseDoServico, status, type Ctx, type Escopo, type FotoRel } from "./modelo";
 import type { Servico, Sistema } from "../types";
 
 const VERDE = COR_STATUS[2];
@@ -305,12 +305,42 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
           g.a++;
           if (g.itens.length < 3) g.itens.push(i.nome);
         }
+        if (i.pavimento_id) {
+          const pv = g.pavs.get(i.pavimento_id) ?? { n: 0, f: 0, a: 0 };
+          pv.n++;
+          if (st === 2) pv.f++;
+          if (st === 1) pv.a++;
+          g.pavs.set(i.pavimento_id, pv);
+        }
       })
     );
     const ativos = Array.from(mapa.values()).filter((g) => g.n > 0 && g.f < g.n && g.f + g.a > 0);
     const grupos = agruparPorFase(ativos.map((g) => g.servico), ctx);
     return { total: ativos.length, etapasAndamento: ativos.reduce((a, g) => a + g.a, 0), grupos, mapa };
   }, [ctx, escopo, idx]);
+
+  const aptos = useMemo(() => {
+    const cat = dados.categorias.find((c) => c.chave === "tipo");
+    if (!cat) return null;
+    const locs = escopo.locais.filter((l) => l.categoria_id === cat.id);
+    if (!locs.length) return null;
+    const servs = (idx.servicosDaCat.get(cat.id) ?? []).map((x) => x.servico).filter((s) => escopo.servOk(s) && faseDoServico(s, ctx) !== "Itens entregues");
+    let prontos = 0,
+      andamento = 0;
+    const porPav = new Map<string, { n: number; p: number }>();
+    locs.forEach((l) => {
+      const sts = servs.map((s) => status(ctx.ap, l.id, s.id)).filter((x) => x !== 3);
+      const pronto = sts.length > 0 && sts.every((x) => x === 2);
+      if (pronto) prontos++;
+      else if (sts.some((x) => x > 0)) andamento++;
+      const pv = porPav.get(l.pavimento_id) ?? { n: 0, p: 0 };
+      pv.n++;
+      if (pronto) pv.p++;
+      porPav.set(l.pavimento_id, pv);
+    });
+    const pavsProntos = Array.from(porPav.values()).filter((v) => v.p === v.n).length;
+    return { total: locs.length, prontos, andamento, nao: locs.length - prontos - andamento, pavs: porPav.size, pavsProntos };
+  }, [ctx, escopo, idx, dados.categorias]);
 
   const limite = vertical ? 24 : 8;
   let mostradas = 0;
@@ -327,13 +357,14 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
       .filter(([, v]) => v.f < v.n && v.f + v.a > 0)
       .map(([id]) => ctx.pavPorId.get(id)!)
       .sort((a, b) => b.ordem - a.ordem); // do mais baixo ao mais alto
-    let frente = "";
-    if (ativos.length === 1) frente = nomePav(ativos[0].id);
-    else if (ativos.length === 2) frente = `${ativos[0].nome} e ${ativos[1].nome}`;
-    else if (ativos.length > 2) frente = `${ativos[0].nome} → ${ativos[ativos.length - 1].nome}`;
-    else if (g.itens.length) frente = g.itens.join(", ");
-    const prefixo = pavs.length ? `${prontos}/${pavs.length} pav. prontos` : "";
-    return [prefixo, frente ? `frente: ${frente}` : ""].filter(Boolean).join(" · ");
+    let onde = "";
+    if (ativos.length === 1) onde = ativos[0].nome;
+    else if (ativos.length === 2) onde = `${ativos[0].nome} e ${ativos[1].nome}`;
+    else if (ativos.length === 3) onde = `${ativos[0].nome}, ${ativos[1].nome} e ${ativos[2].nome}`;
+    else if (ativos.length > 3) onde = `de ${ativos[0].nome} até ${ativos[ativos.length - 1].nome} (${ativos.length} pavimentos)`;
+    else if (g.itens.length) onde = g.itens.join(", ");
+    const prefixo = pavs.length ? `${prontos} de ${pavs.length} pavimentos concluídos` : "";
+    return [prefixo, onde ? `em andamento em: ${onde}` : ""].filter(Boolean).join(" · ");
   };
 
   // ---- fachada (mini 3D): um bloco por serviço da fachada (Reboco externo, Pintura externa…), cada um com as suas descidas ----
@@ -358,10 +389,10 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
           <div className="flex items-center gap-4">
             <Rosca s={dadosR.total} tam={170} />
             <div className="text-[13px] space-y-1.5">
-              {[["Finalizado", dadosR.total.fin, VERDE], ["Andamento", dadosR.total.and, LARANJA], ["Não iniciado", dadosR.total.nao, "#e3e7e9"]].map(([n, v, c]) => (
+              {[["Finalizado", dadosR.total.fin, VERDE], ["Andamento", dadosR.total.and, LARANJA], ["Não iniciado", dadosR.total.nao, "#e3e7e9"]].map(([n, , c]) => (
                 <div key={n as string} className="flex items-center gap-2">
                   <i style={{ width: 12, height: 12, background: c as string, display: "inline-block", borderRadius: 2 }} />
-                  {n as string}: <b>{v as number}</b>
+                  {n as string}
                 </div>
               ))}
             </div>
@@ -391,22 +422,22 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
       <div className="text-[30px] font-extrabold leading-tight" style={{ color: cor === "#9ca3af" ? "#374151" : cor }}>
         {grande}
       </div>
-      <div className="text-[11.5px] text-ink-500">{sub}</div>
+      {sub && <div className="text-[11.5px] text-ink-500">{sub}</div>}
     </div>
   );
 
   return (
     <div className="space-y-3">
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-        {tile("Obra concluída", `${fmtPct(pctObra)}%`, "índice ponderado", "#24914f")}
-        {tile("Entrega prevista", fim ? fim.toLocaleDateString("pt-BR") : "—", fim ? "data prevista de término da obra" : "defina em Pavimentos e serviços", "#2c6975")}
+        {tile("Obra concluída", `${fmtPct(pctObra)}%`, "", "#24914f")}
+        {tile("Entrega prevista", fim ? fim.toLocaleDateString("pt-BR") : "—", fim ? "" : "defina em Pavimentos e serviços", "#2c6975")}
         {tile(
           diasPara == null ? "Dias para a entrega" : diasPara >= 0 ? "Dias para a entrega" : "Entrega atrasada",
           diasPara == null ? "—" : String(Math.abs(diasPara)),
-          diasPara == null ? "defina a entrega em Pavimentos e serviços" : diasPara >= 0 ? `Faltam ${diasPara} ${diasPara === 1 ? "dia" : "dias"} para a entrega (${(diasPara / 30.4).toFixed(1).replace(".", ",")} meses)` : `Passaram ${-diasPara} dias da data prevista`,
+          diasPara == null ? "defina a entrega em Pavimentos e serviços" : "",
           diasPara == null ? "#9ca3af" : diasPara >= 0 ? "#24914f" : "#c0392b"
         )}
-        {tile("Frentes em andamento", String(frentes.total), `${emAndamentoAgora} etapas em andamento agora`, "#f0a020")}
+        {tile("Frentes em andamento", String(frentes.total), "", "#f0a020")}
       </div>
 
       <Quadro titulo="Linha do tempo da obra">
@@ -460,12 +491,19 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
           </div>
         </div>
         <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: "1fr 1fr" }}>
-          <div className="flex items-center gap-2 text-[12px]">
-            <span style={{ width: 52 }}>Tempo</span>
-            <div className="flex-1 rounded-full overflow-hidden" style={{ background: "#e3e7e9", height: 10 }}>
-              <div style={{ width: `${prazoPct ?? 0}%`, height: "100%", background: "#2c6975" }} />
+          <div>
+            <div className="flex items-center gap-2 text-[12px]">
+              <span style={{ width: 52 }}>Tempo</span>
+              <div className="flex-1 rounded-full overflow-hidden" style={{ background: "#e3e7e9", height: 10 }}>
+                <div style={{ width: `${prazoPct ?? 0}%`, height: "100%", background: "#2c6975" }} />
+              </div>
+              <b style={{ width: 44, textAlign: "right" }}>{prazoPct != null ? fmtPct0(prazoPct) + "%" : "—"}</b>
             </div>
-            <b style={{ width: 44, textAlign: "right" }}>{prazoPct != null ? fmtPct0(prazoPct) + "%" : "—"}</b>
+            <div className="text-[10.5px] text-ink-500 mt-0.5" style={{ paddingLeft: 60 }}>
+              {fim
+                ? `Hoje ${hoje.toLocaleDateString("pt-BR")} → entrega ${fim.toLocaleDateString("pt-BR")}${diasPara != null ? (diasPara >= 0 ? ` · faltam ${diasPara} dias` : ` · ${-diasPara} dias de atraso`) : ""}${ini ? "" : " · informe o início da obra para ver o % do prazo"}`
+                : "Informe a data de entrega em Pavimentos e serviços"}
+            </div>
           </div>
           <div className="flex items-center gap-2 text-[12px]">
             <span style={{ width: 52 }}>Obra</span>
@@ -482,19 +520,37 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
           <div className="flex items-center gap-3">
             <Rosca s={dadosR.total} tam={120} />
             <div className="text-[12px] space-y-1">
-              {[["Finalizado", dadosR.total.fin, VERDE], ["Andamento", dadosR.total.and, LARANJA], ["Não iniciado", dadosR.total.nao, "#e3e7e9"]].map(([n, v, c]) => (
+              {[["Finalizado", dadosR.total.fin, VERDE], ["Andamento", dadosR.total.and, LARANJA], ["Não iniciado", dadosR.total.nao, "#e3e7e9"]].map(([n, , c]) => (
                 <div key={n as string} className="flex items-center gap-1.5">
                   <i style={{ width: 11, height: 11, background: c as string, display: "inline-block", borderRadius: 2 }} />
-                  {n as string}: <b>{v as number}</b>
+                  {n as string}
                 </div>
               ))}
             </div>
           </div>
-          <div className="mt-3 pt-2 border-t border-border">
-            {sistemas.map((s) => (
-              <BarraLinha key={s.id} nome={s.nome} s={dadosR.porSis.get(s.id)!} />
-            ))}
-          </div>
+          {aptos && (
+            <div className="mt-3 pt-2 border-t border-border">
+              <div className="text-[11px] text-ink-500">Apartamentos prontos</div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-[28px] font-extrabold leading-tight" style={{ color: VERDE }}>
+                  {aptos.prontos}
+                </span>
+                <span className="text-[13px] text-ink-700">de {aptos.total} apartamentos</span>
+              </div>
+              <div className="rounded-full overflow-hidden mt-1" style={{ background: "#e3e7e9", height: 8 }}>
+                <div style={{ width: `${(aptos.prontos / aptos.total) * 100}%`, height: "100%", background: VERDE }} />
+              </div>
+              <div className="text-[11.5px] text-ink-700 mt-1.5 space-y-0.5">
+                <div>
+                  Em andamento: <b>{aptos.andamento}</b> · Não iniciados: <b>{aptos.nao}</b>
+                </div>
+                <div>
+                  Pavimentos com todos os apartamentos prontos: <b>{aptos.pavsProntos}</b> de {aptos.pavs}
+                </div>
+              </div>
+              <div className="text-[10px] text-ink-500 mt-1">Pronto = todos os serviços concluídos, até a Pintura final.</div>
+            </div>
+          )}
         </Quadro>
         <Quadro titulo="Por pavimento">
           {pavsComDados.map((p) => (

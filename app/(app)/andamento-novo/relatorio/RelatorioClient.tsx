@@ -106,6 +106,27 @@ export default function RelatorioClient({
     } catch {}
   }, [chaveSalva, filtros, fmt, mon, pronto]);
 
+  // lembra qual relatório (modelo) foi escolhido por último nesta obra
+  const chaveModelo = `an-rel-modelo-${obra.id}`;
+  useEffect(() => {
+    if (modoPdf) return;
+    try {
+      const m = localStorage.getItem(chaveModelo);
+      if (m && montagens.some((x) => x.id === m)) {
+        setMontId(m);
+        setModoMont(true);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveModelo]);
+  useEffect(() => {
+    if (!pronto || modoPdf) return;
+    try {
+      if (modoMont && montId) localStorage.setItem(chaveModelo, montId);
+      else localStorage.removeItem(chaveModelo);
+    } catch {}
+  }, [chaveModelo, modoMont, montId, pronto]);
+
   const padroes = useMemo(() => predefinicoesPadrao(ctx), [ctx]);
   const todasPredefs = useMemo(() => [...padroes, ...minhas], [padroes, minhas]);
   const montAtual = montagens.find((m) => m.id === montId) ?? null;
@@ -130,6 +151,7 @@ export default function RelatorioClient({
       const m = await acoesRel.criarMontagem(obra.id, base ? base.nome + " (cópia)" : "Nova montagem", base ? copia(base.dados) : MONTAGEM_NOVA(fotosSimples));
       setMontagens((l) => [...l, m]);
       setMontId(m.id);
+      setModoMont(true); // o modelo novo já aparece na prévia
     } catch (e: any) {
       setErro(e.message);
     }
@@ -516,6 +538,29 @@ ${cssImpressao()}
       {/* barra de controles */}
       <div className="card space-y-3 print:hidden">
         <div className="flex flex-wrap items-center gap-2 relative">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-ink-500">Relatório</span>
+            <select
+              className="border border-primary rounded-md px-2 py-1.5 text-sm bg-white font-medium text-primaryDark"
+              aria-label="Escolher o relatório (modelo)"
+              value={emMont ? montId ?? "" : ""}
+              onChange={(e) => {
+                setPainel(null);
+                if (!e.target.value) setModoMont(false);
+                else {
+                  setMontId(e.target.value);
+                  setModoMont(true);
+                }
+              }}
+            >
+              <option value="">Relatório simples (filtros e formatação abaixo)</option>
+              {montagens.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.nome}
+                </option>
+              ))}
+            </select>
+          </label>
           {!emMont && botao("filtros", <>Filtrar{qtdFiltros ? ` (${qtdFiltros})` : ""}</>)}
           {!emMont && (
             <div className="relative">
@@ -546,7 +591,7 @@ ${cssImpressao()}
             </div>
           )}
           {!emMont && botao("formato", "Formatação")}
-          {botao("mont", "Montar relatório")}
+          {botao("mont", "Criar ou editar modelo")}
           <button
             className={`text-sm px-3 py-1.5 border rounded-md flex items-center gap-1 ${painel === "fotos" ? "bg-primary/10 border-primary" : "border-border bg-white"}`}
             onClick={() => {
@@ -621,7 +666,10 @@ ${cssImpressao()}
             fmtAtual={fmt}
             monAtual={mon}
             emPrevia={emMont}
-            onSelecionar={(id) => setMontId(id)}
+            onSelecionar={(id) => {
+              setMontId(id);
+              setModoMont(true); // escolher o modelo já mostra a prévia, pronta para imprimir, enviar ou gerar PDF
+            }}
             onNova={() => novaMontagem()}
             onDuplicar={() => montAtual && novaMontagem(montAtual)}
             onExcluir={excluirMontagem}

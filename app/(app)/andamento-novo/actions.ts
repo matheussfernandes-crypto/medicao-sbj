@@ -62,34 +62,62 @@ export async function criarObraNova(input: {
 }
 
 // ---------- Modelo padrão completo (versões, aplicar em outras obras, desfazer) ----------
+// em produção o Next esconde a mensagem de erro de uma ação que falha; aqui a mensagem volta como resultado para aparecer na tela
+export type Resultado<T> = { ok: true; dados: T } | { ok: false; erro: string };
+async function seguro<T>(fn: () => Promise<T>): Promise<Resultado<T>> {
+  try {
+    return { ok: true, dados: await fn() };
+  } catch (e: any) {
+    if (typeof e?.digest === "string" && e.digest.startsWith("NEXT_REDIRECT")) throw e;
+    return { ok: false, erro: e?.message ?? "Erro inesperado." };
+  }
+}
 export async function resumoModelo(obraId: string) {
-  const s = await admin();
-  return (await rpc(s, "an_modelo_resumo", { p_obra: obraId })) as ResumoModelo;
+  return seguro(async () => {
+    const s = await admin();
+    return (await rpc(s, "an_modelo_resumo", { p_obra: obraId })) as ResumoModelo;
+  });
 }
 export async function salvarModeloCompleto(obraId: string) {
-  const s = await admin();
-  return (await rpc(s, "an_salvar_modelo_completo", { p_obra: obraId })) as { id: string; numero: number };
+  return seguro(async () => {
+    const s = await admin();
+    return (await rpc(s, "an_salvar_modelo_completo", { p_obra: obraId })) as { id: string; numero: number };
+  });
 }
 export async function restaurarVersaoModelo(versaoId: string) {
-  const s = await admin();
-  await rpc(s, "an_restaurar_versao_modelo", { p_versao: versaoId });
+  return seguro(async () => {
+    const s = await admin();
+    await rpc(s, "an_restaurar_versao_modelo", { p_versao: versaoId });
+    return true;
+  });
 }
 // simular = só mostra a prévia, sem gravar nada
 export async function aplicarModelo(versaoId: string, obras: string[], op: OpcoesModelo, simular: boolean) {
-  const s = await admin();
-  return (await rpc(s, "an_aplicar_modelo_obras", { p_versao: versaoId, p_obras: obras, p_op: op, p_simular: simular })) as ResultadoAplicacao;
+  return seguro(async () => {
+    const s = await admin();
+    return (await rpc(s, "an_aplicar_modelo_obras", { p_versao: versaoId, p_obras: obras, p_op: op, p_simular: simular })) as ResultadoAplicacao;
+  });
 }
 export async function desfazerAplicacao(logId: string) {
-  const s = await admin();
-  await rpc(s, "an_desfazer_aplicacao", { p_log: logId });
+  return seguro(async () => {
+    const s = await admin();
+    await rpc(s, "an_desfazer_aplicacao", { p_log: logId });
+    return true;
+  });
 }
 export async function incluirNoModelo(obraId: string, servicos: string[]) {
-  const s = await admin();
-  await rpc(s, "an_incluir_servicos_no_modelo", { p_obra: obraId, p_servicos: servicos });
+  return seguro(async () => {
+    const s = await admin();
+    await rpc(s, "an_incluir_servicos_no_modelo", { p_obra: obraId, p_servicos: servicos });
+    return true;
+  });
 }
 export async function manterSoNestaObra(obraId: string, servicos: string[]) {
-  const s = await admin();
-  await rpc(s, "an_manter_so_nesta_obra", { p_obra: obraId, p_servicos: servicos });
+  return seguro(async () => {
+    const s = await admin();
+    await rpc(s, "an_manter_so_nesta_obra", { p_obra: obraId, p_servicos: servicos });
+    return true;
+  });
 }
 
 // Exclusão REVERSÍVEL, só no Andamento novo: marca a obra como excluída (30 dias para restaurar). Não mexe na tabela geral de obras.

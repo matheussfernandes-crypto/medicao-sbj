@@ -3,12 +3,18 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import * as acoes from "./actions";
+import type { Resultado } from "./actions";
 import type { AplicacaoModelo, DadosConfig, OpcoesModelo, ResultadoAplicacao, ResumoAplicacao, ResumoModelo } from "./types";
 
 const btn = "text-xs px-2.5 py-1.5 border border-border rounded-md bg-white hover:bg-surface-subtle disabled:opacity-50";
 const btnPri = "text-xs px-3 py-1.5 rounded-md bg-primary text-white font-medium disabled:opacity-50";
 const dataHora = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const dataBR = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+// desembrulha o resultado de uma ação do servidor; se falhou, mostra a mensagem real
+function desembrulhar<T>(r: Resultado<T>): T {
+  if (!r.ok) throw new Error(r.erro);
+  return r.dados;
+}
 const pl = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
 // texto da prévia/resultado de uma obra
@@ -81,7 +87,7 @@ function AplicarModeloModal({ dados, somenteObra, onFechar }: { dados: DadosConf
     setErro(null);
     setCarregando(true);
     try {
-      const r = await acoes.aplicarModelo(versao.id, Array.from(sel), op, simular);
+      const r = desembrulhar(await acoes.aplicarModelo(versao.id, Array.from(sel), op, simular));
       if (simular) setPrevia(r);
       else {
         setRes(r);
@@ -259,7 +265,7 @@ export default function PainelModelo({ dados }: { dados: DadosConfig }) {
     setErro(null);
     setSalvar({ resumo: null });
     try {
-      setSalvar({ resumo: await acoes.resumoModelo(obra.id) });
+      setSalvar({ resumo: desembrulhar(await acoes.resumoModelo(obra.id)) });
     } catch (e: any) {
       setErro(e.message ?? "Erro.");
       setSalvar(null);
@@ -340,7 +346,7 @@ export default function PainelModelo({ dados }: { dados: DadosConfig }) {
               disabled={ocupado || !salvar.resumo}
               onClick={() =>
                 executar(async () => {
-                  await acoes.salvarModeloCompleto(obra.id);
+                  desembrulhar(await acoes.salvarModeloCompleto(obra.id));
                   setSalvar(null);
                 })
               }
@@ -367,10 +373,10 @@ export default function PainelModelo({ dados }: { dados: DadosConfig }) {
                 ))}
               </ul>
               <div className="flex flex-wrap gap-2 mt-2">
-                <button className={btn} disabled={ocupado} onClick={() => executar(() => acoes.incluirNoModelo(obra.id, extras.map((e) => e.id)))}>
+                <button className={btn} disabled={ocupado} onClick={() => executar(async () => desembrulhar(await acoes.incluirNoModelo(obra.id, extras.map((e) => e.id))))}>
                   Incluir esses serviços no modelo padrão
                 </button>
-                <button className={btn} disabled={ocupado} onClick={() => executar(() => acoes.manterSoNestaObra(obra.id, extras.map((e) => e.id)))}>
+                <button className={btn} disabled={ocupado} onClick={() => executar(async () => desembrulhar(await acoes.manterSoNestaObra(obra.id, extras.map((e) => e.id))))}>
                   Manter só nesta obra
                 </button>
               </div>
@@ -416,7 +422,7 @@ function HistoricoModelo({ versoes, aplicacoes, ocupado, executar }: { versoes: 
                   {i === 0 && <span className="text-xs text-success"> (atual)</span>} · {dataHora(v.criado_em)} · {v.criado_por_nome ?? "—"} · de {v.obra_origem_nome ?? "—"} · {v.resumo?.servicos ?? "?"} serviços, {v.resumo?.pavimentos ?? "?"} pavimentos
                 </span>
                 {i > 0 && (
-                  <button className={btn} disabled={ocupado} onClick={() => executar(() => acoes.restaurarVersaoModelo(v.id))}>
+                  <button className={btn} disabled={ocupado} onClick={() => executar(async () => desembrulhar(await acoes.restaurarVersaoModelo(v.id)))}>
                     Voltar para esta versão
                   </button>
                 )}
@@ -441,7 +447,7 @@ function HistoricoModelo({ versoes, aplicacoes, ocupado, executar }: { versoes: 
                   {a.desfeita_em ? (
                     <span className="text-xs text-ink-500">desfeita em {dataHora(a.desfeita_em)}</span>
                   ) : (
-                    <button className={btn} disabled={ocupado || !pode} title={pode ? "" : "Só a aplicação mais recente da obra, em até 30 dias"} onClick={() => confirm(`Desfazer a aplicação do modelo em ${a.obra_nome}? A obra volta ao que era antes.`) && executar(() => acoes.desfazerAplicacao(a.id))}>
+                    <button className={btn} disabled={ocupado || !pode} title={pode ? "" : "Só a aplicação mais recente da obra, em até 30 dias"} onClick={() => confirm(`Desfazer a aplicação do modelo em ${a.obra_nome}? A obra volta ao que era antes.`) && executar(async () => desembrulhar(await acoes.desfazerAplicacao(a.id)))}>
                       Desfazer
                     </button>
                   )}

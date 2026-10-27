@@ -490,29 +490,6 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
             <div className="text-[10.5px] text-ink-500">{fim ? fim.toLocaleDateString("pt-BR") : "—"}</div>
           </div>
         </div>
-        <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: "1fr 1fr" }}>
-          <div>
-            <div className="flex items-center gap-2 text-[12px]">
-              <span style={{ width: 52 }}>Tempo</span>
-              <div className="flex-1 rounded-full overflow-hidden" style={{ background: "#e3e7e9", height: 10 }}>
-                <div style={{ width: `${prazoPct ?? 0}%`, height: "100%", background: "#2c6975" }} />
-              </div>
-              <b style={{ width: 44, textAlign: "right" }}>{prazoPct != null ? fmtPct0(prazoPct) + "%" : "—"}</b>
-            </div>
-            <div className="text-[10.5px] text-ink-500 mt-0.5" style={{ paddingLeft: 60 }}>
-              {fim
-                ? `Hoje ${hoje.toLocaleDateString("pt-BR")} → entrega ${fim.toLocaleDateString("pt-BR")}${diasPara != null ? (diasPara >= 0 ? ` · faltam ${diasPara} dias` : ` · ${-diasPara} dias de atraso`) : ""}${ini ? "" : " · informe o início da obra para ver o % do prazo"}`
-                : "Informe a data de entrega em Pavimentos e serviços"}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-[12px]">
-            <span style={{ width: 52 }}>Obra</span>
-            <div className="flex-1">
-              <Barra s={dadosR.total} h={10} />
-            </div>
-            <b style={{ width: 44, textAlign: "right" }}>{fmtPct0(pctObra)}%</b>
-          </div>
-        </div>
       </Quadro>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>

@@ -289,6 +289,7 @@ function cel(E: Amb, items: MItem[], s: MServ, attr = "") {
     t: string;
   if (!n) {
     k = "s3";
+    sty = `<svg viewBox="0 0 10 10" preserveAspectRatio="none"><line x1="0" y1="10" x2="10" y2="0" vector-effect="non-scaling-stroke"/></svg>`;
     t = "não se aplica";
   } else if (f === n) {
     k = "s2";
@@ -315,7 +316,7 @@ function tabLocal(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un
   const gs = grupos(c, its, det, E),
     servs = fases.flatMap((f) => f[1]),
     hasPav = !c.sis;
-  const fPv = "700 9.5pt " + FF,
+  const fPv = "500 9.5pt " + FF,
     fLc = "400 9pt " + FF,
     fPh = "800 8pt " + FF;
   const merged = (g: Grupo) => hasPav && g.rows.length === 1 && g.rows[0].label === g.pav;
@@ -356,7 +357,7 @@ function tabLocal(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un
       h1 += `<th class="ph pm" rowspan="2"><span class="vt">${esc(p.up)} · ${p.pc}</span></th>`;
       return;
     }
-    if (p.mode === "v") h1 += `<th class="ph pv" colspan="${p.l.length}"><span class="vt">${esc(p.up)} · ${p.pc}</span></th>`;
+    if (p.mode === "v") h1 += `<th class="ph pvv" colspan="${p.l.length}"><span class="vt">${esc(p.up)} · ${p.pc}</span></th>`;
     else if (p.mode === "h2") h1 += `<th class="ph hw" colspan="${p.l.length}">${esc(p.up)}<br>${p.pc}</th>`;
     else h1 += `<th class="ph" colspan="${p.l.length}">${esc(p.up)} · ${p.pc}</th>`;
     // título do serviço: vertical, uma linha vertical por trecho de palavras, sem hífen
@@ -399,14 +400,14 @@ function tabServ(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un"
   if (!c.sis) gs.forEach((g) => (g.rows = [...g.rows].reverse()));
   const servs = fases.flatMap((f) => f[1]),
     hasPav = !c.sis;
-  const svW = Math.ceil(Math.max(80, ...servs.map((s) => tw(s.nome, "400 9pt " + FF)), ...fases.map(([n]) => tw(n.toUpperCase() + " · 100%", "800 8pt " + FF) + n.length * 0.5)) + 28);
+  const svW = Math.ceil(Math.max(80, ...servs.map((s) => tw(s.nome, "400 9pt " + FF) + 12), ...fases.map(([n]) => tw(n.toUpperCase() + " · 100%", "800 8pt " + FF) + n.length * 0.5)) + 28);
   const single = (g: Grupo) => g.rows.length === 1;
   const lab1 = (g: Grupo) => {
     const r = g.rows[0];
     return g.pav == null ? r.label : r.label === g.pav || r.agg ? g.pav : g.pav + " · " + r.label;
   };
-  const ghFits = (g: Grupo) => g.rows.length * CW >= Math.min(tw(g.pav!, "800 9.5pt " + FF), Math.max(...g.pav!.split(/\s+/).map((w) => tw(w, "800 9.5pt " + FF)))) + 4;
-  const vl = gs.filter((g) => single(g) || !ghFits(g)).map((g) => tw(lab1(g), "700 8.5pt " + FF) + 14);
+  const ghFits = (g: Grupo) => g.rows.length * CW >= Math.min(tw(g.pav!, "600 9.5pt " + FF), Math.max(...g.pav!.split(/\s+/).map((w) => tw(w, "600 9.5pt " + FF)))) + 4;
+  const vl = gs.filter((g) => single(g) || !ghFits(g)).map((g) => tw(lab1(g), "600 8.5pt " + FF) + 14);
   const vl2 = gs.filter((g) => !single(g)).flatMap((g) => g.rows.map((r) => tw(r.label, "600 8pt " + FF) + 12));
   const r1 = 30,
     r2 = Math.ceil(Math.max(24, vl2.length ? Math.max(...vl2) : 0, (vl.length ? Math.max(...vl) : 0) - r1));
@@ -448,7 +449,10 @@ export function bandaCat(E: Amb, b: { c: MCat; its: MItem[]; servs: MServ[] }, e
   const nl = its.length,
     np = new Set(its.map((i) => i.pavId).filter(Boolean)).size;
   const pl = (n: number) => (n === 1 ? "pavimento" : "pavimentos");
-  const sub = c.fachada ? `${new Set(its.map((i) => E.chaveDesc.get(i.id)).filter(Boolean)).size} descidas · ${E.nNiveis} pavimentos` : c.sis ? `${nl} ${nl === 1 ? "item" : "itens"}` : nl === np ? `${np} ${pl(np)}` : `${nl} locais · ${np} ${pl(np)}`;
+  const descPor = (parte: string) => new Set(its.map((i) => E.chaveDesc.get(i.id)).filter((k) => k && k.startsWith(parte))).size;
+  const plD = (n: number) => (n === 1 ? "descida" : "descidas");
+  const sub = c.fachada
+    ? `${descPor("tor")} ${plD(descPor("tor"))} na torre · ${descPor("emb")} ${plD(descPor("emb"))} no embasamento${descPor("res") ? ` · ${descPor("res")} ${plD(descPor("res"))} no reservatório` : ""} · ${E.nNiveis} pavimentos` : c.sis ? `${nl} ${nl === 1 ? "item" : "itens"}` : nl === np ? `${np} ${pl(np)}` : `${nl} locais · ${np} ${pl(np)}`;
   return `<div class="cband" style="--cc:${c.cor}"><b>${esc(c.nome)}${extra ? ` · ${esc(extra)}` : ""}</b><span>${sub}</span><i class="cbar"><i style="width:${x}%"></i></i><b class="cpc">${P(x)}</b></div>`;
 }
 

@@ -3,6 +3,32 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { MARGEM_FOLHA, dimFolha, type Papel } from "./modelo";
 import { fmtPct0 } from "../ui";
+import { COR_STATUS } from "../calculo";
+
+// legenda das cores das tabelas e das fachadas (rodapé das folhas de tabelas)
+function LegendaStatus() {
+  const quadro = (cor: string) => <i style={{ width: 12, height: 12, background: cor, borderRadius: 2, display: "inline-block", flex: "none" }} />;
+  const item = (cor: string, nome: string) => (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+      {quadro(cor)}
+      {nome}
+    </span>
+  );
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 16, fontSize: 11, color: "#4b5a60" }}>
+      {item(COR_STATUS[2], "Finalizado")}
+      {item(COR_STATUS[1], "Em andamento")}
+      {item(COR_STATUS[0], "Não iniciado")}
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+        <svg width="12" height="12" viewBox="0 0 12 12" style={{ flex: "none" }}>
+          <rect x="0.5" y="0.5" width="11" height="11" fill="#fff" stroke="#d3dadd" />
+          <line x1="0.5" y1="11.5" x2="11.5" y2="0.5" stroke="#b4bec2" strokeWidth="1.2" />
+        </svg>
+        Ausência
+      </span>
+    </span>
+  );
+}
 
 export const ALTURA_CABECALHO = 124;
 export const ALTURA_RODAPE = 34;
@@ -73,6 +99,7 @@ export default function Folha({
   children,
   escala = 1,
   fixa = false,
+  legenda = false,
 }: {
   folha: "h" | "v";
   papel?: Papel;
@@ -86,6 +113,7 @@ export default function Folha({
   total: number;
   children: React.ReactNode;
   escala?: number;
+  legenda?: boolean; // legenda das cores no rodapé (folhas de tabelas e de fachada)
   fixa?: boolean; // conteúdo já calculado para caber (escala única do relatório): não reduz nem amplia
 }) {
   const { w, h, larguraUtil } = dimensoes(folha, papel);
@@ -152,6 +180,7 @@ export default function Folha({
         <span>
           Engenharia SBJ · <b style={{ color: "#2c6975", fontWeight: 600 }}>{obraNome}</b>
         </span>
+        {legenda && <LegendaStatus />}
         <span>
           Página {numero} de {total} · {titulo}
         </span>

@@ -205,7 +205,18 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
     );
     fases.forEach((n) => porFase.set(n, rec(todos, (s) => faseDe(s) === n)));
     nomes.forEach((n) => porServ.set(n, { nome: n, s: rec(todos, (s) => s.nome === n) }));
-    return { total, porPav, porCat, porSis, porFase, porServ };
+    // a categoria Fachada é destrinchada por serviço (Reboco externo, Pintura externa…)
+    const fachCat = dados.categorias.find((c) => c.chave === "fach");
+    const porFach: { nome: string; s: Soma }[] = [];
+    if (fachCat && porCat.has(fachCat.id)) {
+      const al = [...alvosDeLocais(escopo.locais.filter((l) => l.categoria_id === fachCat.id)), ...alvosDeItens(escopo.itens.filter((i) => i.categoria_id === fachCat.id))];
+      (idx.servicosDaCat.get(fachCat.id) ?? []).forEach(({ servico }) => {
+        if (!escopo.servOk(servico)) return;
+        const s = rec(al, (x) => x.id === servico.id);
+        if (s.tot > 0) porFach.push({ nome: servico.nome, s });
+      });
+    }
+    return { total, porPav, porCat, porSis, porFase, porServ, porFach };
   }, [ctx, escopo, idx, dados.categorias, dados.sistemas]);
 
   // ---- linha do tempo ----
@@ -248,9 +259,11 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
   const pctObra = pct(dadosR.total);
   let prazoPct: number | null = null;
   let faltam: string | null = null;
+  let diasPara: number | null = null;
   if (ini && fim && fim > ini) prazoPct = Math.max(0, Math.min(100, ((hoje.getTime() - ini.getTime()) / (fim.getTime() - ini.getTime())) * 100));
   if (fim) {
     const dias = Math.ceil((fim.getTime() - hoje.getTime()) / DIA);
+    diasPara = dias;
     faltam = dias >= 0 ? `faltam ${dias} dias (${(dias / 30.4).toFixed(1).replace(".", ",")} meses)` : `passou ${Math.abs(dias)} dias`;
   }
   const dif = prazoPct != null ? pctObra - prazoPct : null;
@@ -381,18 +394,17 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
       <div className="text-[11.5px] text-ink-500">{sub}</div>
     </div>
   );
-  const corPrazo = dif == null ? "#9ca3af" : dif >= 0 ? "#24914f" : "#c0392b";
 
   return (
     <div className="space-y-3">
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
         {tile("Obra concluída", `${fmtPct(pctObra)}%`, "índice ponderado", "#24914f")}
-        {tile("Entrega prevista", fim ? fim.toLocaleDateString("pt-BR") : "—", faltam ?? "defina em Pavimentos e serviços", "#2c6975")}
+        {tile("Entrega prevista", fim ? fim.toLocaleDateString("pt-BR") : "—", fim ? "data prevista de término da obra" : "defina em Pavimentos e serviços", "#2c6975")}
         {tile(
-          "Prazo decorrido",
-          prazoPct != null ? `${fmtPct(prazoPct)}%` : "—",
-          dif == null ? "defina as datas em Pavimentos e serviços" : dif >= 0 ? `obra à frente do prazo em ${Math.round(dif)} pontos` : `obra atrás do prazo em ${Math.round(-dif)} pontos`,
-          corPrazo
+          diasPara == null ? "Dias para a entrega" : diasPara >= 0 ? "Dias para a entrega" : "Entrega atrasada",
+          diasPara == null ? "—" : String(Math.abs(diasPara)),
+          diasPara == null ? "defina a entrega em Pavimentos e serviços" : diasPara >= 0 ? `Faltam ${diasPara} ${diasPara === 1 ? "dia" : "dias"} para a entrega (${(diasPara / 30.4).toFixed(1).replace(".", ",")} meses)` : `Passaram ${-diasPara} dias da data prevista`,
+          diasPara == null ? "#9ca3af" : diasPara >= 0 ? "#24914f" : "#c0392b"
         )}
         {tile("Frentes em andamento", String(frentes.total), `${emAndamentoAgora} etapas em andamento agora`, "#f0a020")}
       </div>
@@ -490,9 +502,18 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
           ))}
         </Quadro>
         <Quadro titulo="Por ambiente">
-          {cats.map((c) => (
-            <BarraLinha key={c.id} nome={c.nome} s={dadosR.porCat.get(c.id)!} cor={c.cor} />
-          ))}
+          {cats.map((c) =>
+            c.chave === "fach" && dadosR.porFach.length ? (
+              <div key={c.id}>
+                <div className="text-[11px] text-ink-500 mt-1.5 mb-0.5">Fachada</div>
+                {dadosR.porFach.map((f) => (
+                  <BarraLinha key={f.nome} nome={f.nome} s={f.s} cor={c.cor} />
+                ))}
+              </div>
+            ) : (
+              <BarraLinha key={c.id} nome={c.nome} s={dadosR.porCat.get(c.id)!} cor={c.cor} />
+            )
+          )}
         </Quadro>
       </div>
 

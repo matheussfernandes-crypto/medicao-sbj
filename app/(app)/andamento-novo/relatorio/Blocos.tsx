@@ -10,6 +10,9 @@ import type { Servico, Status } from "../types";
 
 const CINZA = COR_STATUS[0];
 
+// título de cada vista: discreto, mas com cara de título (centralizado, com uma linha fina embaixo)
+const tituloVista: React.CSSProperties = { textAlign: "center", fontSize: 14, fontWeight: 600, color: "#1f4a52", letterSpacing: "0.02em", width: "fit-content", margin: "0 auto 10px", padding: "0 22px 5px", borderBottom: "1.5px solid #c3d1d4" };
+
 // ===================== fachada em 3D grande (uma folha por serviço; a faixa da categoria vem de fora) =====================
 
 export function BlocoFachada3D({ servico, ctx, largura, altura }: { servico: Servico; ctx: Ctx; largura: number; altura: number }) {
@@ -39,15 +42,11 @@ export function BlocoFachada3D({ servico, ctx, largura, altura }: { servico: Ser
       <div className={vertical ? "" : "flex gap-4"} style={{ width: "100%", padding: "12px 16px" }}>
         <div className={vertical ? "grid grid-cols-2 gap-3" : "flex-1 grid grid-cols-2 gap-3"}>
           <div>
-            <p className="text-center font-semibold text-[12px]" style={{ color: "#5f7076" }}>
-              Vista Norte + Leste
-            </p>
+            <p style={tituloVista}>Vista Norte + Leste</p>
             <Predio3D vista="NE" descidas={descidas} niveis={niveis} cor={cor} alturaMax={alturaDesenho} alturaTotal={alturaSvg} fonte={12} />
           </div>
           <div>
-            <p className="text-center font-semibold text-[12px]" style={{ color: "#5f7076" }}>
-              Vista Sul + Oeste
-            </p>
+            <p style={tituloVista}>Vista Sul + Oeste</p>
             <Predio3D vista="SW" descidas={descidas} niveis={niveis} cor={cor} alturaMax={alturaDesenho} alturaTotal={alturaSvg} fonte={12} />
           </div>
         </div>
@@ -79,14 +78,6 @@ export function BlocoFachada3D({ servico, ctx, largura, altura }: { servico: Ser
                 <b style={{ width: 38, textAlign: "right" }}>{fmtPct0(pct(pp[p]))}%</b>
               </div>
             ))}
-            <div className="mt-4 text-[11px] text-ink-500 space-y-1">
-              {([2, 1, 0] as Status[]).map((s) => (
-                <div key={s} className="flex items-center gap-2">
-                  <i style={{ width: 12, height: 12, background: COR_STATUS[s], display: "inline-block", borderRadius: 2 }} />
-                  {s === 2 ? "Finalizado" : s === 1 ? "Andamento" : "Não iniciado"}
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>

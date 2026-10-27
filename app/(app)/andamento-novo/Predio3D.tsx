@@ -96,7 +96,7 @@ export default function Predio3D({ vista, descidas, niveis, cor, destaque, onCel
 
   const margemLado = rotulos ? 178 : 8; // simétrica: o prédio fica centralizado no quadro
   const margemTopo = 10;
-  const margemBase = rotulos ? 70 : 8;
+  const margemBase = rotulos ? 92 : 8;
   const cx = (minX + maxPx) / 2;
   const largura = (maxPx - minX) + margemLado * 2;
   const altura = maxPy - minY + margemTopo + margemBase;
@@ -216,7 +216,7 @@ export default function Predio3D({ vista, descidas, niveis, cor, destaque, onCel
       const ang = (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI;
       const mx = (x1 + x2) / 2;
       const my = (y1 + y2) / 2;
-      const off = 14;
+      const off = 26; // nome da fachada mais afastado do prédio
       const o1: [number, number] = [x1, y1 + off];
       const o2: [number, number] = [x2, y2 + off];
       rotulosEl.push(
@@ -224,7 +224,7 @@ export default function Predio3D({ vista, descidas, niveis, cor, destaque, onCel
           <line x1={x1} y1={y1 + 3} x2={o1[0]} y2={o1[1] + 3} stroke="#6b7280" strokeWidth={0.7} strokeDasharray="3 3" />
           <line x1={x2} y1={y2 + 3} x2={o2[0]} y2={o2[1] + 3} stroke="#6b7280" strokeWidth={0.7} strokeDasharray="3 3" />
           <line x1={o1[0]} y1={o1[1]} x2={o2[0]} y2={o2[1]} stroke="#111827" strokeWidth={1.1} />
-          <text x={mx} y={my + off + 14} fontSize={fonte + 1} fontWeight={700} fill="#111827" textAnchor="middle" transform={`rotate(${ang.toFixed(1)} ${mx} ${my + off + 14})`}>
+          <text x={mx} y={my + off + 16} fontSize={fonte + 1} fontWeight={700} fill="#111827" textAnchor="middle" transform={`rotate(${ang.toFixed(1)} ${mx} ${my + off + 16})`}>
             {NOME_FACE[face].toUpperCase()}
           </text>
         </g>

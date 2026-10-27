@@ -143,10 +143,10 @@ export const CORES_CATEGORIA = ["#2c6975", "#3d7d5a", "#a35d3d", "#56606b", "#c0
 
 // ---------- geração da estrutura de uma obra nova (mesma regra do protótipo) ----------
 
+export type GrupoTipo = { pavs: number; aptos: number }; // quantos pavimentos tipo e quantos apartamentos em cada um
 export type ParamsObraNova = {
-  tipos: number; // pavimentos tipo
-  aptos: number; // apartamentos por pavimento
-  garagens: number;
+  total: number; // total de pavimentos do prédio (garagens, térreo, lazer e pavimentos tipo; a cobertura é à parte)
+  grupos: GrupoTipo[]; // pavimentos tipo, de baixo para cima (ex.: 9 pavimentos com 5 aptos + 1 pavimento com 4 aptos)
   elev: number;
   lazerOnde: "proprio" | "cobertura" | "terreo" | "tipo" | "nao";
   cxSup: "cxf" | "cxc";
@@ -169,18 +169,33 @@ export const DESCIDAS_PADRAO = {
   res: { N: 2, S: 2, L: 1, O: 1 },
 };
 
+// números dos pavimentos: o que não é tipo (garagens, térreo, lazer) vem antes; o 1º pavimento tipo é o seguinte (ex.: 3 abaixo → Pav 04, apartamentos 401, 402…)
+export function contasPavimentos(o: ParamsObraNova) {
+  const tipos = o.grupos.reduce((a, g) => a + Math.max(0, g.pavs), 0);
+  const naoTipo = Math.max(0, o.total - tipos);
+  const garagens = Math.max(0, naoTipo - (o.lazerOnde === "proprio" ? 1 : 0));
+  return { tipos, naoTipo, garagens };
+}
+
 export function gerarEstrutura(o: ParamsObraNova): EstruturaGerada {
   const pavs: EstruturaGerada["pavs"] = [];
+  const { tipos, naoTipo, garagens } = contasPavimentos(o);
   const cob = { nome: "Cobertura", locais: [L("Casa de máquinas", "cob"), L("Laje técnica", "cob"), L("Escadaria", "esc")] };
   if (o.lazerOnde === "cobertura") cob.locais.splice(2, 0, ...LAZER());
   pavs.push(cob);
-  for (let n = o.tipos; n >= 1; n--) {
-    const locais = Array.from({ length: o.aptos }, (_, i) => L(`Apto ${n}${pad2(i + 1)}`, "tipo")).concat([L("Hall", "hall"), L("Escadaria", "esc")]);
-    if (o.lazerOnde === "tipo" && n === o.tipos) locais.splice(locais.length - 2, 0, ...LAZER());
+  // apartamentos por pavimento tipo, do pavimento mais baixo ao mais alto
+  const aptosPorTipo: number[] = [];
+  o.grupos.forEach((g) => {
+    for (let i = 0; i < Math.max(0, g.pavs); i++) aptosPorTipo.push(Math.max(0, g.aptos));
+  });
+  for (let k = tipos; k >= 1; k--) {
+    const n = naoTipo + k; // número do pavimento
+    const locais = Array.from({ length: aptosPorTipo[k - 1] }, (_, i) => L(`Apto ${n}${pad2(i + 1)}`, "tipo")).concat([L("Hall", "hall"), L("Escadaria", "esc")]);
+    if (o.lazerOnde === "tipo" && k === tipos) locais.splice(locais.length - 2, 0, ...LAZER());
     pavs.push({ nome: `Pav ${pad2(n)}`, locais });
   }
   if (o.lazerOnde === "proprio") pavs.push({ nome: "Lazer", locais: [...LAZER(), L("Hall", "hall"), L("Escadaria", "esc")] });
-  for (let g = o.garagens; g >= 1; g--) {
+  for (let g = garagens; g >= 1; g--) {
     const locais = [L("Garagem", "garagem"), L("Hall", "hall"), L("Escadaria", "esc")];
     if (g === 1) {
       locais.push(L("Hall de entrada", "comum"), L("Portaria", "comum"));
@@ -188,7 +203,7 @@ export function gerarEstrutura(o: ParamsObraNova): EstruturaGerada {
     }
     pavs.push({ nome: g === 1 ? "G1 / Térreo" : `G${g}`, locais });
   }
-  if (o.garagens === 0 && o.lazerOnde === "terreo") {
+  if (garagens === 0 && o.lazerOnde === "terreo") {
     pavs.push({ nome: "Térreo", locais: [L("Hall de entrada", "comum"), L("Portaria", "comum"), ...LAZER(), L("Escadaria", "esc")] });
   }
   const sis: EstruturaGerada["sis"] = [];

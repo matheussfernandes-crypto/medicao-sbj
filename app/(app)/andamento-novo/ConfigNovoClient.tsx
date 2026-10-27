@@ -8,6 +8,7 @@ import PainelModelo from "./PainelModelo";
 import { montarIndice } from "./calculo";
 import { montarFatias, servicosDosLocais } from "./fatias";
 import {
+  contasPavimentos,
   gerarEstrutura,
   previaEstrutura,
   type Categoria,
@@ -1191,7 +1192,7 @@ function NovaObra(props: {
   const [base, setBase] = useState<string>("modelo");
   const [inicio, setInicio] = useState("");
   const [entrega, setEntrega] = useState("");
-  const [params, setParams] = useState<ParamsObraNova>({ tipos: 10, aptos: 4, garagens: 2, elev: 2, lazerOnde: "proprio", cxSup: "cxf", cxInf: true });
+  const [params, setParams] = useState<ParamsObraNova>({ total: 12, grupos: [{ pavs: 9, aptos: 5 }], elev: 2, lazerOnde: "proprio", cxSup: "cxf", cxInf: true });
   const set = <K extends keyof ParamsObraNova>(k: K, v: ParamsObraNova[K]) => setParams((p) => ({ ...p, [k]: v }));
   const num = (v: string, min: number, max: number) => Math.max(min, Math.min(max, parseInt(v, 10) || 0));
 
@@ -1230,17 +1231,39 @@ function NovaObra(props: {
             <input value={nome} onChange={(e) => setNome(e.target.value)} className={campo} placeholder="Ex.: ILHA DE LIPARI" />
           </label>
           <label className="text-xs text-ink-500">
-            Pavimentos tipo
-            <input type="number" min={0} max={60} value={params.tipos} onChange={(e) => set("tipos", num(e.target.value, 0, 60))} className={campo} />
+            Total de pavimentos
+            <input type="number" min={1} max={80} value={params.total} onChange={(e) => set("total", num(e.target.value, 1, 80))} className={campo} />
+            <span className="block text-[11px] mt-0.5">Garagens, térreo, lazer e pavimentos tipo (a cobertura é à parte).</span>
           </label>
-          <label className="text-xs text-ink-500">
-            Apartamentos por pavimento
-            <input type="number" min={1} max={20} value={params.aptos} onChange={(e) => set("aptos", num(e.target.value, 1, 20))} className={campo} />
-          </label>
-          <label className="text-xs text-ink-500">
-            Pavimentos de garagem
-            <input type="number" min={0} max={10} value={params.garagens} onChange={(e) => set("garagens", num(e.target.value, 0, 10))} className={campo} />
-          </label>
+          <div className="sm:col-span-2 text-xs text-ink-500">
+            Pavimentos tipo e apartamentos por andar (de baixo para cima)
+            <div className="space-y-2 mt-1">
+              {params.grupos.map((g, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2 text-sm text-ink-900">
+                  <input type="number" min={0} max={80} value={g.pavs} onChange={(e) => set("grupos", params.grupos.map((x, j) => (j === i ? { ...x, pavs: num(e.target.value, 0, 80) } : x)))} className={campo + " !w-20"} />
+                  <span>{g.pavs === 1 ? "pavimento tipo com" : "pavimentos tipo com"}</span>
+                  <input type="number" min={0} max={30} value={g.aptos} onChange={(e) => set("grupos", params.grupos.map((x, j) => (j === i ? { ...x, aptos: num(e.target.value, 0, 30) } : x)))} className={campo + " !w-20"} />
+                  <span>apartamentos por andar</span>
+                  {params.grupos.length > 1 && (
+                    <button type="button" className="text-danger text-xs underline" onClick={() => set("grupos", params.grupos.filter((_, j) => j !== i))}>
+                      tirar
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button type="button" className="text-xs underline text-primary" onClick={() => set("grupos", [...params.grupos, { pavs: 1, aptos: params.grupos[params.grupos.length - 1]?.aptos ?? 4 }])}>
+                + outro tipo de pavimento (com outra quantidade de apartamentos)
+              </button>
+              <p className="text-[11px]">
+                {(() => {
+                  const c = contasPavimentos(params);
+                  return c.tipos > params.total
+                    ? `Atenção: são ${c.tipos} pavimentos tipo e o total é ${params.total}.`
+                    : `Fora os tipo: ${c.naoTipo} pavimentos (${c.garagens} de garagem/térreo${params.lazerOnde === "proprio" ? " + 1 de lazer" : ""}). O 1º pavimento tipo será o Pav ${String(c.naoTipo + 1).padStart(2, "0")}.`;
+                })()}
+              </p>
+            </div>
+          </div>
           <label className="text-xs text-ink-500">
             Elevadores
             <input type="number" min={0} max={10} value={params.elev} onChange={(e) => set("elev", num(e.target.value, 0, 10))} className={campo} />

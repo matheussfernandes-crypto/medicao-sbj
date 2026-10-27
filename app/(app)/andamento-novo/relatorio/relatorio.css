@@ -4,7 +4,7 @@
 .rel-meas { position: absolute; left: -99999px; top: 0; visibility: hidden; pointer-events: none; }
 
 /* faixa da categoria */
-.rel-tab .brow { display: flex; gap: 26px; align-items: flex-start; margin-bottom: 20px; }
+.rel-tab .brow { display: flex; gap: 26px; align-items: flex-start; margin-bottom: 23px; }
 .rel-tab .blk { flex: none; min-width: 0; }
 .rel-tab .cband { height: 34px; border-radius: 5px; background: var(--cc); color: #fff; display: flex; align-items: center; gap: 12px; padding: 0 14px; margin-bottom: 6px; }
 .rel-tab .cband > b { font-size: 15px; font-weight: 800; white-space: nowrap; color: #fff; text-shadow: none; -webkit-text-stroke: 0; }
@@ -15,9 +15,9 @@
 .rel-tab .tw { overflow: visible; }
 
 /* tabelas */
-.rel-tab table.tb { table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 10px; color: #1d2b2f; }
+.rel-tab table.tb { table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 9pt; line-height: 1.15; color: #1d2b2f; }
 .rel-tab table.tb th, .rel-tab table.tb td { padding: 0; overflow: hidden; text-transform: none; letter-spacing: normal; font-size: inherit; color: inherit; font-weight: inherit; }
-.rel-tab table.tb td.c { height: 17px; border-right: 2px solid #fff; border-bottom: 2px solid #fff; background: #e3e7e9; background-clip: padding-box; overflow: visible; /* células vazias: sem recorte (um recorte por célula pesa muito no PDF) */ }
+.rel-tab table.tb td.c { height: var(--ch, 19px); border-right: 2px solid #fff; border-bottom: 2px solid #fff; background: #e3e7e9; background-clip: padding-box; overflow: visible; /* células vazias: sem recorte (um recorte por célula pesa muito no PDF) */ }
 .rel-tab table.tb td.c.s2 { background: #24914f; }
 .rel-tab table.tb td.c.s1 { background: #f0a020; }
 .rel-tab table.tb td.c.s3 { background: #fff; position: relative; }
@@ -27,14 +27,14 @@
 .rel-tab table.tb td.c.sp { position: relative; }
 .rel-tab table.tb td.c.sp > i { position: absolute; top: 0; bottom: 0; left: 0; background: #24914f; }
 .rel-tab table.tb td.c.sp > i.w { background: #f0a020; }.rel-tab table.tb .vt { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; display: inline-block; line-height: 1.05; }
-.rel-tab table.tb thead th { font-weight: 600; font-size: 9px; color: #1f4a52; }
-.rel-tab table.tb th.lh { text-align: left; vertical-align: bottom; font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: #65707d; padding: 0 6px 4px 2px; }
+.rel-tab table.tb thead th { font-weight: 600; font-size: 8pt; color: #1f4a52; }
+.rel-tab table.tb th.lh { text-align: left; vertical-align: bottom; font-size: 8pt; letter-spacing: 0.06em; text-transform: uppercase; color: #65707d; padding: 0 6px 4px 2px; }
 .rel-tab table.tb th.hz, .rel-tab table.tb th.ph.hw { white-space: normal; overflow-wrap: break-word; hyphens: manual; -webkit-hyphens: manual; text-align: center; line-height: 1.15; }
 .rel-tab table.tb th.hz { vertical-align: bottom; padding: 5px 2px; font-size: 8px; letter-spacing: -0.01em; }
 /* fase */
-.rel-tab table.tb th.ph { background: color-mix(in srgb, var(--cc) 15%, #fff); color: color-mix(in srgb, var(--cc) 75%, #000); font-weight: 800; font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; border-bottom: 2px solid var(--cc); border-radius: 4px 4px 0 0; vertical-align: middle; text-align: center; line-height: 1.15; }
+.rel-tab table.tb th.ph { background: color-mix(in srgb, var(--cc) 15%, #fff); color: color-mix(in srgb, var(--cc) 75%, #000); font-weight: 800; font-size: 8pt; letter-spacing: 0.04em; text-transform: uppercase; border-bottom: 2px solid var(--cc); border-radius: 4px 4px 0 0; vertical-align: middle; text-align: center; line-height: 1.15; }
 /* todo título de fase tem a mesma formatação, seja horizontal, em pé, em duas linhas ou junto com o serviço */
-.rel-tab table.tb th.ph, .rel-tab table.tb th.ph * { color: color-mix(in srgb, var(--cc) 75%, #000); font-weight: 800; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; }
+.rel-tab table.tb th.ph, .rel-tab table.tb th.ph * { color: color-mix(in srgb, var(--cc) 75%, #000); font-weight: 800; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.04em; }
 .rel-tab table.tb th.ph b { color: inherit; font-weight: 800; }
 .rel-tab table.tb th.ph.pv { vertical-align: bottom; padding-bottom: 4px; }
 .rel-tab table.tb th.ph.pm { vertical-align: bottom; padding-bottom: 4px; border-bottom: 0; }
@@ -42,21 +42,21 @@
 .rel-tab table.tb th.sh, .rel-tab table.tb th.sh * { color: #1f4a52; font-weight: 600; }
 .rel-tab table.tb th.sh { vertical-align: bottom; text-align: center; padding-bottom: 4px; background: color-mix(in srgb, var(--cc) 6%, #fff); border-right: 2px solid #fff; }
 .rel-tab table.tb .gp { background: transparent !important; border: 0 !important; padding: 0; }
-.rel-tab table.tb tr.gr td { height: 7px; padding: 0; border: 0; }
-.rel-tab table.tb tr.gr.fino td { height: 3px; }
+.rel-tab table.tb tr.gr td { height: var(--gr, 8px); padding: 0; border: 0; }
+.rel-tab table.tb tr.gr.fino td { height: calc(var(--gr, 8px) * 0.4); }
 /* pavimento (modo linhas) */
-.rel-tab table.tb th.pv { font-size: 10.5px; font-weight: 700; text-align: center; vertical-align: middle; color: #1f4a52; border-bottom: 0 !important; padding: 0 4px; }
+.rel-tab table.tb th.pv { font-size: 9.5pt; font-weight: 700; text-align: center; vertical-align: middle; color: #1f4a52; border-bottom: 0 !important; padding: 0 4px; }
 .rel-tab table.tb th.pv.m { text-align: left; padding-left: 8px; }
 .rel-tab table.tb th.ll { font-weight: 600; text-align: left; padding-left: 8px; border-bottom: 1px solid #dfe5e7; }
 .rel-tab table.tb td.lc { padding: 0 6px; border-bottom: 1px solid #eef1f2; white-space: nowrap; }
 .rel-tab table.tb td.lc.ag { color: #65707d; font-style: italic; }
 .rel-tab table.tb tr.z > th.pv, .rel-tab table.tb tr.z > td.lc, .rel-tab table.tb tr.z > th.ll { background: #f1f5f6; }
 /* modo colunas */
-.rel-tab table.tb th.gh { font-size: 10px; font-weight: 800; text-align: center; vertical-align: middle; color: #1f4a52; border-bottom: 2px solid #9fb0b5; line-height: 1.1; padding: 0 2px; }
-.rel-tab table.tb th.gv { vertical-align: bottom; padding-bottom: 4px; font-size: 9.5px; font-weight: 700; color: #1f4a52; background: #f4f7f8; border-right: 2px solid #fff; }
+.rel-tab table.tb th.gh { font-size: 9.5pt; font-weight: 800; text-align: center; vertical-align: middle; color: #1f4a52; border-bottom: 2px solid #9fb0b5; line-height: 1.1; padding: 0 2px; }
+.rel-tab table.tb th.gv { vertical-align: bottom; padding-bottom: 4px; font-size: 8.5pt; font-weight: 700; color: #1f4a52; background: #f4f7f8; border-right: 2px solid #fff; }
 .rel-tab table.tb th.lv { vertical-align: bottom; padding-bottom: 4px; background: #f4f7f8; border-right: 2px solid #fff; }
 .rel-tab table.tb th.z { background: #e9eff1; }
-.rel-tab table.tb tr.phr > th { background: color-mix(in srgb, var(--cc) 15%, #fff); border-top: 8px solid #fff; box-shadow: inset 3px 0 0 var(--cc); text-align: left; padding: 2px 8px; height: 20px; font-size: 9.5px; font-weight: 600; color: color-mix(in srgb, var(--cc) 75%, #000); white-space: nowrap; }
+.rel-tab table.tb tr.phr > th { background: color-mix(in srgb, var(--cc) 15%, #fff); border-top: 8px solid #fff; box-shadow: inset 3px 0 0 var(--cc); text-align: left; padding: 2px 8px; height: 20px; font-size: 8pt; font-weight: 600; color: color-mix(in srgb, var(--cc) 75%, #000); white-space: nowrap; }
 .rel-tab table.tb tr.phr > th b { text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; color: inherit; }
 .rel-tab table.tb th.sl { text-align: left; font-weight: 400; padding: 0 8px 0 4px; white-space: nowrap; border-bottom: 1px solid #eef1f2; }
 

@@ -83,8 +83,7 @@ const hy = (t: string, font = "600 8px " + FF, w = CW - 4) =>
     .join(" ");
 
 // ---------- títulos dos serviços: sempre na vertical, quebrando só entre palavras (nunca no meio da palavra, nunca com hífen) ----------
-const ALT_TITULO = 130; // altura máxima do cabeçalho dos serviços
-const LINHA_TITULO = 11; // largura de cada linha vertical
+const LINHA_TITULO = 12; // largura de cada linha vertical (8 pt)
 function quebraPalavras(nome: string, fonte: string, disp: number): string[] {
   const linhas: string[] = [];
   let cur = "";
@@ -99,22 +98,23 @@ function quebraPalavras(nome: string, fonte: string, disp: number): string[] {
   if (cur) linhas.push(cur);
   return linhas;
 }
-type TitulosV = { fs: number; linhas: string[][]; alt: number; nl: number };
-// maior fonte (9 → 8 px) em que toda palavra cabe na altura máxima; o título quebra em quantas linhas precisar
+type TitulosV = { fs: string; linhas: string[][]; alt: number; nl: number };
+// letra fixa (8 pt) em todas as tabelas: o título quebra em quantas linhas verticais precisar (só entre palavras); a altura cresce só se uma palavra sozinha não couber
 function titulosVerticais(nomes: string[]): TitulosV {
-  const disp = ALT_TITULO - 8;
-  let r: TitulosV | null = null;
-  for (const fs of [9, 8.5, 8]) {
-    const fonte = "600 " + fs + "px " + FF;
-    const linhas = nomes.map((n) => quebraPalavras(n, fonte, disp));
-    const maior = Math.max(0, ...linhas.flatMap((ls) => ls.map((l) => tw(l, fonte))));
-    r = { fs, linhas, alt: Math.ceil(maior) + 8, nl: Math.max(1, ...linhas.map((l) => l.length)) };
-    if (maior <= disp) break;
-  }
-  return r!;
+  const fonte = "600 8pt " + FF;
+  const linhas = nomes.map((n) => quebraPalavras(n, fonte, PAR.alt - 8));
+  const maior = Math.max(0, ...linhas.flatMap((ls) => ls.map((l) => tw(l, fonte))));
+  return { fs: "8pt", linhas, alt: Math.ceil(maior) + 8, nl: Math.max(1, ...linhas.map((l) => l.length)) };
 }
-// largura base da coluna de status: 20 px, mais 11 px por linha extra do maior título
-export const larguraBase = (nomes: string[]) => 20 + LINHA_TITULO * (titulosVerticais(nomes).nl - 1);
+// largura base da coluna de status: a célula padrão, ou o que as linhas verticais do maior título pedirem
+export const larguraBase = (nomes: string[]) => Math.max(PAR.cw, LINHA_TITULO * titulosVerticais(nomes).nl + 6);
+
+// ---------- tamanho fixo (rodada 5): a mesma letra e o mesmo tamanho de célula em todas as tabelas e folhas ----------
+// 1 pt = 4/3 px (96 dpi) e 5 mm ≈ 19 px. Nada de scale() nas tabelas, salvo a exceção da tabela que não cabe numa folha inteira.
+type Par = { nome: "n" | "c"; ch: number; cw: number; gp: number; gr: number; alt: number };
+const PAR_N: Par = { nome: "n", ch: 19, cw: 19, gp: 8, gr: 8, alt: 150 }; // célula de 5 mm
+const PAR_C: Par = { nome: "c", ch: 15, cw: 15, gp: 4, gr: 4, alt: 110 }; // modo compacto: célula de 4 mm, menos espaço entre pavimentos e fases, títulos mais curtos
+let PAR: Par = PAR_N;
 
 // ---------- modelo de dados do motor ----------
 export type MServ = { id: string; nome: string; inteiro: boolean };
@@ -124,7 +124,7 @@ export type MCat = { id: string; chave: string; nome: string; cor: string; sis: 
 type Linha = { label: string; items: MItem[]; agg?: boolean };
 type Grupo = { pav: string | null; rows: Linha[] };
 
-export type BlocoTab = { tipo: "tab"; c: MCat; its: MItem[]; servs: MServ[]; fases: MFase[]; sec: Secao; ncol: number; html: string; w: number; h: number; cw: number; cwb: number; k: number };
+export type BlocoTab = { tipo: "tab"; c: MCat; its: MItem[]; servs: MServ[]; fases: MFase[]; sec: Secao; ncol: number; html: string; w: number; h: number; cw: number; cwb: number; k: number; par: Par; compacto: boolean };
 export type BlocoFach = { tipo: "fach"; c: MCat; its: MItem[]; servs: [MServ]; servico: Servico };
 export type BlocoE = BlocoTab | BlocoFach;
 
@@ -213,13 +213,13 @@ export function blocosDe(E: Amb, sec: Secao, esconder: boolean): BlocoE[] {
     if (ls.length) {
       const its: MItem[] = ls.map((l) => {
         const p = ctx.pavPorId.get(l.pavimento_id)!;
-        return { id: l.id, pavId: l.pavimento_id, pav: p.nome, local: rotuloDoLocal(l, p.nome, cat), ordem: l.ordem };
+        return { id: l.id, pavId: l.pavimento_id, pav: p.nome, local: rotuloDoLocal(l, p.nome, cat).replace(/^Apartamento\b/i, "Apto"), ordem: l.ordem }; // "Apto 1206" só na impressão
       });
       const fases = fasesDe(cat, its.map((i) => i.id));
       if (fases.length) {
         const servs = fases.flatMap((x) => x[1]);
         const c = mcat(cat, false);
-        out.push({ tipo: "tab", c, its, servs, fases, sec, ncol: 0, html: "", w: 0, h: 0, cw: 20, cwb: 20, k: 1 });
+        out.push({ tipo: "tab", c, its, servs, fases, sec, ncol: 0, html: "", w: 0, h: 0, cw: 19, cwb: 19, k: 1, par: PAR_N, compacto: false });
       }
     }
     // ---- sistemas (Elevadores, Caixa d'água…): sem pavimento ----
@@ -232,7 +232,7 @@ export function blocosDe(E: Amb, sec: Secao, esconder: boolean): BlocoE[] {
       if (!fases.length) return;
       const catsDoSis = new Set(ctx.dados.itens.filter((i) => i.sistema_id === sis.id).map((i) => i.categoria_id));
       const c = mcat(cat, true, catsDoSis.size > 1 ? cat.nome : sis.nome);
-      out.push({ tipo: "tab", c, its, servs: fases.flatMap((x) => x[1]), fases, sec, ncol: 0, html: "", w: 0, h: 0, cw: 20, cwb: 20, k: 1 });
+      out.push({ tipo: "tab", c, its, servs: fases.flatMap((x) => x[1]), fases, sec, ncol: 0, html: "", w: 0, h: 0, cw: 19, cwb: 19, k: 1, par: PAR_N, compacto: false });
     });
   });
 
@@ -315,10 +315,9 @@ function tabLocal(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un
   const gs = grupos(c, its, det, E),
     servs = fases.flatMap((f) => f[1]),
     hasPav = !c.sis;
-  const fPv = "700 10.5px " + FF,
-    fLc = "400 10px " + FF,
-    fSh = "600 9px " + FF,
-    fPh = "800 9px " + FF;
+  const fPv = "700 9.5pt " + FF,
+    fLc = "400 9pt " + FF,
+    fPh = "800 8pt " + FF;
   const merged = (g: Grupo) => hasPav && g.rows.length === 1 && g.rows[0].label === g.pav;
   const pavW = hasPav ? Math.ceil(Math.max(...gs.filter((g) => !merged(g)).map((g) => tw(g.pav!, fPv)), 30) + 14) : 0;
   let locW = Math.ceil(Math.max(44, ...gs.flatMap((g) => (merged(g) ? [] : g.rows.map((r) => tw(r.label, fLc))))) + 18);
@@ -333,7 +332,7 @@ function tabLocal(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un
     const pc = P(pct(somar(E, c, its, l))),
       up = n.toUpperCase(),
       wd = l.length * CW,
-      ls = up.length * 0.36;
+      ls = up.length * 0.43;
     const w1 = tw(up + " · " + pc, fPh) + ls + 10,
       palavra = Math.max(...up.split(/\s+/).map((w) => tw(w, fPh))) + ls + 8,
       w2 = Math.max(palavra, tw(pc, fPh) + 8);
@@ -345,7 +344,7 @@ function tabLocal(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un
   const phH = Math.max(30, ...PH.filter((p) => p.mode === "v").map((p) => p.vlen));
   const mH = Math.max(0, ...PH.filter((p) => p.mode === "m").map((p) => p.vlen));
   const svH = Math.max(hh, mH - phH);
-  const GP = 8,
+  const GP = PAR.gp,
     W = pavW + locW + servs.length * CW + (PH.length - 1) * GP,
     NC = (hasPav ? 2 : 1) + servs.length + PH.length - 1;
   const col = (hasPav ? `<col style="width:${pavW}px">` : "") + `<col style="width:${locW}px">` + PH.map((p, i) => (i > 0 ? `<col style="width:${GP}px">` : "") + p.l.map(() => `<col style="width:${CW}px">`).join("")).join("");
@@ -363,7 +362,7 @@ function tabLocal(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un
     // título do serviço: vertical, uma linha vertical por trecho de palavras, sem hífen
     p.l.forEach((s) => {
       const ls = tv.linhas[idxServ.get(s.id)!];
-      h2 += `<th class="sh"><span class="vt" style="font-size:${tv.fs}px;line-height:${LINHA_TITULO}px">${ls.map(esc).join("<br>")}</span></th>`;
+      h2 += `<th class="sh"><span class="vt" style="font-size:${tv.fs};line-height:${LINHA_TITULO}px">${ls.map(esc).join("<br>")}</span></th>`;
     });
   });
   h1 += "</tr>";
@@ -391,7 +390,7 @@ function tabLocal(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un
       body += tr + "</tr>";
     })
   );
-  return `<table class="tb" style="--cc:${c.cor};width:${W}px"><colgroup>${col}</colgroup><thead>${h1}${h2}</thead><tbody>${body}</tbody></table>`;
+  return `<table class="tb" style="--cc:${c.cor};--ch:${PAR.ch}px;--gr:${PAR.gr}px;width:${W}px"><colgroup>${col}</colgroup><thead>${h1}${h2}</thead><tbody>${body}</tbody></table>`;
 }
 
 // MODO 2: serviços nas linhas, pavimentos/locais nas colunas (do mais baixo à esquerda pro mais alto à direita)
@@ -400,19 +399,19 @@ function tabServ(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un"
   if (!c.sis) gs.forEach((g) => (g.rows = [...g.rows].reverse()));
   const servs = fases.flatMap((f) => f[1]),
     hasPav = !c.sis;
-  const svW = Math.ceil(Math.max(80, ...servs.map((s) => tw(s.nome, "400 10px " + FF)), ...fases.map(([n]) => tw(n.toUpperCase() + " · 100%", "800 9.5px " + FF) + n.length * 0.5)) + 28);
+  const svW = Math.ceil(Math.max(80, ...servs.map((s) => tw(s.nome, "400 9pt " + FF)), ...fases.map(([n]) => tw(n.toUpperCase() + " · 100%", "800 8pt " + FF) + n.length * 0.5)) + 28);
   const single = (g: Grupo) => g.rows.length === 1;
   const lab1 = (g: Grupo) => {
     const r = g.rows[0];
     return g.pav == null ? r.label : r.label === g.pav || r.agg ? g.pav : g.pav + " · " + r.label;
   };
-  const ghFits = (g: Grupo) => g.rows.length * CW >= Math.min(tw(g.pav!, "800 10px " + FF), Math.max(...g.pav!.split(/\s+/).map((w) => tw(w, "800 10px " + FF)))) + 4;
-  const vl = gs.filter((g) => single(g) || !ghFits(g)).map((g) => tw(lab1(g), "700 9.5px " + FF) + 14);
-  const vl2 = gs.filter((g) => !single(g)).flatMap((g) => g.rows.map((r) => tw(r.label, "600 9px " + FF) + 12));
+  const ghFits = (g: Grupo) => g.rows.length * CW >= Math.min(tw(g.pav!, "800 9.5pt " + FF), Math.max(...g.pav!.split(/\s+/).map((w) => tw(w, "800 9.5pt " + FF)))) + 4;
+  const vl = gs.filter((g) => single(g) || !ghFits(g)).map((g) => tw(lab1(g), "700 8.5pt " + FF) + 14);
+  const vl2 = gs.filter((g) => !single(g)).flatMap((g) => g.rows.map((r) => tw(r.label, "600 8pt " + FF) + 12));
   const r1 = 30,
     r2 = Math.ceil(Math.max(24, vl2.length ? Math.max(...vl2) : 0, (vl.length ? Math.max(...vl) : 0) - r1));
   const ncol = gs.reduce((a, g) => a + g.rows.length, 0),
-    GP = hasPav ? (gs.every(single) ? 4 : 8) : 0,
+    GP = hasPav ? (gs.every(single) ? PAR.gp / 2 : PAR.gp) : 0,
     ngp = GP ? gs.length - 1 : 0,
     W = svW + ncol * CW + ngp * GP;
   const col = `<col style="width:${svW}px">` + gs.map((g, gi) => (gi > 0 && GP ? `<col style="width:${GP}px">` : "") + g.rows.map(() => `<col style="width:${CW}px">`).join("")).join("");
@@ -439,7 +438,7 @@ function tabServ(E: Amb, c: MCat, its: MItem[], fases: MFase[], det: "ju" | "un"
         `</tr>`;
     });
   });
-  return `<table class="tb ts" style="--cc:${c.cor};width:${W}px"><colgroup>${col}</colgroup><thead>${h1}${h2}</thead><tbody>${body}</tbody></table>`;
+  return `<table class="tb ts" style="--cc:${c.cor};--ch:${PAR.ch}px;--gr:${PAR.gr}px;width:${W}px"><colgroup>${col}</colgroup><thead>${h1}${h2}</thead><tbody>${body}</tbody></table>`;
 }
 
 // faixa da categoria (nome, locais · pavimentos, barra amarela e %), na largura da área útil
@@ -466,8 +465,7 @@ function textoFiltro(E: Amb, f: Filtros): string {
 
 // ---------- montagem das folhas ----------
 const BAND = 40;
-const GAP = 20;
-const GX = 26;
+const GAP = 23; // 6 mm entre uma tabela e a próxima
 
 // medidas úteis de uma folha (largura e altura livres para o conteúdo)
 function dimDe(papel: Papel, folha: "h" | "v"): DimPag {
@@ -496,30 +494,33 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
     b.w = t.offsetWidth;
     b.h = t.offsetHeight;
   };
-  // títulos sempre na vertical; largura base da coluna: 20 px (+11 px por linha extra do maior título)
-  tabs.forEach(({ b }) => {
-    b.cwb = b.sec.linhas === "local" ? larguraBase(b.servs.map((s) => s.nome)) : 20;
-    CW = b.cwb;
+  // monta a tabela no tamanho padrão (célula de 5 mm) ou compacto (4 mm); a letra é a mesma nos dois
+  const montar = (b: BlocoTab, par: Par, cw?: number) => {
+    PAR = par;
+    b.par = par;
+    b.compacto = par.nome === "c";
+    b.cwb = b.sec.linhas === "local" ? larguraBase(b.servs.map((s) => s.nome)) : par.cw;
+    CW = cw ?? b.cwb;
     b.cw = CW;
     b.html = html1(b);
     medirHtml(b);
-  });
-  // escala única por tamanho de folha: a menor que ainda deixa cada tabela inteira na folha (com "Estender", até 1,6)
-  const kPorGrupo = new Map<string, number>();
-  tabs.forEach(({ b, S }) => {
-    const kb = Math.min(S.dim.IN / b.w, (S.dim.LIVRE - BAND) / b.h);
-    kPorGrupo.set(S.grupo, Math.min(kPorGrupo.get(S.grupo) ?? Infinity, kb));
-  });
-  kPorGrupo.forEach((v, g) => kPorGrupo.set(g, g.endsWith("|1") ? Math.min(1.6, v) : Math.min(1, v)));
-  tabs.forEach(({ b, S }) => (b.k = kPorGrupo.get(S.grupo) ?? 1));
-  const cwMaxDe = (b: BlocoTab) => Math.max(36, b.cwb);
-  const regen = (b: BlocoTab, cw: number) => {
-    CW = cw;
-    b.cw = cw;
-    b.html = html1(b);
-    medirHtml(b);
-    CW = 20;
+    PAR = PAR_N;
+    CW = 19;
   };
+  const avisos: string[] = [];
+  // cada tabela vai inteira numa folha: tamanho padrão; se não couber, compacta; se ainda não couber, só ELA é reduzida (e aparece o aviso)
+  tabs.forEach(({ b, S }) => {
+    const cabe = () => b.w <= S.dim.IN + 0.5 && BAND + b.h <= S.dim.LIVRE + 0.5;
+    montar(b, PAR_N);
+    b.k = 1;
+    if (!cabe()) montar(b, PAR_C);
+    if (!cabe()) {
+      b.k = Math.min(1, S.dim.IN / b.w, (S.dim.LIVRE - BAND) / b.h) * 0.995;
+      avisos.push(`A tabela ${b.c.nome} não cabe inteira em ${S.dim.papel} ${S.dim.folha === "v" ? "vertical" : "horizontal"}: foi reduzida a ${Math.round(b.k * 100)}%${b.k < 0.85 ? " (abaixo do recomendado)" : ""}. Use folha horizontal, uma folha maior ou "Juntos por pavimento".`);
+    }
+  });
+  const cwMaxDe = (b: BlocoTab) => 3 * b.par.ch; // "Estender" só alarga as colunas, no máximo 3 vezes a altura da célula
+  const regen = (b: BlocoTab, cw: number) => montar(b, b.par, cw);
   const wB = (b: BlocoTab) => b.w * b.k,
     hB = (b: BlocoTab) => BAND + b.h * b.k;
 
@@ -527,57 +528,66 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
   type PagTmp = { tipo: "sec"; si: number; sec: Secao; dim: DimPag; fill: boolean; rows: Linha2[]; cats: string[]; blocos: BlocoE[]; partes: Parte[]; cheia?: boolean };
   const pags: PagTmp[] = [];
 
+  // ---- encaixe das tabelas (first-fit decreasing): menos folhas e menos espaço em branco; tabelas sempre empilhadas ----
   secs.forEach((S, si) => {
-    const minhas: PagTmp[] = [];
-    const nova = (): PagTmp => {
-      const p: PagTmp = { tipo: "sec", si, sec: S.sec, dim: S.dim, fill: S.fill, rows: [], cats: [], blocos: [], partes: [] };
-      pags.push(p);
-      minhas.push(p);
-      return p;
-    };
-    const altura = (p: { rows: Linha2[] }) => p.rows.reduce((a, r, i) => a + (i ? GAP : 0) + r.h, 0);
-    // tenta pôr o bloco na folha, numa linha nova embaixo (nada lado a lado)
-    const tenta = (p: { cheia?: boolean; rows: Linha2[] }, b: BlocoTab, real: boolean) => {
-      if (p.cheia) return false;
-      if (altura(p) + (p.rows.length ? GAP : 0) + hB(b) <= S.dim.LIVRE) {
-        if (real) p.rows.push({ bs: [b], w: wB(b), h: hB(b) });
-        return true;
-      }
-      return false;
-    };
-    let tecPg: PagTmp | null = null;
-    S.blocos.forEach((b, bi) => {
-      if (b.tipo === "fach") {
-        const q = nova();
-        q.partes.push({ fach: b });
-        q.cats.push("Fachada");
-        q.blocos.push(b);
-        q.cheia = true;
-        return;
-      }
-      const ehTec = TEC.has(b.c.chave);
-      // Cobertura/técnica, Elevadores e Caixa d'água ficam na mesma folha quando cabem
-      if (ehTec && tecPg && tenta(tecPg, b, true)) {
-        tecPg.blocos.push(b);
-        return;
-      }
-      let alvo: PagTmp | null = null;
-      if (ehTec && !tecPg) {
-        const grupo = S.blocos.slice(bi).filter((x): x is BlocoTab => x.tipo === "tab" && TEC.has(x.c.chave));
-        const simula = (p: PagTmp) => {
-          const c = { cheia: p.cheia, rows: p.rows.map((r) => ({ ...r, bs: [...r.bs] })) };
-          return grupo.every((x) => tenta(c, x, true));
-        };
-        alvo = minhas.find(simula) ?? null;
-        if (!alvo && grupo.length > 1) alvo = nova();
-      }
-      if (!alvo) alvo = minhas.find((p) => tenta(p, b, false)) ?? null;
-      if (!alvo) alvo = nova();
-      tenta(alvo, b, true);
-      alvo.blocos.push(b);
-      if (ehTec) tecPg = alvo;
+    const nova = (): PagTmp => ({ tipo: "sec", si, sec: S.sec, dim: S.dim, fill: S.fill, rows: [], cats: [], blocos: [], partes: [] });
+    const secPags: { p: PagTmp; us: { bs: BlocoTab[]; h: number; ord: number }[]; usado: number }[] = [];
+    const tabsS = S.blocos.filter((x): x is BlocoTab => x.tipo === "tab");
+    // unidades: Cobertura/técnica, Elevadores e Caixa d'água andam juntos quando cabem na mesma folha; o resto é uma tabela por unidade
+    type U = { bs: BlocoTab[]; h: number; ord: number };
+    const us: U[] = [];
+    const tec = tabsS.filter((x) => TEC.has(x.c.chave));
+    const hTec = tec.reduce((a, x, i) => a + (i ? GAP : 0) + hB(x), 0);
+    const juntos = tec.length > 1 && hTec <= S.dim.LIVRE;
+    tabsS.forEach((x, i) => {
+      if (juntos && TEC.has(x.c.chave)) {
+        if (x === tec[0]) us.push({ bs: tec, h: hTec, ord: i });
+      } else us.push({ bs: [x], h: hB(x), ord: i });
     });
-    if (!S.blocos.length) nova().partes.push({ html: `<div class="rel-vazio">Nada nesta seção com esses filtros.</div>` });
+    const ordenadas = [...us].sort((a, b) => b.h - a.h || a.ord - b.ord);
+    ordenadas.forEach((u) => {
+      // a folha onde a unidade cabe e sobra MENOS espaço; empate: a folha com a categoria mais cedo
+      let melhor: (typeof secPags)[number] | null = null;
+      let sobraM = Infinity;
+      secPags.forEach((sp) => {
+        const need = u.h + (sp.us.length ? GAP : 0);
+        const sobra = S.dim.LIVRE - sp.usado - need;
+        if (sobra >= -0.5 && (sobra < sobraM - 0.5 || (Math.abs(sobra - sobraM) <= 0.5 && melhor && Math.min(...sp.us.map((x) => x.ord)) < Math.min(...melhor.us.map((x) => x.ord))))) {
+          melhor = sp;
+          sobraM = sobra;
+        }
+      });
+      if (!melhor) {
+        melhor = { p: nova(), us: [], usado: 0 };
+        secPags.push(melhor);
+      }
+      melhor.usado += u.h + (melhor.us.length ? GAP : 0);
+      melhor.us.push(u);
+    });
+    // ordem das folhas: pela categoria mais cedo de cada uma; dentro da folha, a ordem normal das categorias
+    secPags.sort((a, b) => Math.min(...a.us.map((x) => x.ord)) - Math.min(...b.us.map((x) => x.ord)));
+    secPags.forEach((sp) => {
+      sp.us.sort((a, b) => a.ord - b.ord).forEach((u) => u.bs.forEach((x) => {
+        sp.p.rows.push({ bs: [x], w: wB(x), h: hB(x) });
+        sp.p.blocos.push(x);
+      }));
+      pags.push(sp.p);
+    });
+    // fachada: uma folha inteira por serviço
+    S.blocos.forEach((b) => {
+      if (b.tipo !== "fach") return;
+      const q = nova();
+      q.partes.push({ fach: b });
+      q.cats.push("Fachada");
+      q.blocos.push(b);
+      q.cheia = true;
+      pags.push(q);
+    });
+    if (!S.blocos.length) {
+      const q = nova();
+      q.partes.push({ html: `<div class="rel-vazio">Nada nesta seção com esses filtros.</div>` });
+      pags.push(q);
+    }
   });
 
   // esticar: cada tabela alarga as células até ocupar a largura; a faixa ocupa sempre a largura toda
@@ -593,7 +603,7 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
             cw = Math.min(cwMaxDe(b0), Math.floor((b0.cw + sobra / (k * nc)) * 10) / 10);
           if (cw > b0.cw + 0.5) {
             r.bs.forEach((b) => regen(b, cw));
-            r.w = r.bs.reduce((a, b, i) => a + (i ? GX : 0) + wB(b), 0);
+            r.w = r.bs.reduce((a, b) => a + wB(b), 0);
             r.h = Math.max(...r.bs.map(hB));
           }
         }
@@ -602,13 +612,13 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
       const html = `<div class="brow">${r.bs
         .map((b) => {
           if (!p.cats.includes(b.c.nome)) p.cats.push(b.c.nome);
-          return `<div class="blk" style="width:${p.dim.IN}px">${bandaCat(E, b)}<div class="tw" style="width:${wB(b)}px;height:${b.h * b.k}px"><div style="width:${b.w}px;transform:scale(${b.k});transform-origin:0 0">${b.html}</div></div></div>`;
+          return `<div class="blk" style="width:${p.dim.IN}px">${bandaCat(E, b)}<div class="tw" style="width:${wB(b)}px;height:${b.h * b.k}px"><div style="width:${b.w}px;${b.k < 1 ? `transform:scale(${b.k});transform-origin:0 0` : ""}">${b.html}</div></div></div>`;
         })
         .join("")}</div>`;
       p.partes.push({ html });
     });
   });
-  CW = 20;
+  CW = 19;
 
   // ---- sequência de folhas ----
   const seq: Pag[] = [];
@@ -640,9 +650,7 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
     if (rf) sumario.push({ n: "F", titulo: "Registro fotográfico", sub: `${extras.length} fotos`, pg: rf.n });
   }
 
-  const k = kPorGrupo.size ? Math.min(...kPorGrupo.values()) : 1;
-  const avisos: string[] = [];
-  if (k < 0.55) avisos.push(`Neste tamanho de folha a tabela fica muito pequena (${Math.round(k * 100)}%): use um papel maior ou a folha na horizontal.`);
+  const k = tabs.length ? Math.min(...tabs.map(({ b }) => b.k)) : 1;
   const cwMin = cws.length ? Math.min(...cws) : 20,
     cwMax = cws.length ? Math.max(...cws) : 20;
   return { seq, N: seq.length, PW: dimPlano.PW, PH: dimPlano.PH, IN: dimPlano.IN, LIVRE: dimPlano.LIVRE, k, cw: [cwMin, cwMax], papel: pl.papel, folha: pl.folha, sumario, extras, avisos };

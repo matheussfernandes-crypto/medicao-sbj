@@ -570,7 +570,7 @@ ${cssImpressao()}
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-ink-500">
               {res
-                ? `${res.N} página${res.N === 1 ? "" : "s"} · ${textoFolha(res.papel, res.folha)} · tabelas a ${Math.round(res.k * 100)}% · células de ${Math.round(res.cw[0]) === Math.round(res.cw[1]) ? Math.round(res.cw[0]) : `${Math.round(res.cw[0])} a ${Math.round(res.cw[1])}`} px`
+                ? `${res.N} página${res.N === 1 ? "" : "s"} · ${textoFolha(res.papel, res.folha)} · ${res.k < 0.995 ? `tabela reduzida a ${Math.round(res.k * 100)}%` : "letra padrão (9 pt)"} · células de ${Math.round(res.cw[0]) === Math.round(res.cw[1]) ? Math.round(res.cw[0]) : `${Math.round(res.cw[0])} a ${Math.round(res.cw[1])}`} px`
                 : "montando…"}
             </span>
             {!emMont && (

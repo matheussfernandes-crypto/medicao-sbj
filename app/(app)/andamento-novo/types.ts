@@ -58,6 +58,65 @@ export type DadosAndamento = {
 };
 export type Percentual = { nivel: string; ref_id: string | null; pct: number };
 
+export type ResumoModelo = {
+  categorias: number;
+  fases: number;
+  servicos: number;
+  fatia_servicos: number;
+  fatia_sistemas: number;
+  sistemas: { nome: string; tipo: string; fatia: number; itens: number; descidas: number }[];
+  pavimentos: number;
+  locais: number;
+};
+export type DifModelo = {
+  tem_modelo: boolean;
+  igual?: boolean;
+  versao?: number;
+  versao_em?: string;
+  versao_por?: string | null;
+  origem?: string | null;
+  origem_id?: string | null;
+  extras?: { id: string; nome: string; status: number }[];
+  faltando?: string[];
+  fatias_diferentes?: number;
+  ordem_ou_nome_diferente?: number;
+};
+export type VersaoModelo = { id: string; numero: number; criado_em: string; criado_por_nome: string | null; obra_origem_nome: string | null; resumo: ResumoModelo };
+export type ResumoAplicacao = {
+  servicos_novos: number;
+  servicos_restaurados: number;
+  ordem_alterada: number;
+  fatias_atualizadas: number;
+  servicos_arquivados: number;
+  fora_do_modelo: number;
+  fora_lista: { nome: string; status: number }[];
+  sistemas_criados: number;
+  itens_criados: number;
+  itens_removidos: number;
+  itens_bloqueados: number;
+  trechos_antes: number;
+  trechos_depois: number;
+  pavimentos_criados: number;
+  locais_criados: number;
+  locais_recategorizados: number;
+  locais_pulados: number;
+  substituicao: string | null;
+  descidas_mantidas_por_status: number;
+};
+export type AplicacaoModelo = {
+  id: string;
+  criado_em: string;
+  por_nome: string | null;
+  versao_numero: number | null;
+  obra_id: string;
+  obra_nome: string | null;
+  resumo: ResumoAplicacao;
+  opcoes: OpcoesModelo;
+  desfeita_em: string | null;
+};
+export type OpcoesModelo = { categorias: boolean; fatias: boolean; sist_servicos: boolean; sist_itens: boolean; pavimentos: boolean; substituir: boolean };
+export type ResultadoAplicacao = { versao: number; obras: { obra_id: string; obra_nome: string; resumo?: ResumoAplicacao; erro?: string }[] };
+
 export type DadosConfig = {
   obras: ObraInfo[];
   obra: ObraInfo;
@@ -72,7 +131,10 @@ export type DadosConfig = {
   percentuais: Percentual[];
   // nº de serviços por categoria (chave) no Modelo padrão e em cada obra — usado na prévia da obra nova
   contagens: Record<string, Record<string, number>>;
-  modelo: { segue: boolean; extras: { nome: string; status: number }[]; faltando: number }; // situação da obra frente ao Modelo padrão compartilhado
+  modelo: DifModelo; // situação da obra frente à versão atual do Modelo padrão
+  versoes: VersaoModelo[]; // versões do modelo (a primeira é a atual)
+  aplicacoes: AplicacaoModelo[]; // aplicações do modelo nas obras (para desfazer)
+  infoObras: { obra_id: string; nome: string; status: number; pavimentos: number }[]; // por obra: status lançados e nº de pavimentos
   excluidas: { id: string; nome: string; excluida_em: string }[]; // obras excluídas do Andamento novo há menos de 30 dias
   obrasGerais: { id: string; nome: string }[]; // obras do cadastro geral ainda não ligadas (só para ligar, sem alterar)
 };

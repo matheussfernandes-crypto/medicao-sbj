@@ -27,8 +27,6 @@ export async function carregarAndamento(obraIdPedida?: string): Promise<DadosAnd
   const obra = obras.find((o) => o.id === obraIdPedida) ?? obras[0];
   if (!obra) return null;
 
-  // categorias, serviços e fatias são do Modelo padrão (um só para todas as obras): se mudou, esta obra recebe a versão nova
-  await supabase.rpc("an_aplicar_modelo", { p_obra: obra.id });
   // mantém os itens da fachada (descida x pavimento) em dia com os pavimentos atuais
   await supabase.rpc("an_sincronizar_fachada", { p_obra: obra.id });
 

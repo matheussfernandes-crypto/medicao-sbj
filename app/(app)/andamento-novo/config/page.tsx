@@ -28,9 +28,15 @@ export default async function AndamentoNovoPage({ searchParams }: { searchParams
   const obra = obras.find((o) => o.id === searchParams.obra) ?? obras[0];
   if (!obra) return <div className="card text-sm text-ink-500">Nenhuma obra cadastrada no Andamento de Obra (novo).</div>;
 
-  // categorias, serviços e fatias são do Modelo padrão (um só para todas as obras): se mudou, esta obra recebe a versão nova
-  await supabase.rpc("an_aplicar_modelo", { p_obra: obra.id });
-  const { data: dif } = await supabase.rpc("an_diferencas_modelo", { p_obra: obra.id });
+  // situação desta obra frente à versão atual do Modelo padrão (o modelo só chega nas obras quando alguém aplica)
+  const { data: dif } = await supabase.rpc("an_modelo_diferencas", { p_obra: obra.id });
+  const { data: versoesRows } = await supabase.from("an_modelo_versao").select("id, numero, criado_em, criado_por_nome, obra_origem_nome, resumo").order("numero", { ascending: false }).limit(30);
+  const { data: aplicRows } = await supabase
+    .from("an_aplicacao_log")
+    .select("id, criado_em, por_nome, versao_numero, obra_id, obra_nome, resumo, opcoes, desfeita_em")
+    .order("criado_em", { ascending: false })
+    .limit(60);
+  const { data: infoObras } = await supabase.rpc("an_info_obras_modelo");
   const [{ data: fases }, { data: categorias }, { data: servicos }, { data: pavimentos }, { data: sistemas }, { data: contagensRows }, andamento] =
     await Promise.all([
       supabase.from("an_fase").select("id, nome, ordem").eq("obra_id", obra.id).order("ordem"),
@@ -95,7 +101,10 @@ export default async function AndamentoNovoPage({ searchParams }: { searchParams
     contagens,
     excluidas,
     obrasGerais,
-    modelo: { segue: obra.segue_modelo !== false, extras: ((dif as any)?.extras ?? []) as { nome: string; status: number }[], faltando: Number((dif as any)?.faltando ?? 0) },
+    modelo: ((dif as any) ?? { tem_modelo: false }) as DadosConfig["modelo"],
+    versoes: (versoesRows ?? []) as any,
+    aplicacoes: (aplicRows ?? []) as any,
+    infoObras: ((infoObras as any) ?? []) as DadosConfig["infoObras"],
   };
 
   return (

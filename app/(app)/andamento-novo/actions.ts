@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { CORES_CATEGORIA, gerarEstrutura, type ParamsObraNova } from "./types";
+import { CORES_CATEGORIA, gerarEstrutura, type OpcoesModelo, type ParamsObraNova, type ResultadoAplicacao, type ResumoModelo } from "./types";
 
 // Configuração: ADM ou quem tem a permissão específica (an_pode_configurar). As políticas do banco (RLS) conferem de novo.
 async function admin() {
@@ -61,15 +61,35 @@ export async function criarObraNova(input: {
   return id as string;
 }
 
-// Modelo padrão: um só para todas as obras. Depois de cada edição de configuração a obra publica no modelo (as outras recebem ao abrir).
-export async function publicarModelo(obraId: string) {
+// ---------- Modelo padrão completo (versões, aplicar em outras obras, desfazer) ----------
+export async function resumoModelo(obraId: string) {
   const s = await admin();
-  await rpc(s, "an_publicar_modelo", { p_obra: obraId });
+  return (await rpc(s, "an_modelo_resumo", { p_obra: obraId })) as ResumoModelo;
 }
-// obra que tinha configuração própria volta a seguir o Modelo padrão (serviços com status lançado são mantidos)
-export async function aplicarModeloPadrao(obraId: string) {
+export async function salvarModeloCompleto(obraId: string) {
   const s = await admin();
-  await rpc(s, "an_aplicar_modelo", { p_obra: obraId, p_forcar: true });
+  return (await rpc(s, "an_salvar_modelo_completo", { p_obra: obraId })) as { id: string; numero: number };
+}
+export async function restaurarVersaoModelo(versaoId: string) {
+  const s = await admin();
+  await rpc(s, "an_restaurar_versao_modelo", { p_versao: versaoId });
+}
+// simular = só mostra a prévia, sem gravar nada
+export async function aplicarModelo(versaoId: string, obras: string[], op: OpcoesModelo, simular: boolean) {
+  const s = await admin();
+  return (await rpc(s, "an_aplicar_modelo_obras", { p_versao: versaoId, p_obras: obras, p_op: op, p_simular: simular })) as ResultadoAplicacao;
+}
+export async function desfazerAplicacao(logId: string) {
+  const s = await admin();
+  await rpc(s, "an_desfazer_aplicacao", { p_log: logId });
+}
+export async function incluirNoModelo(obraId: string, servicos: string[]) {
+  const s = await admin();
+  await rpc(s, "an_incluir_servicos_no_modelo", { p_obra: obraId, p_servicos: servicos });
+}
+export async function manterSoNestaObra(obraId: string, servicos: string[]) {
+  const s = await admin();
+  await rpc(s, "an_manter_so_nesta_obra", { p_obra: obraId, p_servicos: servicos });
 }
 
 // Exclusão REVERSÍVEL, só no Andamento novo: marca a obra como excluída (30 dias para restaurar). Não mexe na tabela geral de obras.

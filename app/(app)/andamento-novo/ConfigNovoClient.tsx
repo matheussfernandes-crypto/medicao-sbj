@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, ChevronUp, Copy, GripVertical, Lock, LockOpen, Pencil, Plus, Trash2, X } from "lucide-react";
 import * as acoes from "./actions";
+import PainelModelo from "./PainelModelo";
 import { montarIndice } from "./calculo";
 import { montarFatias, servicosDosLocais } from "./fatias";
 import {
@@ -84,7 +85,7 @@ type Confirmacao = { texto: string; destinos?: Categoria[]; onConfirmar: (destin
 
 export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
   const router = useRouter();
-  const { obra, obras, fases, categorias, servicos, vinculos, pavimentos, locais, sistemas, itens, percentuais, contagens, excluidas, obrasGerais, modelo } = dados;
+  const { obra, obras, fases, categorias, servicos, vinculos, pavimentos, locais, sistemas, itens, percentuais, contagens, excluidas, obrasGerais } = dados;
 
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -102,7 +103,6 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
     setOcupado(true);
     try {
       await fn();
-      await acoes.publicarModelo(obra.id); // categorias, serviços e fatias valem para todas as obras
       router.refresh();
     } catch (e: any) {
       setErro(e.message ?? "Erro ao salvar.");
@@ -210,28 +210,7 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
         </span>
       </div>
 
-      {/* Modelo padrão compartilhado: aviso quando a obra é exceção */}
-      {(!modelo.segue || modelo.extras.some((e) => e.status > 0)) && (
-        <div className="card border-accent bg-accent/20 text-sm space-y-1.5">
-          <p className="font-semibold text-primaryDark">
-            {modelo.segue ? "Esta obra segue o Modelo padrão, mas tem serviços com status lançado que o modelo não tem." : "Esta obra tem configuração própria e NÃO segue o Modelo padrão."}
-          </p>
-          <p className="text-ink-700">
-            {modelo.extras.length} serviço{modelo.extras.length === 1 ? "" : "s"} da obra {modelo.extras.length === 1 ? "não está" : "não estão"} no modelo
-            {modelo.extras.some((e) => e.status > 0) ? " (com status já lançado: " + modelo.extras.filter((e) => e.status > 0).slice(0, 6).map((e) => e.nome).join(", ") + (modelo.extras.filter((e) => e.status > 0).length > 6 ? "…" : "") + ")" : ""}
-            {modelo.faltando ? " e o modelo tem " + modelo.faltando + " serviço(s) que a obra não tem" : ""}.
-          </p>
-          {!modelo.segue && (
-            <>
-              <p className="text-xs text-ink-500">Enquanto for exceção, mudanças aqui valem só para esta obra e o modelo não chega nela.</p>
-              <button className={btnPri} disabled={ocupado} onClick={() => exec(() => acoes.aplicarModeloPadrao(obra.id))}>
-                Aplicar o Modelo padrão nesta obra
-              </button>
-              <span className="text-xs text-ink-500 ml-2">Serviços sem status lançado que não estão no modelo saem; os com status lançado são mantidos.</span>
-            </>
-          )}
-        </div>
-      )}
+      <PainelModelo dados={dados} />
 
       {excluindo && (
         <div className="card border-danger/40 bg-red-50 space-y-2 text-sm">
@@ -720,21 +699,9 @@ function MatrizCard(props: {
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-ink-500">
-        <span>Obras novas puxam do <b>Modelo padrão SBJ</b>.</span>
-        <button
-          className={btn}
-          disabled={ocupado}
-          onClick={() =>
-            props.pedirConfirmacao({
-              texto: "Salvar a configuração desta obra (categorias, serviços, fases, pesos e marcas) como Modelo padrão SBJ? Isso substitui o modelo atual para as próximas obras. As obras que já existem não mudam.",
-              onConfirmar: () => exec(() => acoes.salvarComoModelo(obraId)),
-            })
-          }
-        >
-          Salvar como modelo padrão
-        </button>
-      </div>
+      <p className="mt-3 text-xs text-ink-500">
+        Mudanças aqui valem só para esta obra. Para levar a configuração a outras obras, use <b>Modelo padrão</b> no topo da tela (Salvar esta obra como modelo padrão e Aplicar a outras obras).
+      </p>
     </Secao>
   );
 }

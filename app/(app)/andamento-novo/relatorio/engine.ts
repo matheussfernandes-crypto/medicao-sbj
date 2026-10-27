@@ -112,8 +112,8 @@ export const larguraBase = (nomes: string[]) => Math.max(PAR.cw, LINHA_TITULO * 
 // ---------- tamanho fixo (rodada 5): a mesma letra e o mesmo tamanho de célula em todas as tabelas e folhas ----------
 // 1 pt = 4/3 px (96 dpi) e 5 mm ≈ 19 px. Nada de scale() nas tabelas, salvo a exceção da tabela que não cabe numa folha inteira.
 type Par = { nome: "n" | "c"; ch: number; cw: number; gp: number; gr: number; alt: number };
-const PAR_N: Par = { nome: "n", ch: 19, cw: 19, gp: 8, gr: 8, alt: 150 }; // célula de 5 mm
-const PAR_C: Par = { nome: "c", ch: 15, cw: 15, gp: 4, gr: 4, alt: 110 }; // modo compacto: célula de 4 mm, menos espaço entre pavimentos e fases, títulos mais curtos
+const PAR_N: Par = { nome: "n", ch: 19, cw: 19, gp: 8, gr: 8, alt: 190 }; // célula de 5 mm
+const PAR_C: Par = { nome: "c", ch: 15, cw: 15, gp: 4, gr: 4, alt: 130 }; // modo compacto: célula de 4 mm, menos espaço entre pavimentos e fases, títulos mais curtos
 let PAR: Par = PAR_N;
 
 // ---------- modelo de dados do motor ----------

@@ -607,7 +607,7 @@ ${cssImpressao()}
             <Linha titulo="Tamanho">
               <Seg valor={fmt.fill ? "s" : "n"} onChange={(v) => setFmt((f0) => ({ ...f0, fill: v === "s" }))} opcoes={[["s", "Estender até ocupar a folha"], ["n", "Manter tamanho normal"]]} />
             </Linha>
-            <p className="text-xs text-ink-500">As células têm sempre o mesmo tamanho e a escala é uma só para o relatório inteiro. "Estender" aumenta até a maior escala que ainda deixa cada bloco inteiro numa folha e alarga as colunas até a margem.</p>
+            <p className="text-xs text-ink-500">A letra (9 pt) e a célula (5 mm) são sempre as mesmas, em todas as tabelas e folhas. "Estender" só alarga as colunas até a margem (no máximo 3 vezes a altura da célula). Se uma tabela não couber inteira, só ela fica compacta ou reduzida, e aparece um aviso.</p>
           </div>
         )}
 

@@ -364,7 +364,7 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
     else if (ativos.length > 3) onde = `de ${ativos[0].nome} até ${ativos[ativos.length - 1].nome} (${ativos.length} pavimentos)`;
     else if (g.itens.length) onde = g.itens.join(", ");
     const prefixo = pavs.length ? `${prontos} de ${pavs.length} pavimentos concluídos` : "";
-    return [prefixo, onde ? `em andamento em: ${onde}` : ""].filter(Boolean).join(" · ");
+    return [prefixo, onde ? `em andamento: ${onde}` : ""].filter(Boolean).join(" · ");
   };
 
   // ---- fachada (mini 3D): um bloco por serviço da fachada (Reboco externo, Pintura externa…), cada um com as suas descidas ----

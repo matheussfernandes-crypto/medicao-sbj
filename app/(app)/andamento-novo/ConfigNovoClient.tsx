@@ -1326,6 +1326,17 @@ function NovaObra(props: {
               <b>{previa.etapas.toLocaleString("pt-BR")}</b> etapas de acompanhamento
             </li>
           </ul>
+          <div className="mt-2 max-h-56 overflow-auto text-[11.5px] text-ink-700 space-y-0.5">
+            {est.pavs.map((p) => {
+              const ap = p.locais.filter((l) => l.cat === "tipo");
+              return (
+                <div key={p.nome}>
+                  <b>{p.nome}</b>
+                  {ap.length ? `: ${ap[0].nome}${ap.length > 1 ? " a " + ap[ap.length - 1].nome : ""} (${ap.length} ${ap.length === 1 ? "apto" : "aptos"})` : ""}
+                </div>
+              );
+            })}
+          </div>
           <p className="text-[11px] text-ink-500 mt-2">Copia só a configuração, nunca os status de outra obra.</p>
         </div>
       </div>

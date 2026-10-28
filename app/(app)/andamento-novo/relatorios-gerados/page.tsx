@@ -20,10 +20,26 @@ export default async function RelatoriosGeradosPage({ searchParams }: { searchPa
   const { data } = await consulta;
   const linhas = (data ?? []) as LinhaLog[];
 
+  // várias obras geradas/enviadas juntas: cada linha diz com quais outras obras saiu
+  const lotes = Array.from(new Set(linhas.map((l) => l.lote_id).filter(Boolean))) as string[];
+  const porLote = new Map<string, Set<string>>();
+  if (lotes.length) {
+    const { data: irmas } = await supabase.from("andamento_novo_relatorio_log").select("lote_id, obra_nome").in("lote_id", lotes);
+    (irmas ?? []).forEach((r: any) => {
+      const s = porLote.get(r.lote_id) ?? new Set<string>();
+      s.add(r.obra_nome);
+      porLote.set(r.lote_id, s);
+    });
+  }
+
   const caminhos = Array.from(new Set(linhas.map((l) => l.pdf_path).filter(Boolean))) as string[];
   const { data: assinadas } = caminhos.length ? await supabase.storage.from("andamento-relatorios").createSignedUrls(caminhos, 3600) : { data: [] as { path: string | null; signedUrl: string }[] };
   const url = new Map((assinadas ?? []).map((a) => [a.path, a.signedUrl]));
-  const comUrl = linhas.map((l) => ({ ...l, url: l.pdf_path ? url.get(l.pdf_path) ?? null : null }));
+  const comUrl = linhas.map((l) => ({
+    ...l,
+    url: l.pdf_path ? url.get(l.pdf_path) ?? null : null,
+    junto_com: l.lote_id ? Array.from(porLote.get(l.lote_id) ?? []).filter((n) => n !== l.obra_nome) : [],
+  }));
 
   return (
     <div className="space-y-3">

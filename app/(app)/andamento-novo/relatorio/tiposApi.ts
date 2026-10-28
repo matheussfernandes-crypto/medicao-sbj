@@ -21,11 +21,17 @@ export type MetaRelatorio = {
 
 export type CorpoEmail = { destinatarios: string[]; assunto: string; mensagem: string; salvarPadrao: boolean };
 
+// uma obra do lote (várias obras de uma vez): o PDF dela já está guardado
+export type ItemLote = { obraId: string; obraNome: string; path: string; bytes: number; paginas: number; pct: number; meta: MetaRelatorio };
+
 export type PedidoRelatorio =
+  | { acao: "gerar"; origemId: string; obraId: string; config: ConfigRelatorio; meta: MetaRelatorio } // gera e guarda o PDF de UMA obra do lote (sem registrar)
+  | { acao: "registrar"; lote: string; modo: "PDF" | "EMAIL"; juntar: boolean; itens: ItemLote[]; email?: CorpoEmail } // registra o lote (uma linha por obra) e, se for e-mail, envia
   | { acao: "pdf"; obraId: string; config: ConfigRelatorio; meta: MetaRelatorio }
   | { acao: "email"; obraId: string; config: ConfigRelatorio; meta: MetaRelatorio; email: CorpoEmail }
   | { acao: "reenviar"; logId: string; email: CorpoEmail };
 
+export type RespostaGerar = { ok: boolean; erro?: string; obraId: string; obraNome: string; path?: string; bytes?: number; paginas?: number; pct?: number; url?: string; avisos: string[] };
 export type RespostaRelatorio = { ok: boolean; erro?: string; logId?: string; url?: string; paginas?: number; pct?: number; enviadoPara?: string[]; porLink?: boolean };
 
 export type LinhaLog = {
@@ -49,5 +55,7 @@ export type LinhaLog = {
   situacao: "Enviado" | "Falhou" | null;
   erro: string | null;
   pdf_path: string | null;
+  lote_id?: string | null; // várias obras geradas/enviadas juntas
+  junto_com?: string[]; // nomes das outras obras do mesmo lote
   url?: string | null; // endereço temporário de download
 };

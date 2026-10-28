@@ -6,7 +6,8 @@ import { ChevronDown, Download, Loader2, Mail, Printer, Trash2 } from "lucide-re
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import EnviarEmail from "./EnviarEmail";
-import type { ConfigRelatorio, CorpoEmail, MetaRelatorio, RespostaRelatorio } from "./tiposApi";
+import { ProgressoLote, SeletorObras, baixarBlob, montarArquivoLote, type EstadoObra } from "./LoteRelatorios";
+import type { ConfigRelatorio, CorpoEmail, MetaRelatorio, RespostaGerar, RespostaRelatorio } from "./tiposApi";
 import * as acoesRel from "./acoesRel";
 import { BlocoFachada3D } from "./Blocos";
 import { Chave, Linha, Seg } from "./controles";
@@ -452,6 +453,70 @@ ${cssImpressao()}
   }
   const enviarPorEmail = (e: CorpoEmail) => chamarApi({ acao: "email", obraId: obra.id, config: configRel(), meta: metaRel(), email: e });
 
+  // ---------- várias obras de uma vez (mesma configuração da tela, uma vez por obra) ----------
+  const [obrasSel, setObrasSel] = useState<string[]>([obra.id]);
+  const [juntar, setJuntar] = useState(false);
+  type LoteEstado = { id: string; modo: "PDF" | "EMAIL" | "IMPRIMIR"; itens: EstadoObra[]; fase: "gerando" | "enviando" | "pronto"; email?: CorpoEmail };
+  const [lote, setLote] = useState<LoteEstado | null>(null);
+  const listaObras = dados.obras.filter((o) => obrasSel.includes(o.id)).map((o) => ({ id: o.id, nome: o.nome }));
+  const multi = obrasSel.length > 1 || (obrasSel.length === 1 && obrasSel[0] !== obra.id);
+  const semObras = obrasSel.length === 0;
+
+  async function executarLote(modo: "PDF" | "EMAIL" | "IMPRIMIR", email?: CorpoEmail, soFalhas = false): Promise<RespostaRelatorio> {
+    const id = soFalhas && lote ? lote.id : crypto.randomUUID();
+    let itens: EstadoObra[] = soFalhas && lote ? lote.itens.map((i) => (i.estado === "erro" ? { ...i, estado: "fila" as const, erro: undefined } : i)) : listaObras.map((o) => ({ obraId: o.id, nome: o.nome, estado: "fila" as const }));
+    const atualizar = (obraId: string, parte: Partial<EstadoObra>, fase: LoteEstado["fase"] = "gerando") => {
+      itens = itens.map((i) => (i.obraId === obraId ? { ...i, ...parte } : i));
+      setLote({ id, modo, itens, fase, email });
+    };
+    setLote({ id, modo, itens, fase: "gerando", email });
+    setErro(null);
+    setAviso(null);
+    for (const alvo of itens.filter((i) => i.estado === "fila")) {
+      atualizar(alvo.obraId, { estado: "gerando" });
+      try {
+        const r = (await chamarApi({ acao: "gerar", origemId: obra.id, obraId: alvo.obraId, config: configRel(), meta: metaRel() })) as unknown as RespostaGerar;
+        if (r.ok) atualizar(alvo.obraId, { estado: "ok", resp: r });
+        else atualizar(alvo.obraId, { estado: "erro", erro: r.erro ?? "Não foi possível gerar.", resp: r });
+      } catch (e: any) {
+        atualizar(alvo.obraId, { estado: "erro", erro: e?.message ?? "erro de conexão" });
+      }
+    }
+    const novos = itens.filter((i) => i.estado === "ok" && !i.registrado);
+    const falhou = itens.filter((i) => i.estado === "erro").length;
+    if (!novos.length) {
+      setLote({ id, modo, itens, fase: "pronto", email });
+      return { ok: false, erro: "Nenhuma obra foi gerada." };
+    }
+    try {
+      setLote({ id, modo, itens, fase: "enviando", email });
+      const meta = metaRel();
+      const itensApi = novos.map((i) => ({ obraId: i.obraId, obraNome: i.nome, path: i.resp!.path!, bytes: i.resp!.bytes ?? 0, paginas: i.resp!.paginas ?? 0, pct: i.resp!.pct ?? 0, meta }));
+      let porLink = false;
+      if (modo !== "IMPRIMIR") {
+        const reg = await chamarApi({ acao: "registrar", lote: id, modo, juntar, itens: itensApi, email });
+        if (!reg.ok) throw new Error(reg.erro ?? "Não foi possível registrar.");
+        porLink = !!reg.porLink;
+      }
+      if (modo === "PDF" || modo === "IMPRIMIR") {
+        const { blob, nome } = await montarArquivoLote(
+          novos.map((i) => ({ nome: i.nome, url: i.resp!.url!, meta, paginas: i.resp!.paginas ?? 0, pct: i.resp!.pct ?? 0 })),
+          modo === "IMPRIMIR" ? true : juntar
+        );
+        if (modo === "IMPRIMIR") window.open(URL.createObjectURL(blob), "_blank"); // abre o PDF único para imprimir pelo visualizador
+        else baixarBlob(blob, nome);
+      }
+      itens = itens.map((i) => (novos.some((n) => n.obraId === i.obraId) ? { ...i, registrado: true } : i));
+      setLote({ id, modo, itens, fase: "pronto", email });
+      if (modo === "PDF") setAviso(`${novos.length} PDF${novos.length === 1 ? "" : "s"} gerado${novos.length === 1 ? "" : "s"} e registrado${novos.length === 1 ? "" : "s"} em "Relatórios gerados".${falhou ? ` ${falhou} obra(s) falharam.` : ""}`);
+      return { ok: true, porLink };
+    } catch (e: any) {
+      setLote({ id, modo, itens, fase: "pronto", email });
+      return { ok: false, erro: e?.message ?? "Não foi possível concluir." };
+    }
+  }
+  const enviarLoteEmail = (e: CorpoEmail) => executarLote("EMAIL", e);
+
   // modo PDF (servidor): avisa quando as folhas estão prontas (fontes e fotos carregadas)
   useEffect(() => {
     if (!modoPdf || !res) return;
@@ -544,13 +609,34 @@ ${cssImpressao()}
       )}
       {emailAberto && (
         <EnviarEmail
-          obraId={obra.id}
-          assuntoPadrao={`${emMont ? montAtual!.nome : "Relatório de andamento"} – ${obra.nome} – ${hojeBR}`}
-          mensagemPadrao={`Segue em anexo o relatório ${emMont ? `"${montAtual!.nome}" ` : "de andamento "}da obra ${obra.nome}, emitido em ${hojeBR} por ${dados.usuario.nome}. Obra concluída: ${Math.round(pctEscopo)}%.`}
-          anexo={{ tipo: emMont ? `Montagem "${montAtual!.nome}"` : "Relatório simples", filtro: textoFiltroRel, folha: textoFolha(plano.papel, plano.folha).split(" · ")[0], paginas: res?.N ?? null }}
-          onEnviar={enviarPorEmail}
-          onFechar={() => setEmailAberto(false)}
+          obras={multi ? listaObras : [{ id: obra.id, nome: obra.nome }]}
+          assuntoPadrao={multi ? `Relatórios de andamento – ${listaObras.length} ${listaObras.length === 1 ? "obra" : "obras"} – ${hojeBR}` : `${emMont ? montAtual!.nome : "Relatório de andamento"} – ${obra.nome} – ${hojeBR}`}
+          mensagemPadrao={
+            multi
+              ? `Segue em anexo ${listaObras.length === 1 ? "o relatório" : "os relatórios"} de andamento das obras abaixo, emitidos em ${hojeBR} por ${dados.usuario.nome}.\n\n[lista das obras]`
+              : `Segue em anexo o relatório ${emMont ? `"${montAtual!.nome}" ` : "de andamento "}da obra ${obra.nome}, emitido em ${hojeBR} por ${dados.usuario.nome}. Obra concluída: ${Math.round(pctEscopo)}%.`
+          }
+          anexos={(multi ? listaObras : [{ id: obra.id, nome: obra.nome }]).map((o) => ({
+            obra: multi ? o.nome : undefined,
+            tipo: emMont ? `Modelo "${montAtual!.nome}"` : "Relatório simples",
+            filtro: o.id === obra.id ? textoFiltroRel : "",
+            folha: textoFolha(plano.papel, plano.folha).split(" · ")[0],
+            paginas: o.id === obra.id ? res?.N ?? null : null,
+          }))}
+          onEnviar={multi ? enviarLoteEmail : enviarPorEmail}
+          onFechar={() => {
+            setEmailAberto(false);
+            setLote(null);
+          }}
+          progresso={multi && lote && lote.modo === "EMAIL" ? <ProgressoLote itens={lote.itens} fase={lote.fase} onTentarDeNovo={() => lote.email && executarLote("EMAIL", lote.email, true)} /> : undefined}
         />
+      )}
+
+      {lote && lote.modo !== "EMAIL" && (
+        <div className="card print:hidden space-y-2">
+          <p className="font-semibold text-sm text-primaryDark">{lote.modo === "IMPRIMIR" ? "Preparando a impressão de várias obras" : "Gerando os PDFs"}</p>
+          <ProgressoLote itens={lote.itens} fase={lote.fase} onTentarDeNovo={() => executarLote(lote.modo, undefined, true)} onFechar={() => setLote(null)} />
+        </div>
       )}
 
       {/* barra de controles */}
@@ -637,19 +723,20 @@ ${cssImpressao()}
                 ? `${res.N} página${res.N === 1 ? "" : "s"} · ${textoFolha(res.papel, res.folha)} · ${res.k < 0.995 ? `tabela reduzida a ${Math.round(res.k * 100)}%` : "letra padrão (9 pt)"} · células de ${Math.round(res.cw[0]) === Math.round(res.cw[1]) ? Math.round(res.cw[0]) : `${Math.round(res.cw[0])} a ${Math.round(res.cw[1])}`} px`
                 : "montando…"}
             </span>
+            <SeletorObras obras={dados.obras.map((o) => ({ id: o.id, nome: o.nome }))} sel={obrasSel} onSel={setObrasSel} juntar={juntar} onJuntar={setJuntar} obraAtual={obra.id} />
             {!emMont && (
               <button onClick={exportarCSV} className="flex items-center gap-1.5 px-3 py-2 border border-border rounded-lg text-sm bg-white">
                 <Download className="w-4 h-4" /> CSV
               </button>
             )}
-            <button onClick={imprimir} disabled={!res} className="flex items-center gap-1.5 px-3 py-2 border border-border rounded-lg text-sm bg-white disabled:opacity-50" title="Imprime direto pelo navegador (não fica guardado no registro)">
+            <button onClick={() => (multi ? executarLote("IMPRIMIR") : imprimir())} disabled={!res || semObras || lote?.fase === "gerando" || lote?.fase === "enviando"} className="flex items-center gap-1.5 px-3 py-2 border border-border rounded-lg text-sm bg-white disabled:opacity-50" title="Imprime direto pelo navegador (não fica guardado no registro)">
               <Printer className="w-4 h-4" /> Imprimir
             </button>
             <button onClick={() => setEmailAberto(true)} disabled={!res || gerando} className="flex items-center gap-1.5 px-3 py-2 border border-primary text-primaryDark font-semibold rounded-lg text-sm bg-white disabled:opacity-50">
               <Mail className="w-4 h-4" /> Gerar e enviar por e-mail
             </button>
-            <button onClick={gerarPdfServidor} disabled={!res || gerando} className="flex items-center gap-1.5 px-3 py-2 bg-accent text-primaryDark font-semibold rounded-lg text-sm disabled:opacity-50">
-              {gerando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />} {gerando ? "Gerando…" : `Gerar PDF (${plano.papel})`}
+            <button onClick={() => (multi ? executarLote("PDF") : gerarPdfServidor())} disabled={!res || gerando || semObras || lote?.fase === "gerando" || lote?.fase === "enviando"} className="flex items-center gap-1.5 px-3 py-2 bg-accent text-primaryDark font-semibold rounded-lg text-sm disabled:opacity-50">
+              {gerando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />} {gerando ? "Gerando…" : multi ? `Gerar PDF (${obrasSel.length} obra${obrasSel.length === 1 ? "" : "s"})` : `Gerar PDF (${plano.papel})`}
             </button>
           </div>
         </div>

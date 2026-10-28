@@ -34,10 +34,11 @@ export default function ListaRelatorios({ linhas, obraId, obraNome, todas }: { l
   );
 
   function exportarCSV() {
-    const cab = ["Data/hora", "Obra", "Quem gerou", "E-mail de quem gerou", "Ação", "Tipo", "Filtro/predefinição", "Folha", "Páginas", "% da obra", "Resumo na 1ª página", "Destinatários", "Situação", "Erro"];
+    const cab = ["Data/hora", "Obra", "Junto com", "Quem gerou", "E-mail de quem gerou", "Ação", "Tipo", "Filtro/predefinição", "Folha", "Páginas", "% da obra", "Resumo na 1ª página", "Destinatários", "Situação", "Erro"];
     const rows = filtradas.map((l) => [
       fmtDataHora(l.criado_em),
       l.obra_nome,
+      (l.junto_com ?? []).join(", "),
       l.usuario_nome ?? "",
       l.usuario_email ?? "",
       l.acao === "PDF" ? "PDF gerado" : "Enviado por e-mail",
@@ -140,6 +141,7 @@ export default function ListaRelatorios({ linhas, obraId, obraNome, todas }: { l
                     {l.pct_obra != null ? ` · obra ${Math.round(Number(l.pct_obra))}%` : ""}
                     {l.com_resumo ? " · com resumo" : ""}
                   </div>
+                  {l.junto_com && l.junto_com.length > 0 && <div className="text-[11px] text-primaryDark">enviado junto com: {l.junto_com.join(", ")}</div>}
                 </td>
                 <td className="py-2 pr-3 whitespace-nowrap">{l.folha ?? "—"}</td>
                 <td className="py-2 pr-3 text-right">{l.paginas ?? "—"}</td>
@@ -177,11 +179,11 @@ export default function ListaRelatorios({ linhas, obraId, obraNome, todas }: { l
 
       {reenviando && (
         <EnviarEmail
-          obraId={reenviando.obra_id}
+          obras={[{ id: reenviando.obra_id, nome: reenviando.obra_nome }]}
           destinosFixos={reenviando.destinatarios ?? []}
           assuntoPadrao={reenviando.assunto ?? `Relatório de andamento – ${reenviando.obra_nome}`}
           mensagemPadrao={reenviando.mensagem ?? ""}
-          anexo={{ tipo: reenviando.tipo === "montagem" ? `Montagem "${reenviando.montagem_nome ?? ""}"` : "Relatório simples", filtro: reenviando.filtro_resumo ?? "", folha: reenviando.folha ?? "", paginas: reenviando.paginas }}
+          anexos={[{ tipo: reenviando.tipo === "montagem" ? `Modelo "${reenviando.montagem_nome ?? ""}"` : "Relatório simples", filtro: reenviando.filtro_resumo ?? "", folha: reenviando.folha ?? "", paginas: reenviando.paginas }]}
           tituloBotao="Reenviar"
           onEnviar={reenviar}
           onFechar={() => setReenviando(null)}

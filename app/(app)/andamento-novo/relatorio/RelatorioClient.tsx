@@ -4,6 +4,7 @@ import "./relatorio.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Download, Loader2, Mail, Printer, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import EnviarEmail from "./EnviarEmail";
 import type { ConfigRelatorio, CorpoEmail, MetaRelatorio, RespostaRelatorio } from "./tiposApi";
 import * as acoesRel from "./acoesRel";
@@ -13,6 +14,7 @@ import { ChipsFiltro, PainelFiltros, chipsDeFiltros, normalizarFiltros } from ".
 import Folha, { dimensoes } from "./Folha";
 import PainelFotos from "./PainelFotos";
 import PainelMontar from "./PainelMontar";
+import PainelOrdem from "./PainelOrdem";
 import Resumo from "./Resumo";
 import { bandaFachada, construir, fotosDe, limparMedidas, type Plano, type Resultado } from "./engine";
 import { predefinicoesPadrao, type Predefinicao } from "./predefinicoes";
@@ -26,7 +28,10 @@ import {
   type Filtros,
   type Formato,
   type FotoRel,
+  aplicarOrdemLocal,
+  distribuirFotos,
   type FotosSel,
+  type OrdemLocal,
   type Montagem,
   type MontagemSalva,
   PAPEL_LISTA,
@@ -41,23 +46,35 @@ import type { DadosAndamento } from "../types";
 const ROTULO_ST = ["Não iniciado", "Andamento", "Finalizado", "Ausência"];
 const copia = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 
-type Painel = null | "filtros" | "predef" | "formato" | "mont" | "fotos";
+type Painel = null | "filtros" | "predef" | "formato" | "mont" | "fotos" | "ordem";
 
 export default function RelatorioClient({
-  dados,
+  dados: dadosOrig,
   salvas,
   montagensIniciais,
   fotos,
   fotosIniciais,
+  modeloOrdem = { tem: false, difere: 0 },
   modoPdf = false,
 }: {
   dados: DadosAndamento;
+  modeloOrdem?: { tem: boolean; difere: number }; // há Modelo padrão salvo? quantos serviços desta obra têm ordem/nome diferente dele
   salvas: Predefinicao[];
   montagensIniciais: MontagemSalva[];
   fotos: FotoRel[];
   fotosIniciais: FotosSel;
   modoPdf?: boolean; // página que o servidor abre para gerar o PDF: só as folhas, na configuração recebida
 }) {
+  const router = useRouter();
+  const cfgPdf0 = modoPdf && typeof window !== "undefined" ? ((window as any).__RELATORIO_CFG__ as ConfigRelatorio | undefined) ?? null : null;
+  const [ordemLocal, setOrdemLocal] = useState<OrdemLocal | null>(cfgPdf0?.ordem ?? null);
+  const [salvandoOrdem, setSalvandoOrdem] = useState(false);
+  const [erroOrdem, setErroOrdem] = useState<string | null>(null);
+  // a ordem mexida na tela vale na prévia na hora; quando os dados salvos chegam do servidor, ela deixa de ser "local"
+  const dados = useMemo(() => aplicarOrdemLocal(dadosOrig, ordemLocal), [dadosOrig, ordemLocal]);
+  useEffect(() => {
+    if (!modoPdf) setOrdemLocal(null);
+  }, [dadosOrig, modoPdf]);
   const obra = dados.obra;
   const idx = useMemo(() => montarIndice(dados.categorias, dados.servicos, dados.vinculos), [dados]);
   const ap = useMemo(() => mapaApontamentos(dados.apontamentos), [dados.apontamentos]);
@@ -228,7 +245,8 @@ export default function RelatorioClient({
   const emitidoEm = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 
   const lista = fotosDe(plano.fotos, fotos);
-  const fotosResumo = lista.slice(0, plano.fotos.n);
+  const distFotos = distribuirFotos(plano.fotos, lista, plano.resumo);
+  const fotosResumo = distFotos.resumo;
   const subRel = plano.titulo ? plano.titulo : "Relatório de andamento de obra";
 
   const folhasRender: React.ReactNode[] = [];
@@ -239,7 +257,7 @@ export default function RelatorioClient({
       if (p.tipo === "resumo") {
         folhasRender.push(
           <Folha key={"p" + i} {...comum} sub={subRel} titulo={escopoResumo.filtrado && !emMont ? "RESUMO DO FILTRO" : "RESUMO DA OBRA"} pct={pctEscopo}>
-            <Resumo ctx={ctx} escopo={escopoResumo} largura={p.IN} altura={p.LIVRE} fotos={fotosResumo} fotosMais={Math.max(0, lista.length - plano.fotos.n)} />
+            <Resumo ctx={ctx} escopo={escopoResumo} largura={p.IN} altura={p.LIVRE} fotos={fotosResumo} fotosMais={(plano.fotos.onde ?? "ambos") === "ambos" && !plano.fotos.repetir ? distFotos.final.length : 0} />
           </Folha>
         );
       } else if (p.tipo === "sumario") {
@@ -400,7 +418,7 @@ ${cssImpressao()}
       : chips.length
         ? chips.map((c) => c.texto).join(" · ")
         : "Obra inteira";
-  const configRel = (): ConfigRelatorio => ({ filtros, fmt, mon, fotosSimples, montagem: emMont ? montAtual : null });
+  const configRel = (): ConfigRelatorio => ({ filtros, fmt, mon, fotosSimples, montagem: emMont ? montAtual : null, ordem: ordemLocal });
   const metaRel = (): MetaRelatorio => ({ tipo: emMont ? "montagem" : "simples", montagemNome: emMont ? montAtual!.nome : null, filtroResumo: textoFiltroRel, folha: textoFolha(plano.papel, plano.folha).split(" · ")[0], comResumo: plano.resumo });
   async function chamarApi(corpo: unknown): Promise<RespostaRelatorio> {
     const r = await fetch("/api/andamento-novo/relatorio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
@@ -591,6 +609,7 @@ ${cssImpressao()}
             </div>
           )}
           {!emMont && botao("formato", "Formatação")}
+          {botao("ordem", "Ordem dos serviços")}
           {botao("mont", "Criar ou editar modelo")}
           <button
             className={`text-sm px-3 py-1.5 border rounded-md flex items-center gap-1 ${painel === "fotos" ? "bg-primary/10 border-primary" : "border-border bg-white"}`}
@@ -600,7 +619,7 @@ ${cssImpressao()}
             }}
             aria-expanded={painel === "fotos"}
           >
-            Fotos do resumo <ChevronDown className="w-3.5 h-3.5" />
+            Fotos do relatório <ChevronDown className="w-3.5 h-3.5" />
           </button>
           {!emMont && (
             <div className="flex-1 min-w-[200px]">
@@ -690,7 +709,42 @@ ${cssImpressao()}
           />
         )}
 
-        {painel === "fotos" && <PainelFotos fotos={fotos} fs={fsPainel} onChange={mudarFsPainel} dono={donoFotos} />}
+        {painel === "ordem" && (
+          <PainelOrdem
+            ctx={ctx}
+            ordem={ordemLocal}
+            onMudar={setOrdemLocal}
+            modelo={modeloOrdem}
+            ocupado={salvandoOrdem}
+            erro={erroOrdem}
+            onSalvar={async (noModelo) => {
+              if (!ordemLocal) return;
+              setSalvandoOrdem(true);
+              setErroOrdem(null);
+              const r = await acoesRel.salvarOrdem(obra.id, ordemLocal, noModelo);
+              setSalvandoOrdem(false);
+              if (!r.ok) setErroOrdem(r.erro);
+              else {
+                setAviso(noModelo ? "Ordem salva nesta obra e no Modelo padrão." : "Ordem salva.");
+                router.refresh(); // os dados salvos chegam e a ordem deixa de ser local
+              }
+            }}
+            onVoltarModelo={async () => {
+              setSalvandoOrdem(true);
+              setErroOrdem(null);
+              const r = await acoesRel.voltarOrdemModelo(obra.id);
+              setSalvandoOrdem(false);
+              if (!r.ok) setErroOrdem(r.erro);
+              else {
+                setOrdemLocal(null);
+                setAviso("A obra voltou à ordem do Modelo padrão.");
+                router.refresh();
+              }
+            }}
+          />
+        )}
+
+        {painel === "fotos" && <PainelFotos fotos={fotos} fs={fsPainel} onChange={mudarFsPainel} dono={donoFotos} resumoLigado={fotosOrigem === "mont" && montAtual ? montAtual.dados.resumo : mon.resumo} />}
       </div>
 
       {painel === "filtros" && !emMont && <PainelFiltros ctx={ctx} filtros={filtros} onChange={setFiltros} onFechar={() => setPainel(null)} />}

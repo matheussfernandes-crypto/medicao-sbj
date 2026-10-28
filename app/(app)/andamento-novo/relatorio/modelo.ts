@@ -38,9 +38,22 @@ export const textoFolha = (papel: Papel, folha: "h" | "v") => {
 export const MARGEM_FOLHA = 34;
 
 // ---- fotos do resumo (escolhidas na aba Fotos) ----
-export type FotosSel = { sel: string[]; leg: Record<string, string>; n: 4 | 6 };
-export const FOTOS_VAZIAS: FotosSel = { sel: [], leg: {}, n: 4 };
+// onde as fotos aparecem: só no resumo, só no relatório final (Registro fotográfico) ou nos dois (padrão)
+export type OndeFotos = "resumo" | "final" | "ambos";
+export type FotosSel = { sel: string[]; leg: Record<string, string>; n: 4 | 6; onde?: OndeFotos; repetir?: boolean };
+export const FOTOS_VAZIAS: FotosSel = { sel: [], leg: {}, n: 4, onde: "ambos", repetir: false };
 export type FotoRel = { id: string; url: string; legenda: string; data: string }; // data já formatada (dd/mm/aaaa)
+
+// distribui as fotos selecionadas (na ordem escolhida) entre o quadro do resumo e as páginas de Registro fotográfico
+export function distribuirFotos(fs: FotosSel, todas: FotoRel[], resumoLigado: boolean): { resumo: FotoRel[]; final: FotoRel[]; fora: FotoRel[] } {
+  const onde = fs.onde ?? "ambos";
+  if (onde === "final") return { resumo: [], final: todas, fora: [] };
+  const resumo = resumoLigado ? todas.slice(0, fs.n) : [];
+  if (onde === "resumo") return { resumo, final: [], fora: resumoLigado ? todas.slice(fs.n) : todas };
+  // resumo + relatório final: as que passam do limite vão para o registro; com "repetir", o registro mostra todas
+  const final = !resumoLigado || fs.repetir ? todas : todas.slice(fs.n);
+  return { resumo, final, fora: [] };
+}
 
 // ---- montagens: várias seções (filtro + formatação) num PDF só ----
 // Seção de uma montagem. Campos opcionais: se faltarem, valem os da montagem. Seção feita de predefinição leva a formatação dela (pre).
@@ -161,4 +174,18 @@ export function rotuloDoLocal(l: Local, pavNome: string, cat: Categoria) {
 // peso do serviço dentro da categoria (para % de fase)
 export function pesoNaCategoria(ctx: Ctx, catId: string, servId: string) {
   return (ctx.idx.servicosDaCat.get(catId) ?? []).find((x) => x.servico.id === servId)?.peso ?? 0;
+}
+
+// ---- ordem dos serviços mexida na própria tela do relatório (vale na prévia na hora; só grava ao "Salvar ordem") ----
+export type OrdemLocal = {
+  serv: Record<string, { ordem: number; fase_id: string | null; grupo: string }>;
+  fases: Record<string, number>;
+};
+export function aplicarOrdemLocal(dados: DadosAndamento, o: OrdemLocal | null): DadosAndamento {
+  if (!o) return dados;
+  return {
+    ...dados,
+    fases: dados.fases.map((f) => (o.fases[f.id] != null ? { ...f, ordem: o.fases[f.id] } : f)),
+    servicos: dados.servicos.map((s) => (o.serv[s.id] ? { ...s, ...o.serv[s.id] } : s)),
+  };
 }

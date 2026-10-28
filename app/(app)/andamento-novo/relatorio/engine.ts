@@ -6,7 +6,7 @@ import { pct, type Soma } from "../calculo";
 import { alvosDeItens, alvosDeLocais, somaRecorte, type AlvoR } from "../fatias";
 import { calcularNiveis } from "../fachada";
 import type { Categoria, Servico } from "../types";
-import { MARGEM_FOLHA, dimFolha, agruparPorFase, calcularEscopo, faseDoServico, rotuloDoLocal, status, type Ctx, type Filtros, type FotoRel, type FotosSel, type Papel, type Secao } from "./modelo";
+import { MARGEM_FOLHA, dimFolha, distribuirFotos, agruparPorFase, calcularEscopo, faseDoServico, rotuloDoLocal, status, type Ctx, type Filtros, type FotoRel, type FotosSel, type Papel, type Secao } from "./modelo";
 
 export const FF = '"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif';
 const P = (v: number) => Math.round(v) + "%";
@@ -635,7 +635,7 @@ export function construir(ctx: Ctx, pl: Plano, MEAS: HTMLElement): Resultado {
   });
   seq.push(...secPags);
   const todas = fotosDe(pl.fotos, pl.fotosLista);
-  const extras = pl.resumo ? todas.slice(pl.fotos.n) : [];
+  const extras = distribuirFotos(pl.fotos, todas, pl.resumo).final;
   const porPg = pl.folha === "v" ? 12 : 8;
   for (let i = 0; i < extras.length; i += porPg) seq.push({ tipo: "fotos", n: 0, fotos: extras.slice(i, i + porPg), ...dimPlano });
   seq.forEach((p, i) => (p.n = i + 1));

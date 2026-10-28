@@ -42,5 +42,12 @@ export async function carregarRelatorio(obraPedida?: string) {
     .filter((f: any) => url.get(f.storage_path))
     .map((f: any) => ({ id: f.id, url: url.get(f.storage_path)!, legenda: f.legenda ?? "", data: fmtData(f.data_foto) }));
 
-  return { dados, salvas, montagens, fotos, fotosCfg };
+  // situação da ordem desta obra frente ao Modelo padrão (para o painel "Ordem dos serviços")
+  let modelo = { tem: false, difere: 0 };
+  try {
+    const { data: dif } = await supabase.rpc("an_modelo_diferencas", { p_obra: obraId });
+    if ((dif as any)?.tem_modelo) modelo = { tem: true, difere: Number((dif as any).ordem_ou_nome_diferente ?? 0) };
+  } catch {}
+
+  return { dados, salvas, montagens, fotos, fotosCfg, modelo };
 }

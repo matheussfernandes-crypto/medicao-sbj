@@ -1,4 +1,4 @@
-import type { Filtros, Formato, FotosSel, Montagem, MontagemSalva } from "./modelo";
+import type { Filtros, Formato, FotosSel, Montagem, MontagemSalva, OrdemLocal } from "./modelo";
 
 // Como o relatório está montado na tela: o servidor refaz exatamente o mesmo PDF a partir disto.
 export type ConfigRelatorio = {
@@ -7,6 +7,7 @@ export type ConfigRelatorio = {
   mon: Montagem;
   fotosSimples: FotosSel;
   montagem: MontagemSalva | null; // preenchida quando o relatório é uma montagem
+  ordem?: OrdemLocal | null; // ordem dos serviços ainda não salva (o PDF sai como a prévia)
 };
 
 // Textos que o registro mostra (o que não dá para tirar do PDF)

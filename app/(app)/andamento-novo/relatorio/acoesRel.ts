@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Filtros, Formato, FotosSel, Montagem, MontagemDados, MontagemSalva } from "./modelo";
+import type { Filtros, Formato, FotosSel, Montagem, MontagemDados, MontagemSalva, OrdemLocal } from "./modelo";
 
 async function logado() {
   const supabase = createClient();
@@ -58,4 +58,37 @@ export async function excluirMontagem(id: string) {
   const { supabase } = await logado();
   const { error } = await supabase.from("an_montagem").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+// ---- ordem dos serviços (mesma ordem da aba Pavimentos e serviços; status e fatias não mudam) ----
+export type ResultadoOrdem = { ok: true } | { ok: false; erro: string };
+export async function salvarOrdem(obraId: string, ordem: OrdemLocal, noModelo: boolean): Promise<ResultadoOrdem> {
+  try {
+    const { supabase } = await logado();
+    const servicos = Object.entries(ordem.serv).map(([id, v]) => ({ id, ordem: v.ordem, fase_id: v.fase_id ?? "", grupo: v.grupo }));
+    const fases = Object.entries(ordem.fases).map(([id, o]) => ({ id, ordem: o }));
+    const r = await supabase.rpc("an_aplicar_ordem", { p_obra: obraId, p_servicos: servicos, p_fases: fases });
+    if (r.error) return { ok: false, erro: r.error.message };
+    if (noModelo) {
+      const m = await supabase.rpc("an_modelo_salvar_ordem", { p_obra: obraId });
+      if (m.error) return { ok: false, erro: "A ordem foi salva na obra, mas não no modelo: " + m.error.message };
+    }
+    revalidatePath("/andamento-novo", "layout");
+    return { ok: true };
+  } catch (e: any) {
+    if (typeof e?.digest === "string" && e.digest.startsWith("NEXT_REDIRECT")) throw e;
+    return { ok: false, erro: e?.message ?? "Erro ao salvar a ordem." };
+  }
+}
+export async function voltarOrdemModelo(obraId: string): Promise<ResultadoOrdem> {
+  try {
+    const { supabase } = await logado();
+    const r = await supabase.rpc("an_ordem_do_modelo", { p_obra: obraId });
+    if (r.error) return { ok: false, erro: r.error.message };
+    revalidatePath("/andamento-novo", "layout");
+    return { ok: true };
+  } catch (e: any) {
+    if (typeof e?.digest === "string" && e.digest.startsWith("NEXT_REDIRECT")) throw e;
+    return { ok: false, erro: e?.message ?? "Erro." };
+  }
 }

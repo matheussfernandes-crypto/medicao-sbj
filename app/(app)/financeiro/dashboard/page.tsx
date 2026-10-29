@@ -2,6 +2,7 @@ import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserPr
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import GraficoPizza, { type FatiaCategoria } from "@/components/GraficoPizza";
+import { totalAPagarPorObra } from "@/lib/fechamento/medicao";
 
 function mesAtualISO() {
   return new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -194,6 +195,9 @@ export default async function DashboardGastosPage({
   const totalGeralMesAtual = obraIds.reduce((s, id) => s + gastoObra(id), 0);
   const maiorObra = Math.max(1, ...obraIds.map((id) => gastoObra(id)));
   const maiorMes = Math.max(1, ...Object.values(porMes));
+  // total a pagar por obra no fechamento de medição do mês (mesma conta do relatório de medição de cada obra)
+  const linhasPagar = await totalAPagarPorObra(supabase, (obras ?? []).map((o) => ({ id: o.id, nome: o.nome })), mesSelecionado);
+  const totalAPagar = linhasPagar.reduce((s, l) => s + l.pagar, 0);
 
   return (
     <>
@@ -223,6 +227,52 @@ export default async function DashboardGastosPage({
               <a href="/financeiro/retiradas" className="underline">Ver detalhe por pessoa</a>
             </p>
           </div>
+        </div>
+
+        <div className="card overflow-x-auto">
+          <h2 className="font-semibold text-primaryDark mb-1">Total a pagar por obra — medições do fim do mês</h2>
+          <p className="text-xs text-gray-400 mb-3">
+            Medições − retenção − vales acumulados descontados + vale pago agora (Vale + Medição do dia 21 em diante). Obra com "estimado" ainda não teve a medição do mês fechada.
+          </p>
+          {linhasPagar.length > 0 ? (
+            <table className="w-full text-sm">
+              <thead className="text-left text-gray-400">
+                <tr>
+                  <th className="p-1">Obra</th>
+                  <th className="p-1 text-right">Medições</th>
+                  <th className="p-1 text-right">Retido</th>
+                  <th className="p-1 text-right">Vales descontados</th>
+                  <th className="p-1 text-right">Vale pago agora</th>
+                  <th className="p-1 text-right">Total a pagar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {linhasPagar.map((l) => (
+                  <tr key={l.nome} className="border-t" style={{ borderColor: "var(--border)" }}>
+                    <td className="p-1">
+                      {l.nome}
+                      {!l.fechada && <span className="text-xs text-gray-400"> (estimado)</span>}
+                    </td>
+                    <td className="p-1 text-right">R$ {fmtReais(l.total)}</td>
+                    <td className="p-1 text-right">R$ {fmtReais(l.retido)}</td>
+                    <td className="p-1 text-right">R$ {fmtReais(l.vale)}</td>
+                    <td className="p-1 text-right">R$ {fmtReais(l.valeAgora)}</td>
+                    <td className="p-1 text-right font-semibold">R$ {fmtReais(l.pagar)}</td>
+                  </tr>
+                ))}
+                <tr className="border-t font-semibold" style={{ borderColor: "var(--border)" }}>
+                  <td className="p-1">Total a pagar</td>
+                  <td className="p-1 text-right">R$ {fmtReais(linhasPagar.reduce((s, l) => s + l.total, 0))}</td>
+                  <td className="p-1 text-right">R$ {fmtReais(linhasPagar.reduce((s, l) => s + l.retido, 0))}</td>
+                  <td className="p-1 text-right">R$ {fmtReais(linhasPagar.reduce((s, l) => s + l.vale, 0))}</td>
+                  <td className="p-1 text-right">R$ {fmtReais(linhasPagar.reduce((s, l) => s + l.valeAgora, 0))}</td>
+                  <td className="p-1 text-right">R$ {fmtReais(totalAPagar)}</td>
+                </tr>
+              </tbody>
+            </table>
+          ) : (
+            <p className="text-sm text-gray-400">Nenhuma medição aprovada neste mês ainda.</p>
+          )}
         </div>
 
         <div className="card overflow-x-auto">

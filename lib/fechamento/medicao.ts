@@ -161,3 +161,18 @@ export async function saldoDeVales(supabase: any, obraId: string) {
   }
   return Object.values(por).sort((a, b) => a.nome.localeCompare(b.nome));
 }
+
+// Total a pagar por obra no fechamento de medição do mês (o mesmo cálculo do relatório de medição de cada obra),
+// para o dashboard e o relatório da diretoria. Obra que ainda não fechou aparece como estimativa.
+export type LinhaPagarObra = { nome: string; qtdPessoas: number; total: number; retido: number; vale: number; valeAgora: number; pagar: number; fechada: boolean };
+export async function totalAPagarPorObra(supabase: any, obras: { id: string; nome: string }[], mes: string): Promise<LinhaPagarObra[]> {
+  const { data: fech } = await supabase.from("fechamentos").select("obra_id").eq("tipo", "MEDICAO").eq("mes_referencia", mes);
+  const fechadas = new Set((fech ?? []).map((f: any) => f.obra_id));
+  const linhas: LinhaPagarObra[] = [];
+  for (const o of obras) {
+    const c = await calcularMedicao(supabase, o.id, mes);
+    if (!c.temAlgo) continue;
+    linhas.push({ nome: o.nome, qtdPessoas: c.resumo.length, total: c.somaTotal, retido: c.somaRetido, vale: c.somaVale, valeAgora: c.somaValeAgora, pagar: c.somaPagar, fechada: fechadas.has(o.id) });
+  }
+  return linhas.sort((a, b) => b.pagar - a.pagar);
+}

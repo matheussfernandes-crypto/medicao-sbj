@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { RelatorioGastosPdf } from "@/lib/pdf/RelatorioGastosPdf";
+import { totalAPagarPorObra } from "@/lib/fechamento/medicao";
 
 function mesAtualISO() {
   return new Date().toISOString().slice(0, 7);
@@ -155,6 +156,7 @@ export async function GET(request: NextRequest) {
   const linhasMes = meses6.map((m) => ({ mes: mesLabelFmt(m), total: porMes[m] }));
 
   const dataGeracao = new Date().toLocaleDateString("pt-BR");
+  const linhasPagar = await totalAPagarPorObra(supabase, (obras ?? []).map((o) => ({ id: o.id, nome: o.nome })), mesSelecionado);
 
   const buffer = await renderToBuffer(
     RelatorioGastosPdf({
@@ -166,6 +168,7 @@ export async function GET(request: NextRequest) {
       linhasEmpreiteiros,
       totalEmpreiteiros,
       dataGeracao,
+      linhasPagar,
     })
   );
 

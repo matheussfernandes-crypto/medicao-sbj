@@ -183,6 +183,8 @@ export type LinhaObra = {
   total: number;
 };
 
+export type LinhaPagarObra = { nome: string; qtdPessoas: number; total: number; retido: number; vale: number; valeAgora: number; pagar: number; fechada: boolean };
+
 export type LinhaMes = {
   mes: string;
   total: number;
@@ -208,7 +210,9 @@ export function RelatorioGastosPdf({
   linhasEmpreiteiros,
   totalEmpreiteiros,
   dataGeracao,
+  linhasPagar = [],
 }: {
+  linhasPagar?: LinhaPagarObra[];
   mesLabel: string;
   linhasObra: LinhaObra[];
   totalGeral: number;
@@ -226,6 +230,49 @@ export function RelatorioGastosPdf({
         <View style={styles.totalBox}>
           <Text style={styles.totalLabel}>Total geral aprovado no mês</Text>
           <Text style={styles.totalValor}>R$ {fmt(totalGeral)}</Text>
+        </View>
+
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>Total a pagar por obra — medições do fim do mês — {mesLabel}</Text>
+          <View>
+            <View style={styles.row}>
+              <Text style={[styles.th, { flex: 2.6 }]}>Obra</Text>
+              <Text style={[styles.th, { flex: 1.5 }]}>Medições</Text>
+              <Text style={[styles.th, { flex: 1.4 }]}>Retido</Text>
+              <Text style={[styles.th, { flex: 1.5 }]}>Vales descontados</Text>
+              <Text style={[styles.th, { flex: 1.5 }]}>Vale pago agora</Text>
+              <Text style={[styles.th, { flex: 1.6 }]}>Total a pagar (R$)</Text>
+            </View>
+            {linhasPagar.map((l, i) => (
+              <View style={styles.row} key={i}>
+                <Text style={[styles.tdFirst, { flex: 2.6 }]}>
+                  {l.nome}
+                  {l.fechada ? "" : " (estimado)"}
+                </Text>
+                <Text style={[styles.td, { flex: 1.5 }]}>R$ {fmt(l.total)}</Text>
+                <Text style={[styles.td, { flex: 1.4 }]}>R$ {fmt(l.retido)}</Text>
+                <Text style={[styles.td, { flex: 1.5 }]}>R$ {fmt(l.vale)}</Text>
+                <Text style={[styles.td, { flex: 1.5 }]}>R$ {fmt(l.valeAgora)}</Text>
+                <Text style={[styles.td, { flex: 1.6, fontWeight: 700 }]}>R$ {fmt(l.pagar)}</Text>
+              </View>
+            ))}
+            {linhasPagar.length === 0 && (
+              <View style={styles.row}>
+                <Text style={[styles.td, { flex: 10.1 }]}>Nenhuma medição aprovada neste mês.</Text>
+              </View>
+            )}
+            <View style={styles.row}>
+              <Text style={[styles.somaFirst, { flex: 2.6 }]}>TOTAL A PAGAR</Text>
+              <Text style={[styles.somaCell, { flex: 1.5 }]}>R$ {fmt(linhasPagar.reduce((s, l) => s + l.total, 0))}</Text>
+              <Text style={[styles.somaCell, { flex: 1.4 }]}>R$ {fmt(linhasPagar.reduce((s, l) => s + l.retido, 0))}</Text>
+              <Text style={[styles.somaCell, { flex: 1.5 }]}>R$ {fmt(linhasPagar.reduce((s, l) => s + l.vale, 0))}</Text>
+              <Text style={[styles.somaCell, { flex: 1.5 }]}>R$ {fmt(linhasPagar.reduce((s, l) => s + l.valeAgora, 0))}</Text>
+              <Text style={[styles.somaCell, { flex: 1.6 }]}>R$ {fmt(linhasPagar.reduce((s, l) => s + l.pagar, 0))}</Text>
+            </View>
+          </View>
+          <Text style={styles.note}>
+            Total a pagar = medições − retenção − vales acumulados descontados + vale pago agora (Vale + Medição do dia 21 em diante). Obra com "(estimado)" ainda não teve a medição do mês fechada.
+          </Text>
         </View>
 
         <View wrap={false}>

@@ -59,16 +59,19 @@ export async function calcularMedicao(supabase: any, obraId: string, mes: string
   // saldo de vales ainda não descontados, até este mês, só de quem tem medição neste fechamento
   const comMedicao = Array.from(new Set(medicoes.map((l) => l.pessoa_id).filter(Boolean))) as string[];
   let pendentes: Lanc[] = [];
-  if (comMedicao.length) {
-    const { data: p } = await supabase
+  // se a medição deste mês já foi fechada, o relatório mostra o que AQUELE fechamento descontou (os vales já estão marcados como
+  // descontados por ele); senão, o saldo ainda em aberto
+  const { data: fechado } = await supabase.from("fechamentos").select("id").eq("obra_id", obraId).eq("tipo", "MEDICAO").eq("mes_referencia", mes).limit(1).maybeSingle();
+  if (comMedicao.length || fechado?.id) {
+    let q = supabase
       .from("lancamentos")
       .select(COLUNAS)
       .eq("obra_id", obraId)
       .eq("status", "APROVADO")
       .lte("mes_referencia", mes)
-      .is("vale_descontado_em", null)
-      .in("pessoa_id", comMedicao)
       .or("and(tipo.eq.VALE,vale_real.eq.true),tipo.eq.VALE_MEDICAO");
+    q = fechado?.id ? q.eq("vale_descontado_fechamento_id", fechado.id) : q.is("vale_descontado_em", null).in("pessoa_id", comMedicao);
+    const { data: p } = await q;
     pendentes = ((p ?? []) as Lanc[]).filter((l) => !idsValesMedicao.has(l.id));
   }
 

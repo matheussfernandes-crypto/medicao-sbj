@@ -80,7 +80,8 @@ export default async function DashboardGastosPage({
     .select(
       "obra_id, pessoa_id, mes_referencia, tipo, total_reais, valor_vale_hibrido, valor_bruto, retencao_item, retencao_pct_usado, vale_real, status"
     )
-    .eq("status", "APROVADO");
+    .eq("status", "APROVADO")
+    .eq("ajuste_saldo", false); // ajuste interno de saldo de vales não é gasto novo
 
   const todos = lancamentos ?? [];
   const meses6 = ultimosMeses(6, mesSelecionado);

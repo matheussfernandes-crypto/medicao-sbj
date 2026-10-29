@@ -212,7 +212,7 @@ export async function finalizarFechamentoVale(formData: FormData) {
   const { data: lista } = await supabase
     .from("lancamentos")
     .select("id, tipo, data, pessoa_id, servico, detalhe_texto, total_reais, valor_vale_hibrido, valor_bruto, retencao_item, retencao_pct_usado, vale_real, criado_por")
-    .eq("obra_id", obraId).eq("mes_referencia", mes).in("tipo", ["VALE", "VALE_MEDICAO"]).eq("status", "APROVADO");
+    .eq("obra_id", obraId).eq("mes_referencia", mes).in("tipo", ["VALE", "VALE_MEDICAO"]).eq("status", "APROVADO").eq("ajuste_saldo", false);
 
   // Lançamentos "Vale + Medição" entram aqui inteiros: o vale (valor_vale_hibrido, sem
   // retenção) e a Medição Complementar (total_reais bruto, com sua própria retenção)

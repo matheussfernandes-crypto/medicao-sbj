@@ -59,7 +59,7 @@ export default async function FechamentoPage({
     const { data: vales } = await supabase
       .from("lancamentos")
       .select("total_reais, valor_vale_hibrido, retencao_pct_usado, tipo, data")
-      .eq("obra_id", obraSelecionada).eq("mes_referencia", mes).eq("status", "APROVADO")
+      .eq("obra_id", obraSelecionada).eq("mes_referencia", mes).eq("status", "APROVADO").eq("ajuste_saldo", false)
       .in("tipo", ["VALE", "VALE_MEDICAO"]);
     // Vale + Medição do dia 21 em diante sai no relatório de medição
     const valesDoVale = (vales ?? []).filter((l) => !(l.tipo === "VALE_MEDICAO" && Number(String(l.data).slice(8, 10)) >= 21));

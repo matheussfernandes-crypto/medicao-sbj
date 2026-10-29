@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { salvarConfigNotificacao, finalizarFechamentoMedicao, finalizarFechamentoVale, excluirFechamento } from "./actions";
 import ConfirmDeleteButton from "../../lancamentos/ConfirmDeleteButton";
+import { calcularMedicao, saldoDeVales } from "@/lib/fechamento/medicao";
 
 function mesAtual() {
   return new Date().toISOString().slice(0, 7);
@@ -44,43 +45,28 @@ export default async function FechamentoPage({
     }
   }
 
-  let previaMedicao: { qtdItens: number; somaPagar: number } | null = null;
+  let previaMedicao: { qtdItens: number; somaPagar: number; somaVale: number; somaValeAgora: number } | null = null;
   let previaVale: { qtdItens: number; somaGeral: number } | null = null;
+  let saldo: Awaited<ReturnType<typeof saldoDeVales>> = [];
 
   if (obraSelecionada) {
-    // A Medição Complementar de um "Vale + Medição" não entra como item na prévia
-    // de Medição (ela já é paga junto com o vale, no fechamento de Vale). Mas o
-    // valor do vale (valor_vale_hibrido) continua descontando o total a pagar aqui,
-    // como qualquer Vale Real, pois é um adiantamento para a próxima medição.
-    const { data: medicoes } = await supabase
-      .from("lancamentos")
-      .select("total_reais, retencao_pct_usado, pessoa_id, vale_real, tipo")
-      .eq("obra_id", obraSelecionada).eq("mes_referencia", mes).eq("tipo", "MEDICAO").eq("status", "APROVADO");
-    const { data: valesReais } = await supabase
-      .from("lancamentos")
-      .select("total_reais, valor_vale_hibrido, tipo")
-      .eq("obra_id", obraSelecionada).eq("mes_referencia", mes).eq("status", "APROVADO")
-      .or("and(tipo.eq.VALE,vale_real.eq.true),tipo.eq.VALE_MEDICAO");
-
-    if (medicoes && medicoes.length) {
-      const somaTotal = medicoes.reduce((s, l) => s + Number(l.total_reais), 0);
-      const somaRetido = medicoes.reduce((s, l) => s + Number(l.total_reais) * Number(l.retencao_pct_usado ?? 0), 0);
-      const somaVale = (valesReais ?? []).reduce(
-        (s, l) => s + (l.tipo === "VALE_MEDICAO" ? Number(l.valor_vale_hibrido ?? 0) : Number(l.total_reais)),
-        0
-      );
-      previaMedicao = { qtdItens: medicoes.length, somaPagar: somaTotal - somaRetido - somaVale };
-    }
+    // Mesma conta do PDF e do fechamento: medições do mês + Vale + Medição do dia 21 em diante (entra aqui, não no vale),
+    // menos todo o saldo de vales acumulado de quem tem medição neste fechamento.
+    const calc = await calcularMedicao(supabase, obraSelecionada, mes);
+    if (calc.temAlgo) previaMedicao = { qtdItens: calc.qtdItens, somaPagar: calc.somaPagar, somaVale: calc.somaVale, somaValeAgora: calc.somaValeAgora };
+    saldo = await saldoDeVales(supabase, obraSelecionada);
 
     const { data: vales } = await supabase
       .from("lancamentos")
-      .select("total_reais, valor_vale_hibrido, retencao_pct_usado, tipo")
+      .select("total_reais, valor_vale_hibrido, retencao_pct_usado, tipo, data")
       .eq("obra_id", obraSelecionada).eq("mes_referencia", mes).eq("status", "APROVADO")
       .in("tipo", ["VALE", "VALE_MEDICAO"]);
-    if (vales && vales.length) {
+    // Vale + Medição do dia 21 em diante sai no relatório de medição
+    const valesDoVale = (vales ?? []).filter((l) => !(l.tipo === "VALE_MEDICAO" && Number(String(l.data).slice(8, 10)) >= 21));
+    if (valesDoVale.length) {
       previaVale = {
-        qtdItens: vales.length,
-        somaGeral: vales.reduce((s, l) => {
+        qtdItens: valesDoVale.length,
+        somaGeral: valesDoVale.reduce((s, l) => {
           if (l.tipo === "VALE_MEDICAO") {
             const bruto = Number(l.total_reais);
             const liquido = bruto - bruto * Number(l.retencao_pct_usado ?? 0);
@@ -168,6 +154,10 @@ export default async function FechamentoPage({
                   <p className="text-sm mb-3">
                     {previaMedicao.qtdItens} item(ns) aprovado(s) — total a pagar estimado:{" "}
                     <span className="font-semibold">R$ {previaMedicao.somaPagar.toFixed(2)}</span>
+                    <span className="block text-xs text-gray-500 mt-1">
+                      Vales descontados: R$ {previaMedicao.somaVale.toFixed(2)}
+                      {previaMedicao.somaValeAgora > 0 ? ` · Vale + Medição pago agora (dia 21 em diante): R$ ${previaMedicao.somaValeAgora.toFixed(2)}` : ""}
+                    </span>
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
                     <a
@@ -194,6 +184,37 @@ export default async function FechamentoPage({
                 </>
               ) : (
                 <p className="text-sm text-gray-400">Nenhuma medição aprovada nesse mês/obra ainda.</p>
+              )}
+            </div>
+
+            <div className="card">
+              <h2 className="font-semibold text-primaryDark mb-1">Vales acumulados (ainda não descontados)</h2>
+              <p className="text-xs text-gray-400 mb-2">
+                Vale real e a parte de vale do Vale + Medição ficam no saldo da pessoa e são descontados de uma vez na próxima medição dela. Quem não tem medição no fechamento segue acumulando.
+              </p>
+              {saldo.length ? (
+                <table className="w-full text-sm">
+                  <thead className="text-left text-gray-400">
+                    <tr>
+                      <th className="p-1">Pessoa</th>
+                      <th className="p-1">Lançamentos</th>
+                      <th className="p-1">Desde</th>
+                      <th className="p-1 text-right">Saldo (R$)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {saldo.map((s) => (
+                      <tr key={s.nome} className="border-t">
+                        <td className="p-1">{s.nome}</td>
+                        <td className="p-1">{s.n}</td>
+                        <td className="p-1">{s.desde}</td>
+                        <td className="p-1 text-right">{s.valor.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-sm text-gray-400">Nenhum vale acumulado nesta obra.</p>
               )}
             </div>
 

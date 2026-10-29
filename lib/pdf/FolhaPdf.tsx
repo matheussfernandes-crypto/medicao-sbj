@@ -146,7 +146,8 @@ export type ResumoMedicao = {
   retido: number;
   pct: number;
   total: number;
-  vale: number;
+  vale: number; // vales acumulados descontados neste fechamento
+  valeAgora?: number; // vale pago agora (Vale + Medição do dia 21 em diante): soma ao total a pagar e fica no saldo
   totalPagar: number;
 };
 
@@ -158,6 +159,7 @@ export function FolhaMedicaoPdf({
   somaTotal,
   somaRetido,
   somaVale,
+  somaValeAgora = 0,
   somaPagar,
   mestreNome,
   lancadores,
@@ -171,6 +173,7 @@ export function FolhaMedicaoPdf({
   somaTotal: number;
   somaRetido: number;
   somaVale: number;
+  somaValeAgora?: number;
   somaPagar: number;
   mestreNome: string | null;
   lancadores: string[];
@@ -214,7 +217,8 @@ export function FolhaMedicaoPdf({
             <Text style={[styles.thResumo, { flex: 2 }]}>Empreiteiro</Text>
             <Text style={[styles.thResumo, { flex: 1.6 }]}>Retido</Text>
             <Text style={[styles.thResumo, { flex: 1.6 }]}>Total</Text>
-            <Text style={[styles.thResumo, { flex: 1.6 }]}>Vale</Text>
+            <Text style={[styles.thResumo, { flex: 1.6 }]}>Vales descontados</Text>
+            <Text style={[styles.thResumo, { flex: 1.6 }]}>Vale pago agora</Text>
             <Text style={[styles.thResumo, { flex: 1.6 }]}>Total a pagar (R$)</Text>
           </View>
           {resumo.map((r, i) => (
@@ -223,6 +227,7 @@ export function FolhaMedicaoPdf({
               <Text style={[styles.td, { flex: 1.6 }]}>R$ {fmt(r.retido)} ({(r.pct * 100).toFixed(0)}%)</Text>
               <Text style={[styles.td, { flex: 1.6 }]}>R$ {fmt(r.total)}</Text>
               <Text style={[styles.td, { flex: 1.6 }]}>R$ {fmt(r.vale)}</Text>
+              <Text style={[styles.td, { flex: 1.6 }]}>R$ {fmt(r.valeAgora ?? 0)}</Text>
               <Text style={[styles.td, { flex: 1.6, fontWeight: 700 }]}>R$ {fmt(r.totalPagar)}</Text>
             </View>
           ))}
@@ -231,13 +236,16 @@ export function FolhaMedicaoPdf({
             <Text style={[styles.somaCell, { flex: 1.6 }]}>R$ {fmt(somaRetido)}</Text>
             <Text style={[styles.somaCell, { flex: 1.6 }]}>R$ {fmt(somaTotal)}</Text>
             <Text style={[styles.somaCell, { flex: 1.6 }]}>R$ {fmt(somaVale)}</Text>
+            <Text style={[styles.somaCell, { flex: 1.6 }]}>R$ {fmt(somaValeAgora)}</Text>
             <Text style={[styles.somaCell, { flex: 1.6 }]}>R$ {fmt(somaPagar)}</Text>
           </View>
         </View>
 
         <Text style={styles.note}>
-          Só o Vale Real é descontado aqui. Vale de correção de medição já foi pago líquido (bruto − retenção do
-          próprio item) no momento do lançamento e não entra de novo neste fechamento.
+          Vales descontados: todo o saldo de vales da pessoa que ainda não tinha sido descontado (vale real e a parte de vale
+          do Vale + Medição, de meses anteriores e deste). Quem não tem medição neste fechamento continua acumulando. Vale +
+          Medição lançado do dia 21 em diante: a medição complementar entra como item (com retenção) e o vale é pago agora,
+          ficando no saldo para a próxima medição. Vale de correção de medição já foi pago líquido e não entra de novo.
         </Text>
 
         <Assinaturas

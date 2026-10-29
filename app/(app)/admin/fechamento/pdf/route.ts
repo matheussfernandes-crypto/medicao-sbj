@@ -9,6 +9,7 @@ import {
   type ItemVale,
   type ResumoVale,
 } from "@/lib/pdf/FolhaPdf";
+import { calcularMedicao } from "@/lib/fechamento/medicao";
 
 // Gera o MESMO PDF que seria enviado por email ao finalizar a medição/vale do
 // mês, mas só para conferência: não envia email, não salva no Storage e não
@@ -68,63 +69,12 @@ export async function GET(request: NextRequest) {
   const mestreNome = await obterMestre(supabase, obraId);
 
   if (tipo === "medicao") {
-    const { data: lista } = await supabase
-      .from("lancamentos")
-      .select(
-        "id, tipo, pessoa_id, servico, local, detalhe_texto, valor_unitario_usado, quantidade, total_reais, valor_vale_hibrido, retencao_pct_usado, vale_real, criado_por"
-      )
-      .eq("obra_id", obraId).eq("mes_referencia", mes).eq("status", "APROVADO");
-
-    const todos = lista ?? [];
-    const medicoes = todos.filter((l) => l.tipo === "MEDICAO");
-    const valesReais = todos.filter((l) => (l.tipo === "VALE" && l.vale_real) || l.tipo === "VALE_MEDICAO");
-
-    if (!medicoes.length) {
+    const calc = await calcularMedicao(supabase, obraId, mes);
+    if (!calc.temAlgo) {
       return NextResponse.json({ erro: "Nenhuma medição aprovada nesse mês/obra para visualizar." }, { status: 404 });
     }
-
-    const pessoaIds = Array.from(new Set(todos.map((l) => l.pessoa_id)));
-    const { data: pessoas } = pessoaIds.length
-      ? await supabase.from("pessoas").select("id, nome").in("id", pessoaIds)
-      : { data: [] as any[] };
-    const nomePessoa: Record<string, string> = {};
-    for (const p of pessoas ?? []) nomePessoa[p.id] = p.nome;
-
-    const lancadores = await obterNomesLancadores(
-      supabase,
-      Array.from(new Set(medicoes.map((l) => l.criado_por).filter(Boolean))) as string[]
-    );
-
-    const itens: ItemMedicao[] = medicoes.map((l) => ({
-      empreiteiro: nomePessoa[l.pessoa_id] ?? "—",
-      servico: l.servico ?? "—",
-      local: l.local ?? "—",
-      valorUnitario: Number(l.valor_unitario_usado ?? 0),
-      quantidadeTexto: l.detalhe_texto ?? String(l.quantidade ?? ""),
-      total: Number(l.total_reais),
-    }));
-
-    const porPessoa: Record<string, { nome: string; total: number; pct: number; vale: number }> = {};
-    for (const l of medicoes) {
-      const pid = l.pessoa_id;
-      if (!porPessoa[pid]) porPessoa[pid] = { nome: nomePessoa[pid] ?? "—", total: 0, pct: Number(l.retencao_pct_usado ?? 0), vale: 0 };
-      porPessoa[pid].total += Number(l.total_reais);
-    }
-    for (const l of valesReais) {
-      const pid = l.pessoa_id;
-      if (!porPessoa[pid]) porPessoa[pid] = { nome: nomePessoa[pid] ?? "—", total: 0, pct: 0, vale: 0 };
-      porPessoa[pid].vale += l.tipo === "VALE_MEDICAO" ? Number(l.valor_vale_hibrido ?? 0) : Number(l.total_reais);
-    }
-
-    const resumo: ResumoMedicao[] = Object.values(porPessoa).map((p) => {
-      const retido = p.total * p.pct;
-      return { nome: p.nome, retido, pct: p.pct, total: p.total, vale: p.vale, totalPagar: p.total - retido - p.vale };
-    });
-
-    const somaTotal = resumo.reduce((s, r) => s + r.total, 0);
-    const somaRetido = resumo.reduce((s, r) => s + r.retido, 0);
-    const somaVale = resumo.reduce((s, r) => s + r.vale, 0);
-    const somaPagar = resumo.reduce((s, r) => s + r.totalPagar, 0);
+    const lancadores = await obterNomesLancadores(supabase, calc.lancadoresIds);
+    const { itens, resumo, somaTotal, somaRetido, somaVale, somaValeAgora, somaPagar } = calc;
 
     const buffer = await renderToBuffer(
       FolhaMedicaoPdf({
@@ -135,6 +85,7 @@ export async function GET(request: NextRequest) {
         somaTotal,
         somaRetido,
         somaVale,
+        somaValeAgora,
         somaPagar,
         mestreNome,
         lancadores,
@@ -155,11 +106,11 @@ export async function GET(request: NextRequest) {
   const { data: lista } = await supabase
     .from("lancamentos")
     .select(
-      "id, tipo, pessoa_id, servico, detalhe_texto, total_reais, valor_vale_hibrido, valor_bruto, retencao_item, retencao_pct_usado, vale_real, criado_por"
+      "id, tipo, data, pessoa_id, servico, detalhe_texto, total_reais, valor_vale_hibrido, valor_bruto, retencao_item, retencao_pct_usado, vale_real, criado_por"
     )
     .eq("obra_id", obraId).eq("mes_referencia", mes).in("tipo", ["VALE", "VALE_MEDICAO"]).eq("status", "APROVADO");
 
-  const vales = lista ?? [];
+  const vales = (lista ?? []).filter((l: any) => !(l.tipo === "VALE_MEDICAO" && Number(String(l.data).slice(8, 10)) >= 21));
   if (!vales.length) {
     return NextResponse.json({ erro: "Nenhum vale aprovado nesse mês/obra para visualizar." }, { status: 404 });
   }

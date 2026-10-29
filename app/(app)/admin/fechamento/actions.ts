@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { FolhaMedicaoPdf, FolhaValePdf, type ItemMedicao, type ResumoMedicao, type ItemVale, type ResumoVale } from "@/lib/pdf/FolhaPdf";
 import { getMailer } from "@/lib/email/gmail";
+import { calcularMedicao, valeMedicaoDeVale } from "@/lib/fechamento/medicao";
 
 async function exigirAdmin() {
   const supabase = createClient();
@@ -77,6 +78,8 @@ export async function excluirFechamento(formData: FormData) {
 
   const { data: fechamento } = await supabase.from("fechamentos").select("pdf_path").eq("id", id).single();
 
+  // se este fechamento tinha descontado vales, eles voltam ao saldo acumulado
+  await supabase.from("lancamentos").update({ vale_descontado_em: null, vale_descontado_fechamento_id: null }).eq("vale_descontado_fechamento_id", id);
   await supabase.from("fechamentos").delete().eq("id", id);
 
   if (fechamento?.pdf_path) {
@@ -105,69 +108,13 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
   const { data: obra } = await supabase.from("obras").select("nome").eq("id", obraId).single();
   if (!obra) redirect(`/admin/fechamento?erro=${encodeURIComponent("Obra não encontrada.")}`);
 
-  const { data: lista } = await supabase
-    .from("lancamentos")
-    .select("id, tipo, pessoa_id, servico, local, detalhe_texto, valor_unitario_usado, quantidade, total_reais, valor_vale_hibrido, retencao_pct_usado, vale_real, criado_por")
-    .eq("obra_id", obraId).eq("mes_referencia", mes).eq("status", "APROVADO");
-
-  const todos = lista ?? [];
-  // A Medição Complementar de um lançamento "Vale + Medição" NÃO entra como item
-  // aqui: ela já é paga (líquida) junto com o vale, no fechamento de Vale do mês.
-  // Mas a parte do Vale desse mesmo lançamento (valor_vale_hibrido) funciona como
-  // um Vale Real normal — é um adiantamento para a PRÓXIMA medição — e por isso
-  // continua sendo descontada do total a pagar aqui, igual a qualquer Vale Real.
-  const medicoes = todos.filter((l) => l.tipo === "MEDICAO");
-  const valesReais = todos.filter((l) => (l.tipo === "VALE" && l.vale_real) || l.tipo === "VALE_MEDICAO");
-
-  if (!medicoes.length) {
+  const calc = await calcularMedicao(supabase, obraId, mes);
+  if (!calc.temAlgo) {
     redirect(`/admin/fechamento?obra=${obraId}&mes=${mes}&erro=${encodeURIComponent("Nenhuma medição aprovada nesse mês/obra para fechar.")}`);
   }
-
-  const pessoaIds = Array.from(new Set(todos.map((l) => l.pessoa_id)));
-  const { data: pessoas } = pessoaIds.length
-    ? await supabase.from("pessoas").select("id, nome").in("id", pessoaIds)
-    : { data: [] as any[] };
-  const nomePessoa: Record<string, string> = {};
-  for (const p of pessoas ?? []) nomePessoa[p.id] = p.nome;
-
-  const lancadores = await obterNomesLancadores(
-    supabase,
-    Array.from(new Set(medicoes.map((l) => l.criado_por).filter(Boolean))) as string[]
-  );
+  const lancadores = await obterNomesLancadores(supabase, calc.lancadoresIds);
   const mestreNome = await obterMestre(supabase, obraId);
-
-  const itens: ItemMedicao[] = medicoes.map((l) => ({
-    empreiteiro: nomePessoa[l.pessoa_id] ?? "—",
-    servico: l.servico ?? "—",
-    local: l.local ?? "—",
-    valorUnitario: Number(l.valor_unitario_usado ?? 0),
-    quantidadeTexto: l.detalhe_texto ?? String(l.quantidade ?? ""),
-    total: Number(l.total_reais),
-  }));
-
-  const porPessoa: Record<string, { nome: string; total: number; pct: number; vale: number }> = {};
-  for (const l of medicoes) {
-    const pid = l.pessoa_id;
-    if (!porPessoa[pid]) porPessoa[pid] = { nome: nomePessoa[pid] ?? "—", total: 0, pct: Number(l.retencao_pct_usado ?? 0), vale: 0 };
-    porPessoa[pid].total += Number(l.total_reais);
-  }
-  for (const l of valesReais) {
-    const pid = l.pessoa_id;
-    if (!porPessoa[pid]) porPessoa[pid] = { nome: nomePessoa[pid] ?? "—", total: 0, pct: 0, vale: 0 };
-    // No lançamento híbrido, total_reais é a Medição Complementar (não entra aqui);
-    // o valor do vale propriamente dito está em valor_vale_hibrido.
-    porPessoa[pid].vale += l.tipo === "VALE_MEDICAO" ? Number(l.valor_vale_hibrido ?? 0) : Number(l.total_reais);
-  }
-
-  const resumo: ResumoMedicao[] = Object.values(porPessoa).map((p) => {
-    const retido = p.total * p.pct;
-    return { nome: p.nome, retido, pct: p.pct, total: p.total, vale: p.vale, totalPagar: p.total - retido - p.vale };
-  });
-
-  const somaTotal = resumo.reduce((s, r) => s + r.total, 0);
-  const somaRetido = resumo.reduce((s, r) => s + r.retido, 0);
-  const somaVale = resumo.reduce((s, r) => s + r.vale, 0);
-  const somaPagar = resumo.reduce((s, r) => s + r.totalPagar, 0);
+  const { itens, resumo, somaTotal, somaRetido, somaVale, somaValeAgora, somaPagar } = calc;
 
   const buffer = await renderToBuffer(
     FolhaMedicaoPdf({
@@ -178,6 +125,7 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
       somaTotal,
       somaRetido,
       somaVale,
+      somaValeAgora,
       somaPagar,
       mestreNome,
       lancadores,
@@ -217,14 +165,22 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
 
   const pdfPath = await salvarPdfNoStorage(supabase, "medicao", obraId, mes, buffer);
 
-  await supabase.from("fechamentos").insert({
-    obra_id: obraId,
-    tipo: "MEDICAO",
-    mes_referencia: mes,
-    fechado_por: userId,
-    email_enviado_para: destinatarios.length && !emailErro ? destinatarios.join(", ") : null,
-    pdf_path: pdfPath,
-  });
+  const { data: novoFech } = await supabase
+    .from("fechamentos")
+    .insert({
+      obra_id: obraId,
+      tipo: "MEDICAO",
+      mes_referencia: mes,
+      fechado_por: userId,
+      email_enviado_para: destinatarios.length && !emailErro ? destinatarios.join(", ") : null,
+      pdf_path: pdfPath,
+    })
+    .select("id")
+    .single();
+  // os vales descontados neste fechamento saem do saldo (cada vale é descontado uma vez só)
+  if (novoFech?.id && calc.idsDescontados.length) {
+    await supabase.from("lancamentos").update({ vale_descontado_em: new Date().toISOString(), vale_descontado_fechamento_id: novoFech.id }).in("id", calc.idsDescontados);
+  }
 
   revalidatePath("/admin/fechamento");
   const mensagem = emailErro
@@ -255,13 +211,13 @@ export async function finalizarFechamentoVale(formData: FormData) {
 
   const { data: lista } = await supabase
     .from("lancamentos")
-    .select("id, tipo, pessoa_id, servico, detalhe_texto, total_reais, valor_vale_hibrido, valor_bruto, retencao_item, retencao_pct_usado, vale_real, criado_por")
+    .select("id, tipo, data, pessoa_id, servico, detalhe_texto, total_reais, valor_vale_hibrido, valor_bruto, retencao_item, retencao_pct_usado, vale_real, criado_por")
     .eq("obra_id", obraId).eq("mes_referencia", mes).in("tipo", ["VALE", "VALE_MEDICAO"]).eq("status", "APROVADO");
 
   // Lançamentos "Vale + Medição" entram aqui inteiros: o vale (valor_vale_hibrido, sem
   // retenção) e a Medição Complementar (total_reais bruto, com sua própria retenção)
   // são pagos juntos neste fechamento — é o serviço atrasado sendo regularizado no vale.
-  const vales = lista ?? [];
+  const vales = (lista ?? []).filter((l: any) => !(l.tipo === "VALE_MEDICAO" && Number(String(l.data).slice(8, 10)) >= 21));
   if (!vales.length) {
     redirect(`/admin/fechamento?obra=${obraId}&mes=${mes}&erro=${encodeURIComponent("Nenhum vale aprovado nesse mês/obra para fechar.")}`);
   }

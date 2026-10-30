@@ -1,16 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
-import { buscarStatusDasUnidades } from "../andamento-obra/status-query";
+import { listarObrasAndamento } from "../andamento-novo/obrasAndamento";
+import { paginar } from "../andamento-novo/dados";
+import { mapaApontamentos, montarIndice, pct } from "../andamento-novo/calculo";
+import { alvosDeItens, alvosDeLocais, montarFatias, somaRecorte } from "../andamento-novo/fatias";
+import type { Apontamento } from "../andamento-novo/types";
 
 export type ObraPainel = { id: string; nome: string; exibir: boolean };
 
 export type ProgressoObra = {
-  obraId: string;
+  obraId: string; // obra do Andamento (novo)
+  obraGeralId: string | null; // ligação com o cadastro geral (fotos)
   nome: string;
-  pct: number; // finalizado, ponderado pelo peso dos serviços
+  pct: number; // % da obra pelas fatias (finalizado + ½ andamento)
+  pctFinalizado: number;
   pctAndamento: number;
   pctNaoIniciado: number;
-  unidades: number;
-  torres: { nome: string; pct: number }[];
+  unidades: number; // locais cadastrados (apartamentos, áreas comuns…)
+  grupos: { nome: string; pct: number }[]; // pavimentos e sistemas
   servicos: { nome: string; pct: number }[];
 };
 
@@ -18,108 +24,116 @@ export type FotoPainel = { obraId: string; obraNome: string; url: string; dataFo
 
 const pct1 = (v: number) => Math.round(v * 10) / 10;
 
+// Progresso de uma obra do Andamento (novo): mesma conta das telas e do relatório (fatias).
+async function progressoDaObra(supabase: ReturnType<typeof createClient>, obra: { id: string; nome: string; obra_geral_id?: string | null }): Promise<ProgressoObra> {
+  const [{ data: categorias }, { data: servicos }, { data: pavimentos }, { data: sistemas }] = await Promise.all([
+    supabase.from("an_categoria").select("id, chave, nome, cor, ordem").eq("obra_id", obra.id).order("ordem"),
+    supabase.from("an_servico").select("id, nome, grupo, fase_id, vale_pavimento_inteiro, ordem, fatia").eq("obra_id", obra.id).eq("arquivado", false).order("ordem"),
+    supabase.from("an_pavimento").select("id, nome, ordem").eq("obra_id", obra.id).order("ordem"),
+    supabase.from("an_sistema").select("id, nome, tipo, ordem, fatia, config").eq("obra_id", obra.id).order("ordem"),
+  ]);
+  const catIds = (categorias ?? []).map((c) => c.id);
+  const pavIds = (pavimentos ?? []).map((p) => p.id);
+  const sisIds = (sistemas ?? []).map((s) => s.id);
+
+  const [vinculos, locais, itens, apRows] = await Promise.all([
+    catIds.length
+      ? paginar<any>((de, ate) => supabase.from("an_categoria_servico").select("categoria_id, servico_id, peso, peso_fixo").in("categoria_id", catIds).order("categoria_id").order("servico_id").range(de, ate))
+      : Promise.resolve([] as any[]),
+    pavIds.length
+      ? paginar<any>((de, ate) => supabase.from("an_local").select("id, pavimento_id, nome, categoria_id, ordem").in("pavimento_id", pavIds).order("id").range(de, ate))
+      : Promise.resolve([] as any[]),
+    sisIds.length
+      ? paginar<any>((de, ate) => supabase.from("an_sistema_item").select("id, sistema_id, nome, categoria_id, ordem, servico_id").in("sistema_id", sisIds).order("id").range(de, ate))
+      : Promise.resolve([] as any[]),
+    paginar<any>((de, ate) => supabase.from("an_apontamento").select("local_id, sistema_item_id, servico_id, status").eq("obra_id", obra.id).order("id").range(de, ate)),
+  ]);
+
+  const servs = ((servicos ?? []) as any[]).map((s) => ({ ...s, fatia: Number(s.fatia ?? 0) }));
+  const sists = ((sistemas ?? []) as any[]).map((s) => ({ ...s, fatia: Number(s.fatia ?? 0) }));
+  const vincs = vinculos.map((v) => ({ ...v, peso: Number(v.peso) }));
+  const cats = (categorias ?? []) as any[];
+
+  const idx = montarIndice(cats, servs, vincs);
+  const fat = montarFatias({ servicos: servs, sistemas: sists, itens, categorias: cats, vinculos: vincs });
+  const ap = mapaApontamentos(
+    apRows.map((r) => ({ alvo: (r.local_id ?? r.sistema_item_id) as string, servico_id: r.servico_id, status: r.status, observacao: null, por: null, em: null }) as Apontamento)
+  );
+
+  const rec = (ls: any[], is: any[], servOk?: (s: any) => boolean) => somaRecorte(fat, idx, ap, [...alvosDeLocais(ls), ...alvosDeItens(is)], servOk);
+  const total = rec(locais, itens);
+  const base = total.W > 0 ? total.W : total.tot;
+  const f = total.W > 0 ? total.F : total.fin;
+  const a = total.W > 0 ? total.A : total.and;
+  const pctFin = base > 0 ? (f / base) * 100 : 0;
+  const pctAnd = base > 0 ? (a / base) * 100 : 0;
+
+  // serviços de maior fatia em destaque (empate: ordem cadastrada)
+  const destaque = [...servs]
+    .filter((s) => s.fatia > 0)
+    .sort((x, y) => y.fatia - x.fatia || x.ordem - y.ordem)
+    .slice(0, 8);
+  const grupos = [
+    ...(pavimentos ?? []).map((p) => ({ nome: p.nome, soma: rec(locais.filter((l) => l.pavimento_id === p.id), []) })),
+    ...sists.map((s) => ({ nome: s.nome, soma: rec([], itens.filter((i) => i.sistema_id === s.id)) })),
+  ].filter((g) => g.soma.tot > 0 || g.soma.aus > 0);
+
+  return {
+    obraId: obra.id,
+    obraGeralId: obra.obra_geral_id ?? null,
+    nome: obra.nome,
+    pct: pct1(pct(total)),
+    pctFinalizado: pct1(pctFin),
+    pctAndamento: pct1(pctAnd),
+    pctNaoIniciado: base > 0 ? pct1(Math.max(0, 100 - pctFin - pctAnd)) : 0,
+    unidades: locais.length,
+    grupos: grupos.map((g) => ({ nome: g.nome, pct: pct1(pct(g.soma)) })),
+    servicos: destaque.map((s) => ({ nome: s.nome, pct: pct1(pct(rec(locais, itens, (sv) => sv.id === s.id))) })),
+  };
+}
+
 export async function carregarPainelObras() {
   const supabase = createClient();
 
+  // Seletor do ADM (obras do cadastro geral que giram no painel). Obra do Andamento (novo) sem ligação aparece sempre;
+  // a que está ligada a uma obra do cadastro geral respeita a escolha feita aqui.
   const { data: obrasRows } = await supabase.from("obras").select("id, nome, exibir_no_painel").order("nome");
   const obras: ObraPainel[] = (obrasRows ?? []).map((o: any) => ({ id: o.id, nome: o.nome, exibir: o.exibir_no_painel !== false }));
-  const selecionadas = obras.filter((o) => o.exibir);
-  const ids = selecionadas.map((o) => o.id);
-  if (!ids.length) return { obras, progresso: [] as ProgressoObra[], fotos: [] as FotoPainel[] };
+  const exibirGeral = new Map(obras.map((o) => [o.id, o.exibir]));
 
-  const [{ data: torres }, { data: servicos }, { data: fotosRows }] = await Promise.all([
-    supabase.from("torres").select("id, obra_id, nome, ordem").in("obra_id", ids).order("ordem"),
-    supabase.from("andamento_servicos").select("id, obra_id, nome, ordem, peso").in("obra_id", ids).order("ordem"),
-    supabase
-      .from("obra_fotos")
-      .select("obra_id, data_foto, legenda, storage_path, criado_em")
-      .in("obra_id", ids)
-      .order("data_foto", { ascending: false })
-      .order("criado_em", { ascending: false })
-      .limit(400),
-  ]);
+  const obrasNovo = (await listarObrasAndamento(supabase)).filter((o) => !o.obra_geral_id || exibirGeral.get(o.obra_geral_id) !== false);
+  if (!obrasNovo.length) return { obras, progresso: [] as ProgressoObra[], fotos: [] as FotoPainel[] };
 
-  const torreIds = (torres ?? []).map((t) => t.id);
-  const { data: pavimentos } = torreIds.length
-    ? await supabase.from("pavimentos").select("id, torre_id").in("torre_id", torreIds)
-    : { data: [] as { id: string; torre_id: string }[] };
-  const pavIds = (pavimentos ?? []).map((p) => p.id);
-  const { data: unidades } = pavIds.length
-    ? await supabase.from("unidades").select("id, pavimento_id").in("pavimento_id", pavIds).limit(5000)
-    : { data: [] as { id: string; pavimento_id: string }[] };
-  const status = await buscarStatusDasUnidades<{ unidade_id: string; servico_id: string; status: string }>(
-    supabase,
-    (unidades ?? []).map((u) => u.id),
-    "unidade_id, servico_id, status"
-  );
+  const progresso = await Promise.all(obrasNovo.map((o) => progressoDaObra(supabase, o)));
 
-  const torrePorPav = new Map((pavimentos ?? []).map((p) => [p.id, p.torre_id]));
-  const torreDaUnidade = new Map((unidades ?? []).map((u) => [u.id, torrePorPav.get(u.pavimento_id)!]));
-  const statusPorChave = new Map(status.map((s) => [s.unidade_id + "__" + s.servico_id, s.status]));
-
-  const progresso: ProgressoObra[] = selecionadas.map((obra) => {
-    const torresObra = (torres ?? []).filter((t) => t.obra_id === obra.id);
-    const servObra = (servicos ?? []).filter((s) => s.obra_id === obra.id);
-    const unidadesObra = (unidades ?? []).filter((u) => torresObra.some((t) => t.id === torreDaUnidade.get(u.id)));
-
-    let fin = 0;
-    let and = 0;
-    let total = 0;
-    const porTorre = new Map<string, { fin: number; total: number }>();
-    const porServico = new Map<string, { fin: number; total: number }>();
-    unidadesObra.forEach((u) => {
-      const tid = torreDaUnidade.get(u.id)!;
-      servObra.forEach((s) => {
-        const w = Number(s.peso ?? 1);
-        const st = statusPorChave.get(u.id + "__" + s.id) ?? "NAO_INICIADO";
-        if (st === "AUSENTE") return; // serviço inexistente nesta unidade: fora da conta
-        total += w;
-        if (st === "FINALIZADO") fin += w;
-        else if (st === "ANDAMENTO") and += w;
-        const t = porTorre.get(tid) ?? { fin: 0, total: 0 };
-        t.total += w;
-        if (st === "FINALIZADO") t.fin += w;
-        porTorre.set(tid, t);
-        const sv = porServico.get(s.id) ?? { fin: 0, total: 0 };
-        sv.total += 1;
-        if (st === "FINALIZADO") sv.fin += 1;
-        porServico.set(s.id, sv);
-      });
-    });
-
-    const pctOf = (a: number, b: number) => (b > 0 ? pct1((a / b) * 100) : 0);
-    // os serviços de maior peso vão em destaque (empate: ordem do fluxograma)
-    const destaque = [...servObra].sort((a, b) => Number(b.peso ?? 1) - Number(a.peso ?? 1) || a.ordem - b.ordem).slice(0, 8);
-    return {
-      obraId: obra.id,
-      nome: obra.nome,
-      pct: pctOf(fin, total),
-      pctAndamento: pctOf(and, total),
-      pctNaoIniciado: total > 0 ? pct1(100 - pctOf(fin, total) - pctOf(and, total)) : 0,
-      unidades: unidadesObra.length,
-      torres: torresObra.map((t) => ({ nome: t.nome, pct: pctOf(porTorre.get(t.id)?.fin ?? 0, porTorre.get(t.id)?.total ?? 0) })),
-      servicos: destaque.map((s) => ({ nome: s.nome, pct: pctOf(porServico.get(s.id)?.fin ?? 0, porServico.get(s.id)?.total ?? 0) })),
-    };
-  });
-
-  // Fotos: só a rodada mais recente de cada obra (até 4 fotos por obra).
-  const maisRecentes: typeof fotosRows = [];
-  for (const o of selecionadas) {
-    const daObra = (fotosRows ?? []).filter((f) => f.obra_id === o.id);
+  // Fotos: só a rodada mais recente de cada obra ligada ao cadastro geral (até 4 fotos por obra).
+  const idsGerais = obrasNovo.map((o) => o.obra_geral_id).filter(Boolean) as string[];
+  const { data: fotosRows } = idsGerais.length
+    ? await supabase
+        .from("obra_fotos")
+        .select("obra_id, data_foto, legenda, storage_path, criado_em")
+        .in("obra_id", idsGerais)
+        .order("data_foto", { ascending: false })
+        .order("criado_em", { ascending: false })
+        .limit(400)
+    : { data: [] as any[] };
+  const maisRecentes: any[] = [];
+  for (const id of idsGerais) {
+    const daObra = (fotosRows ?? []).filter((f: any) => f.obra_id === id);
     if (!daObra.length) continue;
-    maisRecentes!.push(...daObra.filter((f) => f.data_foto === daObra[0].data_foto).slice(0, 4));
+    maisRecentes.push(...daObra.filter((f: any) => f.data_foto === daObra[0].data_foto).slice(0, 4));
   }
-  const caminhos = (maisRecentes ?? []).map((f) => f.storage_path);
+  const caminhos = maisRecentes.map((f) => f.storage_path);
   const { data: assinadas } = caminhos.length
     ? await supabase.storage.from("obra-fotos").createSignedUrls(caminhos, 3600)
     : { data: [] as { path: string | null; signedUrl: string }[] };
-  const urlPorCaminho = new Map((assinadas ?? []).map((a) => [a.path, a.signedUrl]));
-  const nomePorObra = new Map(obras.map((o) => [o.id, o.nome]));
-  const fotos: FotoPainel[] = (maisRecentes ?? [])
-    .filter((f) => urlPorCaminho.get(f.storage_path))
+  const urlPorCaminho = new Map((assinadas ?? []).map((x) => [x.path, x.signedUrl]));
+  const novoPorGeral = new Map(progresso.map((p) => [p.obraGeralId, p]));
+  const fotos: FotoPainel[] = maisRecentes
+    .filter((f) => urlPorCaminho.get(f.storage_path) && novoPorGeral.get(f.obra_id))
     .map((f) => ({
-      obraId: f.obra_id,
-      obraNome: nomePorObra.get(f.obra_id) ?? "",
+      obraId: novoPorGeral.get(f.obra_id)!.obraId,
+      obraNome: novoPorGeral.get(f.obra_id)!.nome,
       url: urlPorCaminho.get(f.storage_path)!,
       dataFoto: f.data_foto,
       legenda: f.legenda,

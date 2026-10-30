@@ -5,7 +5,7 @@ const COR = { fin: "#1f8a4c", and: "#f59e0b", nao: "#e5e7eb" };
 function Rosca({ p }: { p: ProgressoObra }) {
   const r = 52;
   const c = 2 * Math.PI * r;
-  const fin = (p.pct / 100) * c;
+  const fin = (p.pctFinalizado / 100) * c;
   const and = (p.pctAndamento / 100) * c;
   return (
     <svg viewBox="0 0 130 130" className="w-32 h-32 shrink-0 -rotate-90">
@@ -28,7 +28,7 @@ export default function SlideProgresso({ p }: { p: ProgressoObra }) {
 
       {p.unidades === 0 ? (
         <div className="flex-1 flex items-center justify-center text-sm text-ink-500 text-center">
-          Ainda não há pavimentos e unidades cadastrados no Andamento de Obra.
+          Ainda não há pavimentos e locais cadastrados no Andamento de Obra (novo).
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex flex-wrap items-center gap-x-8 gap-y-3">
@@ -41,10 +41,10 @@ export default function SlideProgresso({ p }: { p: ProgressoObra }) {
               </div>
             </div>
             <ul className="text-xs text-ink-700 space-y-1">
-              <li className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: COR.fin }} />Finalizado {fmt(Math.round(p.pct))}%</li>
+              <li className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: COR.fin }} />Finalizado {fmt(Math.round(p.pctFinalizado))}%</li>
               <li className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: COR.and }} />Em andamento {fmt(Math.round(p.pctAndamento))}%</li>
               <li className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: COR.nao }} />Não iniciado {fmt(Math.round(p.pctNaoIniciado))}%</li>
-              <li className="text-ink-500 pt-0.5">{p.unidades} unidades</li>
+              <li className="text-ink-500 pt-0.5">{p.unidades} locais</li>
             </ul>
           </div>
 
@@ -64,11 +64,11 @@ export default function SlideProgresso({ p }: { p: ProgressoObra }) {
         </div>
       )}
 
-      {p.torres.length > 1 && p.unidades > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {p.torres.map((t) => (
-            <span key={t.nome} className="text-[11px] bg-primary/10 text-primaryDark rounded-full px-2.5 py-0.5">
-              {t.nome}: <b>{fmt(Math.round(t.pct))}%</b>
+      {p.grupos.length > 1 && p.unidades > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2 max-h-14 overflow-hidden">
+          {p.grupos.map((g) => (
+            <span key={g.nome} className="text-[11px] bg-primary/10 text-primaryDark rounded-full px-2.5 py-0.5">
+              {g.nome}: <b>{fmt(Math.round(g.pct))}%</b>
             </span>
           ))}
         </div>

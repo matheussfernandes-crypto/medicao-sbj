@@ -3,7 +3,7 @@ import { listarObrasAndamento } from "./obrasAndamento";
 import type { Apontamento, DadosAndamento } from "./types";
 
 // Busca em páginas: o PostgREST devolve no máximo 1000 linhas por consulta.
-async function paginar<T>(consulta: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: any }>): Promise<T[]> {
+export async function paginar<T>(consulta: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: any }>): Promise<T[]> {
   const PAGINA = 1000;
   const todas: T[] = [];
   for (let de = 0; ; de += PAGINA) {

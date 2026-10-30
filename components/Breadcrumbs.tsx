@@ -1,13 +1,12 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { NAV_ITEMS } from "./nav-items";
+import { NAV_ITEMS, itemDaRota } from "./nav-items";
 
 export default function Breadcrumbs() {
   const pathname = usePathname();
 
-  const atual =
-    NAV_ITEMS.find((item) => pathname === item.href || pathname.startsWith(item.href + "/")) ?? null;
+  const atual = itemDaRota(NAV_ITEMS, pathname);
 
   return (
     <div className="min-w-0">

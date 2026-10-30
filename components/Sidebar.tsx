@@ -71,7 +71,7 @@ export default function Sidebar({
         }
       >
         {/* coluna de setores */}
-        <div className="w-[68px] shrink-0 flex flex-col items-center bg-[#0e2a30] py-3 gap-1">
+        <div className="w-[60px] shrink-0 flex flex-col items-center bg-[#0e2a30] py-3 gap-1">
           <Link href="/dashboard" onClick={onClose} className="mb-2" title="Engenharia SBJ">
             <img src="/logo-topbar.png" alt="SBJ" className="h-9 w-auto" />
           </Link>
@@ -81,17 +81,16 @@ export default function Sidebar({
               const eAtiva = s.href ? pathname === s.href : s.id === secao?.id;
               const pend = pendencias(s);
               const classe =
-                "relative w-full flex flex-col items-center gap-0.5 rounded-lg py-2 px-0.5 text-[10px] leading-tight text-center transition-colors " +
+                "relative w-full flex items-center justify-center rounded-lg py-2.5 transition-colors " +
                 (eAtiva ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10 hover:text-white");
               const conteudo = (
                 <>
-                  <Icon className="w-5 h-5" />
-                  <span className="max-w-full break-words">{s.label}</span>
+                  <Icon className="w-[22px] h-[22px]" />
                   {pend > 0 && <span className="absolute top-1 right-1.5 bg-accent text-primaryDark text-[9px] font-bold rounded-full min-w-[15px] h-[15px] flex items-center justify-center px-1">{pend}</span>}
                 </>
               );
               return s.href ? (
-                <Link key={s.id} href={s.href} onClick={onClose} className={classe} title={s.label}>
+                <Link key={s.id} href={s.href} onClick={onClose} className={classe} title={s.label} aria-label={s.label}>
                   {conteudo}
                 </Link>
               ) : (
@@ -104,6 +103,7 @@ export default function Sidebar({
                   }}
                   className={classe}
                   title={s.label}
+                  aria-label={s.label}
                   aria-pressed={eAtiva}
                 >
                   {conteudo}

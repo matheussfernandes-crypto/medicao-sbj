@@ -33,7 +33,7 @@ export default async function EmpresasPage({
 
   return (
     <div className="space-y-6">
-        <h1 className="text-xl font-semibold text-primaryDark">Empresas Terceirizadas</h1>
+        <h1 className="text-xl font-semibold text-primaryDark">Cadastro de Terceirizado</h1>
 
         {/* Formulário criar / editar */}
         <div className="bg-white rounded-xl shadow p-5">

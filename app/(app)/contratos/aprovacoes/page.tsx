@@ -64,7 +64,7 @@ export default async function AprovacoesContratosPage({
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-semibold text-primaryDark">Aprovações de Contratos</h1>
+      <h1 className="text-xl font-semibold text-primaryDark">Autorização de medições</h1>
 
       <form method="get" className="card !p-4 flex flex-wrap gap-2 items-end">
         <label className="flex flex-col gap-1 text-xs text-ink-500 flex-1 min-w-[150px]">Obra

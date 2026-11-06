@@ -74,7 +74,7 @@ export function BoletimContratoPdf({ b, engenheiroNome, dataGeracao }: { b: Bole
           {lg ? <Image style={s.logo} src={lg} /> : null}
           <View>
             <Text style={s.title}>BOLETIM DE MEDIÇÃO — CONTRATO Nº {c.numero}</Text>
-            <Text style={s.sub}>Mês de referência: {mesLabel(b.mes)} {b.fechamento ? "· FECHADO" : "· PRÉVIA (mês em aberto)"}</Text>
+            <Text style={s.sub}>Mês de referência: {mesLabel(b.mes)} {b.fechamento ? "· FECHADO" : b.previaLancamento !== null ? `· PRÉVIA — medição nº ${b.previaLancamento} ainda NÃO aprovada` : "· PRÉVIA (mês em aberto, antes do fechamento)"}</Text>
           </View>
           <View style={s.right}><Text>SBJ Construtora e Incorporadora</Text><Text>Gerado em {dataGeracao}</Text></View>
         </View>

@@ -1,5 +1,5 @@
 import type { Perfil } from "./server";
-import { compararCodigo, arred } from "./util";
+import { compararCodigo, arred, retencaoVigente } from "./util";
 
 export type LinhaBoletim = {
   item_id: string;
@@ -65,6 +65,8 @@ export type Boletim = {
   glosas: { numero: number; codigo: string | null; descricao: string; medido: number; aprovado: number; unidade: string; motivo: string | null }[];
   valorContrato: number;
   valorAcumuladoTotal: number;
+  /** Número do lançamento pendente mostrado como se já estivesse aprovado (prévia antes de aprovar). */
+  previaLancamento: number | null;
 };
 
 /**
@@ -72,7 +74,12 @@ export type Boletim = {
  * acumulado por item, retenção, vales a descontar e líquido a pagar.
  * Se o mês já estiver fechado, usa os descontos de vale gravados no fechamento.
  */
-export async function calcularBoletim(supabase: Perfil["supabase"], contratoId: string, mes: string): Promise<Boletim | null> {
+export async function calcularBoletim(
+  supabase: Perfil["supabase"],
+  contratoId: string,
+  mes: string,
+  opts: { previaLancamentoId?: string } = {}
+): Promise<Boletim | null> {
   const { data: contrato } = await supabase
     .from("contratos")
     .select("id, numero, objeto, status, data_inicio, data_termino, obra_id, empresa_id, obras(nome), empresas_terceirizadas(nome, nome_empresarial, cnpj)")
@@ -80,14 +87,36 @@ export async function calcularBoletim(supabase: Perfil["supabase"], contratoId: 
     .single();
   if (!contrato) return null;
 
-  const [{ data: itens }, { data: lancs }, { data: fechamento }] = await Promise.all([
+  const [{ data: itens }, { data: lancsDb }, { data: fechamento }, { data: retHist }] = await Promise.all([
     supabase.from("contrato_itens").select("id, codigo, descricao, unidade, quantidade, valor_unitario, ordem").eq("contrato_id", contratoId),
     supabase
       .from("contrato_lancamentos")
       .select("id, numero, tipo, data, mes_referencia, status, valor_bruto, retencao_aplicada, retencao_pct, retencao_valor, retencao_dispensa_motivo, valor_vale, valor_liquido, observacao, criado_por, aprovado_por, fechamento_id, contrato_lancamento_itens(item_id, quantidade_medida, quantidade_aprovada, valor_unitario, motivo_glosa)")
       .eq("contrato_id", contratoId),
     supabase.from("contrato_fechamentos").select("*").eq("contrato_id", contratoId).eq("mes_referencia", mes).maybeSingle(),
+    supabase.from("contrato_retencoes").select("vigente_desde, percent").eq("contrato_id", contratoId),
   ]);
+
+  // Prévia antes de aprovar: o lançamento pendente entra como se fosse aprovado do jeito que foi medido,
+  // com a retenção vigente do mês. Nada é gravado.
+  let previaLancamento: number | null = null;
+  const lancs = (lancsDb ?? []).map((l: any) => {
+    if (l.id !== opts.previaLancamentoId || l.status !== "PENDENTE" || l.tipo === "VALE" || l.mes_referencia !== mes) return l;
+    previaLancamento = l.numero;
+    const bruto = arred((l.contrato_lancamento_itens ?? []).reduce((s: number, li: any) => s + Number(li.quantidade_medida) * Number(li.valor_unitario), 0));
+    const pctRet = retencaoVigente((retHist ?? []) as any, l.mes_referencia);
+    const ret = arred((bruto * pctRet) / 100);
+    return {
+      ...l,
+      status: "APROVADO",
+      valor_bruto: bruto,
+      retencao_aplicada: true,
+      retencao_pct: pctRet,
+      retencao_valor: ret,
+      valor_liquido: arred(bruto - ret),
+      contrato_lancamento_itens: (l.contrato_lancamento_itens ?? []).map((li: any) => ({ ...li, quantidade_aprovada: null })),
+    };
+  });
 
   const aprovados = (lancs ?? []).filter((l: any) => l.status === "APROVADO");
   const comItens = aprovados.filter((l: any) => l.tipo !== "VALE");
@@ -251,5 +280,6 @@ export async function calcularBoletim(supabase: Perfil["supabase"], contratoId: 
     glosas,
     valorContrato,
     valorAcumuladoTotal,
+    previaLancamento,
   };
 }

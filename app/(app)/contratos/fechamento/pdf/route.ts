@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ erro: "Informe contrato e mes (AAAA-MM)." }, { status: 400 });
   }
 
-  const b = await calcularBoletim(supabase, contratoId, mes);
+  const previa = searchParams.get("previa") || undefined;
+  const b = await calcularBoletim(supabase, contratoId, mes, { previaLancamentoId: previa });
   if (!b) return NextResponse.json({ erro: "Contrato não encontrado." }, { status: 404 });
 
   const buffer = await renderToBuffer(
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       dataGeracao: new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
     })
   );
-  const nome = `boletim-contrato-${b.contrato.numero}-${mes}.pdf`.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const nome = `${b.previaLancamento !== null ? "previa-" : ""}boletim-contrato-${b.contrato.numero}-${mes}.pdf`.replace(/[^a-zA-Z0-9._-]/g, "_");
   return new NextResponse(new Uint8Array(buffer), {
     headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${nome}"` },
   });

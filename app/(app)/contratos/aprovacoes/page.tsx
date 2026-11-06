@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Camera } from "lucide-react";
+import { Camera, FileDown } from "lucide-react";
 import { exigirPerfil, nomesUsuarios, urlsAssinadas } from "@/lib/contratos/server";
 import { TIPO_LANC_LABEL, STATUS_LANC_LABEL, brl, num, mesLabel, dataBR, dataHoraBR, retencaoVigente } from "@/lib/contratos/util";
 import FormAcao from "@/components/contratos/FormAcao";
@@ -135,6 +135,16 @@ export default async function AprovacoesContratosPage({
                   {dataBR(l.data)} · ref. {mesLabel(l.mes_referencia)} · {nomes[l.criado_por] ?? "—"}{l.editado_em ? " · editado" : ""}
                 </span>
               </div>
+              {l.tipo !== "VALE" && (
+                <a
+                  href={`/contratos/fechamento/pdf?contrato=${l.contrato_id}&mes=${l.mes_referencia}&previa=${l.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 border border-primary text-primary rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-primary/5"
+                >
+                  <FileDown className="w-3.5 h-3.5" /> Ver PDF antes de aprovar
+                </a>
+              )}
               {l.observacao && <p className="text-sm text-ink-700">Obs.: {l.observacao}</p>}
               {fotosL.length > 0 && (
                 <div className="flex flex-wrap gap-2">

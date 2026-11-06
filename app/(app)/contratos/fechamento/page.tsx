@@ -144,7 +144,7 @@ export default async function FechamentoContratosPage({
 
           <div className="card flex flex-wrap items-center gap-3">
             <a href={`/contratos/fechamento/pdf?contrato=${contratoId}&mes=${mes}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-primary text-primary rounded-lg px-4 py-2 text-sm font-semibold">
-              <FileDown className="w-4 h-4" /> {b.fechamento ? "Boletim em PDF" : "Prévia do boletim (PDF)"}
+              <FileDown className="w-4 h-4" /> {b.fechamento ? "Boletim em PDF" : "Ver PDF antes de fechar"}
             </a>
             {!b.fechamento ? (
               <FormAcao action={fecharMesContrato} reset={false} confirmar={`Fechar ${mesLabel(mes)}? Líquido a pagar ${brl(b.liquido)}. Depois de fechado, o mês fica travado para novos lançamentos.`} className="flex flex-wrap items-center gap-2">

@@ -9,9 +9,10 @@ import {
 import FormAcao from "@/components/contratos/FormAcao";
 import UploadArquivo from "@/components/contratos/UploadArquivo";
 import {
-  editarContrato, adicionarItens, editarItem, excluirItem, novaRetencao, liberarRetencao, excluirAnexo,
+  editarContrato, adicionarItens, novaRetencao, liberarRetencao, excluirAnexo,
 } from "../actions";
 import AditivoForm from "./AditivoForm";
+import ItemEditor from "./ItemEditor";
 
 const BADGE: Record<string, string> = {
   PENDENTE: "badge-pendente", APROVADO: "badge-aprovado", REJEITADO: "badge-rejeitado",
@@ -175,31 +176,12 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
                       <span className="text-[10px] text-ink-500">{pct(perc)}</span>
                     </td>
                     {ehAdmin && (
-                      <td className="py-2">
-                        <details className="relative">
-                          <summary className="text-xs text-primary cursor-pointer select-none">Editar</summary>
-                          <div className="mt-1 w-72 bg-white border rounded-lg shadow-panel p-3">
-                            <FormAcao action={editarItem} reset={false} className="grid grid-cols-2 gap-2 text-xs">
-                              <input type="hidden" name="id" value={i.id} />
-                              <input type="hidden" name="contratoId" value={c.id} />
-                              <label className="flex flex-col gap-1">Código<input name="codigo" defaultValue={i.codigo ?? ""} className="border rounded px-2 py-1" /></label>
-                              <label className="flex flex-col gap-1">Unidade<input name="unidade" defaultValue={i.unidade} className="border rounded px-2 py-1" /></label>
-                              <label className="col-span-2 flex flex-col gap-1">Descrição<input name="descricao" defaultValue={i.descricao} className="border rounded px-2 py-1" /></label>
-                              <label className="flex flex-col gap-1">Quantidade<input name="quantidade" defaultValue={String(i.quantidade)} disabled={temMedicao} className="border rounded px-2 py-1 disabled:bg-gray-100" /></label>
-                              <label className="flex flex-col gap-1">Valor unit.<input name="valorUnitario" defaultValue={String(i.valor_unitario)} disabled={temMedicao} className="border rounded px-2 py-1 disabled:bg-gray-100" /></label>
-                              {temMedicao && <p className="col-span-2 text-[11px] text-ink-500">Item já medido: quantidade e valor só mudam por aditivo.</p>}
-                              <label className="col-span-2 flex items-center gap-2"><input type="checkbox" name="ativo" value="1" defaultChecked={i.ativo} /> Item ativo (aparece para medir)</label>
-                              <button className="col-span-2 bg-primary text-white rounded px-3 py-1.5 font-semibold">Salvar item</button>
-                            </FormAcao>
-                            {!temMedicao && (
-                              <FormAcao action={excluirItem} confirmar="Excluir este item do contrato?" className="mt-2">
-                                <input type="hidden" name="id" value={i.id} />
-                                <input type="hidden" name="contratoId" value={c.id} />
-                                <button className="text-xs text-danger">Excluir item</button>
-                              </FormAcao>
-                            )}
-                          </div>
-                        </details>
+                      <td className="py-2 whitespace-nowrap">
+                        <ItemEditor
+                          contratoId={c.id}
+                          temMedicao={temMedicao}
+                          item={{ id: i.id, codigo: i.codigo ?? null, descricao: i.descricao, unidade: i.unidade, quantidade: Number(i.quantidade), valor_unitario: Number(i.valor_unitario), ativo: !!i.ativo }}
+                        />
                       </td>
                     )}
                   </tr>

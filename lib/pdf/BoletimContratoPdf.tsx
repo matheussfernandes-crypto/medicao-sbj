@@ -48,26 +48,25 @@ const s = StyleSheet.create({
   assBox: { flex: 1, borderTopWidth: 1, borderTopColor: "#333", paddingTop: 3, fontSize: 7 },
 });
 
+// Só o que foi medido no mês (uma linha por item de cada medição), como a planilha de medição de obra.
 const COLS = [
-  { k: "codigo", t: "Item", w: 0.6 },
-  { k: "descricao", t: "Serviço", w: 3.2 },
-  { k: "unidade", t: "Un", w: 0.5 },
-  { k: "qc", t: "Qtd contrat.", w: 0.9 },
-  { k: "vu", t: "V. unit. (R$)", w: 0.9 },
-  { k: "vc", t: "Valor contrat.", w: 1.1 },
-  { k: "qa", t: "Anterior", w: 0.8 },
-  { k: "qm", t: "Este mês", w: 0.8 },
-  { k: "qac", t: "Acumulado", w: 0.8 },
-  { k: "pe", t: "% exec.", w: 0.6 },
-  { k: "qs", t: "Saldo", w: 0.8 },
-  { k: "vm", t: "Valor do mês", w: 1.1 },
-  { k: "vac", t: "Valor acumul.", w: 1.1 },
+  { k: "numero", t: "Medição", w: 0.7, n: false },
+  { k: "data", t: "Data", w: 0.9, n: false },
+  { k: "codigo", t: "Item", w: 0.7, n: false },
+  { k: "descricao", t: "Descrição", w: 4.2, n: false },
+  { k: "unidade", t: "Un", w: 0.5, n: false },
+  { k: "qtd", t: "Metragem / Qtd", w: 1, n: true },
+  { k: "vu", t: "Valor unit. (R$)", w: 1, n: true },
+  { k: "vt", t: "Valor total (R$)", w: 1.2, n: true },
 ];
+const dataBR = (d: string) => (d ? d.slice(0, 10).split("-").reverse().join("/") : "");
 
 export function BoletimContratoPdf({ b, engenheiroNome, dataGeracao }: { b: Boletim; engenheiroNome: string; dataGeracao: string }) {
   const lg = logo();
   const c = b.contrato;
-  const totMes = b.linhas.reduce((t, l) => t + l.valor_atual, 0);
+  const totMes = b.itensMedidos.reduce((t, l) => t + l.valor, 0);
+  const valesDesc = b.vales.filter((v) => v.descontar_agora > 0);
+  const retPct = b.medicoes.find((m: any) => m.retencao_aplicada && Number(m.retencao_pct) > 0)?.retencao_pct;
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={s.page}>
@@ -89,32 +88,29 @@ export function BoletimContratoPdf({ b, engenheiroNome, dataGeracao }: { b: Bole
           <View style={s.infoCell}><Text style={s.infoLbl}>Executado acumulado</Text><Text style={s.infoVal}>R$ {f2(b.valorAcumuladoTotal)} ({f2(b.valorContrato > 0 ? (b.valorAcumuladoTotal / b.valorContrato) * 100 : 0)}%)</Text></View>
         </View>
 
-        <Text style={s.section}>Planilha de medição</Text>
-        <View style={s.row}>
+        <Text style={s.section}>Serviços medidos no mês</Text>
+        <View style={s.row} wrap={false}>
           {COLS.map((col) => <Text key={col.k} style={[s.th, { flex: col.w }]}>{col.t}</Text>)}
         </View>
-        {b.linhas.map((l) => {
-          const hl = l.qtd_atual > 0 ? s.hl : {};
+        {b.itensMedidos.map((l, i) => {
           const v: Record<string, string> = {
-            codigo: l.codigo ?? "", descricao: t(l.descricao) + (l.antecipado ? " (antecipado)" : ""), unidade: t(l.unidade),
-            qc: fq(l.qtd_contratada), vu: f2(l.valor_unitario), vc: f2(l.valor_contratado),
-            qa: fq(l.qtd_anterior), qm: fq(l.qtd_atual), qac: fq(l.qtd_acumulada),
-            pe: `${f2(l.perc_executado)}%`, qs: fq(l.qtd_saldo), vm: f2(l.valor_atual), vac: f2(l.valor_acumulado),
+            numero: String(l.numero), data: dataBR(l.data), codigo: l.codigo ?? "", descricao: t(l.descricao), unidade: t(l.unidade),
+            qtd: fq(l.quantidade), vu: f2(l.valor_unitario), vt: f2(l.valor),
           };
           return (
-            <View style={s.row} key={l.item_id} wrap={false}>
+            <View style={s.row} key={i} wrap={false}>
               {COLS.map((col) => (
-                <Text key={col.k} style={[s.td, hl, { flex: col.w }, ["codigo", "descricao", "unidade"].includes(col.k) ? {} : s.num]}>{v[col.k]}</Text>
+                <Text key={col.k} style={[s.td, { flex: col.w }, col.n ? s.num : col.k === "descricao" ? {} : { textAlign: "center" }]}>{v[col.k]}</Text>
               ))}
             </View>
           );
         })}
-        <View style={s.row}>
-          <Text style={[s.tot, { flex: 5.2 }]}>TOTAIS</Text>
-          <Text style={[s.tot, s.num, { flex: 1.1 }]}>{f2(b.valorContrato)}</Text>
-          <Text style={[s.tot, { flex: 3.8 }]}></Text>
-          <Text style={[s.tot, s.num, { flex: 1.1 }]}>{f2(totMes)}</Text>
-          <Text style={[s.tot, s.num, { flex: 1.1 }]}>{f2(b.valorAcumuladoTotal)}</Text>
+        {!b.itensMedidos.length && (
+          <View style={s.row}><Text style={[s.td, { flex: 1, textAlign: "center", color: "#777" }]}>Nenhuma medição aprovada neste mês.</Text></View>
+        )}
+        <View style={s.row} wrap={false}>
+          <Text style={[s.tot, { flex: 9 }]}>VALOR TOTAL MEDIDO</Text>
+          <Text style={[s.tot, s.num, { flex: 1.2 }]}>{f2(totMes)}</Text>
         </View>
         {b.valesMedicao.length > 0 && (
           <Text style={s.note}>Itens marcados como "antecipado" tiveram parte paga por vale de medição no mês (R$ {f2(b.valeMedicaoBruto)} bruto, retenção R$ {f2(b.valeMedicaoRetido)}, líquido pago R$ {f2(b.valeMedicaoLiquido)}) — esse valor não é pago de novo neste boletim.</Text>
@@ -136,21 +132,41 @@ export function BoletimContratoPdf({ b, engenheiroNome, dataGeracao }: { b: Bole
                 {b.retencoesDispensadas.map((r, i) => <Text key={i} style={s.note}>• Lançamento nº {r.numero}: {r.motivo}</Text>)}
               </>
             )}
-            {b.vales.filter((v) => v.descontar_agora > 0).length > 0 && (
-              <>
-                <Text style={s.section}>Vales descontados</Text>
-                {b.vales.filter((v) => v.descontar_agora > 0).map((v) => (
-                  <Text key={v.vale_id} style={s.note}>• Vale nº {v.numero} de {v.data.split("-").reverse().join("/")}: R$ {f2(v.descontar_agora)}{v.restante_depois > 0 ? ` (restante R$ ${f2(v.restante_depois)} para o próximo mês)` : ""}</Text>
+            {valesDesc.length > 0 && (
+              <View wrap={false}>
+                <Text style={s.section}>Vales descontados nesta medição</Text>
+                <View style={s.row}>
+                  <Text style={[s.th, { flex: 0.8 }]}>Vale</Text>
+                  <Text style={[s.th, { flex: 1 }]}>Data</Text>
+                  <Text style={[s.th, { flex: 1.2 }]}>Valor do vale</Text>
+                  <Text style={[s.th, { flex: 1.2 }]}>Descontado agora</Text>
+                  <Text style={[s.th, { flex: 1.2 }]}>Fica p/ próximo mês</Text>
+                </View>
+                {valesDesc.map((v) => (
+                  <View style={s.row} key={v.vale_id}>
+                    <Text style={[s.td, { flex: 0.8, textAlign: "center" }]}>{v.numero}</Text>
+                    <Text style={[s.td, { flex: 1, textAlign: "center" }]}>{dataBR(v.data)}</Text>
+                    <Text style={[s.td, s.num, { flex: 1.2 }]}>{f2(v.valor_vale)}</Text>
+                    <Text style={[s.td, s.num, { flex: 1.2 }]}>{f2(v.descontar_agora)}</Text>
+                    <Text style={[s.td, s.num, { flex: 1.2 }]}>{v.restante_depois > 0 ? f2(v.restante_depois) : "-"}</Text>
+                  </View>
                 ))}
-              </>
+                <View style={s.row}>
+                  <Text style={[s.tot, { flex: 3 }]}>TOTAL DE VALES DESCONTADOS</Text>
+                  <Text style={[s.tot, s.num, { flex: 1.2 }]}>{f2(b.valesDescontados)}</Text>
+                  <Text style={[s.tot, { flex: 1.2 }]}></Text>
+                </View>
+              </View>
             )}
           </View>
           <View style={s.resumo}>
-            <Text style={s.section}>Resumo para pagamento</Text>
-            <View style={s.resRow}><Text style={s.resLbl}>Valor bruto medido no mês</Text><Text style={s.resVal}>R$ {f2(b.bruto)}</Text></View>
-            <View style={s.resRow}><Text style={s.resLbl}>(-) Retenção contratual</Text><Text style={s.resVal}>R$ {f2(b.retido)}</Text></View>
-            <View style={s.resRow}><Text style={s.resLbl}>(-) Vales / adiantamentos</Text><Text style={s.resVal}>R$ {f2(b.valesDescontados)}</Text></View>
-            <View style={s.liquido}><Text style={[s.resLbl, { fontWeight: 700 }]}>LÍQUIDO A PAGAR</Text><Text style={s.resVal}>R$ {f2(b.liquido)}</Text></View>
+            <Text style={s.section}>Totalização</Text>
+            <View style={s.resRow}><Text style={s.resLbl}>Valor total medido</Text><Text style={s.resVal}>R$ {f2(b.bruto)}</Text></View>
+            <View style={s.resRow}><Text style={s.resLbl}>(-) Valor retido{retPct ? ` (${f2(Number(retPct))}%)` : ""}</Text><Text style={s.resVal}>{b.retido > 0 ? `R$ ${f2(b.retido)}` : "-"}</Text></View>
+            {b.valesDescontados > 0 && (
+              <View style={s.resRow}><Text style={s.resLbl}>(-) Desconto de vales</Text><Text style={s.resVal}>R$ {f2(b.valesDescontados)}</Text></View>
+            )}
+            <View style={s.liquido}><Text style={[s.resLbl, { fontWeight: 700 }]}>VALOR FINAL A SER PAGO</Text><Text style={s.resVal}>R$ {f2(b.liquido)}</Text></View>
           </View>
         </View>
 

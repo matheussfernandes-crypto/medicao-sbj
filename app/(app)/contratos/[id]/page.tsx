@@ -37,7 +37,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
       supabase.from("contrato_retencoes").select("*").eq("contrato_id", c.id).order("vigente_desde", { ascending: false }).order("alterado_em", { ascending: false }),
       supabase.from("contrato_retencao_liberacoes").select("*").eq("contrato_id", c.id).order("data", { ascending: false }),
       supabase.from("contrato_anexos").select("*").eq("contrato_id", c.id).neq("tipo", "FOTO").order("criado_em", { ascending: false }),
-      supabase.from("contrato_lancamentos").select("id, numero, tipo, data, mes_referencia, status, valor_medido, valor_bruto, retencao_valor, valor_liquido, teve_glosa, criado_por").eq("contrato_id", c.id).order("criado_em", { ascending: false }),
+      supabase.from("contrato_lancamentos").select("id, numero, tipo, data, mes_referencia, status, valor_medido, valor_bruto, retencao_valor, valor_liquido, teve_glosa, criado_por, contrato_lancamento_itens(item_id, quantidade_aprovada, valor_unitario)").eq("contrato_id", c.id).order("criado_em", { ascending: false }),
       supabase.from("contrato_solicitacoes").select("*").eq("contrato_id", c.id).order("criado_em", { ascending: false }),
     ]);
 
@@ -58,6 +58,19 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
   const retidoTotal = (lancs ?? []).filter((l) => l.status === "APROVADO").reduce((s, l) => s + Number(l.retencao_valor), 0);
   const liberado = (liberacoes ?? []).reduce((s, l) => s + Number(l.valor), 0);
   const retVigente = retencaoVigente((retencoes ?? []) as any, mesAtual());
+  // Retido por item: a retenção de cada medição aprovada é dividida entre os itens
+  // na proporção do valor aprovado de cada um (a soma bate com o retido acumulado).
+  const retidoItem: Record<string, number> = {};
+  for (const l of lancs ?? []) {
+    if (l.status !== "APROVADO" || !Number(l.retencao_valor)) continue;
+    const lis = ((l as any).contrato_lancamento_itens ?? []) as { item_id: string; quantidade_aprovada: number | null; valor_unitario: number }[];
+    const valores = lis.map((li) => Number(li.quantidade_aprovada ?? 0) * Number(li.valor_unitario));
+    const bruto = valores.reduce((a, b) => a + b, 0);
+    if (bruto <= 0) continue;
+    lis.forEach((li, k) => {
+      retidoItem[li.item_id] = (retidoItem[li.item_id] ?? 0) + (Number(l.retencao_valor) * valores[k]) / bruto;
+    });
+  }
   const itemNome: Record<string, string> = {};
   for (const i of itens) itemNome[i.id] = `${i.codigo ? i.codigo + " " : ""}${i.descricao}`;
   const anexosContrato = (anexos ?? []).filter((a) => !a.aditivo_id);
@@ -140,6 +153,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
                 <th className="py-2 pr-2 text-right">Contratado</th>
                 <th className="py-2 pr-2 text-right">V. unit.</th>
                 <th className="py-2 pr-2 text-right">Total</th>
+                <th className="py-2 pr-2 text-right">Retenção ({pct(retVigente)})</th>
                 <th className="py-2 pr-2 text-right">Medido</th>
                 <th className="py-2 pr-2 text-right">Pendente</th>
                 <th className="py-2 pr-2 text-right">Saldo</th>
@@ -168,6 +182,10 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
                     </td>
                     <td className="py-2 pr-2 text-right whitespace-nowrap">{brl(i.valor_unitario)}</td>
                     <td className="py-2 pr-2 text-right whitespace-nowrap">{brl(i.quantidade * i.valor_unitario)}</td>
+                    <td className="py-2 pr-2 text-right whitespace-nowrap">
+                      {brl((i.quantidade * i.valor_unitario * retVigente) / 100)}
+                      <span className="block text-[10px] text-ink-400">retido {brl(retidoItem[i.id] ?? 0)}</span>
+                    </td>
                     <td className="py-2 pr-2 text-right whitespace-nowrap">{num(i.qtd_aprovada)}</td>
                     <td className="py-2 pr-2 text-right whitespace-nowrap text-warning">{i.qtd_pendente ? num(i.qtd_pendente) : "—"}</td>
                     <td className={`py-2 pr-2 text-right whitespace-nowrap font-semibold ${i.saldo <= i.quantidade * 0.1 ? "text-danger" : ""}`}>{num(i.saldo)}</td>
@@ -188,7 +206,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
                 );
               })}
               {!itens.length && (
-                <tr><td colSpan={11} className="py-6 text-center text-ink-400">Nenhum item cadastrado ainda.</td></tr>
+                <tr><td colSpan={12} className="py-6 text-center text-ink-400">Nenhum item cadastrado ainda.</td></tr>
               )}
             </tbody>
             {itens.length > 0 && (
@@ -196,6 +214,10 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
                 <tr className="font-semibold">
                   <td colSpan={5} className="py-2 pr-2 text-right">Totais</td>
                   <td className="py-2 pr-2 text-right whitespace-nowrap">{brl(valorAtual)}</td>
+                  <td className="py-2 pr-2 text-right whitespace-nowrap">
+                    {brl((valorAtual * retVigente) / 100)}
+                    <span className="block text-[10px] font-normal text-ink-400">retido {brl(retidoTotal)}</span>
+                  </td>
                   <td className="py-2 pr-2 text-right whitespace-nowrap">{brl(medido)}</td>
                   <td className="py-2 pr-2 text-right whitespace-nowrap">{brl(pendente)}</td>
                   <td className="py-2 pr-2 text-right whitespace-nowrap">{brl(saldo)}</td>

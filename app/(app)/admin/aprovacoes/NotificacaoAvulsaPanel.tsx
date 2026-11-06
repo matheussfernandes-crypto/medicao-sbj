@@ -61,7 +61,7 @@ export default function NotificacaoAvulsaPanel({ usuarios }: { usuarios: Perfil[
 
   return (
     <div className="card space-y-4">
-      <h2 className="text-lg font-semibold text-primaryDark">📣 Enviar notificação para usuários</h2>
+      <h2 className="text-lg font-semibold text-primaryDark">Enviar notificação para usuários</h2>
       <p className="text-sm text-gray-500">
         Selecione os destinatários e escreva a mensagem. Eles recebem a notificação no celular (iOS / Android) se tiverem o app adicionado à tela inicial.
       </p>

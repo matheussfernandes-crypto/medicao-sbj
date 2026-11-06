@@ -241,7 +241,7 @@ export default function LinhaLancamento({
             </form>
           ) : (
             <button onClick={() => setEditandoData(true)} className="mt-1 bg-yellow-100 text-yellow-800 rounded px-2 py-0.5 text-xs">
-              📅 Data
+              Data
             </button>
           )
         )}

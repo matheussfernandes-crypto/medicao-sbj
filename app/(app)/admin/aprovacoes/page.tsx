@@ -75,10 +75,10 @@ export default async function AprovacoesPage() {
                 <td className="p-3">{fmtData(c.criado_em)}</td>
                 <td className="p-3 space-x-2">
                   <form action={aprovarConta.bind(null, c.id)} className="inline">
-                    <button className="bg-primary text-white rounded px-3 py-1">✅ Aprovar</button>
+                    <button className="bg-primary text-white rounded px-3 py-1">Aprovar</button>
                   </form>
                   <form action={rejeitarConta.bind(null, c.id)} className="inline">
-                    <button className="bg-gray-200 rounded px-3 py-1">❌ Rejeitar</button>
+                    <button className="bg-gray-200 rounded px-3 py-1">Rejeitar</button>
                   </form>
                 </td>
               </tr>
@@ -136,12 +136,12 @@ export default async function AprovacoesPage() {
                 <td className="p-3">
                   {c.status === "aprovado" && c.id !== meuId && (
                     <form action={desativarConta.bind(null, c.id)} className="inline">
-                      <button className="bg-gray-200 rounded px-3 py-1 text-xs">🚫 Desativar acesso</button>
+                      <button className="bg-gray-200 rounded px-3 py-1 text-xs">Desativar acesso</button>
                     </form>
                   )}
                   {c.status === "desativado" && (
                     <form action={reativarConta.bind(null, c.id)} className="inline">
-                      <button className="bg-primary text-white rounded px-3 py-1 text-xs">↩️ Reativar</button>
+                      <button className="bg-primary text-white rounded px-3 py-1 text-xs">Reativar</button>
                     </form>
                   )}
                   {!(c.status === "aprovado" || c.status === "desativado") && "—"}

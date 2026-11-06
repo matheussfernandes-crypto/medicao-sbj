@@ -82,7 +82,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
         <Link href="/contratos" className="text-xs text-primary hover:underline">← Contratos</Link>
         <div className="mt-1 rounded-xl bg-primaryDark text-white px-5 py-4">
           <p className="text-xs uppercase tracking-wide text-white/60">Obra</p>
-          <p className="text-lg font-bold">🏗️ {c.obras?.nome}</p>
+          <p className="text-lg font-bold">{c.obras?.nome}</p>
           <p className="text-sm mt-1">
             Contrato <b>Nº {c.numero}</b> · {c.empresas_terceirizadas?.nome} · {c.objeto}{" "}
             <span className={`badge ${BADGE[c.status]} ml-1`}>{c.status}</span>

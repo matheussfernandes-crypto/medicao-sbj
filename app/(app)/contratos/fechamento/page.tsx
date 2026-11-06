@@ -50,7 +50,7 @@ export default async function FechamentoContratosPage({
           <div className="rounded-xl bg-primaryDark text-white px-5 py-4 flex flex-wrap gap-x-6 gap-y-1 items-center">
             <div>
               <p className="text-[11px] uppercase tracking-wide text-white/60">Obra</p>
-              <p className="text-lg font-bold">🏗️ {b.contrato.obras?.nome}</p>
+              <p className="text-lg font-bold">{b.contrato.obras?.nome}</p>
             </div>
             <p className="text-sm">Contrato <b>Nº {b.contrato.numero}</b> · {b.contrato.empresas_terceirizadas?.nome} · {b.contrato.objeto}</p>
             <p className="ml-auto text-sm">Boletim de <b>{mesLabel(mes)}</b> {b.fechamento ? <span className="badge badge-aprovado ml-2">FECHADO</span> : <span className="badge badge-pendente ml-2">ABERTO</span>}</p>

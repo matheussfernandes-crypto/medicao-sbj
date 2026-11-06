@@ -134,13 +134,13 @@ export default function RetencaoForm({ pessoas, retencoesPorPessoa, obraId, mes 
                 className="text-white rounded px-4 py-2 text-sm font-medium"
                 style={{ backgroundColor: "#2c6975" }}
               >
-                ✅ Sim, atualizar medições de {mesLabel} também
+                Sim, atualizar medições de {mesLabel} também
               </button>
               <button
                 onClick={confirmarSoParaFrente}
                 className="bg-gray-100 text-gray-700 rounded px-4 py-2 text-sm"
               >
-                ➡️ Não, aplicar só daqui para frente
+                Não, aplicar só daqui para frente
               </button>
               <button
                 onClick={() => setConfirmando(null)}

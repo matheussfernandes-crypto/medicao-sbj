@@ -189,7 +189,7 @@ export default async function ExtratoRetidosPage({
             target="_blank"
             className="bg-primaryDark text-white rounded px-4 py-2 text-sm font-medium hover:opacity-90 transition"
           >
-            📄 Exportar PDF
+            Exportar PDF
           </a>
         </div>
 

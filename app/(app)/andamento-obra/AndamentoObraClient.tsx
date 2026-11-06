@@ -1447,7 +1447,7 @@ function ConfigPanel(props: {
 
       <div className="flex items-center gap-3">
         <button onClick={props.onConfirmar} className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">
-          💾 Salvar alterações
+          Salvar alterações
         </button>
         {props.salvoEm && <span className="text-xs text-success">Salvo às {new Date(props.salvoEm).toLocaleTimeString("pt-BR")}</span>}
       </div>

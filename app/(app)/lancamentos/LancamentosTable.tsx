@@ -96,7 +96,7 @@ export default function LancamentosTable({
               type="submit"
               className="bg-primary text-white rounded px-3 py-1 text-sm font-medium hover:bg-primaryDark transition-colors"
             >
-              ✅ Aprovar selecionados
+              Aprovar selecionados
             </button>
           </form>
           <button
@@ -176,7 +176,7 @@ export default function LancamentosTable({
         <div className="mt-4 pt-4 border-t">
           {notificado ? (
             <p className="text-sm text-green-600 font-medium">
-              ✅ Engenheiro notificado! Aguarde a revisão dos lançamentos.
+              Engenheiro notificado! Aguarde a revisão dos lançamentos.
             </p>
           ) : (
             <button

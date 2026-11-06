@@ -272,7 +272,7 @@ export default async function ObrasPage({
             {/* Formulário vincular / editar */}
             <details open={!!vinculoEditando}>
               <summary className="text-sm font-semibold text-primaryDark cursor-pointer mb-3">
-                {vinculoEditando ? `✏️ Editar vínculo` : "➕ Vincular empresa à obra"}
+                {vinculoEditando ? `Editar vínculo` : "Vincular empresa à obra"}
               </summary>
               <form
                 action={vinculoEditando ? editarVinculoEmpresaObra : vincularEmpresaObra}

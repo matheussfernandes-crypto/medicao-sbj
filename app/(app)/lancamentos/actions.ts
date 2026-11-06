@@ -193,7 +193,7 @@ export async function rejeitarLancamento(formData: FormData) {
     const desc = lan.tipo === "VALE" ? "Vale" : (lan.servico ?? "Lançamento");
     const bodyMsg = motivo ? `${desc} rejeitado: ${motivo}` : `${desc} foi rejeitado. Verifique e corrija.`;
     notificarUsuarios([lan.criado_por], {
-      title: "❌ Lançamento rejeitado",
+      title: "Lançamento rejeitado",
       body: bodyMsg,
       url: "/lancamentos",
     }).catch(() => null);
@@ -207,7 +207,7 @@ export async function notificarEngenheiroConferir(formData: FormData) {
   const { nome } = await exigirAprovado();
   const obraNome = String(formData.get("obraNome") || "");
   await notificarAdmins({
-    title: "✅ Lançamentos prontos para conferência",
+    title: "Lançamentos prontos para conferência",
     body: `${nome}: lançamentos de "${obraNome}" prontos para aprovação.`,
     url: "/lancamentos",
   });

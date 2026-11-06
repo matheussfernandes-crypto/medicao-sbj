@@ -93,7 +93,7 @@ export default async function AprovacoesContratosPage({
           return (
             <div key={s.id} id={`s-${s.id}`} className="card space-y-3 scroll-mt-20 border-l-4 !border-l-accent">
               <div className="flex flex-wrap gap-x-4 gap-y-1 items-baseline">
-                <span className="font-bold">🏗️ {s.contratos.obras?.nome}</span>
+                <span className="font-bold">{s.contratos.obras?.nome}</span>
                 <span className="text-sm">Contrato <b>Nº {s.contratos.numero}</b> · {s.contratos.empresas_terceirizadas?.nome}</span>
                 <span className="text-xs text-ink-400 ml-auto">{nomes[s.criado_por] ?? "—"} · {dataHoraBR(s.criado_em)}</span>
               </div>
@@ -127,7 +127,7 @@ export default async function AprovacoesContratosPage({
             <div key={l.id} id={`l-${l.id}`} className="card space-y-3 scroll-mt-20">
               <div className="flex flex-wrap gap-x-4 gap-y-1 items-baseline">
                 <span className={`text-xs font-bold rounded px-2 py-0.5 ${TIPO_COR[l.tipo]}`}>{TIPO_LANC_LABEL[l.tipo]} nº {l.numero}</span>
-                <span className="font-bold">🏗️ {l.contratos.obras?.nome}</span>
+                <span className="font-bold">{l.contratos.obras?.nome}</span>
                 <span className="text-sm">
                   <Link href={`/contratos/${l.contrato_id}`} className="hover:underline">Contrato <b>Nº {l.contratos.numero}</b></Link> · {l.contratos.empresas_terceirizadas?.nome} · {l.contratos.objeto}
                 </span>
@@ -169,7 +169,7 @@ export default async function AprovacoesContratosPage({
             </div>
           );
         })}
-        {!lista.length && <div className="card text-sm text-ink-400">Nada pendente. 👍</div>}
+        {!lista.length && <div className="card text-sm text-ink-400">Nada pendente. </div>}
       </section>
 
       {/* Decididos recentemente */}

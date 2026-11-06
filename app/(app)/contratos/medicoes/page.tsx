@@ -56,7 +56,7 @@ export default async function MedicoesContratosPage({
                   <Link href={`/contratos/medicoes?contrato=${c.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 px-2 rounded hover:bg-surface-subtle">
                     <span className="w-4 h-4 rounded-full border-2 border-primary shrink-0" />
                     <span className="font-semibold text-primaryDark">Nº {c.numero}</span>
-                    <span className="font-bold">🏗️ {c.obra_nome}</span>
+                    <span className="font-bold">{c.obra_nome}</span>
                     <span className="text-sm text-ink-500 flex-1">{c.objeto}</span>
                     <span className="text-sm">Saldo <b>{brl(c.saldo)}</b></span>
                   </Link>
@@ -134,7 +134,7 @@ async function ContratoSelecionado({
         <div className="rounded-xl bg-primaryDark text-white px-5 py-3 shadow-panel flex flex-wrap items-center gap-x-6 gap-y-1">
           <div>
             <p className="text-[11px] uppercase tracking-wide text-white/60">Obra</p>
-            <p className="text-lg font-bold leading-tight">🏗️ {resumo.obra_nome}</p>
+            <p className="text-lg font-bold leading-tight">{resumo.obra_nome}</p>
           </div>
           <div className="text-sm">
             Contrato <b>Nº {resumo.numero}</b> · {resumo.empresa_nome} · {resumo.objeto}
@@ -144,7 +144,7 @@ async function ContratoSelecionado({
             <span>Medido <b className="text-white">{brl(resumo.valor_medido)}</b> ({num(resumo.perc_executado, 1)}%)</span>
             <span>Saldo <b className="text-accent">{brl(resumo.saldo)}</b></span>
             <span>Retenção <b className="text-white">{num(retPct)}%</b></span>
-            <Link href={`/contratos/${contratoId}`} className="underline">📄 Ver contrato</Link>
+            <Link href={`/contratos/${contratoId}`} className="underline">Ver contrato</Link>
             <Link href={`/contratos/medicoes?empresa=${resumo.empresa_id}`} className="underline">Trocar</Link>
           </div>
         </div>
@@ -255,7 +255,7 @@ async function ContratoSelecionado({
           <ul className="divide-y text-sm">
             {(sols ?? []).map((s: any) => (
               <li key={s.id} className="py-2 flex flex-wrap gap-2 items-start">
-                <span className={`badge ${BADGE[s.status]}`}>{s.status === "AGUARDANDO" ? "🟡 Aguardando" : s.status === "APROVADA" ? "🟢 Aprovada" : "🔴 Desaprovada"}</span>
+                <span className={`badge ${BADGE[s.status]}`}>{s.status === "AGUARDANDO" ? "Aguardando" : s.status === "APROVADA" ? "Aprovada" : "Desaprovada"}</span>
                 <span className="flex-1 min-w-[200px]">
                   {s.tipo === "AUMENTO"
                     ? `+${num(s.quantidade)} ${itemMap[s.item_id]?.unidade ?? ""} em ${itemMap[s.item_id]?.codigo ?? ""} ${itemMap[s.item_id]?.descricao ?? ""}`

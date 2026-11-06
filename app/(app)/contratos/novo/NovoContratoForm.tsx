@@ -50,7 +50,7 @@ export default function NovoContratoForm({
               {daEmpresa.map((c) => (
                 <li key={c.id} className="flex flex-wrap gap-2 items-center">
                   <Link href={`/contratos/${c.id}`} className="font-semibold text-primary hover:underline">Nº {c.numero}</Link>
-                  <span className="font-semibold">🏗️ {c.obra_nome}</span>
+                  <span className="font-semibold">{c.obra_nome}</span>
                   <span className="text-ink-500">{c.objeto}</span>
                   <span className="text-[11px] text-ink-400">({c.status})</span>
                 </li>

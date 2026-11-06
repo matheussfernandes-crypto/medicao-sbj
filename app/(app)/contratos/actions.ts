@@ -546,7 +546,7 @@ export async function salvarLancamento(fd: FormData): Promise<Resultado> {
   const valor = tipo === "VALE" ? valorVale : valorMedido;
   if (!p.ehAdmin || anterior) {
     notificarAdmins({
-      title: anterior ? `✏️ ${TIPO_LANC_LABEL[tipo]} editado(a)` : `📝 Novo(a) ${TIPO_LANC_LABEL[tipo].toLowerCase()} de contrato`,
+      title: anterior ? `${TIPO_LANC_LABEL[tipo]} editado(a)` : `Novo(a) ${TIPO_LANC_LABEL[tipo].toLowerCase()} de contrato`,
       body: `Contrato ${contrato.numero} · ${contrato.obra_nome} · ${contrato.empresa_nome} · ${brl(valor)} · por ${p.nome}`,
       url: `/contratos/aprovacoes#l-${id}`,
     }).catch(() => null);
@@ -574,7 +574,7 @@ export async function excluirLancamentoContrato(fd: FormData): Promise<Resultado
   if (!p.ehAdmin) {
     const c = await contratoInfo(p.supabase, l.contrato_id);
     notificarAdmins({
-      title: `🗑️ ${TIPO_LANC_LABEL[l.tipo]} excluído(a)`,
+      title: `${TIPO_LANC_LABEL[l.tipo]} excluído(a)`,
       body: `Contrato ${c?.numero} · ${c?.obra_nome} · ${brl(l.valor_medido)} · por ${p.nome}`,
       url: `/contratos/medicoes?contrato=${l.contrato_id}`,
     }).catch(() => null);
@@ -618,7 +618,7 @@ export async function solicitarAditivo(fd: FormData): Promise<Resultado> {
     oque = `+${num(quantidade)} ${it?.unidade ?? ""} em ${it?.codigo ?? ""} ${it?.descricao ?? ""}`;
   }
   notificarAdmins({
-    title: "📄 Solicitação de aditivo",
+    title: "Solicitação de aditivo",
     body: `Contrato ${c?.numero} · ${c?.obra_nome} · ${oque} · por ${p.nome}`,
     url: `/contratos/aprovacoes#s-${data.id}`,
   }).catch(() => null);
@@ -658,7 +658,7 @@ export async function responderSolicitacao(fd: FormData): Promise<Resultado> {
     }).eq("id", id);
     if (s.criado_por) {
       notificarUsuarios([s.criado_por], {
-        title: "🔴 Solicitação de aditivo desaprovada",
+        title: "Solicitação de aditivo desaprovada",
         body: `Contrato ${c?.numero} · ${c?.obra_nome}: ${motivo}`,
         url: `/contratos/medicoes?contrato=${s.contrato_id}`,
       }).catch(() => null);
@@ -688,7 +688,7 @@ export async function responderSolicitacao(fd: FormData): Promise<Resultado> {
   }).eq("id", id);
   if (s.criado_por) {
     notificarUsuarios([s.criado_por], {
-      title: "🟢 Aditivo aprovado",
+      title: "Aditivo aprovado",
       body: `Contrato ${c?.numero} · ${c?.obra_nome}: saldo liberado (${num(quantidade)}). Já pode medir.`,
       url: `/contratos/medicoes?contrato=${s.contrato_id}`,
     }).catch(() => null);
@@ -790,7 +790,7 @@ export async function aprovarLancamentoContrato(fd: FormData): Promise<Resultado
 
   if (l.criado_por && l.criado_por !== p.userId) {
     notificarUsuarios([l.criado_por], {
-      title: teveGlosa ? `🟡 ${TIPO_LANC_LABEL[l.tipo]} aprovado(a) com glosa` : `🟢 ${TIPO_LANC_LABEL[l.tipo]} aprovado(a)`,
+      title: teveGlosa ? `${TIPO_LANC_LABEL[l.tipo]} aprovado(a) com glosa` : `${TIPO_LANC_LABEL[l.tipo]} aprovado(a)`,
       body: `Contrato ${c?.numero} · ${c?.obra_nome} · ${brl(bruto)}${teveGlosa ? ` · ${glosasResumo.join("; ")}` : ""}`,
       url: `/contratos/medicoes?contrato=${l.contrato_id}`,
     }).catch(() => null);
@@ -812,7 +812,7 @@ export async function rejeitarLancamentoContrato(fd: FormData): Promise<Resultad
   const c = await contratoInfo(p.supabase, l.contrato_id);
   if (l.criado_por && l.criado_por !== p.userId) {
     notificarUsuarios([l.criado_por], {
-      title: `🔴 ${TIPO_LANC_LABEL[l.tipo]} rejeitado(a)`,
+      title: `${TIPO_LANC_LABEL[l.tipo]} rejeitado(a)`,
       body: `Contrato ${c?.numero} · ${c?.obra_nome} · ${brl(l.valor_medido)}: ${motivo}`,
       url: `/contratos/medicoes?contrato=${l.contrato_id}`,
     }).catch(() => null);

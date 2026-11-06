@@ -83,12 +83,12 @@ export default function PushRegistrar() {
       }}
     >
       {status === "ok" ? (
-        <span>✅ Notificações ativadas!</span>
+        <span>Notificações ativadas!</span>
       ) : status === "negado" ? (
-        <span>❌ Permissão negada.</span>
+        <span>Permissão negada.</span>
       ) : (
         <>
-          <span>🔔 Receber notificações do app?</span>
+          <span>Receber notificações do app?</span>
           <button
             onClick={ativar}
             style={{

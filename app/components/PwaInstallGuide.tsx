@@ -11,7 +11,7 @@ export default function PwaInstallGuide() {
         onClick={() => setAberto(!aberto)}
         className="w-full flex items-center justify-between text-sm text-primaryDark font-medium"
       >
-        <span>📱 Como instalar o app no celular</span>
+        <span>Como instalar o app no celular</span>
         <span className="text-gray-400">{aberto ? "▲" : "▼"}</span>
       </button>
 
@@ -20,7 +20,7 @@ export default function PwaInstallGuide() {
           {/* iOS */}
           <div className="bg-gray-50 rounded-lg p-3 border">
             <p className="font-semibold text-gray-700 mb-2 flex items-center gap-1">
-              <span>🍎</span> iPhone / iPad (Safari)
+              iPhone / iPad (Safari)
             </p>
             <ol className="space-y-2 text-gray-600">
               <li className="flex gap-2">
@@ -45,14 +45,14 @@ export default function PwaInstallGuide() {
               </li>
             </ol>
             <p className="text-xs text-gray-400 mt-2">
-              ⚠️ Notificações push no iOS exigem iOS 16.4 ou superior e o app instalado na tela inicial.
+              Notificações push no iOS exigem iOS 16.4 ou superior e o app instalado na tela inicial.
             </p>
           </div>
 
           {/* Android */}
           <div className="bg-gray-50 rounded-lg p-3 border">
             <p className="font-semibold text-gray-700 mb-2 flex items-center gap-1">
-              <span>🤖</span> Android (Chrome)
+              Android (Chrome)
             </p>
             <ol className="space-y-2 text-gray-600">
               <li className="flex gap-2">

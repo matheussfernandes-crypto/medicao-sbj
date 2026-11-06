@@ -20,6 +20,17 @@ export type LinhaBoletim = {
   antecipado: boolean; // houve vale de medição neste mês para o item
 };
 
+export type ItemMedido = {
+  numero: number;
+  data: string;
+  codigo: string | null;
+  descricao: string;
+  unidade: string;
+  quantidade: number;
+  valor_unitario: number;
+  valor: number;
+};
+
 export type ValeDesconto = {
   vale_id: string;
   numero: number;
@@ -37,6 +48,8 @@ export type Boletim = {
   mes: string;
   fechamento: any | null;
   linhas: LinhaBoletim[];
+  /** Só o que foi medido no mês: uma linha por item de cada medição aprovada (para o PDF). */
+  itensMedidos: ItemMedido[];
   medicoes: any[];        // MEDICAO aprovadas no mês
   valesMedicao: any[];    // VALE_MEDICAO aprovados no mês (informativo)
   vales: ValeDesconto[];  // VALEs com saldo a descontar
@@ -123,6 +136,31 @@ export async function calcularBoletim(supabase: Perfil["supabase"], contratoId: 
   const valesMedicao = aprovados.filter((l: any) => l.tipo === "VALE_MEDICAO" && l.mes_referencia === mes);
   const pendentesNoMes = (lancs ?? []).filter((l: any) => l.status === "PENDENTE" && l.mes_referencia === mes).length;
 
+  const ordemItem = new Map<string, any>((itens ?? []).map((i: any) => [i.id, i]));
+  const itensMedidos: ItemMedido[] = [];
+  for (const l of [...medicoes].sort((a: any, b: any) => (a.data < b.data ? -1 : a.data > b.data ? 1 : a.numero - b.numero)) as any[]) {
+    const lis = [...(l.contrato_lancamento_itens ?? [])].sort((a: any, b: any) => {
+      const ia = ordemItem.get(a.item_id), ib = ordemItem.get(b.item_id);
+      return (ia?.ordem ?? 0) - (ib?.ordem ?? 0) || compararCodigo(ia?.codigo ?? null, ib?.codigo ?? null);
+    });
+    for (const li of lis) {
+      const q = Number(li.quantidade_aprovada ?? li.quantidade_medida);
+      if (!(q > 0)) continue;
+      const it = ordemItem.get(li.item_id);
+      const vu = Number(li.valor_unitario);
+      itensMedidos.push({
+        numero: l.numero,
+        data: l.data,
+        codigo: it?.codigo ?? null,
+        descricao: it?.descricao ?? "—",
+        unidade: it?.unidade ?? "",
+        quantidade: q,
+        valor_unitario: vu,
+        valor: arred(q * vu),
+      });
+    }
+  }
+
   const bruto = medicoes.reduce((s: number, l: any) => s + Number(l.valor_bruto), 0);
   const retido = medicoes.reduce((s: number, l: any) => s + Number(l.retencao_valor), 0);
   const retencoesDispensadas = [...medicoes, ...valesMedicao]
@@ -197,6 +235,7 @@ export async function calcularBoletim(supabase: Perfil["supabase"], contratoId: 
     mes,
     fechamento: fechamento ?? null,
     linhas,
+    itensMedidos,
     medicoes,
     valesMedicao,
     vales,

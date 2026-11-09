@@ -230,15 +230,38 @@ export const NAV_ITEMS: NavItem[] = [
     grupo: "Configuração",
   },
 
-  // ---- Pós-obra (módulo estático em public/pos-obra) ----
+  // ---- Pós-obra (módulo estático em public/pos-obra, aberto dentro do site em /posobra) ----
   {
-    label: "Pós-obra",
-    href: "/pos-obra/",
+    label: "Vistorias",
+    href: "/posobra/vistorias",
     icon: ClipboardCheck,
-    description: "Vistorias de entrega, empreendimentos, clientes e fornecedores. Funciona também sem internet.",
+    description: "Vistorias de entrega dos apartamentos, com pendências, fotos e assinaturas.",
     secao: "posobra",
     grupo: "Pós-obra",
-    externo: true,
+  },
+  {
+    label: "Empreendimentos",
+    href: "/posobra/empreendimentos",
+    icon: Building2,
+    description: "Empreendimentos do pós-obra: unidades, síndico e manual.",
+    secao: "posobra",
+    grupo: "Pós-obra",
+  },
+  {
+    label: "Clientes",
+    href: "/posobra/clientes",
+    icon: Users,
+    description: "Clientes (proprietários) por empreendimento.",
+    secao: "posobra",
+    grupo: "Pós-obra",
+  },
+  {
+    label: "Fornecedores",
+    href: "/posobra/fornecedores",
+    icon: Handshake,
+    description: "Fornecedores e contatos de assistência técnica.",
+    secao: "posobra",
+    grupo: "Pós-obra",
   },
 
   // ---- Financeiro ----

@@ -71,8 +71,8 @@ export default function NovoContratoForm({
       </label>
       <label className="flex flex-col gap-1 text-xs text-ink-500">
         Número do contrato *
-        <input name="numero" required defaultValue={sugestaoNumero} className="border rounded px-3 py-2 text-sm text-ink-900" />
-        <span className="text-[11px] text-ink-400">Sugerido automaticamente — pode trocar pelo número do contrato físico.</span>
+        <input value={sugestaoNumero} readOnly className="border rounded px-3 py-2 text-sm text-ink-900 bg-gray-100" />
+        <span className="text-[11px] text-ink-400">Automático: próximo número depois do último contrato de todas as obras.</span>
       </label>
       <label className="sm:col-span-2 flex flex-col gap-1 text-xs text-ink-500">
         Objeto (serviço contratado) *

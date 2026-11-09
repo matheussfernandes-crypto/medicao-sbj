@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { exigirPerfil } from "@/lib/contratos/server";
 import NovoContratoForm from "./NovoContratoForm";
+import { proximoNumeroContrato } from "@/lib/contratos/util";
 
 export default async function NovoContratoPage() {
   const { supabase } = await exigirPerfil(["ADMIN"]);
@@ -10,13 +11,8 @@ export default async function NovoContratoPage() {
     supabase.from("contratos").select("id, numero, objeto, status, empresa_id, obras(nome)").order("numero"),
   ]);
 
-  // Sugestão de número: próximo sequencial do ano (NNN/AAAA)
-  const ano = new Date().getFullYear();
-  const seqs = (contratos ?? [])
-    .map((c) => c.numero.match(new RegExp(`^(\\d+)/${ano}$`)))
-    .filter(Boolean)
-    .map((m) => Number(m![1]));
-  const sugestao = `${String((seqs.length ? Math.max(...seqs) : 0) + 1).padStart(3, "0")}/${ano}`;
+  // Número do contrato: sempre o maior já usado (todas as obras) + 1. O servidor confirma na hora de salvar.
+  const sugestao = proximoNumeroContrato((contratos ?? []).map((c: any) => c.numero));
 
   return (
     <div className="space-y-5 max-w-3xl">

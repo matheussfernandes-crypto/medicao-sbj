@@ -13,6 +13,7 @@ import {
   num,
   mesLabel,
   EPS,
+  proximoNumeroContrato,
 } from "@/lib/contratos/util";
 import { calcularBoletim } from "@/lib/contratos/boletim";
 
@@ -74,14 +75,14 @@ async function mesFechado(supabase: any, contratoId: string, mes: string) {
 export async function criarContrato(fd: FormData): Promise<Resultado> {
   const p = await perfilAtual();
   if (!p?.ehAdmin) return { erro: "Apenas o ADM pode cadastrar contratos." };
-  const numero = txt(fd, "numero");
   const obraId = txt(fd, "obraId");
   const empresaId = txt(fd, "empresaId");
   const objeto = txt(fd, "objeto");
-  if (!numero || !obraId || !empresaId || !objeto) return { erro: "Preencha número, empresa, obra e objeto." };
+  if (!obraId || !empresaId || !objeto) return { erro: "Preencha empresa, obra e objeto." };
 
-  const { data: existe } = await p.supabase.from("contratos").select("id").eq("numero", numero).maybeSingle();
-  if (existe) return { erro: `Já existe um contrato com o número ${numero}.` };
+  // Número sempre sequencial em todas as obras: maior número existente + 1.
+  const { data: todos } = await p.supabase.from("contratos").select("numero");
+  const numero = proximoNumeroContrato((todos ?? []).map((c: any) => c.numero));
 
   const { data, error } = await p.supabase
     .from("contratos")

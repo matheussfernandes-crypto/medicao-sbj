@@ -105,7 +105,7 @@ export function compararCodigo(a: string | null, b: string | null) {
 /** Próximo número de contrato: maior número já usado (em todas as obras) + 1, com 2 dígitos (01, 02, …). */
 export function proximoNumeroContrato(numeros: (string | null | undefined)[]) {
   const max = numeros.reduce((m, n) => {
-    const v = parseInt(String(n ?? "").match(/d+/)?.[0] ?? "0", 10);
+    const v = parseInt(String(n ?? "").match(/\d+/)?.[0] ?? "0", 10);
     return Number.isFinite(v) && v > m ? v : m;
   }, 0);
   return String(max + 1).padStart(2, "0");

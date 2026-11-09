@@ -144,8 +144,10 @@ export default function Sidebar({
                       <div className="ml-[13px] border-l border-border">
                         {g.itens.map((item) => {
                           const eAtivo = itemAtual?.href === item.href && itemAtual?.label === item.label;
+                          // página fora do Next (módulo Pós-obra): link comum, carrega a página inteira
+                          const Destino: any = item.externo ? "a" : Link;
                           return (
-                            <Link
+                            <Destino
                               key={item.label + item.href}
                               href={item.href}
                               onClick={onClose}
@@ -156,7 +158,7 @@ export default function Sidebar({
                               {item.badgeKey && (contadores[item.badgeKey] ?? 0) > 0 && (
                                 <span className="ml-auto bg-accent text-primaryDark text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{contadores[item.badgeKey]}</span>
                               )}
-                            </Link>
+                            </Destino>
                           );
                         })}
                       </div>

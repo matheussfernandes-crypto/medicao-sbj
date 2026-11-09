@@ -26,10 +26,11 @@ import {
   Home,
   Coins,
   Settings,
+  ClipboardCheck,
 } from "lucide-react";
 
 // Setores do menu (coluna de ícones, no estilo do Sienge). Cada item de navegação pertence a um setor e a um grupo dentro dele.
-export type SecaoId = "inicio" | "obras" | "medicoes" | "contratos" | "manutencoes" | "financeiro" | "admin";
+export type SecaoId = "inicio" | "obras" | "medicoes" | "contratos" | "manutencoes" | "posobra" | "financeiro" | "admin";
 
 export type Secao = {
   id: SecaoId;
@@ -44,6 +45,7 @@ export const SECOES: Secao[] = [
   { id: "medicoes", label: "Medições e Vales", icon: ClipboardList },
   { id: "contratos", label: "Contratos", icon: Handshake },
   { id: "manutencoes", label: "Manutenções", icon: Wrench },
+  { id: "posobra", label: "Pós-obra", icon: ClipboardCheck },
   { id: "financeiro", label: "Financeiro", icon: Coins },
   { id: "admin", label: "Administração", icon: Settings },
 ];
@@ -58,6 +60,7 @@ export type NavItem = {
   allowedSetores?: string[]; // undefined = todos os setores aprovados
   badgeKey?: "contratosPendentes"; // contador exibido ao lado do item
   extra?: string; // permissão específica que também libera o item (além dos setores)
+  externo?: boolean; // página fora do Next (ex.: módulo estático Pós-obra): abre com link comum, não com o roteador
 };
 
 // Fonte única da navegação — usada pela Sidebar, pelo Breadcrumbs e pelos atalhos do Painel, para não
@@ -225,6 +228,17 @@ export const NAV_ITEMS: NavItem[] = [
     allowedSetores: ["ADMIN"],
     secao: "manutencoes",
     grupo: "Configuração",
+  },
+
+  // ---- Pós-obra (módulo estático em public/pos-obra) ----
+  {
+    label: "Pós-obra",
+    href: "/pos-obra/",
+    icon: ClipboardCheck,
+    description: "Vistorias de entrega, empreendimentos, clientes e fornecedores. Funciona também sem internet.",
+    secao: "posobra",
+    grupo: "Pós-obra",
+    externo: true,
   },
 
   // ---- Financeiro ----

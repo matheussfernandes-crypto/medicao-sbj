@@ -1,0 +1,103 @@
+/* Intro "dia de obra": roteiro e tempos em js/intro.js (comentário no topo).
+   Linha do tempo (s): 0 chão + guindaste sobe | .3 lança | .5-1.75 tijolos sobem (todos juntos) |
+   1.65 guindaste sai | 1.75-2.35 cidade encolhe | 2.25 tijolos viram traço | 2.25 arco |
+   2.35 SBJ | 2.7 texto | 2.8 fundo esmaece e a logo voa pra barra lateral | 3.3 fim */
+#intro {
+  position: fixed; inset: 0; z-index: 10000; overflow: hidden;
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition: opacity .45s cubic-bezier(.4, 0, 1, 1);
+  /* rede de segurança: se o script falhar, a tela libera sozinha */
+  animation: intro-libera 0s linear 7s forwards;
+}
+/* o fundo é uma camada própria, pra esmaecer sem apagar a logo que voa */
+#intro::before {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 42%, #0E6A75 0%, #0A4F58 45%, #052E33 100%);
+  transition: opacity .45s ease-in-out;
+}
+#intro.fly { pointer-events: none; }
+#intro.fly::before { opacity: 0; }
+#intro.fly .intro-skip { opacity: 0; transition: opacity .15s; }
+@keyframes intro-libera { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+.intro-done #intro { display: none; }
+html:has(#intro:not(.out):not(.out-fast):not(.fly)) { overflow: hidden; }
+#intro.out { opacity: 0; pointer-events: none; }
+#intro.out-fast { opacity: 0; pointer-events: none; transition-duration: .25s; }
+
+.intro-logo { position: relative; width: min(62vw, 420px, 62vh); height: auto; overflow: visible; }
+
+/* A cidade nasce grande e encolhe até o lugar na logo */
+.i-city {
+  transform-origin: 255px 396px;
+  animation: encolhe .6s cubic-bezier(.65, 0, .25, 1) 1.75s both;
+}
+@keyframes encolhe {
+  from { transform: translate(0, 70px) scale(1.7); }
+  to   { transform: none; }
+}
+
+/* Linha de chão */
+.i-ground { transform-origin: 255px 396px; animation: chao .35s cubic-bezier(.16, 1, .3, 1) both, some .25s ease-in 1.7s forwards; }
+@keyframes chao { from { transform: scaleX(0); } to { transform: none; } }
+@keyframes some { to { opacity: 0; } }
+
+/* Tijolos: caem fiada a fiada depois de cada entrega (delays vêm do JS) */
+#intro-bricks rect {
+  opacity: 0;
+  animation: tijolo .26s cubic-bezier(.16, 1, .3, 1) both;
+}
+@keyframes tijolo {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: none; }
+}
+/* No fim do encolhimento, os tijolos viram o traço amarelo da logo */
+#intro-bricks { animation: some .2s ease-out 2.25s both; }
+.i-bld { opacity: 0; animation: aparece .2s ease-out 2.25s both; }
+@keyframes aparece { to { opacity: 1; } }
+
+/* Guindaste: torre sobe do chão, lança se estende, trabalha e sai de cena */
+.i-erge { transform: translateY(394px); animation: erge .38s cubic-bezier(.3, 0, .2, 1) .02s both; }
+@keyframes erge { to { transform: none; } }
+.i-jib { transform-origin: 496px 60px; animation: lanca .25s cubic-bezier(.2, .7, .2, 1) .33s both; }
+@keyframes lanca { from { transform: scaleX(0); } to { transform: none; } }
+.i-hoistwrap { opacity: 0; animation: aparece .12s ease-out .5s both; }
+.i-cable { transform-box: fill-box; transform-origin: 50% 0; }
+.i-crane { animation: some .25s ease-in 1.65s forwards; }
+
+/* Arco desenhado a partir da base esquerda */
+.i-arc-mask {
+  stroke-dasharray: 75 100;
+  stroke-dashoffset: 75;
+  animation: desenha .45s cubic-bezier(.45, 0, .2, 1) 2.25s forwards;
+}
+@keyframes desenha { to { stroke-dashoffset: 0; } }
+
+/* Letras sobem, reveladas de baixo pra cima */
+.i-rise {
+  transform: translateY(190px);
+  animation: sobe .4s cubic-bezier(.16, 1, .3, 1) both;
+}
+.i-rise.s { animation-delay: 2.35s; }
+.i-rise.b { animation-delay: 2.42s; }
+.i-rise.j { animation-delay: 2.49s; }
+@keyframes sobe { to { transform: none; } }
+
+.i-tag { opacity: 0; transform: translateY(8px); animation: tag .4s cubic-bezier(.16, 1, .3, 1) 2.7s both; }
+@keyframes tag { to { opacity: 1; transform: none; } }
+
+.intro-skip {
+  position: absolute; z-index: 2; right: 20px; bottom: 18px;
+  font: 500 13px/1 'IBM Plex Sans', system-ui, sans-serif;
+  color: #CFEFF2; background: transparent;
+  border: 1px solid rgba(207, 239, 242, .4); border-radius: 999px;
+  padding: 8px 14px; cursor: pointer;
+}
+.intro-skip:hover { background: rgba(207, 239, 242, .12); }
+.intro-skip:focus-visible { outline: 2px solid #F5E400; outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  #intro-bricks, .i-crane, .i-ground, #intro-m-crane { display: none; }
+  .i-city, #intro-bricks rect, .i-rise, .i-tag, .i-bld { animation: none; opacity: 1; transform: none; }
+  .i-arc-mask { animation: none; stroke-dashoffset: 0; }
+}

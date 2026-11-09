@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#073F45">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pós-obra">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<title>Gestão de Arquitetura</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="assets/logo-sbj.png">
+<link rel="stylesheet" href="css/style.css?v=20261110r">
+<link rel="stylesheet" href="css/redesign.css?v=20261110r">
+<link rel="stylesheet" href="css/mobile.css?v=20261110r">
+<link rel="stylesheet" href="css/intro.css?v=9">
+<script>try{if(sessionStorage.getItem("sbjIntroVisto")&&location.search.indexOf("intro")<0)document.documentElement.classList.add("intro-done")}catch(e){}</script>
+</head>
+<body>
+<div id="intro" aria-label="Carregando"></div>
+<script src="js/intro-data.js?v=2"></script>
+<script src="js/intro.js?v=10"></script>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-logo"><img src="assets/logo-sbj-claro.png" alt="SBJ construtora e incorporadora"></span>
+      <div>
+        <strong>Gestão de Arquitetura</strong>
+        <span>Operações do Setor</span>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-group-label">Principal</div>
+      <button class="nav-btn active" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        <span>Painel Geral</span>
+      </button>
+
+      <div class="nav-group-label">Atendimento</div>
+      <button class="nav-btn" data-view="tickets">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Pós-venda</span>
+      </button>
+      <button class="nav-btn" data-view="vistorias">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        <span>Vistorias</span>
+      </button>
+
+      <div class="nav-group-label">Cadastros</div>
+      <button class="nav-btn" data-view="buildings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
+        <span>Empreendimentos</span>
+      </button>
+      <button class="nav-btn" data-view="clients">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Clientes</span>
+      </button>
+      <button class="nav-btn" data-view="suppliers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="13"/><path d="M16 11h4l3 3v6h-7z"/><circle cx="5.5" cy="20.5" r="1.5"/><circle cx="18.5" cy="20.5" r="1.5"/></svg>
+        <span>Fornecedores</span>
+      </button>
+
+      <div class="nav-group-label">Organização</div>
+      <button class="nav-btn" data-view="agenda">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span>Agenda</span>
+      </button>
+      <button class="nav-btn" data-view="modifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+        <span>Modificações</span>
+      </button>
+      <button class="nav-btn" data-view="reports">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
+        <span>Relatórios</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <input type="text" id="operator-name" class="sidebar-name" placeholder="Seu nome (nos registros)" title="Nome usado nos registros do histórico">
+      <button id="btn-backup" class="ghost-btn" title="Backup, restaurar e apagar dados">Backup e dados</button>
+      <input type="file" id="file-import" accept="application/json" hidden>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1 id="view-title">Painel Geral</h1>
+        <p id="view-subtitle">Visão consolidada da manutenção e pós-venda</p>
+      </div>
+      <div class="topbar-actions">
+        <div class="search-box" id="global-search-box" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="text" id="global-search" placeholder="Buscar nesta tela...">
+        </div>
+        <button class="btn primary" id="btn-new-ticket">+ Novo Chamado</button>
+        <button class="btn primary" id="btn-new-modification" style="display:none">+ Nova Modificação</button>
+      </div>
+    </header>
+
+    <section id="view-dashboard" class="view active">
+      <div id="dash-glance" class="gl-grid"></div>
+
+      <div id="quick-capture"></div>
+
+      <div class="panel" style="margin-bottom:16px;">
+        <h3>Precisa da minha atenção</h3>
+        <div id="atencao-list"></div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px;">
+        <h3>Agenda de hoje</h3>
+        <div id="agenda-hoje-list"></div>
+        <button class="btn ghost small" id="btn-ver-agenda" style="margin-top:10px;">Ver agenda</button>
+      </div>
+
+      <details class="panel dash-fornecedores">
+        <summary id="fornecedor-atencao-resumo">Fornecedores acionados</summary>
+        <div id="fornecedor-atencao-list"></div>
+      </details>
+    </section>
+
+    <section id="view-buildings" class="view">
+      <div class="filters-bar">
+        <div class="chip-group" id="building-status-filter">
+          <button class="chip active" data-status="todos">Todos</button>
+          <button class="chip" data-status="concluido">Concluídos</button>
+          <button class="chip" data-status="andamento">Em andamento</button>
+        </div>
+        <button class="btn primary small filters-add" id="btn-new-building">+ Empreendimento</button>
+      </div>
+      <div class="building-grid" id="building-grid"></div>
+    </section>
+
+    <section id="view-clients" class="view">
+      <div class="filters-bar">
+        <select id="filter-client-building"><option value="">Todos os prédios</option></select>
+        <details class="filtros-mais"><summary>Mais filtros</summary><div class="filtros-mais-corpo">
+          <label class="checkbox-inline"><input type="checkbox" id="filter-client-missing"> Somente sem contato cadastrado</label>
+        </div></details>
+        <button class="btn primary small filters-add" id="btn-new-client">+ Cliente</button>
+      </div>
+      <div class="table-wrap">
+        <table class="tickets-table" id="clients-table">
+          <thead>
+            <tr>
+              <th>Prédio</th>
+              <th>Unidade</th>
+              <th>Vaga</th>
+              <th>Cliente</th>
+              <th>Telefone</th>
+              <th>E-mail</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="clients-footer" class="clients-footer"></div>
+    </section>
+
+    <section id="view-suppliers" class="view">
+      <div class="filters-bar">
+        <select id="filter-supplier-specialty"><option value="">Todas as especialidades</option></select>
+        <details class="filtros-mais"><summary>Mais filtros</summary><div class="filtros-mais-corpo">
+          <select id="filter-supplier-building"><option value="">Todos os empreendimentos</option></select>
+          <select id="filter-supplier-status">
+            <option value="">Todos os status</option>
+            <option value="ativo">Ativo</option>
+            <option value="inativo">Inativo</option>
+          </select>
+        </div></details>
+        <button class="btn primary small filters-add" id="btn-new-supplier">+ Fornecedor</button>
+      </div>
+      <div class="table-wrap">
+        <table class="tickets-table" id="suppliers-table">
+          <thead>
+            <tr>
+              <th>Fornecedor</th>
+              <th>Especialidades</th>
+              <th>Contato</th>
+              <th>Empreendimentos</th>
+              <th>Chamados</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="view-tickets" class="view">
+      <div id="ticket-quick-filter-chip" class="qf-bar"></div>
+      <div class="filters-bar filtros-linha">
+        <select id="filter-building"><option value="">Todos os prédios</option></select>
+        <details class="filtros-mais">
+          <summary>Mais filtros</summary>
+          <div class="filtros-mais-corpo">
+            <div class="chip-group" id="ticket-type-filter">
+              <button class="chip active" data-type="todos">Todos</button>
+              <button class="chip" data-type="posvenda">Pós-venda</button>
+              <button class="chip" data-type="obra">Pendência de obra</button>
+            </div>
+            <select id="filter-status"><option value="">Todos os status</option></select>
+            <select id="filter-category"><option value="">Todas as categorias</option></select>
+            <select id="filter-priority"><option value="">Todas as prioridades</option></select>
+            <label class="checkbox-inline"><input type="checkbox" id="filter-overdue"> Somente acompanhamento pendente</label>
+            <button type="button" class="btn ghost small" id="btn-import-tickets">Importar planilha</button>
+          </div>
+        </details>
+      </div>
+      <div id="ticket-sort-indicator" class="ticket-sort-indicator"></div>
+      <div class="table-wrap">
+        <table class="tickets-table" id="tickets-table">
+          <thead>
+            <tr>
+              <th data-sort-key="id">Chamado <span class="sort-arrow">↕</span></th>
+              <th data-sort-key="unit">Unidade <span class="sort-arrow">↕</span></th>
+              <th data-sort-key="client">Cliente <span class="sort-arrow">↕</span></th>
+              <th data-sort-key="problem">Problema <span class="sort-arrow">↕</span></th>
+              <th data-sort-key="data">Próximo passo <span class="sort-arrow">↕</span></th>
+              <th data-sort-key="status">Status <span class="sort-arrow">↕</span></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="view-building-detail" class="view">
+      <div id="building-detail-root"></div>
+    </section>
+
+    <section id="view-ticket-detail" class="view">
+      <div id="ticket-detail-root"></div>
+    </section>
+
+    <section id="view-agenda" class="view">
+      <div class="agenda-toolbar">
+        <div class="agenda-nav">
+          <button class="btn ghost small" id="agenda-btn-hoje">Hoje</button>
+          <button class="btn ghost small" id="agenda-btn-anterior" title="Anterior">◀</button>
+          <button class="btn ghost small" id="agenda-btn-proxima" title="Próximo">▶</button>
+          <span id="agenda-periodo-label" class="agenda-periodo-label"></span>
+        </div>
+        <div class="chip-group" id="agenda-view-mode">
+          <button class="chip" data-mode="dia">Dia</button>
+          <button class="chip active" data-mode="semana">Semana</button>
+          <button class="chip" data-mode="mes">Mês</button>
+        </div>
+      </div>
+      <div class="filters-bar agenda-filters-bar">
+        <select id="filter-agenda-building"><option value="">Todos os empreendimentos</option></select>
+        <label class="checkbox-inline"><input type="checkbox" id="filter-agenda-minha"> Minha agenda</label>
+        <details class="filtros-mais"><summary>Mais filtros</summary><div class="filtros-mais-corpo">
+        <select id="filter-agenda-responsavel"><option value="">Todos os responsáveis</option></select>
+        <select id="filter-agenda-fornecedor"><option value="">Todos os fornecedores</option></select>
+        <select id="filter-agenda-tipo">
+          <option value="">Todos os tipos</option>
+          <option value="posvenda">Pós-venda</option>
+          <option value="obra">Pendência de obra</option>
+        </select>
+        <select id="filter-agenda-status">
+          <option value="">Todos os status</option>
+          <option value="agendada">Agendada</option>
+          <option value="atrasada">Atrasada</option>
+          <option value="concluida">Realizada</option>
+          <option value="nao_realizada">Não realizada</option>
+        </select>
+        </div></details>
+      </div>
+      <div id="agenda-grid-root" class="agenda-grid-root"></div>
+    </section>
+
+    <section id="view-vistorias" class="view"></section>
+
+    <section id="view-modifications" class="view">
+      <div class="kpi-grid" id="modifications-kpi-grid"></div>
+      <div class="filters-bar">
+        <select id="filter-mod-building"><option value="">Todos os empreendimentos</option></select>
+        <select id="filter-mod-status"><option value="">Todos os status</option></select>
+        <select id="filter-mod-item"><option value="">Todos os itens</option></select>
+        <input type="text" id="filter-mod-search" placeholder="Buscar por nº, unidade ou texto...">
+        <button class="btn ghost small" id="btn-open-modifications-map" style="margin-left:auto;">🗺️ Mapa de Modificações</button>
+        <button class="btn ghost small" id="btn-open-price-table">Tabela de Preços</button>
+      </div>
+      <div class="table-wrap">
+        <table class="tickets-table" id="modifications-table">
+          <thead>
+            <tr>
+              <th>Nº</th>
+              <th>Empreendimento / Unidade</th>
+              <th>Cliente</th>
+              <th>Itens</th>
+              <th>Data</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="view-modification-detail" class="view">
+      <div id="modification-detail-root"></div>
+    </section>
+
+    <section id="view-modifications-map" class="view">
+      <div class="filters-bar">
+        <button class="btn ghost" id="btn-back-modifications-map">← Voltar</button>
+        <select id="mapa-building"><option value="">Selecione o empreendimento</option></select>
+        <select id="mapa-status-filter"><option value="">Todos os status</option></select>
+        <select id="mapa-item-filter"><option value="">Todos os itens</option></select>
+        <input type="text" id="mapa-search" placeholder="Buscar por apto ou cliente...">
+        <button class="btn ghost small" id="btn-export-mapa" style="margin-left:auto;">Exportar Mapa (CSV)</button>
+        <button class="btn ghost small" id="btn-export-mapa-pdf">Exportar PDF</button>
+      </div>
+      <div id="modifications-map-summary"></div>
+      <div id="modifications-map-table"></div>
+    </section>
+
+    <section id="view-reports" class="view">
+      <div id="reports-root"></div>
+    </section>
+
+  </main>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script src="js/clients-seed.js?v=20261110r"></script>
+<script src="js/data.js?v=20261110r"></script>
+<script src="js/attachments.js?v=20261110r"></script>
+<script src="js/warranty.js?v=20261110r"></script>
+<script src="js/maintenance.js?v=20261110r"></script>
+<script src="js/tickets.js?v=20261110r"></script>
+<script src="js/lib/jspdf.umd.min.js"></script>
+<script src="js/lib/jspdf.plugin.autotable.min.js"></script>
+<script src="js/suppliers.js?v=20261110r"></script>
+<script src="js/modifications.js?v=20261110r"></script>
+<script src="js/agenda.js?v=20261110r"></script>
+<script src="js/quickcapture.js?v=20261110r"></script>
+<script src="js/ticket-cockpit.js?v=20261110r"></script>
+<script src="js/ticket-novo.js?v=20261110r"></script>
+<script src="js/building-detail.js?v=20261110r"></script>
+<script src="js/reports.js?v=20261110r"></script>
+<script src="js/import.js?v=20261110r"></script>
+<script src="js/manual-import.js?v=20261110r"></script>
+<script src="js/lib/xlsx.full.min.js"></script>
+<script src="js/vistorias.js?v=20261110r"></script>
+<script src="js/assinatura.js?v=20261110r"></script>
+<script src="js/vistoria-fotos.js?v=20261110r"></script>
+<script src="js/vistoria-folha.js?v=20261110r"></script>
+<script src="js/app.js?v=20261110r"></script>
+<script src="js/sidebar.js?v=20261110r"></script>
+<script src="js/dropdown.js?v=20261110r"></script>
+<script src="js/sync-config.js?v=20261110r"></script>
+<script src="js/sync.js?v=20261110r"></script>
+<script src="js/navegacao.js?v=20261110r"></script>
+<script src="js/modulos.js?v=20261110r"></script>
+<script>
+/* uso sem internet: só funciona em endereço seguro (https ou localhost) */
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>

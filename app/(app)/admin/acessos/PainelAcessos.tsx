@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { MODULOS } from "@/lib/acessos/modulos";
+import { ITENS, MODULOS, itensLiberados, rotuloItem } from "@/lib/acessos/modulos";
 import { salvarAcessos, responderSolicitacao } from "./actions";
 
 const SETOR_LABEL: Record<string, string> = {
@@ -28,7 +28,7 @@ export default async function PainelAcessos() {
         <h2 className="text-lg font-semibold text-primaryDark">Pedidos de acesso</h2>
         {(pedidos ?? []).length === 0 && <p className="text-sm text-ink-500">Nenhum pedido em aberto.</p>}
         {(pedidos ?? []).map((p) => {
-          const rotulo = MODULOS.find((m) => m.key === p.modulo)?.label ?? p.modulo;
+          const rotulo = rotuloItem(p.modulo);
           return (
             <div key={p.id} className="card flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -52,7 +52,7 @@ export default async function PainelAcessos() {
         <h2 className="text-lg font-semibold text-primaryDark">Acessos por usuário</h2>
         <p className="text-sm text-ink-500">Marque os módulos que cada pessoa pode usar. Você pode acrescentar ou retirar a qualquer momento.</p>
         {(pessoas ?? []).map((p) => {
-          const atuais = (p.acessos as string[] | null) ?? [];
+          const liberados = itensLiberados((p.acessos as string[] | null) ?? []);
           return (
             <form key={p.id} action={salvarAcessos.bind(null, p.id)} className="card space-y-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -62,14 +62,19 @@ export default async function PainelAcessos() {
                 </div>
                 <button className="bg-primary text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-primaryDark transition-colors duration-200">Salvar</button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {MODULOS.map((m) => (
-                  <label key={m.key} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-ink-700 cursor-pointer hover:bg-surface-subtle transition-colors duration-200">
-                    <input type="checkbox" name="modulo" value={m.key} defaultChecked={atuais.includes(m.key)} className="accent-[#00778A]" />
-                    {m.label}
-                  </label>
-                ))}
-              </div>
+              {MODULOS.map((mod) => (
+                <div key={mod.key} className="space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">{mod.label}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {ITENS.filter((i) => i.modulo === mod.key).map((i) => (
+                      <label key={i.key} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-ink-700 cursor-pointer hover:bg-surface-subtle transition-colors duration-200">
+                        <input type="checkbox" name="modulo" value={i.key} defaultChecked={liberados.has(i.key)} className="accent-[#00778A]" />
+                        {i.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </form>
           );
         })}

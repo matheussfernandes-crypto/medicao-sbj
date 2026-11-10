@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { ehGestorAcessos, MODULOS } from "@/lib/acessos/modulos";
+import { ehGestorAcessos, ITENS } from "@/lib/acessos/modulos";
 
 // Só o gestor (Matheus) altera permissões.
 async function exigirGestor() {
@@ -14,7 +14,7 @@ async function exigirGestor() {
   return { supabase };
 }
 
-const modulosValidos = new Set(MODULOS.map((m) => m.key as string));
+const modulosValidos = new Set(ITENS.map((i) => i.key));
 
 // Grava exatamente os módulos marcados para a pessoa (acrescenta ou retira).
 export async function salvarAcessos(perfilId: string, formData: FormData) {

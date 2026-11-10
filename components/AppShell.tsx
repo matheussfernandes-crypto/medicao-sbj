@@ -7,7 +7,7 @@ import { Menu, Bell } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Breadcrumbs from "./Breadcrumbs";
 import { sair } from "@/app/auth-actions";
-import { moduloDeCaminho } from "@/lib/acessos/modulos";
+import { itemDeCaminho, permitido } from "@/lib/acessos/modulos";
 import SemAcesso from "./SemAcesso";
 
 export default function AppShell({
@@ -28,8 +28,8 @@ export default function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   // Módulo da página aberta: se a pessoa não tiver acesso, mostra a tela de pedido em vez do conteúdo
   const pathname = usePathname();
-  const modulo = moduloDeCaminho(pathname);
-  const liberado = setor === "ADMIN" || !modulo || (extras ?? []).includes(modulo);
+  const modulo = itemDeCaminho(pathname)?.key ?? null;
+  const liberado = setor === "ADMIN" || permitido(extras ?? [], pathname);
 
   return (
     <div className="min-h-screen lg:flex">

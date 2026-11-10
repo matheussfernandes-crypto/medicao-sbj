@@ -4,10 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { aprovarConta, rejeitarConta, desativarConta, reativarConta, alterarSetor, excluirConta } from "./actions";
 import BotaoConfirmar from "@/components/BotaoConfirmar";
 import NotificacaoAvulsaPanel from "./NotificacaoAvulsaPanel";
-import { MODULOS, ehGestorAcessos } from "@/lib/acessos/modulos";
+import { ITENS, ehGestorAcessos } from "@/lib/acessos/modulos";
 import PainelAcessos from "../acessos/PainelAcessos";
 
-const MODULOS_APROVACAO = MODULOS;
+const MODULOS_APROVACAO = ITENS.map((i) => ({ key: i.key, label: i.label }));
 
 const SETOR_LABEL: Record<string, string> = {
   ESTAGIARIO: "Estagiário",

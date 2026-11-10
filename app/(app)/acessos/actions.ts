@@ -1,11 +1,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { MODULOS } from "@/lib/acessos/modulos";
+import { ITENS } from "@/lib/acessos/modulos";
 
 // Pessoa pede acesso a um módulo. Fica registrado para o gestor aprovar em Administração → Acessos.
 export async function solicitarAcesso(modulo: string) {
-  if (!MODULOS.some((m) => m.key === modulo)) throw new Error("Módulo desconhecido.");
+  if (!ITENS.some((i) => i.key === modulo)) throw new Error("Módulo desconhecido.");
   const supabase = createClient();
   const {
     data: { user },

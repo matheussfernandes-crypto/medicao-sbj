@@ -68,7 +68,7 @@ function vtfGaleria({ titulo, ids, aoMudar }) {
     openModal(`
       <div class="modal-header"><h3>${escapeHtml(titulo)}</h3><button class="modal-close" id="vtf-x" aria-label="Fechar">×</button></div>
       <div class="modal-body">
-        ${ids.length ? `<div class="vtf-grade">${ids.map(id => `<figure><img data-foto="${id}" alt="Foto"><button type="button" class="btn ghost small" data-vtf-del="${id}">Remover</button></figure>`).join("")}</div>` : `<p class="hint">Nenhuma foto ainda.</p>`}
+        ${ids.length ? `<div class="vtf-grade">${ids.map(id => `<figure><button type="button" class="vtf-foto-btn" data-vtf-ver="${id}" aria-label="Ver foto maior"><img data-foto="${id}" alt="Foto"></button><button type="button" class="btn ghost small" data-vtf-del="${id}">Remover</button></figure>`).join("")}</div>` : `<p class="hint">Nenhuma foto ainda.</p>`}
       </div>
       <div class="modal-footer"><button class="btn ghost" id="vtf-fechar">Fechar</button><button class="btn primary" id="vtf-add">${typeof ckIco === "function" ? ckIco("camera", 18) : ""} Tirar foto</button></div>`, true);
     const $ = id => document.getElementById(id);
@@ -80,8 +80,22 @@ function vtfGaleria({ titulo, ids, aoMudar }) {
       await vtfDel(b.dataset.vtfDel); aoMudar(); desenhar();
     });
     vtfHidratar(document.getElementById("modal-root"));
+    document.querySelectorAll("[data-vtf-ver]").forEach(b => b.onclick = () => vtfAmpliar(b.dataset.vtfVer));
   };
   desenhar();
+}
+
+/* foto em tela cheia: toque no fundo ou no × para fechar */
+function vtfAmpliar(id) {
+  const antiga = document.getElementById("vtf-ampliada"); if (antiga) antiga.remove();
+  const fundo = document.createElement("div");
+  fundo.id = "vtf-ampliada"; fundo.className = "vtf-amp";
+  fundo.innerHTML = `<button type="button" class="vtf-amp-x" aria-label="Fechar foto">×</button><img alt="Foto ampliada">`;
+  document.body.appendChild(fundo);
+  const fechar = () => fundo.remove();
+  fundo.addEventListener("click", e => { if (e.target !== fundo.querySelector("img")) fechar(); });
+  fundo.querySelector(".vtf-amp-x").onclick = fechar;
+  vtfUrl(id).then(u => { const img = fundo.querySelector("img"); if (img && u) img.src = u; });
 }
 
 /* ---------- para o PDF ---------- */

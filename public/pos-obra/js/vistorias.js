@@ -20,6 +20,17 @@ let vtAmbienteAtual = VT_AMBIENTES[0];
 let vtTipoAtual = VT_TIPOS[0];
 
 /* nome do cliente (proprietário) da unidade, do cadastro de Clientes */
+/* confirmação com botão claro (no lugar do confirm() do navegador, que fica feio e fácil de passar sem ler) */
+function vtConfirmar({ titulo, texto, botao, aoConfirmar }) {
+  openModal(`
+    <div class="modal-header"><h3>${escapeHtml(titulo)}</h3><button class="modal-close" id="vc-x" aria-label="Fechar">×</button></div>
+    <div class="modal-body"><p class="vt-confirma-txt">${escapeHtml(texto)}</p></div>
+    <div class="modal-footer"><button class="btn ghost" id="vc-nao">Cancelar</button><button class="btn primary vt-perigo" id="vc-sim">${escapeHtml(botao)}</button></div>`);
+  const $ = id => document.getElementById(id);
+  $("vc-x").onclick = $("vc-nao").onclick = closeModal;
+  $("vc-sim").onclick = () => { closeModal(); aoConfirmar(); };
+}
+
 /* cliente cadastrado (lista importada) de um apartamento, ou null */
 function vtClienteDe(buildingId, unit) {
   return (state.clients || []).find(x => x.buildingId === buildingId && String(x.unit).toLowerCase() === String(unit).toLowerCase()) || null;
@@ -128,12 +139,12 @@ function renderVistorias() {
         <button type="button" class="chip ${vtStatus === "todos" ? "active" : ""}" data-vt-st="todos">Todos (${nTodos})</button>
       </div>
       `}
-      <span class="vt-espaco"></span>
-      <button type="button" class="btn primary" id="vt-folha">Realizar vistoria</button>
-      <button type="button" class="btn ghost" id="vt-relatorio">Gerar relatório</button>
-      <button type="button" class="btn ghost" id="vt-sync">Passar para outro aparelho</button>
-      <button type="button" class="btn ghost" id="vt-importar">Importar planilha</button>
-      <button type="button" class="btn ghost" id="vt-nova">Cadastrar pendências</button>
+      <div class="vt-acoes">
+        <button type="button" class="btn primary" id="vt-folha">Realizar vistoria</button>
+        <button type="button" class="btn ghost" id="vt-relatorio">Gerar relatório</button>
+        <button type="button" class="btn ghost" id="vt-importar">Importar planilha</button>
+        <button type="button" class="btn ghost" id="vt-nova">Cadastrar pendências</button>
+      </div>
     </div>
     <div class="vt-total"><strong>${totalAbertas}</strong> pendência${totalAbertas === 1 ? "" : "s"} a resolver${vtFiltroPredio ? " nesta obra" : " no total"} <span id="vt-sync-estado" class="vt-sync-estado"></span></div>
     <div id="vt-grade"></div>`;
@@ -143,7 +154,6 @@ function renderVistorias() {
   root.querySelectorAll("[data-vt-st]").forEach(b => b.addEventListener("click", () => { vtStatus = b.dataset.vtSt; renderVistorias(); }));
   root.querySelector("#vt-nova").addEventListener("click", vtAbrirNova);
   root.querySelector("#vt-importar").addEventListener("click", vtEscolherPlanilha);
-  root.querySelector("#vt-sync").addEventListener("click", vtAbrirSync);
   root.querySelector("#vt-relatorio").addEventListener("click", vtAbrirRelatorio);
   root.querySelector("#vt-folha").addEventListener("click", vfAbrir);
   root.querySelectorAll("[data-vt-modo]").forEach(b => b.addEventListener("click", () => { vtModo = b.dataset.vtModo; vtLimitePlanilha = 300; renderVistorias(); }));
@@ -361,12 +371,12 @@ function renderVistoriaDetalhe(root) {
       </div>
       ${filtrados.length ? `<ul class="vt-lista">${filtrados.map(i => `
         <li class="vt-row ${i.feito ? "feito" : ""}" data-item="${i.id}">
-          <button type="button" class="vt-check" data-vt-toggle="${i.id}" aria-label="${i.feito ? "Reabrir" : "Marcar como resolvida"}" aria-pressed="${i.feito}">${ckIco("feito", 16)}</button>
           <div class="vt-row-corpo">
             <div class="vt-row-tags"><span class="vt-amb-tag">${escapeHtml(i.ambiente)}</span><span class="vt-tag">${escapeHtml(i.tipo)}</span><span class="vt-status ${i.feito ? "ok" : "aberto"}">${i.feito ? "Resolvida" : "Pendente"}</span></div>
             <div class="vt-desc">${escapeHtml(i.descricao)}</div>
             ${vtfThumbs(i.fotos, i.id)}
           </div>
+          <button type="button" class="vt-resolver ${i.feito ? "ok" : ""}" data-vt-toggle="${i.id}" aria-pressed="${i.feito}" title="${i.feito ? "Desfazer: voltar para pendente" : "Marcar esta pendência como resolvida"}">${ckIco("feito", 18)} <span>${i.feito ? "Resolvida" : "Marcar resolvida"}</span></button>
           <button type="button" class="vt-cam" data-vt-cam="${i.id}" aria-label="Tirar foto desta pendência" title="Tirar foto">${ckIco("camera", 20)}</button>
           <button type="button" class="vt-rem" data-vt-rem="${i.id}" aria-label="Remover">${ckIco("naofeito", 15)}</button>
         </li>`).join("")}</ul>` : `<div class="vt-vazio pequeno">${msgVazio}</div>`}`}`;
@@ -412,11 +422,14 @@ function renderVistoriaDetalhe(root) {
   vtfHidratar(root);
 
   const docBtn = root.querySelector("#vt-doc"); if (docBtn) docBtn.onclick = () => { vtAbertaId = null; vfAbrirFinal(v.id); };
-  $("#vt-excluir").onclick = () => {
-    if (!confirm(`Excluir a vistoria do apto ${v.unit} e suas ${v.items.length} pendência(s)?`)) return;
-    v.items.forEach(i => (i.fotos || []).forEach(vtfDel));
-    state.vistorias = vtLista().filter(x => x.id !== v.id); persist(); vtAbertaId = null; renderVistorias();
-  };
+  $("#vt-excluir").onclick = () => vtConfirmar({
+    titulo: "Excluir esta vistoria?",
+    texto: `A vistoria do apto ${v.unit}, com suas ${v.items.length} pendência(s) e fotos, será apagada. Não dá para desfazer.`,
+    botao: "Sim, excluir a vistoria",
+    aoConfirmar: () => {
+      v.items.forEach(i => (i.fotos || []).forEach(vtfDel));
+      state.vistorias = vtLista().filter(x => x.id !== v.id); persist(); vtAbertaId = null; renderVistorias();
+    } });
 }
 
 /* ---------- Importar planilha (.xlsx) ----------

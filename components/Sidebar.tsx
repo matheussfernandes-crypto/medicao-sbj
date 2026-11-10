@@ -39,6 +39,20 @@ export default function Sidebar({
   const [ativa, setAtiva] = useState<SecaoId>(itemAtual?.secao ?? secoes.find((s) => !s.href)?.id ?? "inicio");
   const [painelAberto, setPainelAberto] = useState(true);
   const [fechados, setFechados] = useState<Record<string, boolean>>({});
+
+  // Menu novo (com nomes, expansível) em todo o site. "Voltar ao menu anterior" alterna e a escolha fica salva neste navegador.
+  const [menuNovo, setMenuNovo] = useState(true);
+  useEffect(() => {
+    try {
+      setMenuNovo(localStorage.getItem("sbj-menu-novo") !== "antigo");
+    } catch {}
+  }, []);
+  const trocarMenu = (novo: boolean) => {
+    setMenuNovo(novo);
+    try {
+      localStorage.setItem("sbj-menu-novo", novo ? "novo" : "antigo");
+    } catch {}
+  };
   useEffect(() => {
     if (itemAtual) setAtiva(itemAtual.secao);
   }, [itemAtual?.secao]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -58,6 +72,10 @@ export default function Sidebar({
 
   const secao = secoes.find((s) => s.id === ativa && !s.href) ?? secoes.find((s) => !s.href);
   const pendencias = (s: (typeof secoes)[number]) => s.grupos.flatMap((g) => g.itens).reduce((a, i) => a + (i.badgeKey ? contadores[i.badgeKey] ?? 0 : 0), 0);
+
+  if (menuNovo) {
+    return <MenuNovo pathname={pathname} secoes={secoes} itemAtual={itemAtual} contadores={contadores} mobileOpen={mobileOpen} onClose={onClose} onVoltar={() => trocarMenu(false)} />;
+  }
 
   return (
     <>
@@ -111,6 +129,11 @@ export default function Sidebar({
               );
             })}
           </nav>
+          {(
+            <button type="button" onClick={() => trocarMenu(true)} className="hidden lg:block text-[10px] leading-tight text-white/60 hover:text-white px-1 text-center" title="Mostrar o menu com os nomes">
+              Menu novo
+            </button>
+          )}
           <button type="button" onClick={onClose} className="lg:hidden text-white/70 hover:text-white p-1" aria-label="Fechar menu">
             <X className="w-5 h-5" />
           </button>
@@ -175,6 +198,117 @@ export default function Sidebar({
             <PanelLeftOpen className="w-3.5 h-3.5" />
           </button>
         )}
+      </aside>
+    </>
+  );
+}
+
+/* Menu novo do Pós-obra: cada área tem nome e ícone, abre e fecha com animação, e o que está dentro aparece por extenso. */
+function MenuNovo({
+  pathname,
+  secoes,
+  itemAtual,
+  contadores,
+  mobileOpen,
+  onClose,
+  onVoltar,
+}: {
+  pathname: string;
+  secoes: ReturnType<typeof menuPorSetor>;
+  itemAtual: ReturnType<typeof itemDaRota>;
+  contadores: Record<string, number>;
+  mobileOpen: boolean;
+  onClose: () => void;
+  onVoltar: () => void;
+}) {
+  const [aberta, setAberta] = useState<SecaoId | null>(itemAtual?.secao ?? null);
+  useEffect(() => {
+    if (itemAtual) setAberta(itemAtual.secao);
+  }, [itemAtual?.secao]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pendencias = (s: (typeof secoes)[number]) => s.grupos.flatMap((g) => g.itens).reduce((a, i) => a + (i.badgeKey ? contadores[i.badgeKey] ?? 0 : 0), 0);
+
+  return (
+    <>
+      {mobileOpen && <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={onClose} aria-hidden="true" />}
+      <aside
+        className={
+          "print:hidden fixed inset-y-0 left-0 z-40 w-[260px] flex flex-col bg-[#0e2a30] text-white shadow-xl transition-transform duration-300 ease-out " +
+          "lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shrink-0 " +
+          (mobileOpen ? "translate-x-0" : "-translate-x-full")
+        }
+      >
+        <div className="flex items-center justify-between gap-2 px-4 h-16 shrink-0 border-b border-white/10">
+          <Link href="/dashboard" onClick={onClose} className="flex items-center gap-2 min-w-0">
+            <img src="/logo-topbar.png" alt="SBJ" className="h-8 w-auto" />
+            <span className="text-sm font-semibold truncate">Engenharia SBJ</span>
+          </Link>
+          <button type="button" onClick={onClose} className="lg:hidden text-white/70 hover:text-white p-1" aria-label="Fechar menu">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-1" aria-label="Menu">
+          {secoes.map((s) => {
+            const Icon = s.icon;
+            const ativo = s.href ? pathname === s.href : aberta === s.id;
+            const pend = pendencias(s);
+            const cabeca =
+              "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors duration-200 " + (ativo ? "bg-white/15" : "hover:bg-white/10");
+            const conteudo = (
+              <>
+                <Icon className="w-5 h-5 shrink-0" />
+                <span className="flex-1 text-[15px] font-medium truncate">{s.label}</span>
+                {pend > 0 && <span className="bg-accent text-primaryDark text-[11px] font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1">{pend}</span>}
+                {!s.href && <ChevronDown className={"w-4 h-4 shrink-0 transition-transform duration-300 " + (ativo ? "rotate-180" : "")} />}
+              </>
+            );
+            if (s.href) {
+              return (
+                <Link key={s.id} href={s.href} onClick={onClose} className={cabeca}>
+                  {conteudo}
+                </Link>
+              );
+            }
+            return (
+              <div key={s.id}>
+                <button type="button" onClick={() => setAberta(ativo ? null : s.id)} className={cabeca} aria-expanded={ativo}>
+                  {conteudo}
+                </button>
+                <div className={"grid transition-[grid-template-rows,opacity] duration-300 ease-out " + (ativo ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
+                  <div className="overflow-hidden">
+                    <div className="ml-6 mt-1 mb-2 border-l border-white/15 pl-3 space-y-0.5">
+                      {s.grupos.map((g) => (
+                        <div key={g.nome}>
+                          <p className="text-[11px] uppercase tracking-wide text-white/50 mt-2 mb-1">{g.nome}</p>
+                          {g.itens.map((item) => {
+                            const eAtivo = itemAtual?.href === item.href && itemAtual?.label === item.label;
+                            const Destino: any = item.externo ? "a" : Link;
+                            return (
+                              <Destino
+                                key={item.label + item.href}
+                                href={item.href}
+                                onClick={onClose}
+                                className={"flex items-center justify-between rounded-md px-2.5 py-2 text-[14px] transition-colors " + (eAtivo ? "bg-white/20 font-semibold" : "text-white/80 hover:bg-white/10 hover:text-white")}
+                              >
+                                <span className="truncate">{item.label}</span>
+                              </Destino>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="shrink-0 border-t border-white/10 p-3">
+          <button type="button" onClick={onVoltar} className="w-full text-left text-xs text-white/60 hover:text-white">
+            ↺ Voltar ao menu anterior
+          </button>
+        </div>
       </aside>
     </>
   );

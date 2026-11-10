@@ -354,7 +354,11 @@ function vfRenderFinal(root) {
   [["prop", "as-prop", "prop"], ["tec", "as-tec", "tec"], ["termo", "as-termo", "termo"]].forEach(([chave, id, campo]) => {
     pads[chave] = vtAssinatura($(id), v.assin[campo] || "", (png) => { v.assin[campo] = png; persist(); });
   });
-  root.querySelectorAll("[data-as-limpar]").forEach(btn => btn.onclick = () => pads[btn.dataset.asLimpar].limpar());
+  root.querySelectorAll("[data-as-limpar]").forEach(btn => btn.onclick = () => vtConfirmar({
+    titulo: "Apagar esta assinatura?",
+    texto: "Esta assinatura registra que o cliente recebeu o imóvel e as chaves. Só apague se ela foi feita errada.",
+    botao: "Sim, apagar assinatura",
+    aoConfirmar: () => pads[btn.dataset.asLimpar].limpar() }));
 
   /* dados que o PDF usa */
   const salvaTexto = () => { v.nomeProp = $("vf-nome-prop").value.trim(); v.nomeTec = $("vf-nome-tec").value.trim(); tm.nome = $("tm-nome").value.trim(); tm.extra = $("tm-extra").value.trim(); persist(); };

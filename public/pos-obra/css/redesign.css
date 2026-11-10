@@ -419,3 +419,44 @@ input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
 
 /* no tablet não existe passar o mouse: botões de foto e remover sempre visíveis */
 .vt-row .vt-rem, .vt-row .vt-cam { opacity: 1; }
+
+/* ---------- Ajustes do tablet (rodada de testes) ---------- */
+/* cabeçalho da lista: botões agrupados e alinhados */
+.vt-acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; margin-left: auto; }
+.vt-acoes .btn { min-height: 44px; padding: 0 16px; white-space: nowrap; }
+.vt-barra { align-items: flex-end; }
+
+/* pendência: botão claro de resolver */
+.vt-resolver { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 10px; border: 2px solid #1fa971; background: #fff; color: #137a4f; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; flex: none; }
+.vt-resolver.ok { background: #1fa971; color: #fff; }
+.vt-resolver:active { transform: scale(.97); }
+.vt-row { align-items: center; }
+.vt-row .vt-cam, .vt-row .vt-rem { width: 44px; height: 44px; }
+.vt-row.feito .vt-resolver { opacity: 1; }
+
+/* fotos: miniaturas maiores e ampliação em tela cheia */
+.vtf-th { width: 112px !important; height: 84px !important; }
+.vtf-th img { width: 100%; height: 100%; object-fit: cover; }
+.vtf-grade figure img { width: 100%; height: auto; max-height: 62vh; object-fit: contain; border-radius: 10px; }
+.vtf-foto-btn { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.vtf-amp { position: fixed; inset: 0; z-index: 10050; background: rgba(0, 0, 0, .92); display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; }
+.vtf-amp img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+.vtf-amp-x { position: absolute; top: 14px; right: 14px; width: 52px; height: 52px; border-radius: 999px; border: 0; background: #fff; color: #111; font-size: 32px; line-height: 1; cursor: pointer; }
+
+/* confirmação de ação que não pode ser desfeita */
+.vt-confirma-txt { font-size: 16px; line-height: 1.5; }
+.vt-perigo { background: #b42318 !important; border-color: #b42318 !important; }
+
+/* planilha: todas as colunas visíveis no tablet, sem rolar para o lado */
+@media (max-width: 1280px) {
+  .vp-rolagem { overflow-x: visible !important; }
+  .vp-tabela { table-layout: fixed; width: 100%; }
+  .vp-tabela th, .vp-tabela td { white-space: normal !important; overflow-wrap: anywhere; padding: 8px 6px !important; font-size: 13px; vertical-align: top; }
+  .vp-tabela th:nth-child(1), .vp-tabela td:nth-child(1) { width: 12%; }
+  .vp-tabela th:nth-child(2), .vp-tabela td:nth-child(2) { width: 12%; }
+  .vp-tabela th:nth-child(3), .vp-tabela td:nth-child(3) { width: 16%; }
+  .vp-tabela th:nth-child(4), .vp-tabela td:nth-child(4) { width: 14%; }
+  .vp-tabela th:nth-child(5), .vp-tabela td:nth-child(5) { width: auto; }
+  .vp-tabela th:nth-child(6), .vp-tabela td:nth-child(6) { width: 14%; }
+  .vp-pill { white-space: normal; }
+}

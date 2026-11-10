@@ -240,10 +240,12 @@ function MenuNovo({
             const ativo = s.href ? pathname === s.href : aberta === s.id;
             const pend = pendencias(s);
             const cabeca =
-              "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors duration-200 " + (ativo ? "bg-white/15" : "hover:bg-white/10");
+              "w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-all duration-200 " + (ativo ? "bg-white/15" : "hover:bg-white/10");
             const conteudo = (
               <>
-                <Icon className="w-5 h-5 shrink-0" />
+                <span className={"flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200 " + (ativo ? "bg-accent text-primaryDark" : "bg-white/10")}>
+                  <Icon className="w-4 h-4" />
+                </span>
                 <span className="flex-1 text-[15px] font-medium truncate">{s.label}</span>
                 {pend > 0 && <span className="bg-accent text-primaryDark text-[11px] font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1">{pend}</span>}
                 {!s.href && <ChevronDown className={"w-4 h-4 shrink-0 transition-transform duration-300 " + (ativo ? "rotate-180" : "")} />}
@@ -275,7 +277,7 @@ function MenuNovo({
                                 key={item.label + item.href}
                                 href={item.href}
                                 onClick={onClose}
-                                className={"flex items-center justify-between rounded-md px-2.5 py-2 text-[14px] transition-colors " + (eAtivo ? "bg-white/20 font-semibold" : "text-white/80 hover:bg-white/10 hover:text-white")}
+                                className={"flex items-center justify-between rounded-lg px-2.5 py-2 text-[14px] transition-colors duration-200 " + (eAtivo ? "bg-accent/20 text-white font-semibold" : "text-white/75 hover:bg-white/10 hover:text-white")}
                               >
                                 <span className="truncate">{item.label}</span>
                               </Destino>

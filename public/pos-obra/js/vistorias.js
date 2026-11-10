@@ -9,7 +9,8 @@ const VT_TIPOS = ["Pintura", "Porta", "Esquadria", "Limpeza", "Pedreiro", "Reves
 
 let vtAbertaId = null;      // vistoria aberta no detalhe
 let vtFiltroPredio = "";
-let vtSomentePendentes = true;
+let vtAbaDet = "lista";          // aba da vistoria: "lista" (pendências) | "lancar"
+let vtFiltroDet = "pendentes";   // filtro da lista: "pendentes" | "resolvidos" | "todas"
 /* Itens cuja situação foi trocada AGORA continuam na lista, mesmo que o filtro os escondesse,
    para dar tempo de desfazer. Só saem quando a pessoa muda de filtro, de tela ou de apartamento. */
 const vtPlanMantem = new Set();
@@ -19,6 +20,10 @@ let vtAmbienteAtual = VT_AMBIENTES[0];
 let vtTipoAtual = VT_TIPOS[0];
 
 /* nome do cliente (proprietário) da unidade, do cadastro de Clientes */
+/* cliente cadastrado (lista importada) de um apartamento, ou null */
+function vtClienteDe(buildingId, unit) {
+  return (state.clients || []).find(x => x.buildingId === buildingId && String(x.unit).toLowerCase() === String(unit).toLowerCase()) || null;
+}
 function vtNomeCliente(buildingId, unit) {
   const c = state.clients.find(x => x.buildingId === buildingId && String(x.unit).toLowerCase() === String(unit).toLowerCase());
   return c && c.name ? String(c.name).replace(/\s+/g, " ").trim() : "";
@@ -310,12 +315,18 @@ function vtLinhaParaItem(linha) {
 function renderVistoriaDetalhe(root) {
   const v = vtLista().find(x => x.id === vtAbertaId), b = getBuilding(v.buildingId), r = vtResumo(v);
   if (vtDetMantemDe !== v.id) { vtDetMantem.clear(); vtDetMantemDe = v.id; }
-  const itens = v.items.filter(i => !vtSomentePendentes || !i.feito || vtDetMantem.has(i.id));
-  const porAmb = new Map();
-  itens.forEach(i => { if (!porAmb.has(i.ambiente)) porAmb.set(i.ambiente, []); porAmb.get(i.ambiente).push(i); });
-  const chips = (lista, atual, grupo) => lista.map(x => `<button type="button" class="vt-chip ${x === atual ? "ativo" : ""}" data-vt-chip="${grupo}" data-v="${escapeHtml(x)}">${escapeHtml(x)}</button>`).join("");
   const ambientes = Array.from(new Set([...VT_AMBIENTES, vtAmbienteAtual]));
   const tipos = Array.from(new Set([...VT_TIPOS, vtTipoAtual]));
+  const opcoes = (lista, atual) => lista.map(x => `<option value="${escapeHtml(x)}" ${x === atual ? "selected" : ""}>${escapeHtml(x)}</option>`).join("");
+  const ordemAmb = a => { const k = VT_AMBIENTES.indexOf(a); return k < 0 ? 99 : k; };
+  /* "mantém" o item que acabou de ser marcado, para ele não sumir da lista na hora */
+  const filtrados = v.items
+    .filter(i => vtFiltroDet === "todas" || vtDetMantem.has(i.id) || (vtFiltroDet === "pendentes" ? !i.feito : i.feito))
+    .slice().sort((x, y) => ordemAmb(x.ambiente) - ordemAmb(y.ambiente));
+  const msgVazio = !v.items.length ? "Nenhuma pendência lançada ainda. Use a aba “Lançar pendências”."
+    : vtFiltroDet === "pendentes" ? "Nenhuma pendência em aberto. Tudo resolvido neste apartamento."
+    : "Nenhuma pendência resolvida ainda.";
+  const seg = (k, rotulo, n) => `<button type="button" class="vt-seg-op ${vtFiltroDet === k ? "ativo" : ""}" data-vt-f="${k}" aria-pressed="${vtFiltroDet === k}">${rotulo} <b>${n}</b></button>`;
 
   root.innerHTML = `
     <div class="vt-topo">
@@ -324,57 +335,72 @@ function renderVistoriaDetalhe(root) {
       <div class="vt-prog"><span class="vt-trilho grande"><span style="width:${r.pct}%"></span></span><strong>${r.feitos}/${r.total}</strong> resolvidas</div>
     </div>
 
-    <div class="panel vt-add">
-      <h3>Lançar pendências</h3>
-      <div class="vt-rot">Ambiente</div>
-      <div class="vt-chips">${chips(ambientes, vtAmbienteAtual, "ambiente")}<input type="text" id="vt-outro-amb" class="vt-mini" placeholder="outro ambiente + Enter"></div>
-      <div class="vt-rot">O que é</div>
-      <div class="vt-chips">${chips(tipos, vtTipoAtual, "tipo")}</div>
-      <textarea id="vt-texto" rows="2" placeholder="Descreva a pendência e aperte Enter. Pode colar várias linhas de uma vez (uma pendência por linha)."></textarea>
-      <div class="hint">Vai para <strong>${escapeHtml(vtAmbienteAtual)}</strong> · <strong>${escapeHtml(vtTipoAtual)}</strong>. Dica: começar a linha com o ambiente (“Cozinha: parede manchada”) muda só aquela linha.</div>
-    </div>
-
-    <div class="vt-filtro">
-      <button type="button" class="chip ${vtSomentePendentes ? "active" : ""}" data-vt-f="1">A resolver (${r.abertas})</button>
-      <button type="button" class="chip ${!vtSomentePendentes ? "active" : ""}" data-vt-f="0">Todas (${r.total})</button>
+    <div class="vt-abas" role="tablist">
+      <button type="button" role="tab" class="vt-aba ${vtAbaDet === "lista" ? "ativa" : ""}" data-vt-aba="lista">Pendências <span>${v.items.length}</span></button>
+      <button type="button" role="tab" class="vt-aba ${vtAbaDet === "lancar" ? "ativa" : ""}" data-vt-aba="lancar">+ Lançar pendências</button>
       <span class="vt-espaco"></span>
       ${v.folha ? `<button type="button" class="btn ghost small" id="vt-doc">PDF e e-mail</button>` : ""}
       <button type="button" class="btn ghost small danger-txt" id="vt-excluir">Excluir vistoria</button>
     </div>
 
-    ${itens.length ? Array.from(porAmb.entries()).map(([amb, lista]) => `
-      <div class="vt-amb">
-        <h4>${escapeHtml(amb)} <span>${lista.length}</span></h4>
-        ${lista.map(i => `
-          <div class="vt-item ${i.feito ? "feito" : ""}" data-item="${i.id}">
-            <button type="button" class="vt-check" data-vt-toggle="${i.id}" aria-label="${i.feito ? "Reabrir" : "Marcar como resolvido"}" aria-pressed="${i.feito}">${ckIco("feito", 16)}</button>
-            <div class="vt-item-corpo"><span class="vt-tag">${escapeHtml(i.tipo)}</span><span class="vt-desc">${escapeHtml(i.descricao)}</span>${vtfThumbs(i.fotos, i.id)}</div>
-            <button type="button" class="vt-cam" data-vt-cam="${i.id}" aria-label="Tirar foto desta pendência" title="Tirar foto">${ckIco("camera", 20)}</button>
-            <button type="button" class="vt-rem" data-vt-rem="${i.id}" aria-label="Remover">${ckIco("naofeito", 15)}</button>
-          </div>`).join("")}
-      </div>`).join("") : `<div class="vt-vazio pequeno">${r.total ? "Tudo resolvido neste apartamento." : (v.folha ? "Vistoria sem pendências." : "Nenhuma pendência lançada ainda. Use o quadro acima.")}</div>`}`;
+    ${vtAbaDet === "lancar" ? `
+      <div class="panel vt-add">
+        <div class="vt-form-lin">
+          <label class="vt-campo">Ambiente<select id="vt-sel-amb">${opcoes(ambientes, vtAmbienteAtual)}</select></label>
+          <label class="vt-campo">O que é<select id="vt-sel-tipo">${opcoes(tipos, vtTipoAtual)}</select></label>
+        </div>
+        <input type="text" id="vt-outro-amb" class="vt-mini" placeholder="Outro ambiente (digite e aperte Enter)" autocomplete="off">
+        <label class="vt-campo">Pendência<textarea id="vt-texto" rows="3" placeholder="Descreva o problema. Enter adiciona. Para várias, cole uma pendência por linha."></textarea></label>
+        <div class="vt-form-acao">
+          <span class="hint">Vai para <strong>${escapeHtml(vtAmbienteAtual)}</strong> · <strong>${escapeHtml(vtTipoAtual)}</strong></span>
+          <button type="button" class="btn primary" id="vt-add">Adicionar pendência</button>
+        </div>
+      </div>` : `
+      <div class="vt-seg" role="group" aria-label="Filtrar pendências">
+        ${seg("pendentes", "Pendentes", r.abertas)}${seg("resolvidos", "Resolvidos", r.feitos)}${seg("todas", "Todas", r.total)}
+      </div>
+      ${filtrados.length ? `<ul class="vt-lista">${filtrados.map(i => `
+        <li class="vt-row ${i.feito ? "feito" : ""}" data-item="${i.id}">
+          <button type="button" class="vt-check" data-vt-toggle="${i.id}" aria-label="${i.feito ? "Reabrir" : "Marcar como resolvida"}" aria-pressed="${i.feito}">${ckIco("feito", 16)}</button>
+          <div class="vt-row-corpo">
+            <div class="vt-row-tags"><span class="vt-amb-tag">${escapeHtml(i.ambiente)}</span><span class="vt-tag">${escapeHtml(i.tipo)}</span><span class="vt-status ${i.feito ? "ok" : "aberto"}">${i.feito ? "Resolvida" : "Pendente"}</span></div>
+            <div class="vt-desc">${escapeHtml(i.descricao)}</div>
+            ${vtfThumbs(i.fotos, i.id)}
+          </div>
+          <button type="button" class="vt-cam" data-vt-cam="${i.id}" aria-label="Tirar foto desta pendência" title="Tirar foto">${ckIco("camera", 20)}</button>
+          <button type="button" class="vt-rem" data-vt-rem="${i.id}" aria-label="Remover">${ckIco("naofeito", 15)}</button>
+        </li>`).join("")}</ul>` : `<div class="vt-vazio pequeno">${msgVazio}</div>`}`}`;
 
   const $ = s => root.querySelector(s);
   $("#vt-voltar").onclick = () => { vtAbertaId = null; renderVistorias(); };
-  root.querySelectorAll("[data-vt-chip]").forEach(b => b.onclick = () => {
-    if (b.dataset.vtChip === "ambiente") vtAmbienteAtual = b.dataset.v; else vtTipoAtual = b.dataset.v;
-    const f = $("#vt-texto").value; renderVistorias(); const n = document.getElementById("vt-texto"); n.value = f; n.focus();
-  });
-  $("#vt-outro-amb").addEventListener("keydown", e => {
-    if (e.key !== "Enter") return; e.preventDefault();
-    const x = e.target.value.trim(); if (!x) return; vtAmbienteAtual = x; renderVistorias(); document.getElementById("vt-texto").focus();
-  });
-  const texto = $("#vt-texto");
-  const adicionar = () => {
-    const linhas = texto.value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    if (!linhas.length) return;
-    linhas.forEach(l => v.items.push(vtLinhaParaItem(l)));
-    persist(); renderVistorias(); document.getElementById("vt-texto").focus();
-    toast(linhas.length === 1 ? "Pendência lançada." : `${linhas.length} pendências lançadas.`, "success");
-  };
-  texto.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); adicionar(); } });
-  texto.addEventListener("paste", () => setTimeout(() => { if (texto.value.includes("\n")) adicionar(); }, 0));
-  root.querySelectorAll("[data-vt-f]").forEach(b => b.onclick = () => { vtSomentePendentes = b.dataset.vtF === "1"; vtDetMantem.clear(); renderVistorias(); });
+  root.querySelectorAll("[data-vt-aba]").forEach(b => b.onclick = () => { vtAbaDet = b.dataset.vtAba; renderVistorias(); });
+  root.querySelectorAll("[data-vt-f]").forEach(b => b.onclick = () => { vtFiltroDet = b.dataset.vtF; vtDetMantem.clear(); renderVistorias(); });
+
+  /* aba "Lançar pendências" */
+  const selAmb = $("#vt-sel-amb"), selTipo = $("#vt-sel-tipo"), texto = $("#vt-texto");
+  if (selAmb) {
+    const adicionar = () => {
+      vtAmbienteAtual = selAmb.value; vtTipoAtual = selTipo.value;
+      const linhas = texto.value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (!linhas.length) { texto.focus(); return; }
+      linhas.forEach(l => v.items.push(vtLinhaParaItem(l)));
+      persist(); renderVistorias();
+      const n = document.getElementById("vt-texto"); if (n) n.focus();
+      toast(linhas.length === 1 ? "Pendência lançada." : `${linhas.length} pendências lançadas.`, "success");
+    };
+    selAmb.onchange = () => { vtAmbienteAtual = selAmb.value; };
+    selTipo.onchange = () => { vtTipoAtual = selTipo.value; };
+    $("#vt-outro-amb").addEventListener("keydown", e => {
+      if (e.key !== "Enter") return; e.preventDefault();
+      const x = e.target.value.trim(); if (!x) return;
+      vtAmbienteAtual = x; renderVistorias(); document.getElementById("vt-texto").focus();
+    });
+    $("#vt-add").onclick = adicionar;
+    texto.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); adicionar(); } });
+    texto.addEventListener("paste", () => setTimeout(() => { if (texto.value.includes("\n")) adicionar(); }, 0));
+  }
+
+  /* aba "Pendências" */
   root.querySelectorAll("[data-vt-toggle]").forEach(b => b.onclick = () => {
     const it = v.items.find(i => i.id === b.dataset.vtToggle); it.feito = !it.feito; it.feitoEm = it.feito ? todayISODate() : "";
     vtDetMantem.add(it.id); persist();
@@ -384,6 +410,7 @@ function renderVistoriaDetalhe(root) {
   root.querySelectorAll("[data-vt-cam]").forEach(b => b.onclick = async () => { const it = v.items.find(i => i.id === b.dataset.vtCam); const id = await vtfTirarFoto(); if (id && it) { (it.fotos = it.fotos || []).push(id); persist(); renderVistorias(); } });
   root.querySelectorAll("[data-vtf-abrir]").forEach(b => b.onclick = () => { const it = v.items.find(i => i.id === b.dataset.vtfAbrir); if (!it) return; vtfGaleria({ titulo: `Apto ${v.unit} · ${it.ambiente} · ${it.tipo}`, ids: it.fotos = it.fotos || [], aoMudar: () => { persist(); renderVistorias(); } }); });
   vtfHidratar(root);
+
   const docBtn = root.querySelector("#vt-doc"); if (docBtn) docBtn.onclick = () => { vtAbertaId = null; vfAbrirFinal(v.id); };
   $("#vt-excluir").onclick = () => {
     if (!confirm(`Excluir a vistoria do apto ${v.unit} e suas ${v.items.length} pendência(s)?`)) return;
@@ -603,7 +630,7 @@ async function vtEnviarPdfPorEmail(docOuLista, nome, email, assunto, corpo) {
   }
   lista.forEach(x => x.doc.save(x.nome));
   toast(lista.length > 1 ? "PDFs baixados. Anexe os arquivos ao e-mail que vai abrir." : "PDF baixado. Anexe o arquivo ao e-mail que vai abrir.", "success");
-  window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+  window.location.href = `mailto:${email.split(/[,;]s*/).map(e => encodeURIComponent(e)).join(",")}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
 }
 
 async function vtEntregarPdf(doc, nome) {

@@ -280,13 +280,13 @@ const VF_OBJETOS_PADRAO = [[2, "CHAVE MANUAL PORTA DE ENTRADA DO APTO"], [2, "TA
 /* dados do termo de recebimento: o que já foi preenchido, senão o cliente cadastrado e a lista padrão de chaves/objetos */
 function vfDadosTermo(v) {
   if (!v.termo) {
-    const cli = vtNomeCliente(v.buildingId, v.unit);
+    const cli = vtClienteDe(v.buildingId, v.unit) || {};
     let objetos = VF_OBJETOS_PADRAO.map(o => ({ q: o[0], n: o[1], r: "" }));
     try { const salvo = JSON.parse(localStorage.getItem("posvenda_vf_objetos") || "null"); if (Array.isArray(salvo) && salvo.length) {
       const lido = salvo.map(o => Array.isArray(o) ? { q: o[0], n: o[1], r: "" } : { q: o && o.q, n: o && o.n, r: "" }).filter(o => typeof o.n === "string" && o.n);
       if (lido.length) objetos = lido;   // formato antigo (lista de pares) e novo (objetos) são aceitos
     } } catch (e) { /* padrão */ }
-    v.termo = { nome: cli, garagem: true, objetos, extra: "" };
+    v.termo = { nome: String(cli.name || "").replace(/\s+/g, " ").trim(), garagem: true, objetos, extra: "" };
   }
   if (!v.assin) v.assin = { prop: "", tec: "", termo: "" };
   return v.termo;
@@ -295,7 +295,8 @@ function vfDadosTermo(v) {
 function vfRenderFinal(root) {
   const v = vtLista().find(x => x.id === vf.vid);
   if (!v) { vf = null; renderVistorias(); return; }
-  const b = getBuilding(v.buildingId), tm = vfDadosTermo(v);
+  const b = getBuilding(v.buildingId), tm = vfDadosTermo(v), cliente = vtClienteDe(v.buildingId, v.unit) || {};
+  if (!tm.nome && cliente.name) tm.nome = String(cliente.name).replace(/\s+/g, " ").trim();
   root.innerHTML = `
     <div class="vt-topo"><button type="button" class="btn ghost small" id="vf-fim-voltar">← Vistorias</button>
       <div class="vt-titulo"><h2>Apto ${escapeHtml(v.unit)} — vistoria salva</h2><span>${b ? escapeHtml(b.name) : ""} · ${fmtDate(v.date)}${v.responsavel ? " · " + escapeHtml(v.responsavel) : ""}</span></div></div>
@@ -332,7 +333,10 @@ function vfRenderFinal(root) {
       <div class="panel vf-passo">
         <h3>3. Documentos e e-mail</h3>
         <div class="vf-botoes"><button type="button" class="btn ghost" id="vf-pdf">PDF da vistoria assinada</button><button type="button" class="btn ghost" id="tm-pdf">PDF do termo de recebimento</button></div>
-        <label class="vt-campo" style="margin-top:16px;">E-mail do proprietário<input type="email" id="vf-email" placeholder="nome@email.com" value="${escapeHtml(v.email || "")}" autocomplete="off"></label>
+        <div class="vf-emails" style="margin-top:16px;">
+          <label class="vt-campo">E-mail do proprietário<input type="email" id="vf-email" placeholder="nome@email.com" value="${escapeHtml(v.email || cliente.email || "")}" autocomplete="off"></label>
+          <label class="vt-campo">Outro e-mail (opcional)<input type="email" id="vf-email2" placeholder="segundo e-mail, se tiver" value="${escapeHtml(v.email2 || "")}" autocomplete="off"></label>
+        </div>
         <div class="vf-botoes"><button type="button" class="btn primary" id="vf-mail">Enviar os documentos por e-mail</button></div>
         <p class="hint">No celular e no tablet, abre a folha de compartilhar (Gmail, Mail…) com os PDFs já anexados, e o e-mail do cliente fica copiado para colar em "Para". No computador, baixa os PDFs e abre o e-mail; aí é preciso anexar os arquivos.</p>
       </div>
@@ -367,13 +371,15 @@ function vfRenderFinal(root) {
   $("vf-pdf").onclick = async () => { salvaTexto(); await vfPdfVistoria(v); };
   $("tm-pdf").onclick = async () => { salvaTexto(); if (!tm.nome) { toast("Digite o nome do proprietário no termo.", "error"); $("tm-nome").focus(); return; } const r = await vfMontarTermo(v); if (!r) return; const feito = await vtEntregarPdf(r.doc, r.nome); if (feito !== "cancelado") toast(feito === "compartilhado" ? "PDF pronto para enviar." : "PDF do termo gerado.", "success"); };
   $("vf-mail").onclick = async () => {
-    salvaTexto(); v.email = $("vf-email").value.trim(); persist();
+    salvaTexto(); v.email = $("vf-email").value.trim(); v.email2 = $("vf-email2").value.trim(); persist();
     if (!/^\S+@\S+\.\S+$/.test(v.email || "")) { toast("Digite um e-mail válido.", "error"); $("vf-email").focus(); return; }
+    if (v.email2 && !/^\S+@\S+\.\S+$/.test(v.email2)) { toast("O segundo e-mail não está válido.", "error"); $("vf-email2").focus(); return; }
+    const emails = [v.email, v.email2].filter(Boolean);
     const t = vfTextoEmail(v), lista = [];
     const r1 = await vfMontarPdf(v); if (r1) lista.push(r1);
     if (tm.nome && v.assin.termo) { const r2 = await vfMontarTermo(v); if (r2) lista.push(r2); }
-    if (!lista.length) { window.location.href = `mailto:${encodeURIComponent(v.email)}?subject=${encodeURIComponent(t.assunto)}&body=${encodeURIComponent(t.corpo)}`; return; }
-    await vtEnviarPdfPorEmail(lista, null, v.email, t.assunto, t.corpo);
+    if (!lista.length) { window.location.href = `mailto:${emails.map(e => encodeURIComponent(e)).join(",")}?subject=${encodeURIComponent(t.assunto)}&body=${encodeURIComponent(t.corpo)}`; return; }
+    await vtEnviarPdfPorEmail(lista, null, emails.join(", "), t.assunto, t.corpo);
   };
 }
 

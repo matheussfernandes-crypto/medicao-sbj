@@ -460,3 +460,29 @@ input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
   .vp-tabela th:nth-child(6), .vp-tabela td:nth-child(6) { width: 14%; }
   .vp-pill { white-space: normal; }
 }
+
+/* ---------- Planilha: colunas sem sobrepor e situação em bolinha ---------- */
+.vp-tabela .vt-tag { display: inline-block; max-width: 100%; white-space: normal; line-height: 1.2; font-size: 12px; padding: 3px 7px; }
+.vp-tabela th:nth-child(6), .vp-tabela td:nth-child(6) { width: 9% !important; text-align: center; }
+.vp-tabela .vp-pill { background: none !important; border: 0 !important; padding: 4px !important; box-shadow: none !important; cursor: pointer; }
+.vp-bola { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; background: #F5C518; box-shadow: 0 0 0 4px rgba(245, 197, 24, .2); transition: transform .2s ease, background-color .2s ease; }
+.vp-bola.ok { background: #1fa971; color: #fff; box-shadow: none; }
+.vp-pill:active .vp-bola { transform: scale(.85); }
+
+/* ---------- Visualizador de fotos: setas e contador ---------- */
+.vtf-amp img { transition: opacity .2s ease; }
+.vtf-amp img.trocando { opacity: .25; }
+.vtf-amp-seta { position: absolute; top: 50%; transform: translateY(-50%); width: 56px; height: 56px; border-radius: 999px; border: 0; background: rgba(255, 255, 255, .16); color: #fff; font-size: 38px; line-height: 1; cursor: pointer; transition: background-color .2s ease; }
+.vtf-amp-seta:hover { background: rgba(255, 255, 255, .3); }
+.vtf-amp-seta.esq { left: 14px; }
+.vtf-amp-seta.dir { right: 14px; }
+.vtf-amp-cont { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); color: #fff; background: rgba(0, 0, 0, .45); padding: 6px 12px; border-radius: 999px; font-size: 14px; }
+
+/* ---------- Fluidez: entradas e trocas suaves, sem saltos ---------- */
+#view-vistorias > * { animation: vtSuave .2s ease both; }
+@keyframes vtSuave { from { opacity: 0; } to { opacity: 1; } }
+.vt-row, .vp-tabela tbody tr { transition: background-color .2s ease, opacity .25s ease; }
+.vt-row.feito { transition: opacity .3s ease, background-color .3s ease; }
+.vt-aba, .vt-seg-op, .vt-modo, .vt-chip, .chip, .vt-resolver, .vp-multi, .btn { transition: background-color .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .15s ease; }
+.vt-aba:active, .vt-seg-op:active, .vt-resolver:active, .btn:active { transform: scale(.97); }
+@media (prefers-reduced-motion: reduce) { #view-vistorias > *, .vt-row, .vp-tabela tbody tr { animation: none; transition: none; } }

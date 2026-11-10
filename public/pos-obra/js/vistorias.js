@@ -262,7 +262,7 @@ function vtPlanCorpo(root) {
       <td><span class="vt-tag">${escapeHtml(i.tipo)}</span></td>
       <td class="vp-amb">${escapeHtml(i.ambiente)}</td>
       <td class="vp-desc">${escapeHtml(i.descricao)}${nf ? ` <button type="button" class="vp-fotos" data-vp-fotos="${i.id}" data-vp-v="${v.id}" title="Ver fotos">${ckIco("camera", 14)} ${nf}</button>` : ""}</td>
-      <td class="vp-sit"><button type="button" class="vp-pill ${i.feito ? "ok" : "pend"}" data-vp-toggle="${i.id}" data-vp-v="${v.id}" aria-pressed="${i.feito}" title="Clique para ${i.feito ? "reabrir" : "marcar como resolvido"}">${i.feito ? "Resolvido" : "Pendente"}</button></td>
+      <td class="vp-sit"><button type="button" class="vp-pill ${i.feito ? "ok" : "pend"}" data-vp-toggle="${i.id}" data-vp-v="${v.id}" aria-pressed="${i.feito}" aria-label="${i.feito ? "Resolvido" : "Pendente"}" title="${i.feito ? "Resolvido. Clique para reabrir" : "Pendente. Clique para marcar como resolvido"}"><span class="vp-bola ${i.feito ? "ok" : ""}">${i.feito ? ckIco("feito", 13) : ""}</span></button></td>
     </tr>`;
   }).join("");
   const tbody = grade.querySelector("tbody");

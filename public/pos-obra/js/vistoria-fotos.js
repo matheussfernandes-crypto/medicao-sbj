@@ -80,22 +80,49 @@ function vtfGaleria({ titulo, ids, aoMudar }) {
       await vtfDel(b.dataset.vtfDel); aoMudar(); desenhar();
     });
     vtfHidratar(document.getElementById("modal-root"));
-    document.querySelectorAll("[data-vtf-ver]").forEach(b => b.onclick = () => vtfAmpliar(b.dataset.vtfVer));
+    document.querySelectorAll("[data-vtf-ver]").forEach(b => b.onclick = () => vtfAmpliar(b.dataset.vtfVer, ids));
   };
   desenhar();
 }
 
-/* foto em tela cheia: toque no fundo ou no × para fechar */
-function vtfAmpliar(id) {
+/* foto em tela cheia. Com mais de uma foto: setas, deslizar com o dedo e setas do teclado. */
+function vtfAmpliar(id, ids) {
+  const lista = ids && ids.length ? ids.slice() : [id];
+  let i = Math.max(0, lista.indexOf(id));
   const antiga = document.getElementById("vtf-ampliada"); if (antiga) antiga.remove();
   const fundo = document.createElement("div");
   fundo.id = "vtf-ampliada"; fundo.className = "vtf-amp";
-  fundo.innerHTML = `<button type="button" class="vtf-amp-x" aria-label="Fechar foto">×</button><img alt="Foto ampliada">`;
+  const varias = lista.length > 1;
+  fundo.innerHTML = `<button type="button" class="vtf-amp-x" aria-label="Fechar foto">×</button>${varias ? `<button type="button" class="vtf-amp-seta esq" aria-label="Foto anterior">‹</button><button type="button" class="vtf-amp-seta dir" aria-label="Próxima foto">›</button><span class="vtf-amp-cont"></span>` : ""}<img alt="Foto ampliada">`;
   document.body.appendChild(fundo);
-  const fechar = () => fundo.remove();
-  fundo.addEventListener("click", e => { if (e.target !== fundo.querySelector("img")) fechar(); });
+  const img = fundo.querySelector("img"), cont = fundo.querySelector(".vtf-amp-cont");
+  const mostrar = (k) => {
+    i = (k + lista.length) % lista.length;
+    img.classList.add("trocando");
+    vtfUrl(lista[i]).then(u => { if (u) img.src = u; img.classList.remove("trocando"); });
+    if (cont) cont.textContent = (i + 1) + " / " + lista.length;
+  };
+  const fechar = () => { document.removeEventListener("keydown", tecla); fundo.remove(); };
+  const tecla = (e) => {
+    if (e.key === "Escape") fechar();
+    if (varias && e.key === "ArrowLeft") mostrar(i - 1);
+    if (varias && e.key === "ArrowRight") mostrar(i + 1);
+  };
+  document.addEventListener("keydown", tecla);
+  fundo.addEventListener("click", e => { if (e.target === fundo) fechar(); });
   fundo.querySelector(".vtf-amp-x").onclick = fechar;
-  vtfUrl(id).then(u => { const img = fundo.querySelector("img"); if (img && u) img.src = u; });
+  if (varias) {
+    fundo.querySelector(".esq").onclick = e => { e.stopPropagation(); mostrar(i - 1); };
+    fundo.querySelector(".dir").onclick = e => { e.stopPropagation(); mostrar(i + 1); };
+    let x0 = null;
+    fundo.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, { passive: true });
+    fundo.addEventListener("touchend", e => {
+      if (x0 == null) return;
+      const dx = e.changedTouches[0].clientX - x0; x0 = null;
+      if (Math.abs(dx) > 40) mostrar(dx < 0 ? i + 1 : i - 1);
+    }, { passive: true });
+  }
+  mostrar(i);
 }
 
 /* ---------- para o PDF ---------- */

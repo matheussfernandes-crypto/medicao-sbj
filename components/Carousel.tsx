@@ -34,7 +34,7 @@ export default function Carousel({
   }
 
   return (
-    <div className="relative rounded-xl overflow-hidden border border-border bg-white h-full min-h-[220px]">
+    <div className="relative rounded-xl overflow-hidden border border-border bg-white h-full min-h-[500px] lg:min-h-[420px]">
       {slides.map((slide, i) => (
         <div
           key={i}

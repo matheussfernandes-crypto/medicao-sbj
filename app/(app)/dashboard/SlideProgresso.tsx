@@ -1,6 +1,7 @@
 import type { ProgressoObra } from "./painel-obras";
 
-const COR = { fin: "#1f8a4c", and: "#f59e0b", nao: "#e5e7eb" };
+const FIN = "#0E6B73";
+const AND = "#F5C518";
 
 function Rosca({ p }: { p: ProgressoObra }) {
   const r = 52;
@@ -8,70 +9,89 @@ function Rosca({ p }: { p: ProgressoObra }) {
   const fin = (p.pctFinalizado / 100) * c;
   const and = (p.pctAndamento / 100) * c;
   return (
-    <svg viewBox="0 0 130 130" className="w-32 h-32 shrink-0 -rotate-90">
-      <circle cx="65" cy="65" r={r} fill="none" stroke={COR.nao} strokeWidth="14" />
-      <circle cx="65" cy="65" r={r} fill="none" stroke={COR.and} strokeWidth="14" strokeDasharray={`${fin + and} ${c}`} />
-      <circle cx="65" cy="65" r={r} fill="none" stroke={COR.fin} strokeWidth="14" strokeDasharray={`${fin} ${c}`} />
+    <svg viewBox="0 0 130 130" className="w-28 h-28 sm:w-36 sm:h-36 shrink-0 -rotate-90" aria-hidden="true">
+      <circle cx="65" cy="65" r={r} fill="none" stroke="#EEF2F3" strokeWidth="13" />
+      <circle cx="65" cy="65" r={r} fill="none" stroke={AND} strokeWidth="13" strokeLinecap="round" strokeDasharray={`${fin + and} ${c}`} />
+      <circle cx="65" cy="65" r={r} fill="none" stroke={FIN} strokeWidth="13" strokeLinecap="round" strokeDasharray={`${fin} ${c}`} />
     </svg>
   );
 }
 
-const fmt = (v: number) => String(v).replace(".", ",");
+const fmt = (v: number) => String(Math.round(v)).replace(".", ",");
 
 export default function SlideProgresso({ p }: { p: ProgressoObra }) {
   return (
-    <div className="h-full w-full bg-white p-5 sm:p-6 flex flex-col">
-      <div className="flex items-baseline gap-2 mb-2 pr-10">
-        <h2 className="text-primaryDark font-semibold text-lg leading-tight">{p.nome}</h2>
-        <span className="text-xs text-ink-500">Andamento físico</span>
+    <div className="h-full w-full bg-white p-4 sm:p-6 flex flex-col overflow-y-auto">
+      <div className="pr-10">
+        <h2 className="text-primaryDark font-semibold text-lg sm:text-xl leading-tight">{p.nome}</h2>
+        <p className="text-xs text-ink-500 mt-0.5">Andamento físico · {p.unidades} locais</p>
       </div>
 
       {p.unidades === 0 ? (
-        <div className="flex-1 flex items-center justify-center text-sm text-ink-500 text-center">
+        <div className="flex-1 flex items-center justify-center text-sm text-ink-500 text-center py-10">
           Ainda não há pavimentos e locais cadastrados no Andamento de Obra (novo).
         </div>
       ) : (
-        <div className="flex-1 min-h-0 flex flex-wrap items-center gap-x-8 gap-y-3">
-          <div className="flex items-center gap-4">
-            <div className="relative">
+        <>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-5 items-center">
+            <div className="relative mx-auto sm:mx-0">
               <Rosca p={p} />
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold text-primaryDark leading-none">{fmt(Math.round(p.pct))}%</span>
-                <span className="text-[10px] text-ink-500 mt-0.5">concluído</span>
+                <span className="text-2xl sm:text-3xl font-semibold text-primaryDark leading-none tabular-nums">{fmt(p.pct)}%</span>
+                <span className="text-[11px] text-ink-500 mt-1">concluído</span>
               </div>
             </div>
-            <ul className="text-xs text-ink-700 space-y-1">
-              <li className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: COR.fin }} />Finalizado {fmt(Math.round(p.pctFinalizado))}%</li>
-              <li className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: COR.and }} />Em andamento {fmt(Math.round(p.pctAndamento))}%</li>
-              <li className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: COR.nao }} />Não iniciado {fmt(Math.round(p.pctNaoIniciado))}%</li>
-              <li className="text-ink-500 pt-0.5">{p.unidades} locais</li>
-            </ul>
-          </div>
 
-          <div className="flex-1 min-w-[260px] grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 content-center">
-            {p.servicos.map((s) => (
-              <div key={s.nome}>
-                <div className="flex justify-between text-[11px] text-ink-700 leading-tight">
-                  <span className="truncate pr-2">{s.nome}</span>
-                  <b className="tabular-nums">{fmt(Math.round(s.pct))}%</b>
-                </div>
-                <div className="h-1.5 rounded-full bg-[#e5e7eb] overflow-hidden mt-0.5">
-                  <div className="h-full rounded-full" style={{ width: `${Math.min(100, s.pct)}%`, background: COR.fin }} />
-                </div>
+            <div className="space-y-2.5 min-w-0">
+              <div className="rounded-xl bg-surface-subtle p-3">
+                <p className="text-[11px] uppercase tracking-wider text-ink-500">Estágio atual</p>
+                {p.estagio ? (
+                  <>
+                    <p className="font-semibold text-ink-900 mt-0.5 leading-snug">{p.estagio.nome}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex-1 h-2 rounded-full bg-white overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, p.estagio.pct)}%`, background: FIN }} />
+                      </div>
+                      <b className="text-sm tabular-nums text-primaryDark">{fmt(p.estagio.pct)}%</b>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-ink-700 mt-0.5">Obra concluída</p>
+                )}
               </div>
-            ))}
+              <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5">
+                <span className="text-sm text-ink-700">Prazo para a entrega</span>
+                {p.diasParaEntrega === null ? (
+                  <span className="text-sm text-ink-500">sem prazo cadastrado</span>
+                ) : p.diasParaEntrega >= 0 ? (
+                  <b className="text-lg tabular-nums text-primaryDark">{p.diasParaEntrega} dias</b>
+                ) : (
+                  <b className="text-sm text-danger">vencido há {Math.abs(p.diasParaEntrega)} dias</b>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-700">
+                <span className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full" style={{ background: FIN }} />Finalizado {fmt(p.pctFinalizado)}%</span>
+                <span className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full" style={{ background: AND }} />Em andamento {fmt(p.pctAndamento)}%</span>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
 
-      {p.grupos.length > 1 && p.unidades > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2 max-h-14 overflow-hidden">
-          {p.grupos.map((g) => (
-            <span key={g.nome} className="text-[11px] bg-primary/10 text-primaryDark rounded-full px-2.5 py-0.5">
-              {g.nome}: <b>{fmt(Math.round(g.pct))}%</b>
-            </span>
-          ))}
-        </div>
+          {p.grupos.length > 0 && (
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+              {p.grupos.slice(0, 6).map((g) => (
+                <div key={g.nome}>
+                  <div className="flex justify-between gap-2 text-[12px] text-ink-700 leading-tight">
+                    <span className="truncate">{g.nome}</span>
+                    <b className="tabular-nums shrink-0">{fmt(g.pct)}%</b>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-[#EEF2F3] overflow-hidden mt-1">
+                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, g.pct)}%`, background: FIN }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

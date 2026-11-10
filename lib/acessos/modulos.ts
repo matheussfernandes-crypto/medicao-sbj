@@ -11,8 +11,12 @@ export const MODULOS = [
 
 export type ModuloKey = (typeof MODULOS)[number]["key"];
 
-// Único usuário que vê e altera as permissões de todos.
-export const GESTOR_ACESSOS_EMAIL = "matheus.sfernandes@hotmail.com";
+// Único usuário que vê e altera as permissões de todos (os dois e-mails são da mesma pessoa).
+export const GESTORES_ACESSOS_EMAILS = ["matheus.sfernandes@hotmail.com", "matheus@sbjconstrutora.com.br"];
+
+export function ehGestorAcessos(email: string | null | undefined): boolean {
+  return !!email && GESTORES_ACESSOS_EMAILS.includes(email.toLowerCase());
+}
 
 /** Módulo a que um endereço pertence, ou null se for uma página livre. */
 export function moduloDeCaminho(caminho: string): ModuloKey | null {

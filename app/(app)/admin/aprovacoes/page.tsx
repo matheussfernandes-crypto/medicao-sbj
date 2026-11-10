@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { aprovarConta, rejeitarConta, desativarConta, reativarConta } from "./actions";
 import NotificacaoAvulsaPanel from "./NotificacaoAvulsaPanel";
-import { MODULOS } from "@/lib/acessos/modulos";
+import { MODULOS, ehGestorAcessos } from "@/lib/acessos/modulos";
+import PainelAcessos from "../acessos/PainelAcessos";
 
 const MODULOS_APROVACAO = MODULOS;
 
@@ -31,6 +32,7 @@ export default async function AprovacoesPage() {
     redirect("/dashboard");
   }
   const meuId = user!.id;
+  const ehGestor = ehGestorAcessos(user!.email);
 
   const { data: pendentes } = await supabase
     .from("perfis")
@@ -165,6 +167,14 @@ export default async function AprovacoesPage() {
           </tbody>
         </table>
       </div>
+
+      {ehGestor && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold text-primaryDark">Controle de acessos</h2>
+          <p className="text-sm text-ink-500 -mt-2">Visível só para você. Libere ou retire módulos de cada pessoa e responda pedidos de acesso.</p>
+          <PainelAcessos />
+        </section>
+      )}
 
       <NotificacaoAvulsaPanel usuarios={usuariosAprovados ?? []} />
     </>

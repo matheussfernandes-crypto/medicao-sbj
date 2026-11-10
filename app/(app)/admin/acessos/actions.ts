@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { GESTOR_ACESSOS_EMAIL, MODULOS } from "@/lib/acessos/modulos";
+import { ehGestorAcessos, MODULOS } from "@/lib/acessos/modulos";
 
 // Só o gestor (Matheus) altera permissões.
 async function exigirGestor() {
@@ -10,7 +10,7 @@ async function exigirGestor() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user || user.email !== GESTOR_ACESSOS_EMAIL) throw new Error("Apenas o gestor pode alterar acessos.");
+  if (!user || !ehGestorAcessos(user.email)) throw new Error("Apenas o gestor pode alterar acessos.");
   return { supabase };
 }
 

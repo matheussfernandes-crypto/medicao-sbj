@@ -132,6 +132,9 @@ export default async function AprovacoesPage() {
                 <td className="p-3">{c.nome_completo}</td>
                 <td className="p-3">{c.email}</td>
                 <td className="p-3">
+                  {ehGestorAcessos(c.email) ? (
+                    <span className="text-xs text-ink-500">Protegido</span>
+                  ) : (
                   <form action={alterarSetor.bind(null, c.id)} className="flex items-center gap-1">
                     <select name="setor" defaultValue={c.setor ?? ""} className="border rounded px-2 py-1 text-xs bg-white">
                       {Object.entries(SETOR_LABEL).map(([v, r]) => (
@@ -140,6 +143,7 @@ export default async function AprovacoesPage() {
                     </select>
                     <button className="bg-gray-200 rounded px-2 py-1 text-xs">Salvar</button>
                   </form>
+                  )}
                 </td>
                 <td className="p-3">
                   <span
@@ -157,7 +161,7 @@ export default async function AprovacoesPage() {
                 </td>
                 <td className="p-3">{fmtData(c.decidido_em)}</td>
                 <td className="p-3">
-                  {c.status === "aprovado" && c.id !== meuId && (
+                  {c.status === "aprovado" && c.id !== meuId && !ehGestorAcessos(c.email) && (
                     <form action={desativarConta.bind(null, c.id)} className="inline">
                       <button className="bg-gray-200 rounded px-3 py-1 text-xs">Desativar acesso</button>
                     </form>
@@ -167,7 +171,7 @@ export default async function AprovacoesPage() {
                       <button className="bg-primary text-white rounded px-3 py-1 text-xs">Reativar</button>
                     </form>
                   )}
-                  {c.status !== "excluido" && c.id !== meuId && (
+                  {c.status !== "excluido" && c.id !== meuId && !ehGestorAcessos(c.email) && (
                     <BotaoConfirmar
                       action={excluirConta.bind(null, c.id)}
                       mensagem={`Excluir o acesso de ${c.nome_completo ?? c.email}? A pessoa perde o acesso ao sistema. O histórico (medições, lançamentos, vistorias) continua registrado.`}

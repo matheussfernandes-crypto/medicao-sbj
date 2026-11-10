@@ -19,7 +19,10 @@ const modulosValidos = new Set(ITENS.map((i) => i.key));
 // Grava exatamente os módulos marcados para a pessoa (acrescenta ou retira).
 export async function salvarAcessos(perfilId: string, formData: FormData) {
   const { supabase } = await exigirGestor();
-  const escolhidos = Array.from(new Set(formData.getAll("modulo").map(String))).filter((m) => modulosValidos.has(m));
+  // "todos" libera tudo de uma vez; senão, grava exatamente o que foi marcado
+  const escolhidos = formData.get("todos")
+    ? Array.from(modulosValidos)
+    : Array.from(new Set(formData.getAll("modulo").map(String))).filter((m) => modulosValidos.has(m));
   const { error } = await supabase.from("perfis").update({ acessos: escolhidos }).eq("id", perfilId);
   if (error) throw new Error("Não foi possível salvar os acessos.");
   revalidatePath("/admin/acessos");

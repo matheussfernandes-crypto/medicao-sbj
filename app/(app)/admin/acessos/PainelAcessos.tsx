@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { ITENS, MODULOS, itensLiberados, rotuloItem } from "@/lib/acessos/modulos";
+import { ITENS, MODULOS, ehGestorAcessos, itensLiberados, rotuloItem } from "@/lib/acessos/modulos";
 import { salvarAcessos, responderSolicitacao } from "./actions";
 
 const SETOR_LABEL: Record<string, string> = {
@@ -58,10 +58,14 @@ export default async function PainelAcessos() {
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <div>
                   <p className="font-semibold text-ink-900">{p.nome_completo ?? p.email}</p>
-                  <p className="text-xs text-ink-500">{SETOR_LABEL[p.setor ?? ""] ?? p.setor}</p>
+                  <p className="text-xs text-ink-500">{SETOR_LABEL[p.setor ?? ""] ?? p.setor}{ehGestorAcessos(p.email) ? " · conta protegida" : ""}</p>
                 </div>
                 <button className="bg-primary text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-primaryDark transition-colors duration-200">Salvar</button>
               </div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-primaryDark cursor-pointer">
+                <input type="checkbox" name="todos" value="1" className="accent-[#00778A]" />
+                Liberar todos os módulos (acesso total)
+              </label>
               {MODULOS.map((mod) => (
                 <div key={mod.key} className="space-y-1.5">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">{mod.label}</p>

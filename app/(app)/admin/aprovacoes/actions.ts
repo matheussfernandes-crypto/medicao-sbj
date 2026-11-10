@@ -2,7 +2,14 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { ehGestorAcessos } from "@/lib/acessos/modulos";
 import { notificarUsuarios } from "@/lib/push/send";
+
+// Conta do gestor (Matheus): não pode ser desativada, excluída, rebaixada nem rejeitada.
+async function protegerGestor(supabase: ReturnType<typeof createClient>, perfilId: string) {
+  const { data } = await supabase.from("perfis").select("email").eq("id", perfilId).single();
+  if (ehGestorAcessos(data?.email)) throw new Error("Esta conta é protegida e não pode ser alterada.");
+}
 
 async function exigirAdmin() {
   const supabase = createClient();
@@ -28,6 +35,7 @@ export async function aprovarConta(perfilId: string, formData?: FormData) {
 
 export async function rejeitarConta(perfilId: string) {
   const { supabase, user } = await exigirAdmin();
+  await protegerGestor(supabase, perfilId);
   await supabase
     .from("perfis")
     .update({ status: "rejeitado", decidido_por: user.id, decidido_em: new Date().toISOString() })
@@ -39,6 +47,7 @@ export async function rejeitarConta(perfilId: string) {
 // histórico (lançamentos, fechamentos etc. continuam vinculados ao perfil).
 export async function desativarConta(perfilId: string) {
   const { supabase, user } = await exigirAdmin();
+  await protegerGestor(supabase, perfilId);
   if (perfilId === user.id) {
     throw new Error("Você não pode desativar o seu próprio acesso.");
   }
@@ -54,6 +63,7 @@ const SETORES_VALIDOS = ["ESTAGIARIO", "ADMIN", "ARQUITETO", "ENGENHEIRO", "MEST
 // Troca o setor (cargo) de uma pessoa. Não permite tirar o próprio acesso de ADM.
 export async function alterarSetor(perfilId: string, formData: FormData) {
   const { supabase, user } = await exigirAdmin();
+  await protegerGestor(supabase, perfilId);
   const setor = String(formData.get("setor") || "");
   if (!SETORES_VALIDOS.includes(setor)) throw new Error("Setor inválido.");
   if (perfilId === user.id && setor !== "ADMIN") {
@@ -67,6 +77,7 @@ export async function alterarSetor(perfilId: string, formData: FormData) {
 // vistorias ficam ligados a ele), mas a pessoa perde o acesso e some das listas.
 export async function excluirConta(perfilId: string) {
   const { supabase, user } = await exigirAdmin();
+  await protegerGestor(supabase, perfilId);
   if (perfilId === user.id) throw new Error("Você não pode excluir o seu próprio acesso.");
   await supabase
     .from("perfis")

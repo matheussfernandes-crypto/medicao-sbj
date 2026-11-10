@@ -10,14 +10,8 @@ import {
   FileCheck2,
   BarChart3,
   History,
-  HardHat,
-  Wrench,
-  FilePlus2,
-  ListChecks,
-  CalendarClock,
   Archive,
-  FileBarChart2,
-  Tags,
+  HardHat,
   Handshake,
   ClipboardPen,
   CheckCheck,
@@ -30,7 +24,7 @@ import {
 } from "lucide-react";
 
 // Setores do menu (coluna de ícones, no estilo do Sienge). Cada item de navegação pertence a um setor e a um grupo dentro dele.
-export type SecaoId = "inicio" | "obras" | "medicoes" | "contratos" | "manutencoes" | "posobra" | "financeiro" | "admin";
+export type SecaoId = "inicio" | "obras" | "medicoes" | "contratos" | "posobra" | "financeiro" | "admin";
 
 export type Secao = {
   id: SecaoId;
@@ -44,7 +38,6 @@ export const SECOES: Secao[] = [
   { id: "obras", label: "Obras", icon: HardHat },
   { id: "medicoes", label: "Medições e Vales", icon: ClipboardList },
   { id: "contratos", label: "Contratos", icon: Handshake },
-  { id: "manutencoes", label: "Manutenções", icon: Wrench },
   { id: "posobra", label: "Pós-obra", icon: ClipboardCheck },
   { id: "financeiro", label: "Financeiro", icon: Coins },
   { id: "admin", label: "Administração", icon: Settings },
@@ -163,71 +156,6 @@ export const NAV_ITEMS: NavItem[] = [
     allowedSetores: ["ADMIN", "FINANCEIRO"],
     secao: "contratos",
     grupo: "Contratos",
-  },
-
-  // ---- Manutenções ----
-  {
-    label: "Dashboard",
-    href: "/manutencoes",
-    icon: Wrench,
-    description: "Indicadores de chamados de manutenção/assistência técnica.",
-    allowedSetores: ["ADMIN", "ARQUITETO", "ENGENHEIRO", "MESTRE_GERAL", "ESTAGIARIO"],
-    secao: "manutencoes",
-    grupo: "Chamados",
-  },
-  {
-    label: "Nova Ordem de Serviço",
-    href: "/manutencoes/nova",
-    icon: FilePlus2,
-    description: "Cadastrar um chamado em ~30 segundos.",
-    allowedSetores: ["ADMIN", "ARQUITETO", "ENGENHEIRO", "ESTAGIARIO"],
-    secao: "manutencoes",
-    grupo: "Chamados",
-  },
-  {
-    label: "Ordens de Serviço",
-    href: "/manutencoes/os",
-    icon: ListChecks,
-    description: "Acompanhar e executar chamados abertos.",
-    allowedSetores: ["ADMIN", "ARQUITETO", "ENGENHEIRO", "MESTRE_GERAL", "ESTAGIARIO"],
-    secao: "manutencoes",
-    grupo: "Chamados",
-  },
-  {
-    label: "Agenda",
-    href: "/manutencoes/agenda",
-    icon: CalendarClock,
-    description: "Chamados agendados por data, funcionário ou empresa.",
-    allowedSetores: ["ADMIN", "ARQUITETO", "ENGENHEIRO", "MESTRE_GERAL", "ESTAGIARIO"],
-    secao: "manutencoes",
-    grupo: "Chamados",
-  },
-  {
-    label: "Histórico",
-    href: "/manutencoes/historico",
-    icon: Archive,
-    description: "Histórico técnico permanente, com busca e filtros.",
-    allowedSetores: ["ADMIN", "ARQUITETO", "ENGENHEIRO", "MESTRE_GERAL", "ESTAGIARIO"],
-    secao: "manutencoes",
-    grupo: "Consultas",
-  },
-  {
-    label: "Relatórios",
-    href: "/manutencoes/historico",
-    icon: FileBarChart2,
-    description: "Exportar PDF/Excel do histórico de manutenções.",
-    allowedSetores: ["ADMIN", "ARQUITETO", "ENGENHEIRO", "MESTRE_GERAL", "ESTAGIARIO"],
-    secao: "manutencoes",
-    grupo: "Consultas",
-  },
-  {
-    label: "Categorias & Problemas",
-    href: "/manutencoes/opcoes",
-    icon: Tags,
-    description: "Cadastrar novas categorias e problemas usados ao abrir uma OS.",
-    allowedSetores: ["ADMIN"],
-    secao: "manutencoes",
-    grupo: "Configuração",
   },
 
   // ---- Pós-obra (módulo estático em public/pos-obra, aberto dentro do site em /posobra) ----

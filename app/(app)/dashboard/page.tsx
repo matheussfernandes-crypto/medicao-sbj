@@ -1,31 +1,101 @@
 import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import Link from "next/link";
-import { navItemsForSetor, type NavItem } from "@/components/nav-items";
+import { createClient } from "@/lib/supabase/server";
+import { navItemsForSetor } from "@/components/nav-items";
 import Carousel from "@/components/Carousel";
-import CalendarioPainel, { type EventoCalendario } from "@/components/CalendarioPainel";
+import MiniCalendar, { type EventoCalendario } from "@/components/MiniCalendar";
 import { HardHat } from "lucide-react";
 import { carregarPainelObras } from "./painel-obras";
 import SlideProgresso from "./SlideProgresso";
 import PainelObrasSeletor from "./PainelObrasSeletor";
 
-function emDias(qtd: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + qtd);
-  return d.toISOString().slice(0, 10);
+function mesAtualISO() {
+  return new Date().toISOString().slice(0, 7);
 }
 
 export default async function DashboardPage() {
+  const supabase = createClient();
   const user = await getUsuarioAtual();
   const { data: perfil } = await perfilDaRequisicao(user!.id);
+
   const setor = perfil?.setor ?? "ESTAGIARIO";
+  const mes = mesAtualISO();
 
-  // Obra em destaque: só as obras em andamento (ainda não 100%), girando no carrossel.
+  // KPIs — cada um é opcional e só é buscado/mostrado conforme o setor,
+  // para não disparar consultas que o usuário não tem permissão de ver.
+  const kpis: { label: string; value: string; hint?: string; href: string }[] = [];
+
+  if (setor === "ADMIN") {
+    const [{ count: cadastrosPendentes }, { count: lancamentosPendentes }, { data: medicoesMes }] =
+      await Promise.all([
+        supabase.from("perfis").select("id", { count: "exact", head: true }).eq("status", "pendente"),
+        supabase.from("lancamentos").select("id", { count: "exact", head: true }).eq("status", "PENDENTE"),
+        supabase
+          .from("lancamentos")
+          .select("total_reais")
+          .eq("tipo", "MEDICAO")
+          .eq("status", "APROVADO")
+          .eq("mes_referencia", mes),
+      ]);
+
+    const totalMedidoMes = (medicoesMes ?? []).reduce((s, l) => s + Number(l.total_reais ?? 0), 0);
+
+    kpis.push(
+      { label: "Cadastros pendentes", value: String(cadastrosPendentes ?? 0), href: "/admin/aprovacoes" },
+      { label: "Lançamentos pendentes", value: String(lancamentosPendentes ?? 0), href: "/lancamentos" },
+      { label: "Medido este mês", value: `R$ ${totalMedidoMes.toFixed(2)}`, hint: mes, href: "/admin/fechamento" }
+    );
+  }
+
+  if (setor === "FINANCEIRO" || setor === "ADMIN") {
+    const [{ data: pessoasRetencao }, { data: medicoesRetencao }, { data: retiradas }] = await Promise.all([
+      supabase
+        .from("pessoas")
+        .select("id, saldo_inicial_retido")
+        .not("papel", "in", "(MESTRE,MESTRE_GERAL)"),
+      supabase
+        .from("lancamentos")
+        .select("pessoa_id, total_reais, retencao_pct_usado")
+        .in("tipo", ["MEDICAO", "VALE_MEDICAO"])
+        .eq("status", "APROVADO"),
+      supabase.from("retiradas_retido").select("pessoa_id, valor"),
+    ]);
+
+    const retidoPorPessoa: Record<string, number> = {};
+    for (const l of medicoesRetencao ?? []) {
+      const pct = Number(l.retencao_pct_usado ?? 0);
+      retidoPorPessoa[l.pessoa_id] = (retidoPorPessoa[l.pessoa_id] ?? 0) + Number(l.total_reais) * pct;
+    }
+    const retiradoPorPessoa: Record<string, number> = {};
+    for (const r of retiradas ?? []) {
+      retiradoPorPessoa[r.pessoa_id] = (retiradoPorPessoa[r.pessoa_id] ?? 0) + Number(r.valor);
+    }
+    const saldoRetidoGeral = (pessoasRetencao ?? []).reduce((soma, p) => {
+      const totalRetido = Number(p.saldo_inicial_retido ?? 0) + (retidoPorPessoa[p.id] ?? 0);
+      const totalRetirado = retiradoPorPessoa[p.id] ?? 0;
+      return soma + (totalRetido - totalRetirado);
+    }, 0);
+
+    kpis.push({ label: "Saldo retido (geral)", value: `R$ ${saldoRetidoGeral.toFixed(2)}`, href: "/financeiro/retiradas" });
+  }
+
+  if (setor === "ESTAGIARIO") {
+    const { count: meusPendentes } = await supabase
+      .from("lancamentos")
+      .select("id", { count: "exact", head: true })
+      .eq("criado_por", user!.id)
+      .eq("status", "PENDENTE");
+
+    kpis.push({ label: "Meus lançamentos pendentes", value: String(meusPendentes ?? 0), href: "/lancamentos" });
+  }
+
+  const atalhos = navItemsForSetor(setor).filter((item) => item.href !== "/dashboard");
+
+  // Carrossel: gráfico de andamento + fotos mais recentes de cada obra marcada
+  // (o ADMIN escolhe quais pelo ícone de ajustes no canto do carrossel).
   const painel = await carregarPainelObras();
-  const emAndamento = painel.progresso.filter((p) => p.unidades > 0 && p.pct < 100);
-  const obrasDestaque = emAndamento.length ? emAndamento : painel.progresso;
-
   const slides: React.ReactNode[] = [];
-  for (const prog of obrasDestaque) {
+  for (const prog of painel.progresso) {
     slides.push(<SlideProgresso key={"prog-" + prog.obraId} p={prog} />);
     painel.fotos
       .filter((f) => f.obraId === prog.obraId)
@@ -49,7 +119,7 @@ export default async function DashboardPage() {
     slides.push(
       <div key="vazio" className="h-full w-full flex flex-col items-center justify-center text-center gap-3 p-8 bg-primaryDark">
         <HardHat className="w-10 h-10 text-accent" />
-        <p className="text-white text-lg font-semibold">Nenhuma obra em andamento</p>
+        <p className="text-white text-lg font-semibold">Nenhuma obra no painel</p>
         <p className="text-white/60 text-sm max-w-sm">
           {setor === "ADMIN"
             ? "Use o ícone de ajustes no canto para escolher as obras que aparecem aqui."
@@ -58,74 +128,66 @@ export default async function DashboardPage() {
       </div>
     );
   }
-
-  // Marcações de exemplo, até a agenda real ser ligada.
-  const eventos: EventoCalendario[] = [
-    { data: emDias(2), label: "Fechamento mensal (previsto)", detalhe: "Fechamento do mês" },
-    { data: emDias(6), label: "Reunião de obra — Ilha de Capri", detalhe: "Reunião de obra" },
-    { data: emDias(11), label: "Revisão de aprovações pendentes", detalhe: "Aprovações" },
-    { data: emDias(17), label: "Vencimento de contrato — empresa terceirizada", detalhe: "Contratos" },
+  function emDias(qtd: number) {
+    const d = new Date();
+    d.setDate(d.getDate() + qtd);
+    return d.toISOString().slice(0, 10);
+  }
+  const eventosExemplo: EventoCalendario[] = [
+    { data: emDias(2), label: "Fechamento mensal (previsto)" },
+    { data: emDias(6), label: "Reunião de obra — Ilha de Capri" },
+    { data: emDias(11), label: "Revisão de aprovações pendentes" },
+    { data: emDias(17), label: "Vencimento de contrato — empresa terceirizada" },
   ];
 
-  // Acesso rápido agrupado pela área do menu (Obras, Contratos, Manutenção, Pós-obra…)
-  const atalhos = navItemsForSetor(setor).filter((item) => item.href !== "/dashboard");
-  const grupos = atalhos.reduce<Record<string, NavItem[]>>((acc, item) => {
-    (acc[item.grupo] ??= []).push(item);
-    return acc;
-  }, {});
-
-  const dataHoje = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  const nome = perfil?.nome_completo?.split(" ")[0] ?? "bem-vindo";
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-primaryDark">Olá, {nome}</h1>
-          <p className="text-sm text-ink-500 mt-1">Visão geral das obras e dos chamados</p>
-        </div>
-        <p className="text-sm text-ink-500 capitalize">{dataHoje}</p>
+    <>
+      <div>
+        <h1 className="text-xl font-semibold text-ink-900">
+          Olá, {perfil?.nome_completo?.split(" ")[0] ?? "bem-vindo"}
+        </h1>
+        <p className="text-sm text-ink-500">Visão geral do sistema de medição de empreiteiros.</p>
       </div>
 
-      <section aria-label="Obra em destaque">
-        <div className="relative">
-          <Carousel slides={slides} intervalMs={8000} />
-          {setor === "ADMIN" && <PainelObrasSeletor obras={painel.obras} />}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <div className="relative h-full">
+            <Carousel slides={slides} intervalMs={7000} />
+            {setor === "ADMIN" && <PainelObrasSeletor obras={painel.obras} />}
+          </div>
         </div>
-      </section>
+        <MiniCalendar eventos={eventosExemplo} />
+      </div>
 
-      <section aria-label="Acesso rápido">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-3">Acesso rápido</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {Object.entries(grupos).map(([nomeGrupo, itens]) => (
-            <div key={nomeGrupo} className="rounded-2xl bg-surface-subtle p-3">
-              <p className="px-2 pt-1 pb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-500">{nomeGrupo}</p>
-              <div className="space-y-1">
-                {itens.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.href + item.label}
-                      href={item.href}
-                      className="group flex items-center gap-3 rounded-xl bg-white p-3 transition-all duration-200 hover:shadow-panel active:scale-[0.99]"
-                    >
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors duration-200 group-hover:bg-primary group-hover:text-white">
-                        <Icon className="w-5 h-5" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block font-semibold text-primaryDark">{item.label}</span>
-                        <span className="block text-xs text-ink-500 truncate">{item.description}</span>
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
+      {kpis.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {kpis.map((kpi) => (
+            <Link key={kpi.label} href={kpi.href} className="stat-tile hover:shadow-panel transition-shadow">
+              <span className="stat-label">{kpi.label}</span>
+              <span className="stat-value">{kpi.value}</span>
+              {kpi.hint && <span className="stat-hint">{kpi.hint}</span>}
+            </Link>
           ))}
         </div>
-      </section>
+      )}
 
-      <CalendarioPainel eventos={eventos} />
-    </div>
+      <div>
+        <p className="nav-group-label !text-ink-400 !px-0">Acesso rápido</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {atalhos.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link key={item.href} href={item.href} className="card hover:shadow-panel transition-shadow flex items-start gap-3">
+                <Icon className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <h2 className="font-semibold text-primaryDark">{item.label}</h2>
+                  <p className="text-sm text-ink-500">{item.description}</p>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </>
   );
 }

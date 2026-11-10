@@ -17,9 +17,6 @@ export type ProgressoObra = {
   pctNaoIniciado: number;
   unidades: number; // locais cadastrados (apartamentos, áreas comuns…)
   grupos: { nome: string; pct: number }[]; // pavimentos e sistemas
-  estagio: { nome: string; pct: number } | null; // setor em que a obra está agora (o primeiro que não terminou)
-  faltaPct: number; // quanto falta para a entrega (100 - concluído)
-  diasParaEntrega: number | null; // dias até a data de entrega prevista (negativo = vencida); null = sem data cadastrada
   servicos: { nome: string; pct: number }[];
 };
 
@@ -28,7 +25,7 @@ export type FotoPainel = { obraId: string; obraNome: string; url: string; dataFo
 const pct1 = (v: number) => Math.round(v * 10) / 10;
 
 // Progresso de uma obra do Andamento (novo): mesma conta das telas e do relatório (fatias).
-async function progressoDaObra(supabase: ReturnType<typeof createClient>, obra: { id: string; nome: string; obra_geral_id?: string | null; data_entrega_prevista?: string | null }): Promise<ProgressoObra> {
+async function progressoDaObra(supabase: ReturnType<typeof createClient>, obra: { id: string; nome: string; obra_geral_id?: string | null }): Promise<ProgressoObra> {
   const [{ data: categorias }, { data: servicos }, { data: pavimentos }, { data: sistemas }] = await Promise.all([
     supabase.from("an_categoria").select("id, chave, nome, cor, ordem").eq("obra_id", obra.id).order("ordem"),
     supabase.from("an_servico").select("id, nome, grupo, fase_id, vale_pavimento_inteiro, ordem, fatia").eq("obra_id", obra.id).eq("arquivado", false).order("ordem"),
@@ -81,9 +78,6 @@ async function progressoDaObra(supabase: ReturnType<typeof createClient>, obra: 
     ...sists.map((s) => ({ nome: s.nome, soma: rec([], itens.filter((i) => i.sistema_id === s.id)) })),
   ].filter((g) => g.soma.tot > 0 || g.soma.aus > 0);
 
-  const gruposPct = grupos.map((g) => ({ nome: g.nome, pct: pct1(pct(g.soma)) }));
-  const estagio = gruposPct.find((g) => g.pct > 0 && g.pct < 100) ?? gruposPct.find((g) => g.pct < 100) ?? null;
-
   return {
     obraId: obra.id,
     obraGeralId: obra.obra_geral_id ?? null,
@@ -93,12 +87,7 @@ async function progressoDaObra(supabase: ReturnType<typeof createClient>, obra: 
     pctAndamento: pct1(pctAnd),
     pctNaoIniciado: base > 0 ? pct1(Math.max(0, 100 - pctFin - pctAnd)) : 0,
     unidades: locais.length,
-    grupos: gruposPct,
-    estagio,
-    faltaPct: pct1(Math.max(0, 100 - pct(total))),
-    diasParaEntrega: obra.data_entrega_prevista
-      ? Math.ceil((new Date(obra.data_entrega_prevista + "T00:00:00").getTime() - Date.now()) / 86400000)
-      : null,
+    grupos: grupos.map((g) => ({ nome: g.nome, pct: pct1(pct(g.soma)) })),
     servicos: destaque.map((s) => ({ nome: s.nome, pct: pct1(pct(rec(locais, itens, (sv) => sv.id === s.id))) })),
   };
 }

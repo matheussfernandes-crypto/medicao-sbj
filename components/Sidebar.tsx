@@ -41,18 +41,12 @@ export default function Sidebar({
   const [fechados, setFechados] = useState<Record<string, boolean>>({});
 
   // Menu novo (com nomes, expansível) em todo o site. "Voltar ao menu anterior" alterna e a escolha fica salva neste navegador.
-  const [menuNovo, setMenuNovo] = useState(true);
+  const menuNovo = true;
   useEffect(() => {
     try {
-      setMenuNovo(localStorage.getItem("sbj-menu-novo") !== "antigo");
+      localStorage.removeItem("sbj-menu-novo"); // escolha antiga de versões anteriores: não vale mais
     } catch {}
   }, []);
-  const trocarMenu = (novo: boolean) => {
-    setMenuNovo(novo);
-    try {
-      localStorage.setItem("sbj-menu-novo", novo ? "novo" : "antigo");
-    } catch {}
-  };
   useEffect(() => {
     if (itemAtual) setAtiva(itemAtual.secao);
   }, [itemAtual?.secao]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -74,7 +68,7 @@ export default function Sidebar({
   const pendencias = (s: (typeof secoes)[number]) => s.grupos.flatMap((g) => g.itens).reduce((a, i) => a + (i.badgeKey ? contadores[i.badgeKey] ?? 0 : 0), 0);
 
   if (menuNovo) {
-    return <MenuNovo pathname={pathname} secoes={secoes} itemAtual={itemAtual} contadores={contadores} mobileOpen={mobileOpen} onClose={onClose} onVoltar={() => trocarMenu(false)} />;
+    return <MenuNovo pathname={pathname} secoes={secoes} itemAtual={itemAtual} contadores={contadores} mobileOpen={mobileOpen} onClose={onClose} />;
   }
 
   return (
@@ -129,11 +123,6 @@ export default function Sidebar({
               );
             })}
           </nav>
-          {(
-            <button type="button" onClick={() => trocarMenu(true)} className="hidden lg:block text-[10px] leading-tight text-white/60 hover:text-white px-1 text-center" title="Mostrar o menu com os nomes">
-              Menu novo
-            </button>
-          )}
           <button type="button" onClick={onClose} className="lg:hidden text-white/70 hover:text-white p-1" aria-label="Fechar menu">
             <X className="w-5 h-5" />
           </button>
@@ -211,7 +200,6 @@ function MenuNovo({
   contadores,
   mobileOpen,
   onClose,
-  onVoltar,
 }: {
   pathname: string;
   secoes: ReturnType<typeof menuPorSetor>;
@@ -219,7 +207,6 @@ function MenuNovo({
   contadores: Record<string, number>;
   mobileOpen: boolean;
   onClose: () => void;
-  onVoltar: () => void;
 }) {
   const [aberta, setAberta] = useState<SecaoId | null>(itemAtual?.secao ?? null);
   useEffect(() => {
@@ -304,11 +291,6 @@ function MenuNovo({
           })}
         </nav>
 
-        <div className="shrink-0 border-t border-white/10 p-3">
-          <button type="button" onClick={onVoltar} className="w-full text-left text-xs text-white/60 hover:text-white">
-            ↺ Voltar ao menu anterior
-          </button>
-        </div>
       </aside>
     </>
   );

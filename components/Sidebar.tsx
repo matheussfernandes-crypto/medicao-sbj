@@ -67,19 +67,16 @@ export default function Sidebar({
   const secao = secoes.find((s) => s.id === ativa && !s.href) ?? secoes.find((s) => !s.href);
   const pendencias = (s: (typeof secoes)[number]) => s.grupos.flatMap((g) => g.itens).reduce((a, i) => a + (i.badgeKey ? contadores[i.badgeKey] ?? 0 : 0), 0);
 
-  if (menuNovo) {
-    return <MenuNovo pathname={pathname} secoes={secoes} itemAtual={itemAtual} contadores={contadores} mobileOpen={mobileOpen} onClose={onClose} />;
-  }
-
-  return (
+  const menuDesktop = (
     <>
+      <style>{"@keyframes sbjPainel{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}"}</style>
       {mobileOpen && <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={onClose} aria-hidden="true" />}
 
       <aside
         className={
-          "print:hidden fixed inset-y-0 left-0 z-40 flex transition-transform duration-200 ease-out " +
+          "print:hidden fixed inset-y-0 left-0 z-40 flex transition-[transform,visibility] duration-200 ease-out " +
           "lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shrink-0 " +
-          (mobileOpen ? "translate-x-0" : "-translate-x-full")
+          (mobileOpen ? "translate-x-0 visible" : "-translate-x-full max-lg:invisible")
         }
       >
         {/* coluna de setores */}
@@ -93,7 +90,7 @@ export default function Sidebar({
               const eAtiva = s.href ? pathname === s.href : s.id === secao?.id;
               const pend = pendencias(s);
               const classe =
-                "relative w-full flex items-center justify-center rounded-lg py-2.5 transition-colors " +
+                "relative w-full flex items-center justify-center rounded-xl py-2.5 transition-all duration-200 active:scale-95 " +
                 (eAtiva ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10 hover:text-white");
               const conteudo = (
                 <>
@@ -130,7 +127,7 @@ export default function Sidebar({
 
         {/* painel do setor */}
         {painelAberto && secao && (
-          <div className="w-[236px] bg-white border-r border-border flex flex-col">
+          <div className="w-[236px] bg-white border-r border-border flex flex-col shadow-[4px_0_24px_-14px_rgba(10,75,85,.35)]" style={{ animation: "sbjPainel .28s ease-out" }}>
             <div className="flex items-center justify-between gap-2 px-4 h-16 shrink-0 border-b border-border">
               <h2 className="text-base font-semibold text-primaryDark truncate">{secao.label}</h2>
               <button type="button" onClick={() => mudarPainel(false)} className="hidden lg:block text-ink-400 hover:text-primary p-1" aria-label="Recolher o painel" title="Recolher o painel">
@@ -152,7 +149,8 @@ export default function Sidebar({
                       {aberto ? <ChevronDown className="w-3.5 h-3.5 text-primary" /> : <ChevronRight className="w-3.5 h-3.5 text-primary" />}
                       <span className="truncate">{g.nome}</span>
                     </button>
-                    {aberto && (
+                    <div className={"grid transition-[grid-template-rows,opacity] duration-300 ease-out " + (aberto ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
+                    <div className="overflow-hidden">
                       <div className="ml-[13px] border-l border-border">
                         {g.itens.map((item) => {
                           const eAtivo = itemAtual?.href === item.href && itemAtual?.label === item.label;
@@ -164,7 +162,7 @@ export default function Sidebar({
                               href={item.href}
                               onClick={onClose}
                               title={item.description}
-                              className={"flex items-center gap-2 pl-3 pr-2 py-1.5 text-sm rounded-r-md transition-colors " + (eAtivo ? "bg-primary/10 text-primaryDark font-semibold" : "text-ink-700 hover:bg-surface-subtle hover:text-primary")}
+                              className={"flex items-center gap-2 pl-3 pr-2 py-1.5 text-sm rounded-r-md transition-all duration-200 " + (eAtivo ? "bg-primary/10 text-primaryDark font-semibold" : "text-ink-700 hover:bg-surface-subtle hover:text-primary")}
                             >
                               <span className="truncate">{item.label}</span>
                               {item.badgeKey && (contadores[item.badgeKey] ?? 0) > 0 && (
@@ -174,7 +172,8 @@ export default function Sidebar({
                           );
                         })}
                       </div>
-                    )}
+                    </div>
+                    </div>
                   </div>
                 );
               })}
@@ -188,6 +187,18 @@ export default function Sidebar({
           </button>
         )}
       </aside>
+    </>
+  );
+
+  if (!menuNovo) return menuDesktop;
+  return (
+    <>
+      {/* computador: menu lateral que abre do lado */}
+      <div className="hidden lg:contents">{menuDesktop}</div>
+      {/* celular e tablet: menu novo, com os nomes */}
+      <div className="contents lg:hidden">
+        <MenuNovo pathname={pathname} secoes={secoes} itemAtual={itemAtual} contadores={contadores} mobileOpen={mobileOpen} onClose={onClose} />
+      </div>
     </>
   );
 }
@@ -219,9 +230,9 @@ function MenuNovo({
       {mobileOpen && <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={onClose} aria-hidden="true" />}
       <aside
         className={
-          "print:hidden fixed inset-y-0 left-0 z-40 w-[260px] flex flex-col bg-[#0e2a30] text-white shadow-xl transition-transform duration-300 ease-out " +
+          "print:hidden fixed inset-y-0 left-0 z-40 w-[260px] flex flex-col bg-[#0e2a30] text-white shadow-xl transition-[transform,visibility] duration-300 ease-out " +
           "lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shrink-0 " +
-          (mobileOpen ? "translate-x-0" : "-translate-x-full")
+          (mobileOpen ? "translate-x-0 visible" : "-translate-x-full max-lg:invisible")
         }
       >
         <div className="flex items-center justify-between gap-2 px-4 h-16 shrink-0 border-b border-white/10">

@@ -19,6 +19,13 @@
 <link rel="stylesheet" href="css/redesign.css?v=20261110r">
 <link rel="stylesheet" href="css/mobile.css?v=20261110r">
 <link rel="stylesheet" href="css/intro.css?v=9">
+<script>if(window.top!==window.self)document.documentElement.classList.add("embutido")</script>
+<style>
+/* Dentro do site (quadro /posobra): esconde o menu próprio do módulo desde o primeiro desenho, sem piscar */
+.embutido .sidebar, .embutido .mn-hamb, .embutido .mnav, .embutido .mn-backdrop { display: none !important; }
+.embutido .app { display: block !important; }
+.embutido .main { margin-left: 0 !important; padding-bottom: 0 !important; min-height: 100vh; }
+</style>
 <script>try{if(sessionStorage.getItem("sbjIntroVisto")&&location.search.indexOf("intro")<0)document.documentElement.classList.add("intro-done")}catch(e){}</script>
 </head>
 <body>

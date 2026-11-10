@@ -1,7 +1,7 @@
 import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { aprovarConta, rejeitarConta, desativarConta, reativarConta } from "./actions";
+import { aprovarConta, rejeitarConta, desativarConta, reativarConta, alterarSetor } from "./actions";
 import NotificacaoAvulsaPanel from "./NotificacaoAvulsaPanel";
 import { MODULOS, ehGestorAcessos } from "@/lib/acessos/modulos";
 import PainelAcessos from "../acessos/PainelAcessos";
@@ -130,7 +130,16 @@ export default async function AprovacoesPage() {
               >
                 <td className="p-3">{c.nome_completo}</td>
                 <td className="p-3">{c.email}</td>
-                <td className="p-3">{SETOR_LABEL[c.setor] ?? c.setor}</td>
+                <td className="p-3">
+                  <form action={alterarSetor.bind(null, c.id)} className="flex items-center gap-1">
+                    <select name="setor" defaultValue={c.setor ?? ""} className="border rounded px-2 py-1 text-xs bg-white">
+                      {Object.entries(SETOR_LABEL).map(([v, r]) => (
+                        <option key={v} value={v}>{r}</option>
+                      ))}
+                    </select>
+                    <button className="bg-gray-200 rounded px-2 py-1 text-xs">Salvar</button>
+                  </form>
+                </td>
                 <td className="p-3">
                   <span
                     className={

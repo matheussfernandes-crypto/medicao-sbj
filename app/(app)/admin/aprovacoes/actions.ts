@@ -49,6 +49,20 @@ export async function desativarConta(perfilId: string) {
   revalidatePath("/admin/aprovacoes");
 }
 
+const SETORES_VALIDOS = ["ESTAGIARIO", "ADMIN", "ARQUITETO", "ENGENHEIRO", "MESTRE_GERAL", "RH", "FINANCEIRO"];
+
+// Troca o setor (cargo) de uma pessoa. Não permite tirar o próprio acesso de ADM.
+export async function alterarSetor(perfilId: string, formData: FormData) {
+  const { supabase, user } = await exigirAdmin();
+  const setor = String(formData.get("setor") || "");
+  if (!SETORES_VALIDOS.includes(setor)) throw new Error("Setor inválido.");
+  if (perfilId === user.id && setor !== "ADMIN") {
+    throw new Error("Você não pode tirar o seu próprio perfil de ADM.");
+  }
+  await supabase.from("perfis").update({ setor }).eq("id", perfilId);
+  revalidatePath("/admin/aprovacoes");
+}
+
 export async function reativarConta(perfilId: string) {
   const { supabase, user } = await exigirAdmin();
   await supabase

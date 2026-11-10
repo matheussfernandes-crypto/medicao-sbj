@@ -58,7 +58,7 @@ export default async function PainelAcessos() {
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <div>
                   <p className="font-semibold text-ink-900">{p.nome_completo ?? p.email}</p>
-                  <p className="text-xs text-ink-500">{SETOR_LABEL[p.setor ?? ""] ?? p.setor}{p.setor === "ADMIN" ? " · vê todos os módulos" : ""}</p>
+                  <p className="text-xs text-ink-500">{SETOR_LABEL[p.setor ?? ""] ?? p.setor}</p>
                 </div>
                 <button className="bg-primary text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-primaryDark transition-colors duration-200">Salvar</button>
               </div>

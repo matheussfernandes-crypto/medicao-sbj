@@ -29,7 +29,8 @@ export default function AppShell({
   // Módulo da página aberta: se a pessoa não tiver acesso, mostra a tela de pedido em vez do conteúdo
   const pathname = usePathname();
   const modulo = itemDeCaminho(pathname)?.key ?? null;
-  const liberado = setor === "ADMIN" || permitido(extras ?? [], pathname);
+  // ADM também segue as permissões por subitem; só o gestor (chave "gestor_acessos") vê tudo
+  const liberado = (extras ?? []).includes("gestor_acessos") || permitido(extras ?? [], pathname);
 
   return (
     <div className="min-h-screen lg:flex">

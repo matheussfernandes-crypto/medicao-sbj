@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { ehGestorAcessos } from "@/lib/acessos/modulos";
 import { createClient } from "@/lib/supabase/server";
 import AbasNovo from "./AbasNovo";
 
@@ -11,7 +12,7 @@ export default async function AndamentoNovoLayout({ children }: { children: Reac
   } = await supabase.auth.getUser();
   const { data: perfil } = await supabase.from("perfis").select("setor, status, acesso_andamento_novo, acessos").eq("id", user!.id).single();
   // ADM, ou quem recebeu a permissão específica (ex.: estagiário que também configura)
-  if (perfil?.status !== "aprovado" || (perfil?.setor !== "ADMIN" && perfil?.acesso_andamento_novo !== true && !((perfil as any)?.acessos ?? []).includes("andamento_novo"))) redirect("/dashboard");
+  if (perfil?.status !== "aprovado" || (!ehGestorAcessos(user!.email) && perfil?.acesso_andamento_novo !== true && !((perfil as any)?.acessos ?? []).includes("andamento_novo"))) redirect("/dashboard");
 
   return (
     <div className="space-y-4">

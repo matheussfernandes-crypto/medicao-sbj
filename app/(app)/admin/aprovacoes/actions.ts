@@ -63,6 +63,18 @@ export async function alterarSetor(perfilId: string, formData: FormData) {
   revalidatePath("/admin/aprovacoes");
 }
 
+// Exclui a conta sem apagar o histórico: o perfil continua existindo (lançamentos, fechamentos e
+// vistorias ficam ligados a ele), mas a pessoa perde o acesso e some das listas.
+export async function excluirConta(perfilId: string) {
+  const { supabase, user } = await exigirAdmin();
+  if (perfilId === user.id) throw new Error("Você não pode excluir o seu próprio acesso.");
+  await supabase
+    .from("perfis")
+    .update({ status: "excluido", decidido_por: user.id, decidido_em: new Date().toISOString() })
+    .eq("id", perfilId);
+  revalidatePath("/admin/aprovacoes");
+}
+
 export async function reativarConta(perfilId: string) {
   const { supabase, user } = await exigirAdmin();
   await supabase

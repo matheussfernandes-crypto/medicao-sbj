@@ -1,7 +1,8 @@
 import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { aprovarConta, rejeitarConta, desativarConta, reativarConta, alterarSetor } from "./actions";
+import { aprovarConta, rejeitarConta, desativarConta, reativarConta, alterarSetor, excluirConta } from "./actions";
+import BotaoConfirmar from "@/components/BotaoConfirmar";
 import NotificacaoAvulsaPanel from "./NotificacaoAvulsaPanel";
 import { MODULOS, ehGestorAcessos } from "@/lib/acessos/modulos";
 import PainelAcessos from "../acessos/PainelAcessos";
@@ -151,7 +152,7 @@ export default async function AprovacoesPage() {
                         : "badge-rejeitado")
                     }
                   >
-                    {c.status === "aprovado" ? "Aprovado" : c.status === "desativado" ? "Desativado" : "Rejeitado"}
+                    {c.status === "aprovado" ? "Aprovado" : c.status === "desativado" ? "Desativado" : c.status === "excluido" ? "Excluído" : "Rejeitado"}
                   </span>
                 </td>
                 <td className="p-3">{fmtData(c.decidido_em)}</td>
@@ -165,6 +166,13 @@ export default async function AprovacoesPage() {
                     <form action={reativarConta.bind(null, c.id)} className="inline">
                       <button className="bg-primary text-white rounded px-3 py-1 text-xs">Reativar</button>
                     </form>
+                  )}
+                  {c.status !== "excluido" && c.id !== meuId && (
+                    <BotaoConfirmar
+                      action={excluirConta.bind(null, c.id)}
+                      mensagem={`Excluir o acesso de ${c.nome_completo ?? c.email}? A pessoa perde o acesso ao sistema. O histórico (medições, lançamentos, vistorias) continua registrado.`}
+                      rotulo="Excluir"
+                    />
                   )}
                   {!(c.status === "aprovado" || c.status === "desativado") && "—"}
                 </td>

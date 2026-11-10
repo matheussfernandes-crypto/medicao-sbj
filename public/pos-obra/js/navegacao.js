@@ -34,7 +34,10 @@
   function aplicar(s) {
     restaurando = true;
     try {
-      const v = TELAS.includes(s.v) ? s.v : (PAI[s.v] || "dashboard");
+      const ocultos = window.SBJ_MODULOS_OCULTOS || [];
+      // telas escondidas (ex.: Painel) nunca voltam ao recarregar: cai na primeira tela liberada
+      const liberada = (x) => x && !ocultos.includes(x);
+      const v = liberada(s.v) && TELAS.includes(s.v) ? s.v : (liberada(PAI[s.v]) ? PAI[s.v] : "vistorias");
       if (s.v === "ticket-detail" && s.sub && typeof goToTicketDetail === "function" && typeof getTicket === "function" && getTicket(s.sub)) { goToTicketDetail(s.sub); }
       else {
         if (v === "vistorias") {

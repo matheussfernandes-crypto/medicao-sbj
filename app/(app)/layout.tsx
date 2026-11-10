@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUserProfile } from "@/lib/auth/getCurrentUserProfile";
 import AppShell from "@/components/AppShell";
+import { GESTOR_ACESSOS_EMAIL } from "@/lib/acessos/modulos";
 
 // Shell único para todas as páginas autenticadas: busca o perfil UMA vez aqui
 // (em vez de cada página + o Topbar antigo repetirem a mesma consulta) e
@@ -23,7 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (profile.status !== "aprovado") redirect("/aguardando-aprovacao");
 
   return (
-    <AppShell setor={profile.setor} extras={profile.acessoAndamentoNovo ? ["andamento_novo"] : []} nome={profile.nome} naoLidas={profile.naoLidas} contadores={{ contratosPendentes: profile.contratosPendentes }}>
+    <AppShell setor={profile.setor} extras={[...profile.acessos, ...(profile.acessoAndamentoNovo ? ["andamento_novo"] : []), ...(profile.email === GESTOR_ACESSOS_EMAIL ? ["gestor_acessos"] : [])]} nome={profile.nome} naoLidas={profile.naoLidas} contadores={{ contratosPendentes: profile.contratosPendentes }}>
       {children}
     </AppShell>
   );

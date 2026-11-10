@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { aprovarConta, rejeitarConta, desativarConta, reativarConta } from "./actions";
 import NotificacaoAvulsaPanel from "./NotificacaoAvulsaPanel";
+import { MODULOS } from "@/lib/acessos/modulos";
+
+const MODULOS_APROVACAO = MODULOS;
 
 const SETOR_LABEL: Record<string, string> = {
   ESTAGIARIO: "Estagiário",
@@ -74,7 +77,15 @@ export default async function AprovacoesPage() {
                 <td className="p-3">{SETOR_LABEL[c.setor] ?? c.setor}</td>
                 <td className="p-3">{fmtData(c.criado_em)}</td>
                 <td className="p-3 space-x-2">
-                  <form action={aprovarConta.bind(null, c.id)} className="inline">
+                  <form action={aprovarConta.bind(null, c.id)} className="inline-block align-top space-y-2">
+                    <div className="flex flex-wrap gap-2 max-w-md">
+                      {MODULOS_APROVACAO.map((m) => (
+                        <label key={m.key} className="flex items-center gap-1.5 rounded border border-border px-2 py-1 text-xs text-ink-700">
+                          <input type="checkbox" name="modulo" value={m.key} className="accent-[#00778A]" />
+                          {m.label}
+                        </label>
+                      ))}
+                    </div>
                     <button className="bg-primary text-white rounded px-3 py-1">Aprovar</button>
                   </form>
                   <form action={rejeitarConta.bind(null, c.id)} className="inline">

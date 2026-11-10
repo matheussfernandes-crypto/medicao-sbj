@@ -9,6 +9,8 @@ export type CurrentUserProfile = {
   naoLidas: number;
   contratosPendentes: number;
   acessoAndamentoNovo: boolean; // permissão específica (ex.: estagiário que também configura a tela nova do Andamento)
+  acessos: string[]; // módulos liberados para esta pessoa (ver lib/acessos/modulos.ts)
+  email: string | null;
 };
 
 /**
@@ -29,7 +31,7 @@ export const getPerfilAtual = cache(async (userId: string) => {
   const supabase = createClient();
   const { data } = await supabase
     .from("perfis")
-    .select("nome_completo, setor, status, acesso_andamento_novo")
+    .select("nome_completo, setor, status, acesso_andamento_novo, acessos")
     .eq("id", userId)
     .single();
   return data;
@@ -58,6 +60,8 @@ export const getCurrentUserProfile = cache(async (): Promise<CurrentUserProfile 
     setor: perfil?.setor ?? null,
     status: perfil?.status ?? null,
     acessoAndamentoNovo: perfil?.acesso_andamento_novo === true,
+    acessos: (perfil as any)?.acessos ?? [],
+    email: user.email ?? null,
     naoLidas: notifRes.count ?? 0,
     contratosPendentes: perfil?.setor === "ADMIN" ? (lancRes.count ?? 0) + (solRes.count ?? 0) : 0,
   };

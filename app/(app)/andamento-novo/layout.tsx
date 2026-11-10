@@ -9,9 +9,9 @@ export default async function AndamentoNovoLayout({ children }: { children: Reac
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { data: perfil } = await supabase.from("perfis").select("setor, status, acesso_andamento_novo").eq("id", user!.id).single();
+  const { data: perfil } = await supabase.from("perfis").select("setor, status, acesso_andamento_novo, acessos").eq("id", user!.id).single();
   // ADM, ou quem recebeu a permissão específica (ex.: estagiário que também configura)
-  if (perfil?.status !== "aprovado" || (perfil?.setor !== "ADMIN" && perfil?.acesso_andamento_novo !== true)) redirect("/dashboard");
+  if (perfil?.status !== "aprovado" || (perfil?.setor !== "ADMIN" && perfil?.acesso_andamento_novo !== true && !((perfil as any)?.acessos ?? []).includes("andamento_novo"))) redirect("/dashboard");
 
   return (
     <div className="space-y-4">

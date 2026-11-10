@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Menu, Bell } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Breadcrumbs from "./Breadcrumbs";
 import { sair } from "@/app/auth-actions";
+import { moduloDeCaminho } from "@/lib/acessos/modulos";
+import SemAcesso from "./SemAcesso";
 
 export default function AppShell({
   setor,
@@ -23,6 +26,10 @@ export default function AppShell({
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Módulo da página aberta: se a pessoa não tiver acesso, mostra a tela de pedido em vez do conteúdo
+  const pathname = usePathname();
+  const modulo = moduloDeCaminho(pathname);
+  const liberado = setor === "ADMIN" || !modulo || (extras ?? []).includes(modulo);
 
   return (
     <div className="min-h-screen lg:flex">
@@ -70,7 +77,7 @@ export default function AppShell({
           </div>
         </header>
 
-        <main className="flex-1 p-4 lg:p-8 space-y-4 print:p-0">{children}</main>
+        <main className="flex-1 p-4 lg:p-8 space-y-4 print:p-0">{liberado ? children : <SemAcesso modulo={modulo!} />}</main>
       </div>
     </div>
   );

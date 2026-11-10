@@ -15,11 +15,13 @@ async function exigirAdmin() {
   return { supabase, user };
 }
 
-export async function aprovarConta(perfilId: string) {
+export async function aprovarConta(perfilId: string, formData?: FormData) {
   const { supabase, user } = await exigirAdmin();
+  // módulos marcados na hora da aprovação (podem ser alterados depois em Administração → Acessos)
+  const modulos = formData ? Array.from(new Set(formData.getAll("modulo").map(String))) : [];
   await supabase
     .from("perfis")
-    .update({ status: "aprovado", decidido_por: user.id, decidido_em: new Date().toISOString() })
+    .update({ status: "aprovado", decidido_por: user.id, decidido_em: new Date().toISOString(), acessos: modulos })
     .eq("id", perfilId);
   revalidatePath("/admin/aprovacoes");
 }

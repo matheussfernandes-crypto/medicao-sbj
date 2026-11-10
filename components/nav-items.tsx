@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { moduloDeCaminho } from "@/lib/acessos/modulos";
 import {
   LayoutDashboard,
   UserCheck,
@@ -21,6 +22,7 @@ import {
   Coins,
   Settings,
   ClipboardCheck,
+  KeyRound,
 } from "lucide-react";
 
 // Setores do menu (coluna de ícones, no estilo do Sienge). Cada item de navegação pertence a um setor e a um grupo dentro dele.
@@ -158,6 +160,18 @@ export const NAV_ITEMS: NavItem[] = [
     grupo: "Contratos",
   },
 
+  // ---- Administração de acessos (só o gestor, pela permissão "gestor_acessos") ----
+  {
+    label: "Acessos",
+    href: "/admin/acessos",
+    icon: KeyRound,
+    description: "Liberar e retirar módulos de cada pessoa, e responder pedidos de acesso.",
+    allowedSetores: [],
+    extra: "gestor_acessos",
+    secao: "admin",
+    grupo: "Administração",
+  },
+
   // ---- Pós-obra (módulo estático em public/pos-obra, aberto dentro do site em /posobra) ----
   {
     label: "Vistorias",
@@ -252,8 +266,14 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 export function navItemsForSetor(setor: string | null, extras: string[] = []): NavItem[] {
+  // Módulos (andamento, pós-obra, contratos, lançamentos, financeiro) aparecem para todos;
+  // quem não tem acesso vê a tela "sem acesso" ao abrir (ver components/AppShell.tsx).
   return NAV_ITEMS.filter(
-    (item) => !item.allowedSetores || (setor && item.allowedSetores.includes(setor)) || (item.extra && extras.includes(item.extra))
+    (item) =>
+      moduloDeCaminho(item.href) !== null ||
+      !item.allowedSetores ||
+      (setor && item.allowedSetores.includes(setor)) ||
+      (item.extra && extras.includes(item.extra))
   );
 }
 

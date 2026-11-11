@@ -2126,5 +2126,18 @@ async function init(){
     if(c.classList&&c.classList.contains('rel-f')){const sec=c.closest('.rel-sec');if(sec)filtra(sec);}
   });
 })();
+/* veio do registro rápido da página inicial: o texto já entra na caixa da tela Hoje */
+(function(){
+  var tent=0;
+  function leva(){
+    var pt=null;try{pt=sessionStorage.getItem("posvenda-texto")}catch(e){}
+    if(!pt)return;
+    var ta=document.getElementById("q-text");
+    if(!ta){if(++tent<40)setTimeout(leva,150);return}
+    try{sessionStorage.removeItem("posvenda-texto")}catch(e){}
+    ta.value=pt;ta.dispatchEvent(new Event("input",{bubbles:true}));
+  }
+  setTimeout(leva,50);
+})();
 init();
 </script>

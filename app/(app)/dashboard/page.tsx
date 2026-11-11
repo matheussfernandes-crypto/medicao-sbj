@@ -11,6 +11,7 @@ import { carregarPainelObras } from "./painel-obras";
 import SlideProgresso from "./SlideProgresso";
 import PainelObrasSeletor from "./PainelObrasSeletor";
 import PersonalizarAtalhos from "@/components/PersonalizarAtalhos";
+import RegistroRapido from "@/components/RegistroRapido";
 
 function mesAtualISO() {
   return new Date().toISOString().slice(0, 7);
@@ -151,6 +152,8 @@ export default async function DashboardPage() {
         </h1>
         <p className="text-sm text-ink-500">Visão geral do sistema de medição de empreiteiros.</p>
       </div>
+
+      <RegistroRapido />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">

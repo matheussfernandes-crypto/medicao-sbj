@@ -23,6 +23,7 @@ import {
   Settings,
   ClipboardCheck,
   KeyRound,
+  LifeBuoy,
 } from "lucide-react";
 
 // Setores do menu (coluna de ícones, no estilo do Sienge). Cada item de navegação pertence a um setor e a um grupo dentro dele.
@@ -178,6 +179,14 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/posobra/vistorias",
     icon: ClipboardCheck,
     description: "Vistorias de entrega dos apartamentos, com pendências, fotos e assinaturas.",
+    secao: "posobra",
+    grupo: "Pós-obra",
+  },
+  {
+    label: "Pós-venda",
+    href: "/posvenda",
+    icon: LifeBuoy,
+    description: "Chamados, agenda de visitas, garantia NBR 15575 e avisos aos clientes.",
     secao: "posobra",
     grupo: "Pós-obra",
   },

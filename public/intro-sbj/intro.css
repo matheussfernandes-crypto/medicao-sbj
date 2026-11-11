@@ -21,7 +21,8 @@
 #intro.fly .intro-skip { opacity: 0; transition: opacity .15s; }
 @keyframes intro-libera { to { opacity: 0; visibility: hidden; pointer-events: none; } }
 .intro-done #intro { display: none; }
-html:has(#intro:not(.out):not(.out-fast):not(.fly)) { overflow: hidden; }
+/* trava a rolagem só enquanto a abertura está de fato na tela (nunca depois de terminar ou do tempo de segurança) */
+html:not(.intro-done):not(.intro-livre):has(#intro:not(.out):not(.out-fast):not(.fly)) { overflow: hidden; }
 #intro.out { opacity: 0; pointer-events: none; }
 #intro.out-fast { opacity: 0; pointer-events: none; transition-duration: .25s; }
 

@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_INICIAL }} />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(sessionStorage.getItem("sbjIntroVisto")&&location.search.indexOf("intro")<0)document.documentElement.classList.add("intro-done")}catch(e){}`,
+            __html: `try{if(sessionStorage.getItem("sbjIntroVisto")&&location.search.indexOf("intro")<0)document.documentElement.classList.add("intro-done")}catch(e){}setTimeout(function(){document.documentElement.classList.add("intro-livre")},7000)`,
           }}
         />
         <meta name="theme-color" content="#2c6975" />

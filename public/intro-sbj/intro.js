@@ -13,12 +13,12 @@
 (function () {
   var el = document.getElementById('intro');
   var D = window.SBJ_INTRO;
-  if (!el || !D) { if (el) el.remove(); return; }
+  if (!el || !D) { if (el) el.remove(); document.documentElement.classList.add('intro-done'); return; }
 
   var KEY = 'sbjIntroVisto';
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   try {
-    if (sessionStorage.getItem(KEY) && location.search.indexOf('intro') < 0) { el.remove(); return; }
+    if (sessionStorage.getItem(KEY) && location.search.indexOf('intro') < 0) { el.remove(); document.documentElement.classList.add('intro-done'); return; }
     sessionStorage.setItem(KEY, '1');
   } catch (e) {}
 
@@ -168,7 +168,7 @@
   }
 
   var done = false;
-  function remove() { if (el.parentNode) el.remove(); }
+  function remove() { if (el.parentNode) el.remove(); document.documentElement.classList.add('intro-done'); }
 
   /* a logo voa até a logo da barra lateral (se ela estiver visível); senão, só esmaece */
   function fly() {

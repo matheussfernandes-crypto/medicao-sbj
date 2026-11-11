@@ -53,14 +53,18 @@ const s = StyleSheet.create({
   center: { textAlign: "center" },
   clausula: { fontSize: 8.5, marginBottom: 4, lineHeight: 1.35 },
   obs: { fontSize: 8, color: "#333", lineHeight: 1.35, borderWidth: 0.5, borderColor: "#bbb", padding: 6, marginTop: 2 },
-  ass: { flexDirection: "row", gap: 28, marginTop: 44 },
+  ass: { flexDirection: "row", gap: 28, marginTop: 34 },
   assBox: { flex: 1, borderTopWidth: 1, borderTopColor: "#333", paddingTop: 4, fontSize: 8 },
-  data: { marginTop: 22, fontSize: 8.5 },
+  data: { marginTop: 16, fontSize: 8.5 },
 });
 
 export function ContratoTipoPdf({ d, engenheiroNome, dataGeracao }: { d: ContratoTipoDados; engenheiroNome: string; dataGeracao: string }) {
   const lg = logo();
   const e = d.empresa;
+  // Muitos preços: linhas mais baixas para tudo continuar em 1 folha.
+  const compacto = d.precos.length > 5;
+  const tdC = compacto ? { padding: 3.5, fontSize: 8.5 } : {};
+  const clC = compacto ? { fontSize: 7.8, marginBottom: 2.5, lineHeight: 1.25 } : {};
   return (
     <Document title={`Contrato tipo ${d.numero} - ${d.obra}`}>
       <Page size="A4" style={s.page}>
@@ -92,21 +96,21 @@ export function ContratoTipoPdf({ d, engenheiroNome, dataGeracao }: { d: Contrat
         </View>
         {d.precos.map((p, i) => (
           <View style={s.row} key={i} wrap={false}>
-            <Text style={[s.td, s.center, { flex: 0.6 }]}>{i + 1}</Text>
-            <Text style={[s.td, { flex: 4 }]}>{t(p.servico)}</Text>
-            <Text style={[s.td, s.center, { flex: 1 }]}>{t(p.unidade)}</Text>
-            <Text style={[s.td, s.num, { flex: 1.8, fontWeight: 700 }]}>R$ {f2(p.valor_unitario)} / {t(p.unidade)}</Text>
+            <Text style={[s.td, tdC, s.center, { flex: 0.6 }]}>{i + 1}</Text>
+            <Text style={[s.td, tdC, { flex: 4 }]}>{t(p.servico)}</Text>
+            <Text style={[s.td, tdC, s.center, { flex: 1 }]}>{t(p.unidade)}</Text>
+            <Text style={[s.td, tdC, s.num, { flex: 1.8, fontWeight: 700 }]}>R$ {f2(p.valor_unitario)} / {t(p.unidade)}</Text>
           </View>
         ))}
 
         <Text style={[s.section, { marginTop: 14 }]}>Condições</Text>
-        <Text style={s.clausula}>1. Os serviços serão medidos pelas quantidades efetivamente executadas em obra, aplicando-se os preços unitários desta tabela para cada unidade de medida.</Text>
-        <Text style={s.clausula}>2. Os preços unitários permanecem fixos durante a vigência do contrato. Qualquer alteração de preço ou inclusão de serviço só vale por aditivo aprovado pela SBJ.</Text>
-        <Text style={s.clausula}>3. {d.retencaoPct > 0 ? `Sobre cada medição será retido ${f2(d.retencaoPct)}% do valor medido, liberado conforme as regras do contrato.` : "Não há retenção sobre as medições, salvo alteração registrada no contrato."}</Text>
-        <Text style={s.clausula}>4. Os pagamentos seguem o boletim de medição mensal emitido e aprovado pela engenharia da SBJ.</Text>
-        <Text style={s.clausula}>5. A contratada deve cumprir todas as normas de segurança da SBJ e as normas regulamentadoras de segurança do trabalho, com uso obrigatório de EPIs em obra.</Text>
-        <Text style={s.clausula}>6. Todos os trabalhadores da contratada na obra devem ser registrados. Não é permitido trabalhador sem registro.</Text>
-        <Text style={s.clausula}>7. A contratada deve manter a frente de serviço sempre limpa e organizada, retirando entulho e sobras de material ao fim de cada etapa e de cada dia de trabalho.</Text>
+        <Text style={[s.clausula, clC]}>1. Os serviços serão medidos pelas quantidades efetivamente executadas em obra, aplicando-se os preços unitários desta tabela para cada unidade de medida.</Text>
+        <Text style={[s.clausula, clC]}>2. Os preços unitários permanecem fixos durante a vigência do contrato. Qualquer alteração de preço ou inclusão de serviço só vale por aditivo aprovado pela SBJ.</Text>
+        <Text style={[s.clausula, clC]}>3. {d.retencaoPct > 0 ? `Sobre cada medição será retido ${f2(d.retencaoPct)}% do valor medido, liberado conforme as regras do contrato.` : "Não há retenção sobre as medições, salvo alteração registrada no contrato."}</Text>
+        <Text style={[s.clausula, clC]}>4. Os pagamentos seguem o boletim de medição mensal emitido e aprovado pela engenharia da SBJ.</Text>
+        <Text style={[s.clausula, clC]}>5. A contratada deve cumprir todas as normas de segurança da SBJ e as normas regulamentadoras de segurança do trabalho, com uso obrigatório de EPIs em obra.</Text>
+        <Text style={[s.clausula, clC]}>6. Todos os trabalhadores da contratada na obra devem ser registrados. Não é permitido trabalhador sem registro.</Text>
+        <Text style={[s.clausula, clC]}>7. A contratada deve manter a frente de serviço sempre limpa e organizada, retirando entulho e sobras de material ao fim de cada etapa e de cada dia de trabalho.</Text>
 
         {d.observacoes ? (
           <View wrap={false}>

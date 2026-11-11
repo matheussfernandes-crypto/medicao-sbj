@@ -6,6 +6,7 @@ import Carousel from "@/components/Carousel";
 import MiniCalendar, { type EventoCalendario } from "@/components/MiniCalendar";
 import { HardHat } from "lucide-react";
 import { agendaDoSetor } from "@/lib/agenda-setor";
+import { ehGestorAcessos, itensLiberados } from "@/lib/acessos/modulos";
 import { carregarPainelObras } from "./painel-obras";
 import SlideProgresso from "./SlideProgresso";
 import PainelObrasSeletor from "./PainelObrasSeletor";
@@ -48,7 +49,10 @@ export default async function DashboardPage() {
     );
   }
 
-  if (setor === "FINANCEIRO" || setor === "ADMIN") {
+  // quem vê o módulo de Medições (ou é gestor) vê o saldo retido geral
+  const acessosPerfil = ((perfil as { acessos?: string[] | null } | null)?.acessos ?? []) as string[];
+  const verMedicoes = setor === "FINANCEIRO" || setor === "ADMIN" || ehGestorAcessos(user!.email) || itensLiberados(acessosPerfil).has("contratos/medicoes");
+  if (verMedicoes) {
     const [{ data: pessoasRetencao }, { data: medicoesRetencao }, { data: retiradas }] = await Promise.all([
       supabase
         .from("pessoas")

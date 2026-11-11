@@ -43,7 +43,7 @@ export const SECOES: Secao[] = [
   { id: "obras", label: "Obras", icon: HardHat },
   { id: "medicoes", label: "Medições e Vales", icon: ClipboardList },
   { id: "contratos", label: "Contratos", icon: Handshake },
-  { id: "posobra", label: "Pós-obra", icon: ClipboardCheck },
+  { id: "posobra", label: "Pós-venda", icon: ClipboardCheck },
   { id: "financeiro", label: "Financeiro", icon: Coins },
   { id: "admin", label: "Administração", icon: Settings },
 ];
@@ -182,7 +182,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: ClipboardCheck,
     description: "Vistorias de entrega dos apartamentos, com pendências, fotos e assinaturas.",
     secao: "posobra",
-    grupo: "Pós-obra",
+    grupo: "Pós-venda",
   },
   {
     label: "Hoje",
@@ -223,30 +223,6 @@ export const NAV_ITEMS: NavItem[] = [
     description: "Relatórios e exportações do pós-venda.",
     secao: "posobra",
     grupo: "Pós-venda",
-  },
-  {
-    label: "Empreendimentos",
-    href: "/posobra/empreendimentos",
-    icon: Building2,
-    description: "Empreendimentos do pós-obra: unidades, síndico e manual.",
-    secao: "posobra",
-    grupo: "Pós-obra",
-  },
-  {
-    label: "Clientes",
-    href: "/posobra/clientes",
-    icon: Users,
-    description: "Clientes (proprietários) por empreendimento.",
-    secao: "posobra",
-    grupo: "Pós-obra",
-  },
-  {
-    label: "Fornecedores",
-    href: "/posobra/fornecedores",
-    icon: Handshake,
-    description: "Fornecedores e contatos de assistência técnica.",
-    secao: "posobra",
-    grupo: "Pós-obra",
   },
 
   // ---- Financeiro ----

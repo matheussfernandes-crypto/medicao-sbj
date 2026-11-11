@@ -1,6 +1,3 @@
-import { TIPOS, rotaGravar, rotaListar } from "@/lib/pos-obra/cadastros";
-
-// Módulo Pós-obra: clientes (listar com ?desde=ISO e gravar em lote)
+// Módulo Pós-obra: clientes. É o mesmo cadastro de unidades do Pós-venda (um cadastro só).
 export const dynamic = "force-dynamic";
-export const GET = rotaListar(TIPOS.clientes);
-export const POST = rotaGravar(TIPOS.clientes);
+export { GET, POST } from "@/lib/pos-obra/clientes-unificados";

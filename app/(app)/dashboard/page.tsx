@@ -5,6 +5,7 @@ import { navItemsForSetor } from "@/components/nav-items";
 import Carousel from "@/components/Carousel";
 import MiniCalendar, { type EventoCalendario } from "@/components/MiniCalendar";
 import { HardHat } from "lucide-react";
+import { agendaDoSetor } from "@/lib/agenda-setor";
 import { carregarPainelObras } from "./painel-obras";
 import SlideProgresso from "./SlideProgresso";
 import PainelObrasSeletor from "./PainelObrasSeletor";
@@ -128,17 +129,9 @@ export default async function DashboardPage() {
       </div>
     );
   }
-  function emDias(qtd: number) {
-    const d = new Date();
-    d.setDate(d.getDate() + qtd);
-    return d.toISOString().slice(0, 10);
-  }
-  const eventosExemplo: EventoCalendario[] = [
-    { data: emDias(2), label: "Fechamento mensal (previsto)" },
-    { data: emDias(6), label: "Reunião de obra — Ilha de Capri" },
-    { data: emDias(11), label: "Revisão de aprovações pendentes" },
-    { data: emDias(17), label: "Vencimento de contrato — empresa terceirizada" },
-  ];
+  // agenda individual: só os compromissos dos setores a que a pessoa tem acesso
+  const { data: meusAcessos } = await supabase.from("perfis").select("acessos").eq("id", user!.id).single();
+  const eventosAgenda: EventoCalendario[] = await agendaDoSetor(supabase, user!.email, (meusAcessos?.acessos as string[] | null) ?? []);
 
   return (
     <>
@@ -156,7 +149,7 @@ export default async function DashboardPage() {
             {setor === "ADMIN" && <PainelObrasSeletor obras={painel.obras} />}
           </div>
         </div>
-        <MiniCalendar eventos={eventosExemplo} />
+        <MiniCalendar eventos={eventosAgenda} />
       </div>
 
       {kpis.length > 0 && (

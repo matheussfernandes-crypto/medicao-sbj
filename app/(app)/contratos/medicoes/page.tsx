@@ -8,6 +8,7 @@ import {
 import FormAcao from "@/components/contratos/FormAcao";
 import { excluirLancamentoContrato, cancelarSolicitacao } from "../actions";
 import LancamentoForm, { type Edicao } from "./LancamentoForm";
+import PreencheRegistro from "./PreencheRegistro";
 
 const BADGE: Record<string, string> = {
   PENDENTE: "badge-pendente", APROVADO: "badge-aprovado", REJEITADO: "badge-rejeitado",
@@ -32,6 +33,8 @@ export default async function MedicoesContratosPage({
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-semibold text-primaryDark">Medições de Contratos</h1>
+
+      {!empresaId && <PreencheRegistro contratos={ativos.map((c) => ({ id: c.id, empresa_id: c.empresa_id, empresa_nome: c.empresa_nome, obra_nome: c.obra_nome }))} />}
 
       {/* 1. Empresa */}
       <form method="get" className="card !p-4 flex flex-wrap gap-2 items-end">

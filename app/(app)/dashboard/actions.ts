@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { ehGestorAcessos } from "@/lib/acessos/modulos";
+import { ehGestorAcessos, permitido } from "@/lib/acessos/modulos";
 import { navItemsForSetor } from "@/components/nav-items";
 
 // Escolhe quais obras aparecem no carrossel do painel (só ADMIN).
@@ -28,7 +28,8 @@ export async function salvarAtalhos(hrefs: string[]) {
   if (!user) throw new Error("Sessão expirada.");
   const { data: perfil } = await supabase.from("perfis").select("setor, acessos, email").eq("id", user.id).single();
   const extras = [...((perfil?.acessos as string[] | null) ?? []), ...(ehGestorAcessos(user.email) ? ["gestor_acessos"] : [])];
-  const permitidos = new Set(navItemsForSetor(perfil?.setor ?? "ESTAGIARIO", extras).map((i) => i.href));
+  const gestor = extras.includes("gestor_acessos");
+  const permitidos = new Set(navItemsForSetor(perfil?.setor ?? "ESTAGIARIO", extras).filter((i) => gestor || permitido(extras, i.href)).map((i) => i.href));
   const limpos = Array.from(new Set(hrefs.filter((h) => permitidos.has(h) && h !== "/dashboard"))).slice(0, 8);
   const { error } = await supabase.from("perfis").update({ atalhos_home: limpos }).eq("id", user.id);
   if (error) throw new Error(error.message);

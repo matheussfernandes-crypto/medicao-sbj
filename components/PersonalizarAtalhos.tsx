@@ -47,8 +47,8 @@ export default function PersonalizarAtalhos({ opcoes, escolhidos }: { opcoes: Op
 
       <div
         className={
-          "mt-3 rounded-[14px] border border-border bg-white p-4 shadow-lg transition-all duration-200 ease-out origin-top " +
-          (aberto ? "opacity-100 scale-100 translate-y-0" : "pointer-events-none opacity-0 scale-95 -translate-y-2 h-0 overflow-hidden p-0 border-0")
+          "absolute right-0 top-full mt-2 z-40 w-[min(92vw,520px)] rounded-[14px] border border-border bg-white p-4 shadow-xl transition-all duration-200 ease-out origin-top-right " +
+          (aberto ? "opacity-100 scale-100 translate-y-0" : "pointer-events-none opacity-0 scale-95 -translate-y-2")
         }
       >
         <p className="text-sm text-ink-500 mb-3">Escolha até 8 telas para aparecerem aqui. Só aparecem as que você tem acesso.</p>

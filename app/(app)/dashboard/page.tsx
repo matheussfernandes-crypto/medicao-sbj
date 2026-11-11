@@ -6,7 +6,7 @@ import Carousel from "@/components/Carousel";
 import MiniCalendar, { type EventoCalendario } from "@/components/MiniCalendar";
 import { HardHat } from "lucide-react";
 import { agendaDoSetor } from "@/lib/agenda-setor";
-import { ehGestorAcessos, itensLiberados } from "@/lib/acessos/modulos";
+import { ehGestorAcessos, itensLiberados, permitido } from "@/lib/acessos/modulos";
 import { carregarPainelObras } from "./painel-obras";
 import SlideProgresso from "./SlideProgresso";
 import PainelObrasSeletor from "./PainelObrasSeletor";
@@ -99,7 +99,9 @@ export default async function DashboardPage() {
   // atalhos: os que a pessoa escolheu (só entre as telas que ela acessa); padrão: os 6 primeiros
   const { data: meuPerfil } = await supabase.from("perfis").select("acessos, email, atalhos_home").eq("id", user!.id).single();
   const extrasHome = [...((meuPerfil?.acessos as string[] | null) ?? []), ...(ehGestorAcessos(user!.email) ? ["gestor_acessos"] : [])];
-  const acessiveis = navItemsForSetor(setor, extrasHome).filter((item) => item.href !== "/dashboard");
+  // só as telas que a pessoa realmente abre (os módulos aparecem no menu para todos, mas nem todos têm acesso)
+  const gestorHome = extrasHome.includes("gestor_acessos");
+  const acessiveis = navItemsForSetor(setor, extrasHome).filter((item) => item.href !== "/dashboard" && (gestorHome || permitido(extrasHome, item.href)));
   const salvos = (meuPerfil?.atalhos_home as string[] | null) ?? null;
   const atalhos = salvos ? acessiveis.filter((i) => salvos.includes(i.href)) : acessiveis.slice(0, 6);
 
@@ -141,19 +143,47 @@ export default async function DashboardPage() {
     );
   }
   // agenda individual: só os compromissos dos setores a que a pessoa tem acesso
-  const { data: meusAcessos } = await supabase.from("perfis").select("acessos").eq("id", user!.id).single();
-  const eventosAgenda: EventoCalendario[] = await agendaDoSetor(supabase, user!.email, (meusAcessos?.acessos as string[] | null) ?? []);
+  const eventosAgenda: EventoCalendario[] = await agendaDoSetor(supabase, user!.email, (meuPerfil?.acessos as string[] | null) ?? []);
 
   return (
     <>
-      <div>
+      {/* saudação e, no lugar do subtítulo, o registro rápido */}
+      <div className="space-y-3">
         <h1 className="text-xl font-semibold text-ink-900">
           Olá, {perfil?.nome_completo?.split(" ")[0] ?? "bem-vindo"}
         </h1>
-        <p className="text-sm text-ink-500">Visão geral do sistema de medição de empreiteiros.</p>
+        <RegistroRapido />
       </div>
 
-      <RegistroRapido />
+      {/* atalhos do setor, escolhidos pela pessoa */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <p className="nav-group-label !text-ink-400 !px-0 !py-0">Acesso rápido</p>
+          <PersonalizarAtalhos opcoes={acessiveis.map((i) => ({ href: i.href, label: i.label }))} escolhidos={atalhos.map((i) => i.href)} />
+        </div>
+        {atalhos.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+            {atalhos.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={item.description}
+                  className="card !p-4 flex flex-col items-start gap-2 hover:shadow-panel hover:-translate-y-0.5 hover:border-primary/40 transition-all duration-200"
+                >
+                  <span className="w-9 h-9 rounded-[10px] bg-primary/10 text-primary flex items-center justify-center">
+                    <Icon className="w-5 h-5" />
+                  </span>
+                  <span className="text-sm font-semibold text-primaryDark leading-tight">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="card !p-4 text-sm text-ink-500">Nenhum atalho escolhido. Use “Personalizar atalhos”.</div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
@@ -176,25 +206,6 @@ export default async function DashboardPage() {
           ))}
         </div>
       )}
-
-      <div>
-        <p className="nav-group-label !text-ink-400 !px-0">Acesso rápido</p>
-        <PersonalizarAtalhos opcoes={acessiveis.map((i) => ({ href: i.href, label: i.label }))} escolhidos={atalhos.map((i) => i.href)} />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {atalhos.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link key={item.href} href={item.href} className="card hover:shadow-panel transition-shadow flex items-start gap-3">
-                <Icon className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <h2 className="font-semibold text-primaryDark">{item.label}</h2>
-                  <p className="text-sm text-ink-500">{item.description}</p>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
     </>
   );
 }

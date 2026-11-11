@@ -11,7 +11,6 @@ import { carregarPainelObras } from "./painel-obras";
 import SlideProgresso from "./SlideProgresso";
 import PainelObrasSeletor from "./PainelObrasSeletor";
 import PersonalizarAtalhos from "@/components/PersonalizarAtalhos";
-import { ehGestorAcessos } from "@/lib/acessos/modulos";
 
 function mesAtualISO() {
   return new Date().toISOString().slice(0, 7);

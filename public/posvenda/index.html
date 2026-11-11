@@ -570,6 +570,7 @@ function renderNav(){
 }
 function go(v,push=true){
   if(!VIEWS.some(x=>x.id===v)&&v!=="preencher")v="inicio";
+  if(S.drawer&&v!==S.view)closeDrawer();
   S.view=v;S.edit=null;
   if(push&&location.hash!=="#"+v){try{history.replaceState(null,"","#"+v)}catch(e){location.hash=v}}
   $("#quick-sec").hidden=v!=="inicio";

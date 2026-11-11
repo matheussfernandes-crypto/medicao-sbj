@@ -1309,7 +1309,7 @@ function openCh(id){S.drawer={k:"ch",id};S.drawerMode=null;renderDrawer()}
 function openUni(id){S.drawer={k:"uni",id};S.drawerMode=null;renderDrawer()}
 function closeDrawer(){S.drawer=null;S.drawerMode=null;$("#drawer-root").innerHTML="";document.body.style.overflow=""}
 function renderDrawer(){
-  const root=$("#drawer-root");if(!S.drawer){root.innerHTML="";return}
+  const root=$("#drawer-root");if(!S.drawer){root.innerHTML="";document.body.style.overflow="";return}
   document.body.style.overflow="hidden";
   const body=S.drawer.k==="ch"?drawerCh(chm(S.drawer.id)):drawerUni(uni(S.drawer.id));
   const scroll=root.querySelector(".drawer")?root.querySelector(".drawer").scrollTop:0;
@@ -2138,6 +2138,12 @@ async function init(){
     ta.value=pt;ta.dispatchEvent(new Event("input",{bubbles:true}));
   }
   setTimeout(leva,50);
+})();
+/* rolagem: se não há ficha nem janela aberta, a tela nunca fica travada */
+(function(){
+  function confere(){const d=document.getElementById('drawer-root');if(document.body.style.overflow==='hidden'&&(!d||!d.querySelector('.drawer'))&&!document.querySelector('.ovl'))document.body.style.overflow='';}
+  new MutationObserver(confere).observe(document.body,{childList:true,subtree:true});
+  window.addEventListener('hashchange',confere);
 })();
 init();
 </script>

@@ -1009,3 +1009,15 @@ function openBackupModal() {
     toast("Dados reiniciados.");
   });
 }
+
+/* rolagem: se nenhuma janela está aberta, tira a trava (evita a tela não rolar depois de fechar uma janela) */
+(function () {
+  function confere() {
+    const m = document.getElementById("modal-root");
+    if (document.body.classList.contains("modal-aberto") && (!m || !m.firstElementChild)) document.body.classList.remove("modal-aberto");
+    const sb = document.querySelector(".sidebar.aberto");
+    if (document.body.classList.contains("mn-aberto") && !sb) document.body.classList.remove("mn-aberto");
+  }
+  const ini = () => new MutationObserver(confere).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+  if (document.body) ini(); else document.addEventListener("DOMContentLoaded", ini);
+})();

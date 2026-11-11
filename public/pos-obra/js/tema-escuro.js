@@ -26,7 +26,13 @@
     return { r: 255, g: 255, b: 255, a: 1 };
   }
 
+  var CSS_TITULO = "h1{color:#00687A!important}html[data-tema=\"dark\"] h1{color:#3DB4C6!important}";
+  var st = document.createElement("style");
+  st.textContent = CSS_TITULO;
+  (document.head || raiz).appendChild(st);
+
   function ajusta(el) {
+    if (el.tagName === "H1") return;
     if (el.hasAttribute(MARCA)) return;
     var cs = getComputedStyle(el);
     var fundo = rgb(cs.backgroundColor);

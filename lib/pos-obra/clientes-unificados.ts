@@ -29,22 +29,27 @@ async function lerDocs(supabase: any, colecao: string, desde?: string | null): P
   return out;
 }
 
-// obra do Pós-obra (b1, b2...) <-> empreendimento do Pós-venda, pelo nome
+// obra do Pós-obra (b1, b2...) <-> empreendimento do Pós-venda. A ligação fica gravada no empreendimento
+// (campo obraId), então renomear de um lado não quebra nada. O nome só serve para a primeira ligação.
 async function ligacoes(supabase: any) {
   const [{ data: obras, error }, emps] = await Promise.all([
     supabase.from("posobra_obras").select("id, nome").is("excluido_em", null),
     lerDocs(supabase, "empreendimentos"),
   ]);
   if (error) throw new Error(error.message);
+  const obraPorId = new Map<string, { id: string; nome: string }>((obras ?? []).map((o: any) => [String(o.id), o]));
   const obraPorNome = new Map<string, { id: string; nome: string }>((obras ?? []).map((o: any) => [normNome(o.nome), o]));
   const obraDoEmp = new Map<string, string>();
   const empDaObra = new Map<string, string>();
   for (const e of emps) {
-    const o = obraPorNome.get(normNome(e.dados?.nome));
-    if (o) {
-      obraDoEmp.set(e.id, o.id);
-      empDaObra.set(o.id, e.id);
+    const o = (e.dados?.obraId && obraPorId.get(String(e.dados.obraId))) || obraPorNome.get(normNome(e.dados?.nome));
+    if (!o) continue;
+    if (e.dados?.obraId !== o.id) {
+      // grava a ligação uma vez (idempotente)
+      await supabase.rpc("posvenda_gravar", { p_colecao: "empreendimentos", p_id: e.id, p_dados: { obraId: o.id }, p_modo: "merge" });
     }
+    obraDoEmp.set(e.id, o.id);
+    empDaObra.set(o.id, e.id);
   }
   return { obras: (obras ?? []) as { id: string; nome: string }[], obraDoEmp, empDaObra };
 }
@@ -108,7 +113,7 @@ export async function POST(req: NextRequest) {
         const { error } = await u.supabase.rpc("posvenda_gravar", {
           p_colecao: "empreendimentos",
           p_id: empId,
-          p_dados: { nome: obra.nome.replace(/^\s*residencial\s+/i, "").trim(), status: "entregue", endereco: "", dataEntrega: "", criadoEm: agora },
+          p_dados: { nome: obra.nome.replace(/^\s*residencial\s+/i, "").trim(), status: "entregue", endereco: "", dataEntrega: "", criadoEm: agora, obraId: obra.id },
           p_modo: "merge",
         });
         if (error) throw new Error(error.message);

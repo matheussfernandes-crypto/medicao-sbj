@@ -97,7 +97,7 @@ export default function PosObraLayout({ children }: { children: React.ReactNode 
 
   return (
     <div className="relative -m-4 lg:-m-8 print:m-0">
-      <div aria-hidden="true" className={"cobertura-modulo absolute inset-0 z-10 transition-opacity duration-300 " + (visivel ? "opacity-0 pointer-events-none" : "opacity-100")}><CarregandoSBJ /></div>
+      <div aria-hidden="true" className={"cobertura-modulo absolute inset-0 z-10 flex items-center justify-center transition-opacity duration-300 " + (visivel ? "opacity-0 pointer-events-none" : "opacity-100")}><CarregandoSBJ /></div>
       <iframe
         ref={quadro}
         src="/pos-obra/"

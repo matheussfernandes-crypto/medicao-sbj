@@ -2004,11 +2004,11 @@ async function init(){
     ".sel-b::after{content:\"\";position:absolute;right:14px;top:50%;width:7px;height:7px;border-right:1.7px solid var(--muted);border-bottom:1.7px solid var(--muted);transform:translateY(-70%) rotate(45deg);transition:transform .25s cubic-bezier(.22,1,.36,1)}" +
     ".sel-w.aberto .sel-b::after{transform:translateY(-30%) rotate(225deg)}" +
     ".sel-b:focus-visible,.sel-w.aberto .sel-b{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,104,122,.15)}" +
-    ".sel-l{position:absolute;left:0;top:calc(100% + 6px);min-width:100%;max-width:min(360px,88vw);max-height:300px;overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px;z-index:60;transform-origin:top left;opacity:0;transform:translateY(-6px) scale(.97);pointer-events:none;transition:opacity .18s ease,transform .22s cubic-bezier(.22,1,.36,1)}" +
+    ".sel-l{position:absolute;left:0;top:calc(100% + 6px);min-width:max(100%,240px);max-width:min(360px,88vw);max-height:300px;overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px;z-index:60;transform-origin:top left;opacity:0;transform:translateY(-6px) scale(.97);pointer-events:none;transition:opacity .18s ease,transform .22s cubic-bezier(.22,1,.36,1)}" +
     ".sel-w.aberto .sel-l{opacity:1;transform:none;pointer-events:auto}" +
-    ".sel-o{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:0;background:none;border-radius:8px;padding:9px 10px;font:inherit;font-size:14px;color:var(--fg);text-align:left;cursor:pointer;transition:background .15s ease,color .15s ease}" +
+    ".sel-o{white-space:nowrap;display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:0;background:none;border-radius:8px;padding:9px 10px;font:inherit;font-size:14px;color:var(--fg);text-align:left;cursor:pointer;transition:background .15s ease,color .15s ease}" +
     ".sel-o:hover,.sel-o:focus-visible{background:var(--accent-soft);outline:none}" +
-    ".sel-o.on{color:var(--accent);font-weight:700}" +
+    ".sel-o.on{color:var(--accent);font-weight:700;background:var(--accent-soft)}" +
     ".sel-o.on::after{content:\"✓\";font-size:13px}" +
     "select[data-sel-c]{display:none!important}";
   var st = document.createElement("style");

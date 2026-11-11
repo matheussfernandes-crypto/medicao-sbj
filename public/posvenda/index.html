@@ -318,7 +318,7 @@ tbody tr:hover{background:var(--accent-soft)}
 @media (prefers-reduced-motion:reduce){.card,.tbl-wrap,.banner{animation:none}}
 /* títulos no padrão da Vistorias */
 h1{font-family:var(--f-body)!important;font-weight:600!important;font-size:24px;letter-spacing:-.01em}
-</style>
+.cal-mv.desliza-dir,.cal-g.desliza-dir{animation:agDirDir .3s cubic-bezier(.22,1,.36,1) both}.cal-mv.desliza-esq,.cal-g.desliza-esq{animation:agDirEsq .3s cubic-bezier(.22,1,.36,1) both}</style>
 
 <style>
 .embutido .side,.embutido .bnav{display:none!important}
@@ -622,14 +622,17 @@ function renderThumbs(){$("#q-thumbs").innerHTML=S.qFiles.map((f,i)=>`<div class
 function addFiles(fs){for(const f of fs){if(S.qFiles.length>=8)break;S.qFiles.push({file:f,url:URL.createObjectURL(f)})}renderThumbs()}
 function calMes(){
   const h=hojeISO();const base=S.calMes||new Date(new Date().getFullYear(),new Date().getMonth(),1);const sel=S.calDia||h;
+  const dirC=S.calDir;S.calDir=null;
+  const anima=dirC===1?"desliza-dir":dirC===-1?"desliza-esq":"";
+  const hj=new Date();const longe=base.getMonth()!==hj.getMonth()||base.getFullYear()!==hj.getFullYear()||sel!==h;
   const ini=addDays(base,-base.getDay());const dias=[...Array(42)].map((_,i)=>addDays(ini,i));
   const ult=dias[35].getMonth()!==base.getMonth()?dias.slice(0,35):dias;
   const porDia={};S.ag.forEach(a=>{if(a.status!=="cancelado")(porDia[a.data]=porDia[a.data]||[]).push(a)});
   const evs=(porDia[sel]||[]).slice().sort((a,b)=>(a.hora||"").localeCompare(b.hora||""));
   const titulo=base.toLocaleDateString("pt-BR",{month:"long"});
-  return `<div class="card cal"><div class="card-h"><h2><span style="text-transform:capitalize">${esc(titulo)}</span> <span class="muted" style="font-weight:500">${base.getFullYear()}</span></h2>
-   <div class="row" style="gap:4px"><button class="btn sm" data-a="cal-prev" aria-label="Mês anterior">‹</button><button class="btn sm" data-a="cal-hoje">hoje</button><button class="btn sm" data-a="cal-next" aria-label="Próximo mês">›</button></div></div>
-   <div class="cal-g">${["D","S","T","Q","Q","S","S"].map(d=>`<span class="cal-w">${d}</span>`).join("")}
+  return `<div class="card cal"><div class="card-h"><h2><span class="cal-mv ${anima}" style="display:inline-block;text-transform:capitalize">${esc(titulo)}</span> <span class="muted" style="font-weight:500">${base.getFullYear()}</span></h2>
+   <div class="row" style="gap:4px"><button class="btn sm" data-a="cal-prev" aria-label="Mês anterior">‹</button>${longe?`<button class="btn sm pri" data-a="cal-hoje">Voltar para hoje</button>`:""}<button class="btn sm" data-a="cal-next" aria-label="Próximo mês">›</button></div></div>
+   <div class="cal-g ${anima}">${["D","S","T","Q","Q","S","S"].map(d=>`<span class="cal-w">${d}</span>`).join("")}
    ${ult.map(d=>{const iso=isoDate(d);const l=porDia[iso]||[];const fora=d.getMonth()!==base.getMonth();
      const dots=l.slice(0,3).map(a=>`<i class="${realizada(a)?"f":""}"></i>`).join("");
      return `<button class="cal-d ${fora?"fora":""} ${iso===h?"hoje":""} ${iso===sel?"sel":""}" data-a="cal-dia" data-d="${iso}" aria-label="${esc(fmtDia(iso))}, ${l.length} ${plural(l.length,"visita")}"><span class="n">${d.getDate()}</span><span class="dots">${dots}</span></button>`}).join("")}</div>
@@ -1889,8 +1892,8 @@ if(a==="ag-cal-dia"){agEscolheData(el.dataset.d);return}
   if(a==="ag-new"){S.edit={kind:"ag-new"};renderView(true);return}
   if(a==="an-save"){const chId=val("an-ch");const ag=lerAg("an");if(!chId)return toast("Escolha o chamado.");if(!ag.data)return toast("Informe a data.");
     el.disabled=true;(async()=>{try{const c=chm(chId);const txt=await criarVisita(chId,ag);await dbUpd("ch",chId,{hist:[...(c.hist||[]),hist("visita",txt)],status:c.status==="resolvido"||ag.data<hojeISO()?c.status:"agendado",atualizadoEm:nowTs()});S.edit=null;renderView(true);toast("Visita agendada")}catch(err){dbErr(err);el.disabled=false}})();return}
-  if(a==="cal-prev"||a==="cal-next"){const b=S.calMes||new Date(new Date().getFullYear(),new Date().getMonth(),1);S.calMes=new Date(b.getFullYear(),b.getMonth()+(a==="cal-next"?1:-1),1);renderView(true);return}
-  if(a==="cal-hoje"){S.calMes=null;S.calDia=null;renderView(true);return}
+  if(a==="cal-prev"||a==="cal-next"){const b=S.calMes||new Date(new Date().getFullYear(),new Date().getMonth(),1);S.calMes=new Date(b.getFullYear(),b.getMonth()+(a==="cal-next"?1:-1),1);S.calDir=a==="cal-next"?1:-1;renderView(true);return}
+  if(a==="cal-hoje"){S.calMes=null;S.calDia=null;S.calDir=null;renderView(true);return}
   if(a==="cal-dia"){S.calDia=el.dataset.d;const d=parseD(el.dataset.d);const b=S.calMes||new Date(new Date().getFullYear(),new Date().getMonth(),1);if(d.getMonth()!==b.getMonth()||d.getFullYear()!==b.getFullYear())S.calMes=new Date(d.getFullYear(),d.getMonth(),1);renderView(true);return}
   if(a==="fins-todos"){S.finsTodos=true;renderView(true);return}
   if(a==="fim-sim"||a==="fim-nao"){const c=chm(el.dataset.id);if(!c)return;el.disabled=true;(async()=>{try{

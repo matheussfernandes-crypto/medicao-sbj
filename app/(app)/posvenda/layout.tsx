@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import CarregandoSBJ from "@/components/CarregandoSBJ";
 
 // O Pós-venda (public/posvenda) abre aqui dentro, sem menu próprio: a troca de tela vem do menu
 // do site (/posvenda/<tela>). O quadro fica aberto e só muda de tela, sem recarregar.
@@ -43,7 +44,7 @@ export default function PosVendaLayout({ children }: { children: React.ReactNode
 
   return (
     <div className="relative -m-4 lg:-m-8 print:m-0">
-      <div aria-hidden="true" className={"cobertura-modulo absolute inset-0 z-10 transition-opacity duration-300 " + (visivel ? "opacity-0 pointer-events-none" : "opacity-100")} />
+      <div aria-hidden="true" className={"cobertura-modulo absolute inset-0 z-10 transition-opacity duration-300 " + (visivel ? "opacity-0 pointer-events-none" : "opacity-100")}><CarregandoSBJ /></div>
       <iframe
         ref={quadro}
         onLoad={() => setTimeout(() => setVisivel(true), 250)}

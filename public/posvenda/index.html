@@ -296,7 +296,7 @@ pre.raw{white-space:pre-wrap;font-family:var(--f-body);font-size:13px;background
 .report .rk div{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
 .report .rk b{display:block;font-family:var(--f-display);font-size:22px}
 .report .resumo{background:var(--accent-soft);border-radius:8px;padding:12px 14px;white-space:pre-wrap}
-</style>
+@keyframes agDirEsq{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}@keyframes agDirDir{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}@keyframes agFade{from{opacity:0}to{opacity:1}}.week.desliza-dir{animation:agDirDir .34s cubic-bezier(.22,1,.36,1) both}.week.desliza-esq{animation:agDirEsq .34s cubic-bezier(.22,1,.36,1) both}.week.desliza-fade{animation:agFade .3s ease both}@media (prefers-reduced-motion:reduce){.week.desliza-dir,.week.desliza-esq,.week.desliza-fade{animation:none}}</style>
 
 <style>
 .embutido .side,.embutido .bnav{display:none!important}
@@ -1433,15 +1433,24 @@ async function drAction(a){
 }
 
 /* ================= AGENDA ================= */
+function agEscolheData(v){
+  if(!v)return;
+  const seg=d=>addDays(d,-((d.getDay()+6)%7));
+  const alvo=parseD(v),hoje=new Date();
+  const diff=Math.round((seg(alvo)-seg(hoje))/(7*86400000));
+  S.agDir=diff>S.agSem?1:diff<S.agSem?-1:0;
+  S.agSem=diff;S.agPick=false;renderView(true);
+}
 function vAgenda(){
+  const dirAg=S.agDir;S.agDir=null;
   const base=addDays(new Date(),S.agSem*7);const ini=addDays(base,-((base.getDay()+6)%7));
   const dias=[...Array(7)].map((_,i)=>isoDate(addDays(ini,i)));const h=hojeISO();
   const nova=S.edit&&S.edit.kind==="ag-new";
   const fimLabel=parseD(dias[6]).toLocaleDateString("pt-BR",{day:"2-digit",month:"short"});
   return `<div class="top"><div><h1>Agenda</h1><div class="sub">${parseD(dias[0]).toLocaleDateString("pt-BR",{day:"2-digit",month:"short"})} a ${fimLabel}</div></div>
-   <div class="row"><button class="btn" data-a="ag-prev" aria-label="Semana anterior">‹</button><button class="btn" data-a="ag-hoje">Hoje</button><button class="btn" data-a="ag-next" aria-label="Próxima semana">›</button><button class="btn pri" data-a="ag-new">Nova visita</button></div></div>
+   <div class="row"><button class="btn" data-a="ag-prev" aria-label="Semana anterior">‹</button><span class="ag-pick-w"><button class="btn${S.agPick?" pri":""}" data-a="ag-pick" aria-expanded="${S.agPick?"true":"false"}">Hoje</button>${S.agPick?`<input class="in ag-data" type="date" value="${dias[0]}" onchange="agEscolheData(this.value)" aria-label="Escolher a data">`:""}</span><button class="btn" data-a="ag-next" aria-label="Próxima semana">›</button><button class="btn pri" data-a="ag-new">Nova visita</button></div></div>
   ${nova?`<div class="panel"><h3>Nova visita</h3><label class="f">Chamado<select class="in" id="an-ch">${optCh(S.edit.chId||"")}</select></label>${agFields("an",{data:h,hora:"",tipo:"vistoria",respId:"",respNome:"",respEsp:"",respTel:""})}<div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="ed-cancel">Cancelar</button><button class="btn pri" data-a="an-save">Agendar</button></div></div>`:""}
-  <div class="week">${dias.map(d=>{const evs=S.ag.filter(a=>a.data===d&&a.status!=="cancelado").sort((a,b)=>(a.hora||"").localeCompare(b.hora||""));
+  <div class="week ${dirAg===1?"desliza-dir":dirAg===-1?"desliza-esq":dirAg===0?"desliza-fade":""}">${dias.map(d=>{const evs=S.ag.filter(a=>a.data===d&&a.status!=="cancelado").sort((a,b)=>(a.hora||"").localeCompare(b.hora||""));
     const dd=parseD(d);return `<div class="day ${d===h?"today":""}"><div class="day-h"><b>${dd.toLocaleDateString("pt-BR",{weekday:"short"}).replace(".","")}</b><span class="mono small muted">${pad(dd.getDate())}/${pad(dd.getMonth()+1)}</span></div>
     <div class="day-b">${evs.map(evCard).join("")||`<span class="small muted" style="padding:2px">—</span>`}</div></div>`}).join("")}</div>`;
 }
@@ -1826,9 +1835,10 @@ document.addEventListener("click",e=>{
   if(a==="dv-save"||a==="dv-del-ok"){el.disabled=true;drAction(a,el.dataset.id).finally(()=>{el.disabled=false});return}
   if(["dr-agu-save","dr-obra-save","dr-feita-save","dr-ag-save","dr-res-save","dr-nota-save","dr-reabrir","dr-edit-save","dr-del-ok"].includes(a)){el.disabled=true;drAction(a).finally(()=>{el.disabled=false});return}
   // agenda
-  if(a==="ag-prev"){S.agSem--;renderView(true);return}
-  if(a==="ag-next"){S.agSem++;renderView(true);return}
-  if(a==="ag-hoje"){S.agSem=0;renderView(true);return}
+  if(a==="ag-prev"){S.agSem--;S.agDir=-1;renderView(true);return}
+  if(a==="ag-next"){S.agSem++;S.agDir=1;renderView(true);return}
+  if(a==="ag-pick"){S.agPick=!S.agPick;renderView(true);setTimeout(()=>{const i=document.querySelector(".ag-data");if(i&&i.showPicker)try{i.showPicker()}catch(e){}},60);return}
+if(a==="ag-hoje"){S.agSem=0;S.agDir=0;S.agPick=false;renderView(true);return}
   if(a==="ag-new"){S.edit={kind:"ag-new"};renderView(true);return}
   if(a==="an-save"){const chId=val("an-ch");const ag=lerAg("an");if(!chId)return toast("Escolha o chamado.");if(!ag.data)return toast("Informe a data.");
     el.disabled=true;(async()=>{try{const c=chm(chId);const txt=await criarVisita(chId,ag);await dbUpd("ch",chId,{hist:[...(c.hist||[]),hist("visita",txt)],status:c.status==="resolvido"||ag.data<hojeISO()?c.status:"agendado",atualizadoEm:nowTs()});S.edit=null;renderView(true);toast("Visita agendada")}catch(err){dbErr(err);el.disabled=false}})();return}

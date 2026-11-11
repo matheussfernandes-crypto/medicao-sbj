@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 // O Pós-venda (public/posvenda) abre aqui dentro, sem menu próprio: a troca de tela vem do menu
@@ -18,6 +18,11 @@ export default function PosVendaLayout({ children }: { children: React.ReactNode
   const quadro = useRef<HTMLIFrameElement>(null);
   const inicial = useRef(telaDe(pathname));
   const tela = telaDe(pathname);
+  const [visivel, setVisivel] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setVisivel(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
 
   // modo claro/escuro: o kit acompanha o tema do site
   useEffect(() => {
@@ -37,9 +42,11 @@ export default function PosVendaLayout({ children }: { children: React.ReactNode
   }, [tela]);
 
   return (
-    <div className="-m-4 lg:-m-8 print:m-0">
+    <div className="relative -m-4 lg:-m-8 print:m-0">
+      <div aria-hidden="true" className={"cobertura-modulo absolute inset-0 z-10 transition-opacity duration-300 " + (visivel ? "opacity-0 pointer-events-none" : "opacity-100")} />
       <iframe
         ref={quadro}
+        onLoad={() => setTimeout(() => setVisivel(true), 250)}
         src={"/posvenda/index.html#" + inicial.current}
         title="Pós-venda"
         className="block w-full border-0"

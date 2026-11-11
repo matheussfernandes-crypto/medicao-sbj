@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 // O módulo Pós-obra (public/pos-obra) abre aqui dentro, no espaço de conteúdo do site:
@@ -31,6 +31,11 @@ type JanelaModulo = Window & { showView?: (v: string) => void };
 export default function PosObraLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const quadro = useRef<HTMLIFrameElement>(null);
+  const [visivel, setVisivel] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setVisivel(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
   const pronto = useRef(false);
   const tela = TELAS[pathname.split("/")[2] ?? ""] ?? "vistorias";
 
@@ -74,6 +79,7 @@ export default function PosObraLayout({ children }: { children: React.ReactNode 
     // o módulo reabre a última tela usada logo após carregar; depois disso vale a tela do menu do site
     setTimeout(() => {
       pronto.current = true;
+      setVisivel(true);
       irPara(TELAS[window.location.pathname.split("/")[2] ?? ""] ?? "vistorias");
     }, 700);
   };
@@ -89,7 +95,8 @@ export default function PosObraLayout({ children }: { children: React.ReactNode 
   }, [tela]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="-m-4 lg:-m-8 print:m-0">
+    <div className="relative -m-4 lg:-m-8 print:m-0">
+      <div aria-hidden="true" className={"cobertura-modulo absolute inset-0 z-10 transition-opacity duration-300 " + (visivel ? "opacity-0 pointer-events-none" : "opacity-100")} />
       <iframe
         ref={quadro}
         src="/pos-obra/"

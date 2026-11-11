@@ -1730,7 +1730,7 @@ function RelatorioPanel({
           style={{ background: "linear-gradient(120deg,#12383f,#2c6975 70%,#3a8794)", boxShadow: "inset 0 -6px 0 #f4dd3d" }}
         >
           <div className="flex items-center gap-5">
-            <img src="/logo-topbar.png" alt="SBJ" className="h-16 w-auto" />
+            <img src="/logo-sbj.webp" alt="SBJ" className="h-16 w-auto" />
             <div>
               <div className="text-[11px] uppercase tracking-[0.16em] text-[#cfe3e5]">SBJ Construtora e Incorporadora · Relatório de andamento de obra</div>
               <h1 className="text-3xl font-extrabold leading-tight">{obraNome}</h1>

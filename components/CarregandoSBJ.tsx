@@ -19,7 +19,7 @@ export default function CarregandoSBJ() {
       <style>{CSS}</style>
       <div className="cs-box">
         <span className="cs-ring" aria-hidden="true" />
-        <img src="/logo-topbar.png" alt="" className="cs-logo" />
+        <img src="/logo-sbj.webp" alt="" className="cs-logo" />
       </div>
     </div>
   );

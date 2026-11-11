@@ -82,7 +82,7 @@ export default function Sidebar({
         {/* coluna de setores */}
         <div className="w-[60px] shrink-0 flex flex-col items-center bg-[#0e2a30] py-3 gap-1">
           <Link href="/dashboard" onClick={onClose} className="mb-2" title="Engenharia SBJ">
-            <img src="/logo-topbar.png" alt="SBJ" className="h-9 w-auto" />
+            <img src="/logo-sbj.webp" alt="SBJ" className="h-9 w-auto" />
           </Link>
           <nav className="flex-1 flex flex-col items-center gap-1 overflow-y-auto w-full px-1.5" aria-label="Setores">
             {secoes.map((s) => {
@@ -239,7 +239,7 @@ function MenuNovo({
       >
         <div className="flex items-center justify-between gap-2 px-4 h-16 shrink-0 border-b border-white/10">
           <Link href="/dashboard" onClick={onClose} className="flex items-center gap-2 min-w-0">
-            <img src="/logo-topbar.png" alt="SBJ" className="h-8 w-auto" />
+            <img src="/logo-sbj.webp" alt="SBJ" className="h-8 w-auto" />
             <span className="text-sm font-semibold truncate">Engenharia SBJ</span>
           </Link>
           <button type="button" onClick={onClose} className="lg:hidden text-white/70 hover:text-white p-1" aria-label="Fechar menu">

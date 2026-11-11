@@ -21,7 +21,7 @@ export default function LoginPage({
             backgroundSize: "48px 48px",
           }}
         />
-        <img src="/logo-topbar.png" alt="SBJ" className="h-12 w-auto self-start relative" />
+        <img src="/logo-sbj.webp" alt="SBJ" className="h-12 w-auto self-start relative" />
         <div className="relative">
           <h1 className="text-3xl font-semibold text-white leading-tight max-w-md">
             Sistema de Medição de Empreiteiros
@@ -37,7 +37,7 @@ export default function LoginPage({
       <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-surface-subtle">
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-2 mb-8">
-            <img src="/logo-topbar.png" alt="SBJ" className="h-9 w-auto bg-primaryDark rounded p-1" />
+            <img src="/logo-sbj.webp" alt="SBJ" className="h-9 w-auto bg-primaryDark rounded p-1" />
             <span className="font-semibold text-primaryDark">Engenharia SBJ</span>
           </div>
 

@@ -137,7 +137,7 @@ export default function Folha({
       >
         <div style={{ display: "flex", alignItems: "center", gap: 18, minWidth: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-topbar.png" alt="SBJ" style={{ height: estreita ? 46 : 58, width: "auto" }} />
+          <img src="/logo-sbj.webp" alt="SBJ" style={{ height: estreita ? 46 : 58, width: "auto" }} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#cfe3e5" }}>
               SBJ Construtora e Incorporadora · {sub}

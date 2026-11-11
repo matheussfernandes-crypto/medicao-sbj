@@ -24,6 +24,8 @@ import {
   ClipboardCheck,
   KeyRound,
   LifeBuoy,
+  CalendarDays,
+  Database,
 } from "lucide-react";
 
 // Setores do menu (coluna de ícones, no estilo do Sienge). Cada item de navegação pertence a um setor e a um grupo dentro dele.
@@ -183,12 +185,44 @@ export const NAV_ITEMS: NavItem[] = [
     grupo: "Pós-obra",
   },
   {
-    label: "Pós-venda",
-    href: "/posvenda",
+    label: "Hoje",
+    href: "/posvenda/inicio",
     icon: LifeBuoy,
-    description: "Chamados, agenda de visitas, garantia NBR 15575 e avisos aos clientes.",
+    description: "Registro rápido e o que precisa de atenção hoje no pós-venda.",
     secao: "posobra",
-    grupo: "Pós-obra",
+    grupo: "Pós-venda",
+  },
+  {
+    label: "Chamados",
+    href: "/posvenda/chamados",
+    icon: ClipboardList,
+    description: "Chamados do pós-venda, com histórico e garantia NBR 15575.",
+    secao: "posobra",
+    grupo: "Pós-venda",
+  },
+  {
+    label: "Agenda",
+    href: "/posvenda/agenda",
+    icon: CalendarDays,
+    description: "Visitas marcadas e avisos por WhatsApp.",
+    secao: "posobra",
+    grupo: "Pós-venda",
+  },
+  {
+    label: "Painel",
+    href: "/posvenda/painel",
+    icon: BarChart3,
+    description: "Indicadores do pós-venda.",
+    secao: "posobra",
+    grupo: "Pós-venda",
+  },
+  {
+    label: "Relatórios",
+    href: "/posvenda/relatorios",
+    icon: FileSpreadsheet,
+    description: "Relatórios e exportações do pós-venda.",
+    secao: "posobra",
+    grupo: "Pós-venda",
   },
   {
     label: "Empreendimentos",
@@ -236,6 +270,14 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // ---- Administração ----
+  {
+    label: "Cadastros do pós-venda",
+    href: "/posvenda/cadastros",
+    icon: Database,
+    description: "Empreendimentos, unidades e proprietários, responsáveis, garantia, mensagens e backup.",
+    secao: "admin",
+    grupo: "Cadastros",
+  },
   {
     label: "Obras & Pessoas",
     href: "/admin/obras",

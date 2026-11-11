@@ -106,6 +106,7 @@ export function ContratoTipoPdf({ d, engenheiroNome, dataGeracao }: { d: Contrat
         <Text style={s.clausula}>4. Os pagamentos seguem o boletim de medição mensal emitido e aprovado pela engenharia da SBJ.</Text>
         <Text style={s.clausula}>5. A contratada deve cumprir todas as normas de segurança da SBJ e as normas regulamentadoras de segurança do trabalho, com uso obrigatório de EPIs em obra.</Text>
         <Text style={s.clausula}>6. Todos os trabalhadores da contratada na obra devem ser registrados. Não é permitido trabalhador sem registro.</Text>
+        <Text style={s.clausula}>7. A contratada deve manter a frente de serviço sempre limpa e organizada, retirando entulho e sobras de material ao fim de cada etapa e de cada dia de trabalho.</Text>
 
         {d.observacoes ? (
           <View wrap={false}>

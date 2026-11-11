@@ -10,6 +10,8 @@ import { ehGestorAcessos, itensLiberados } from "@/lib/acessos/modulos";
 import { carregarPainelObras } from "./painel-obras";
 import SlideProgresso from "./SlideProgresso";
 import PainelObrasSeletor from "./PainelObrasSeletor";
+import PersonalizarAtalhos from "@/components/PersonalizarAtalhos";
+import { ehGestorAcessos } from "@/lib/acessos/modulos";
 
 function mesAtualISO() {
   return new Date().toISOString().slice(0, 7);
@@ -94,7 +96,12 @@ export default async function DashboardPage() {
     kpis.push({ label: "Meus lançamentos pendentes", value: String(meusPendentes ?? 0), href: "/lancamentos" });
   }
 
-  const atalhos = navItemsForSetor(setor).filter((item) => item.href !== "/dashboard");
+  // atalhos: os que a pessoa escolheu (só entre as telas que ela acessa); padrão: os 6 primeiros
+  const { data: meuPerfil } = await supabase.from("perfis").select("acessos, email, atalhos_home").eq("id", user!.id).single();
+  const extrasHome = [...((meuPerfil?.acessos as string[] | null) ?? []), ...(ehGestorAcessos(user!.email) ? ["gestor_acessos"] : [])];
+  const acessiveis = navItemsForSetor(setor, extrasHome).filter((item) => item.href !== "/dashboard");
+  const salvos = (meuPerfil?.atalhos_home as string[] | null) ?? null;
+  const atalhos = salvos ? acessiveis.filter((i) => salvos.includes(i.href)) : acessiveis.slice(0, 6);
 
   // Carrossel: gráfico de andamento + fotos mais recentes de cada obra marcada
   // (o ADMIN escolhe quais pelo ícone de ajustes no canto do carrossel).
@@ -170,6 +177,7 @@ export default async function DashboardPage() {
 
       <div>
         <p className="nav-group-label !text-ink-400 !px-0">Acesso rápido</p>
+        <PersonalizarAtalhos opcoes={acessiveis.map((i) => ({ href: i.href, label: i.label }))} escolhidos={atalhos.map((i) => i.href)} />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {atalhos.map((item) => {
             const Icon = item.icon;

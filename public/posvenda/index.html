@@ -631,7 +631,7 @@ function calMes(){
   const evs=(porDia[sel]||[]).slice().sort((a,b)=>(a.hora||"").localeCompare(b.hora||""));
   const titulo=base.toLocaleDateString("pt-BR",{month:"long"});
   return `<div class="card cal"><div class="card-h"><h2><span class="cal-mv ${anima}" style="display:inline-block;text-transform:capitalize">${esc(titulo)}</span> <span class="muted" style="font-weight:500">${base.getFullYear()}</span></h2>
-   <div class="row" style="gap:4px"><button class="btn sm" data-a="cal-prev" aria-label="Mês anterior">‹</button>${longe?`<button class="btn sm pri" data-a="cal-hoje">Voltar para hoje</button>`:""}<button class="btn sm" data-a="cal-next" aria-label="Próximo mês">›</button></div></div>
+   <div class="row" style="gap:4px"><button class="btn sm" data-a="cal-prev" aria-label="Mês anterior">‹</button><button class="btn sm${longe?" pri":""}" data-a="cal-hoje">${longe?"Voltar para hoje":"Hoje"}</button><button class="btn sm" data-a="cal-next" aria-label="Próximo mês">›</button></div></div>
    <div class="cal-g ${anima}">${["D","S","T","Q","Q","S","S"].map(d=>`<span class="cal-w">${d}</span>`).join("")}
    ${ult.map(d=>{const iso=isoDate(d);const l=porDia[iso]||[];const fora=d.getMonth()!==base.getMonth();
      const dots=l.slice(0,3).map(a=>`<i class="${realizada(a)?"f":""}"></i>`).join("");

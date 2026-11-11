@@ -50,6 +50,7 @@ function toast(msg, type = "") {
 /* ---------- Modal helpers ---------- */
 function openModal(html, wide = false) {
   const root = document.getElementById("modal-root");
+  document.body.classList.add("modal-aberto");
   root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal ${wide ? "wide" : ""}">${html}</div></div>`;
   document.getElementById("modal-overlay").addEventListener("click", (e) => {
     if (e.target.id === "modal-overlay") closeModal();
@@ -57,6 +58,7 @@ function openModal(html, wide = false) {
 }
 function closeModal() {
   document.getElementById("modal-root").innerHTML = "";
+  document.body.classList.remove("modal-aberto");
 }
 
 /* ---------- Navegação ---------- */

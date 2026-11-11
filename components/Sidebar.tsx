@@ -87,7 +87,7 @@ export default function Sidebar({
           <nav className="flex-1 flex flex-col items-center gap-1 overflow-y-auto w-full px-1.5" aria-label="Setores">
             {secoes.map((s) => {
               const Icon = s.icon;
-              const eAtiva = s.href ? pathname === s.href : s.id === secao?.id;
+              const eAtiva = s.href ? pathname === s.href && ativa === s.id : s.id === secao?.id;
               const pend = pendencias(s);
               const classe =
                 "relative w-full flex items-center justify-center rounded-xl py-2.5 transition-all duration-200 active:scale-95 " +
@@ -99,7 +99,7 @@ export default function Sidebar({
                 </>
               );
               return s.href ? (
-                <Link key={s.id} href={s.href} onClick={onClose} className={classe} title={s.label} aria-label={s.label}>
+                <Link key={s.id} href={s.href} onClick={() => { setAtiva(s.id); onClose(); }} className={classe} title={s.label} aria-label={s.label}>
                   {conteudo}
                 </Link>
               ) : (
@@ -126,8 +126,9 @@ export default function Sidebar({
         </div>
 
         {/* painel do setor */}
-        {painelAberto && secao && (
-          <div className="w-[236px] bg-white border-r border-border flex flex-col shadow-[4px_0_24px_-14px_rgba(10,75,85,.35)]" style={{ animation: "sbjPainel .28s ease-out" }}>
+        <div className={"shrink-0 overflow-hidden transition-[width] duration-300 ease-out " + (painelAberto && secao ? "w-[236px]" : "w-0")}>
+        {secao && (
+          <div className="w-[236px] h-full bg-white border-r border-border flex flex-col shadow-[4px_0_24px_-14px_rgba(10,75,85,.35)]">
             <div className="flex items-center justify-between gap-2 px-4 h-16 shrink-0 border-b border-border">
               <h2 className="text-base font-semibold text-primaryDark truncate">{secao.label}</h2>
               <button type="button" onClick={() => mudarPainel(false)} className="hidden lg:block text-ink-400 hover:text-primary p-1" aria-label="Recolher o painel" title="Recolher o painel">
@@ -181,6 +182,7 @@ export default function Sidebar({
             {setor && <p className="px-4 py-2 text-[11px] text-ink-400 border-t border-border truncate">Engenharia SBJ · {SETOR_LABEL[setor] ?? setor}</p>}
           </div>
         )}
+        </div>
         {!painelAberto && (
           <button type="button" onClick={() => mudarPainel(true)} className="hidden lg:flex absolute top-[72px] -right-3 z-10 w-6 h-6 rounded-full bg-white border border-border shadow items-center justify-center text-ink-500 hover:text-primary" aria-label="Abrir o painel" title="Abrir o painel">
             <PanelLeftOpen className="w-3.5 h-3.5" />
@@ -248,13 +250,13 @@ function MenuNovo({
         <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-1" aria-label="Menu">
           {secoes.map((s) => {
             const Icon = s.icon;
-            const ativo = s.href ? pathname === s.href : aberta === s.id;
+            const ativo = s.href ? pathname === s.href && aberta === s.id : aberta === s.id;
             const pend = pendencias(s);
             const cabeca =
               "w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-all duration-200 " + (ativo ? "bg-white/15" : "hover:bg-white/10");
             const conteudo = (
               <>
-                <span className={"flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200 " + (ativo ? "bg-accent text-primaryDark" : "bg-white/10")}>
+                <span className={"flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200 " + (ativo ? "bg-white/20 text-white" : "bg-white/10")}>
                   <Icon className="w-4 h-4" />
                 </span>
                 <span className="flex-1 text-[15px] font-medium truncate">{s.label}</span>
@@ -264,7 +266,7 @@ function MenuNovo({
             );
             if (s.href) {
               return (
-                <Link key={s.id} href={s.href} onClick={onClose} className={cabeca}>
+                <Link key={s.id} href={s.href} onClick={() => { setAberta(s.id); onClose(); }} className={cabeca}>
                   {conteudo}
                 </Link>
               );
@@ -288,7 +290,7 @@ function MenuNovo({
                                 key={item.label + item.href}
                                 href={item.href}
                                 onClick={onClose}
-                                className={"flex items-center justify-between rounded-lg px-2.5 py-2 text-[14px] transition-colors duration-200 " + (eAtivo ? "bg-accent/20 text-white font-semibold" : "text-white/75 hover:bg-white/10 hover:text-white")}
+                                className={"flex items-center justify-between rounded-lg px-2.5 py-2 text-[14px] transition-colors duration-200 " + (eAtivo ? "bg-white/15 text-white font-semibold" : "text-white/75 hover:bg-white/10 hover:text-white")}
                               >
                                 <span className="truncate">{item.label}</span>
                               </Destino>

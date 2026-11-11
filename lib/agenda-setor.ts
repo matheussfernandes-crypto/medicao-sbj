@@ -1,5 +1,5 @@
 import { ehGestorAcessos, itensLiberados } from "@/lib/acessos/modulos";
-import { normNome } from "@/lib/pos-obra/clientes-unificados";
+import { listarEmpreendimentos } from "@/lib/posvenda/empreendimentos";
 
 // Agenda da página inicial: cada pessoa vê só os compromissos dos setores a que tem acesso.
 // Só leitura: nada aqui grava em tabela nenhuma.
@@ -36,7 +36,7 @@ export async function agendaDoSetor(supabase: any, email: string | null | undefi
           supabase.from("posvenda_docs").select("id, dados").eq("colecao", "empreendimentos"),
         ]);
         const uni = new Map<string, any>((unis ?? []).map((x: any) => [x.id, x.dados]));
-        const emp = new Map<string, any>((emps ?? []).map((x: any) => [x.id, x.dados]));
+        const emp = new Map<string, any>((await listarEmpreendimentos(supabase)).map((x: any) => [x.id, x.dados]));
         for (const v of marcadas) {
           const c = ch.get(v.dados.chId) || {};
           const onde = [uni.get(c.uniId)?.numero, emp.get(c.empId)?.nome].filter(Boolean).join(" · ");
@@ -58,6 +58,5 @@ export async function agendaDoSetor(supabase: any, email: string | null | undefi
     } catch {}
   }
 
-  void normNome;
   return eventos.sort((a, b) => a.data.localeCompare(b.data) || a.label.localeCompare(b.label));
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { agoraComFolga, desdeValido, erro, exigirUsuario } from "./server";
+import { listarEmpreendimentos } from "@/lib/posvenda/empreendimentos";
 
 // Clientes do módulo de vistorias = unidades do cadastro do Pós-venda (posvenda_docs, coleção "unidades").
 // É um cadastro só: o que se edita num lugar aparece no outro. Os empreendimentos dos dois lados são
@@ -32,25 +33,17 @@ async function lerDocs(supabase: any, colecao: string, desde?: string | null): P
 // obra do Pós-obra (b1, b2...) <-> empreendimento do Pós-venda. A ligação fica gravada no empreendimento
 // (campo obraId), então renomear de um lado não quebra nada. O nome só serve para a primeira ligação.
 async function ligacoes(supabase: any) {
-  const [{ data: obras, error }, emps] = await Promise.all([
-    supabase.from("posobra_obras").select("id, nome").is("excluido_em", null),
-    lerDocs(supabase, "empreendimentos"),
-  ]);
-  if (error) throw new Error(error.message);
-  const obraPorId = new Map<string, { id: string; nome: string }>((obras ?? []).map((o: any) => [String(o.id), o]));
-  const obraPorNome = new Map<string, { id: string; nome: string }>((obras ?? []).map((o: any) => [normNome(o.nome), o]));
+  const lista = await listarEmpreendimentos(supabase);
   const obraDoEmp = new Map<string, string>();
   const empDaObra = new Map<string, string>();
-  for (const e of emps) {
-    const o = (e.dados?.obraId && obraPorId.get(String(e.dados.obraId))) || obraPorNome.get(normNome(e.dados?.nome));
+  for (const e of lista) {
+    const o = e.dados?.obraId;
     if (!o) continue;
-    if (e.dados?.obraId !== o.id) {
-      // grava a ligação uma vez (idempotente)
-      await supabase.rpc("posvenda_gravar", { p_colecao: "empreendimentos", p_id: e.id, p_dados: { obraId: o.id }, p_modo: "merge" });
-    }
-    obraDoEmp.set(e.id, o.id);
-    empDaObra.set(o.id, e.id);
+    obraDoEmp.set(e.id, o);
+    empDaObra.set(o, e.id);
   }
+  const { data: obras, error } = await supabase.from("posobra_obras").select("id, nome").is("excluido_em", null);
+  if (error) throw new Error(error.message);
   return { obras: (obras ?? []) as { id: string; nome: string }[], obraDoEmp, empDaObra };
 }
 
@@ -104,21 +97,7 @@ export async function POST(req: NextRequest) {
     }
     let gravados = 0;
     for (const r of registros) {
-      let empId = empDaObra.get(String(r.buildingId));
-      if (!empId) {
-        // obra do Pós-obra que ainda não existe no cadastro do Pós-venda: cria o empreendimento com o mesmo nome
-        const obra = obras.find((o) => o.id === String(r.buildingId));
-        if (!obra) continue;
-        empId = "emp-" + obra.id;
-        const { error } = await u.supabase.rpc("posvenda_gravar", {
-          p_colecao: "empreendimentos",
-          p_id: empId,
-          p_dados: { nome: obra.nome.replace(/^\s*residencial\s+/i, "").trim(), status: "entregue", endereco: "", dataEntrega: "", criadoEm: agora, obraId: obra.id },
-          p_modo: "merge",
-        });
-        if (error) throw new Error(error.message);
-        empDaObra.set(obra.id, empId);
-      }
+      const empId = empDaObra.get(String(r.buildingId)) ?? String(r.buildingId);
       const id = String(r.id);
       const dados: Record<string, unknown> = {
         empId,

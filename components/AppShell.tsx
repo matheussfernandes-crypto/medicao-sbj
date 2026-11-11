@@ -11,6 +11,7 @@ import { itemDeCaminho, permitido } from "@/lib/acessos/modulos";
 import SemAcesso from "./SemAcesso";
 
 import TemaAlternar from "./TemaAlternar";
+import NotificacoesPopover from "./NotificacoesPopover";
 export default function AppShell({
   setor,
   extras,
@@ -52,18 +53,7 @@ export default function AppShell({
           </div>
 
           <div className="flex items-center gap-4 text-sm shrink-0">
-            <Link
-              href="/notificacoes"
-              className="relative text-ink-700 hover:text-primary transition-colors p-1"
-              title={naoLidas > 0 ? `${naoLidas} notificação${naoLidas > 1 ? "ões" : ""} não lida${naoLidas > 1 ? "s" : ""}` : "Notificações"}
-            >
-              <Bell className="w-5 h-5" />
-              {naoLidas > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-danger text-white text-[10px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1 leading-none">
-                  {naoLidas > 99 ? "99+" : naoLidas}
-                </span>
-              )}
-            </Link>
+            <NotificacoesPopover naoLidas={naoLidas} />
 
             {nome && (
               <Link href="/perfil" className="hidden sm:inline text-ink-700 hover:text-primary" title="Editar meu cadastro">

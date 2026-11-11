@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseJs } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
@@ -11,7 +11,15 @@ export async function solicitarRecuperacaoSenha(formData: FormData) {
     redirect(`/esqueci-senha?erro=${encodeURIComponent("Informe o seu email.")}`);
   }
 
-  const supabase = createClient();
+  // Cliente "implícito" só para este envio: o link do e-mail volta com a sessão no próprio link
+  // (#access_token=...), então funciona em QUALQUER aparelho/navegador. O cliente padrão do site
+  // usa PKCE, que só aceita o link no mesmo navegador em que o pedido foi feito — se a pessoa
+  // pedia no computador e abria o e-mail no celular, dava "link inválido".
+  const supabase = createSupabaseJs(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { flowType: "implicit", persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
+  );
 
   // Descobre a origem (https://medicao-sbj.vercel.app ou localhost) para montar o link de volta.
   const headerList = headers();

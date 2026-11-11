@@ -16,14 +16,31 @@ export default function RedefinirSenhaPage() {
   const [sucesso, setSucesso] = useState(false);
 
   useEffect(() => {
-    // O link de recuperação do Supabase chega com o token na própria URL.
-    // O cliente do navegador detecta esse token automaticamente e cria uma
-    // sessão temporária só para permitir a troca de senha.
+    // O link de recuperação chega com a sessão no próprio endereço:
+    //  - #access_token=...&refresh_token=...  (link novo — funciona em qualquer aparelho)
+    //  - ?code=...                             (links antigos — o cliente troca sozinho)
+    // Com a sessão temporária, a pessoa consegue gravar a nova senha.
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
-      setLinkValido(!!data.session);
-      setPronto(true);
-    });
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const accessToken = hash.get("access_token");
+    const refreshToken = hash.get("refresh_token");
+
+    async function verificar() {
+      if (hash.get("error") || hash.get("error_code")) return false;
+      if (accessToken && refreshToken) {
+        const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        // tira os tokens da barra de endereço
+        window.history.replaceState(null, "", window.location.pathname);
+        return !error && !!data.session;
+      }
+      const { data } = await supabase.auth.getSession();
+      return !!data.session;
+    }
+
+    verificar()
+      .then((ok) => setLinkValido(ok))
+      .catch(() => setLinkValido(false))
+      .finally(() => setPronto(true));
   }, []);
 
   async function trocarSenha(e: React.FormEvent) {

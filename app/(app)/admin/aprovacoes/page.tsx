@@ -44,7 +44,7 @@ export default async function AprovacoesPage() {
   const { data: decididas } = await supabase
     .from("perfis")
     .select("id, nome_completo, email, setor, status, decidido_em")
-    .neq("status", "pendente")
+    .not("status", "in", "(pendente,excluido)")
     .order("decidido_em", { ascending: false })
     .limit(50);
 
@@ -174,7 +174,7 @@ export default async function AprovacoesPage() {
                   {c.status !== "excluido" && c.id !== meuId && !ehGestorAcessos(c.email) && (
                     <BotaoConfirmar
                       action={excluirConta.bind(null, c.id)}
-                      mensagem={`Excluir o acesso de ${c.nome_completo ?? c.email}? A pessoa perde o acesso ao sistema. O histórico (medições, lançamentos, vistorias) continua registrado.`}
+                      mensagem={`Excluir o acesso de ${c.nome_completo ?? c.email}? A pessoa perde o acesso e sai desta lista. Se ainda não tiver nada lançado no sistema, o cadastro é apagado e ela pode se cadastrar de novo com o mesmo e-mail; se tiver, o histórico (medições, lançamentos, vistorias) continua registrado.`}
                       rotulo="Excluir"
                     />
                   )}

@@ -73,16 +73,25 @@ export async function alterarSetor(perfilId: string, formData: FormData) {
   revalidatePath("/admin/aprovacoes");
 }
 
-// Exclui a conta sem apagar o histórico: o perfil continua existindo (lançamentos, fechamentos e
-// vistorias ficam ligados a ele), mas a pessoa perde o acesso e some das listas.
+// Exclui a conta. Sem histórico: o login é apagado de vez (a pessoa pode se cadastrar de novo com o
+// mesmo e-mail). Com histórico (lançamentos, fechamentos, vistorias ligados a ela): o perfil fica
+// marcado como 'excluido' — perde o acesso e some das listas, mas o histórico continua.
 export async function excluirConta(perfilId: string) {
   const { supabase, user } = await exigirAdmin();
   await protegerGestor(supabase, perfilId);
   if (perfilId === user.id) throw new Error("Você não pode excluir o seu próprio acesso.");
-  await supabase
-    .from("perfis")
-    .update({ status: "excluido", decidido_por: user.id, decidido_em: new Date().toISOString() })
-    .eq("id", perfilId);
+
+  const { error: erroRpc } = await supabase.rpc("excluir_login", { p_perfil: perfilId });
+  if (erroRpc) {
+    // Função ainda não criada no banco → só arquiva o perfil.
+    const funcaoAusente = erroRpc.code === "PGRST202" || erroRpc.code === "42883";
+    if (!funcaoAusente) throw new Error("Não foi possível excluir: " + erroRpc.message);
+    const { error } = await supabase
+      .from("perfis")
+      .update({ status: "excluido", decidido_por: user.id, decidido_em: new Date().toISOString() })
+      .eq("id", perfilId);
+    if (error) throw new Error("Não foi possível excluir: " + error.message);
+  }
   revalidatePath("/admin/aprovacoes");
 }
 

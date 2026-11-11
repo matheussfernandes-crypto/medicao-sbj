@@ -486,3 +486,8 @@ input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
 .vt-aba, .vt-seg-op, .vt-modo, .vt-chip, .chip, .vt-resolver, .vp-multi, .btn { transition: background-color .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .15s ease; }
 .vt-aba:active, .vt-seg-op:active, .vt-resolver:active, .btn:active { transform: scale(.97); }
 @media (prefers-reduced-motion: reduce) { #view-vistorias > *, .vt-row, .vp-tabela tbody tr { animation: none; transition: none; } }
+
+.tm-texto { border: 1px solid var(--border); border-radius: 12px; background: #f7f9fa; padding: 14px 16px; margin: 4px 0 14px; }
+.tm-texto p { margin: 0 0 10px; font-size: 14px; line-height: 1.55; text-align: justify; }
+.tm-texto .tm-rec { margin-left: 22px; }
+.tm-texto .tm-lead { font-weight: 600; margin-bottom: 0; }

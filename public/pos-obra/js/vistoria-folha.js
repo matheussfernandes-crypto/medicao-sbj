@@ -315,9 +315,10 @@ function vfRenderFinal(root) {
 
       <div class="panel vf-passo">
         <h3>2. Termo de recebimento do imóvel</h3>
-        <p class="hint">O termo da SBJ, com a lista de chaves e objetos entregues. O parágrafo da instalação do reiki sai em todos os termos.</p>
+        <p class="hint">O termo da SBJ, com a lista de chaves e objetos entregues.</p>
         <label class="vt-campo">Proprietário(a)<input type="text" id="tm-nome" value="${escapeHtml(tm.nome)}" placeholder="Nome completo do proprietário" autocomplete="off"></label>
         <div class="vt-chips" style="margin:12px 0;"><button type="button" class="vt-chip ${tm.garagem ? "ativo" : ""}" id="tm-garagem">Vinculado à garagem</button></div>
+        <div class="tm-texto" id="tm-texto">${vfTextoTermoHtml(tm, v)}</div>
         <div class="vt-rot">Chaves e objetos entregues <button type="button" class="vf-todos-sim" id="tm-todos">Marcar todos SIM</button></div>
         <div class="tm-lista">${tm.objetos.map((o, i) => `
           <div class="tm-obj2" data-i="${i}">
@@ -363,7 +364,8 @@ function vfRenderFinal(root) {
   /* dados que o PDF usa */
   const salvaTexto = () => { v.nomeProp = $("vf-nome-prop").value.trim(); v.nomeTec = $("vf-nome-tec").value.trim(); tm.nome = $("tm-nome").value.trim(); tm.extra = $("tm-extra").value.trim(); persist(); };
   ["vf-nome-prop", "vf-nome-tec", "tm-nome", "tm-extra"].forEach(id => $(id).addEventListener("change", salvaTexto));
-  $("tm-garagem").onclick = (e) => { tm.garagem = !tm.garagem; e.currentTarget.classList.toggle("ativo", tm.garagem); persist(); };
+  $("tm-garagem").onclick = (e) => { tm.garagem = !tm.garagem; e.currentTarget.classList.toggle("ativo", tm.garagem); $("tm-texto").innerHTML = vfTextoTermoHtml(tm, v); persist(); };
+  $("tm-nome").addEventListener("input", () => { $("tm-texto").innerHTML = vfTextoTermoHtml({ ...tm, nome: $("tm-nome").value.trim() }, v); });
   root.querySelectorAll("[data-tm-q]").forEach(i => i.addEventListener("change", () => { tm.objetos[Number(i.dataset.tmQ)].q = Number(i.value) || 0; salvaObjetos(); }));
   root.querySelectorAll("[data-tm-n]").forEach(i => i.addEventListener("change", () => { tm.objetos[Number(i.dataset.tmN)].n = i.value.trim(); salvaObjetos(); }));
   const salvaObjetos = () => { persist(); try { localStorage.setItem("posvenda_vf_objetos", JSON.stringify(tm.objetos.map(o => ({ q: o.q, n: o.n })))); } catch (e) { /* sem armazenamento */ } };
@@ -465,6 +467,21 @@ async function vfMontarPdf(v) {
 }
 
 
+/* texto do termo: o mesmo na tela e no PDF */
+function vfParagrafosTermo(tm, v) {
+  const b = getBuilding(v.buildingId);
+  const edificio = b ? `Edifício ${b.name}` : "Edifício";
+  return [
+    { t: `${(tm.nome || "").toUpperCase()}, proprietário do imóvel localizado no ${edificio}, apto nº. ${v.unit}${tm.garagem ? ", vinculado com sua respectiva garagem estabelecida em contrato" : ""}, declara expressamente que recebeu nesta data o referido imóvel para uso, em perfeitas condições de habitabilidade, tendo efetuado vistoria através de check-list específico e constatado que todas as suas instalações estão em perfeito estado de funcionamento, bem como não apresentam nenhum vício ou defeito construtivo aparente.`, r: 0 },
+    { t: "Declara também que está ciente de que, a partir desta data, passa a contar com as garantias que lhe são asseguradas pelo Código Civil Brasileiro, o qual fixa em seis meses a responsabilidade do construtor pelos vícios ou defeitos redibitórios, isto é, ocultos, e em cinco anos pela solidez e segurança do imóvel contados a partir da data do Habite-se, fornecido pela Prefeitura Municipal de Navegantes/SC.", r: 8 },
+    { t: "Nos apartamentos que realizaram integração e não possuem o reiki instalado, a partir da realização da vistoria a instalação passa a ser de responsabilidade do proprietário. Dessa forma, orientamos que a instalação seja realizada imediatamente, pois a ausência do reiki pode permitir a entrada de água e, consequentemente, ocasionar problemas de infiltração e danos ao apartamento localizado no pavimento inferior. A instalação deve ser executada conforme as orientações e especificações técnicas aplicáveis, garantindo a adequada vedação e o correto escoamento da água.", r: 8 },
+    { t: "Concorda que, para prevenir dúvidas, todas as comunicações com a construtora deverão ser feitas por escrito, pela qual se obriga a tanto.", r: 8 },
+  ];
+}
+function vfTextoTermoHtml(tm, v) {
+  return vfParagrafosTermo(tm, v).map(p => `<p${p.r ? ' class="tm-rec"' : ""}>${escapeHtml(p.t)}</p>`).join("") + '<p class="tm-lead">Recebe, nesta data, os seguintes documentos e objetos:</p>';
+}
+
 /* Termo de recebimento do imóvel (texto do modelo da SBJ; o parágrafo do reiki entra sempre) */
 async function vfMontarTermo(v) {
   if (!window.jspdf) { toast("Biblioteca de PDF não carregada.", "error"); return null; }
@@ -472,7 +489,6 @@ async function vfMontarTermo(v) {
   const { jsPDF } = window.jspdf, doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight(), M = 22, W = pw - 2 * M;
   const b = getBuilding(v.buildingId), logo = await vtLogoDataUrl();
-  const edificio = b ? `Edifício ${b.name}` : "Edifício";
   let y = 24;
   doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(0, 0, 0);
   doc.text("TERMO DE RECEBIMENTO DO IMÓVEL", pw / 2, y, { align: "center" }); y += 11;
@@ -482,10 +498,7 @@ async function vfMontarTermo(v) {
     doc.text(linhas, M + (recuo || 0), y, { align: "justify", maxWidth: W - (recuo || 0), lineHeightFactor: 1.38 });
     y += linhas.length * 5 + 3.2;
   };
-  par(`${tm.nome.toUpperCase()}, proprietário do imóvel localizado no ${edificio}, apto nº. ${v.unit}${tm.garagem ? ", vinculado com sua respectiva garagem estabelecida em contrato" : ""}, declara expressamente que recebeu nesta data o referido imóvel para uso, em perfeitas condições de habitabilidade, tendo efetuado vistoria através de check-list específico e constatado que todas as suas instalações estão em perfeito estado de funcionamento, bem como não apresentam nenhum vício ou defeito construtivo aparente.`);
-  par("Declara também que está ciente de que, a partir desta data, passa a contar com as garantias que lhe são asseguradas pelo Código Civil Brasileiro, o qual fixa em seis meses a responsabilidade do construtor pelos vícios ou defeitos redibitórios, isto é, ocultos, e em cinco anos pela solidez e segurança do imóvel contados a partir da data do Habite-se, fornecido pela Prefeitura Municipal de Navegantes/SC.", 8);
-  par("Nos apartamentos que realizaram integração e não possuem o reiki instalado, a partir da realização da vistoria a instalação passa a ser de responsabilidade do proprietário. Dessa forma, orientamos que a instalação seja realizada imediatamente, pois a ausência do reiki pode permitir a entrada de água e, consequentemente, ocasionar problemas de infiltração e danos ao apartamento localizado no pavimento inferior. A instalação deve ser executada conforme as orientações e especificações técnicas aplicáveis, garantindo a adequada vedação e o correto escoamento da água.", 8);
-  par("Concorda que, para prevenir dúvidas, todas as comunicações com a construtora deverão ser feitas por escrito, pela qual se obriga a tanto.", 8);
+  vfParagrafosTermo(tm, v).forEach(p => par(p.t, p.r));
   doc.text("Recebe, nesta data, os seguintes documentos e objetos:", M + 8, y + 1); y += 5;
   const corpo = tm.objetos.filter(o => o.n).map(o => [String(o.q), o.n.toUpperCase(), "", ""]);
   corpo.push(["", "EXTRA:" + (tm.extra ? " " + tm.extra.toUpperCase() : ""), "", ""]);

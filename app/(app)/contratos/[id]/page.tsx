@@ -11,6 +11,7 @@ import FormAcao from "@/components/contratos/FormAcao";
 import UploadArquivo from "@/components/contratos/UploadArquivo";
 import {
   editarContrato, adicionarItens, novaRetencao, liberarRetencao, excluirAnexo,
+  adicionarPreco, editarPreco, excluirPreco,
 } from "../actions";
 import AditivoForm from "./AditivoForm";
 import ItemEditor from "./ItemEditor";
@@ -31,7 +32,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
     .maybeSingle();
   if (!c) notFound();
 
-  const [itens, { data: aditivos }, { data: retencoes }, { data: liberacoes }, { data: anexos }, { data: lancs }, { data: solicitacoes }] =
+  const [itens, { data: aditivos }, { data: retencoes }, { data: liberacoes }, { data: anexos }, { data: lancs }, { data: solicitacoes }, { data: precos }] =
     await Promise.all([
       itensComSaldo(supabase, c.id),
       supabase.from("contrato_aditivos").select("*").eq("contrato_id", c.id).order("criado_em", { ascending: false }),
@@ -40,6 +41,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
       supabase.from("contrato_anexos").select("*").eq("contrato_id", c.id).neq("tipo", "FOTO").order("criado_em", { ascending: false }),
       supabase.from("contrato_lancamentos").select("id, numero, tipo, data, mes_referencia, status, valor_medido, valor_bruto, retencao_valor, valor_liquido, teve_glosa, criado_por, contrato_lancamento_itens(item_id, quantidade_aprovada, valor_unitario)").eq("contrato_id", c.id).order("criado_em", { ascending: false }),
       supabase.from("contrato_solicitacoes").select("*").eq("contrato_id", c.id).order("criado_em", { ascending: false }),
+      supabase.from("contrato_precos").select("*").eq("contrato_id", c.id).order("ordem"),
     ]);
 
   const nomes = await nomesUsuarios(supabase, [
@@ -96,6 +98,11 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
         <div className="flex flex-wrap gap-2 mt-3">
           <Link href={`/contratos/medicoes?contrato=${c.id}`} className="bg-primary text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-primaryDark">Medir este contrato</Link>
           {ehAdmin && <Link href={`/contratos/fechamento?contrato=${c.id}`} className="border border-primary text-primary rounded-lg px-4 py-2 text-sm font-semibold">Boletim / fechamento</Link>}
+          {ehAdmin && (precos ?? []).length > 0 && (
+            <a href={`/contratos/contrato-tipo/pdf?contrato=${c.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 border border-primary text-primary rounded-lg px-4 py-2 text-sm font-semibold">
+              <FileText className="w-4 h-4" /> Contrato tipo (PDF)
+            </a>
+          )}
         </div>
       </div>
 
@@ -135,6 +142,64 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
           </ul>
         ) : (
           <p className="text-sm text-ink-400">Nenhum PDF anexado.</p>
+        )}
+      </section>
+
+      {/* Preços unitários (contrato tipo) */}
+      <section className="card space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="font-semibold text-primaryDark">Preços unitários combinados</h2>
+            <p className="text-xs text-ink-500">Valor por unidade de medida acertado com o fornecedor. É o que sai no PDF do contrato tipo.</p>
+          </div>
+          {ehAdmin && (precos ?? []).length > 0 && (
+            <a href={`/contratos/contrato-tipo/pdf?contrato=${c.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary font-semibold hover:underline">
+              <FileText className="w-4 h-4" /> Gerar PDF do contrato tipo
+            </a>
+          )}
+        </div>
+        {(precos ?? []).length ? (
+          <div className="divide-y text-sm">
+            <div className="hidden sm:grid grid-cols-12 gap-2 pb-1 text-xs font-semibold text-ink-500">
+              <span className="col-span-6">Serviço</span><span className="col-span-2">Unidade</span><span className="col-span-2 text-right">Preço (R$)</span><span className="col-span-2"></span>
+            </div>
+            {(precos ?? []).map((pr) =>
+              ehAdmin ? (
+                <div key={pr.id} className="py-2 flex flex-wrap sm:flex-nowrap items-center gap-2">
+                  <FormAcao action={editarPreco} reset={false} mostrarOk={false} className="grid grid-cols-12 gap-2 items-center flex-1 text-sm">
+                    <input type="hidden" name="id" value={pr.id} />
+                    <input type="hidden" name="contratoId" value={c.id} />
+                    <input name="servico" defaultValue={pr.servico} required className="col-span-12 sm:col-span-6 border rounded px-2 py-1.5" />
+                    <input name="unidade" list="unidades-preco" defaultValue={pr.unidade} required className="col-span-4 sm:col-span-2 border rounded px-2 py-1.5" />
+                    <input name="valorUnitario" inputMode="decimal" defaultValue={String(pr.valor_unitario).replace(".", ",")} required className="col-span-5 sm:col-span-2 border rounded px-2 py-1.5 text-right" />
+                    <button className="col-span-3 sm:col-span-2 text-xs text-primary font-semibold border border-primary rounded px-2 py-1.5">Salvar</button>
+                  </FormAcao>
+                  <FormAcao action={excluirPreco} confirmar={`Remover "${pr.servico}" dos preços do contrato?`} mostrarOk={false}>
+                    <input type="hidden" name="id" value={pr.id} />
+                    <input type="hidden" name="contratoId" value={c.id} />
+                    <button className="text-xs text-danger px-1">Remover</button>
+                  </FormAcao>
+                </div>
+              ) : (
+                <div key={pr.id} className="py-2 grid grid-cols-12 gap-2">
+                  <span className="col-span-6">{pr.servico}</span><span className="col-span-2">{pr.unidade}</span>
+                  <span className="col-span-4 text-right font-semibold">{brl(pr.valor_unitario)} / {pr.unidade}</span>
+                </div>
+              )
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-ink-400">Nenhum preço cadastrado. {ehAdmin ? "Cadastre abaixo os serviços e o valor de cada unidade (ex.: Forro de gesso · m² · 55,00)." : ""}</p>
+        )}
+        {ehAdmin && (
+          <FormAcao action={adicionarPreco} className="grid grid-cols-12 gap-2 items-end text-xs border-t pt-3">
+            <input type="hidden" name="contratoId" value={c.id} />
+            <label className="col-span-12 sm:col-span-6 flex flex-col gap-1">Serviço *<input name="servico" required placeholder="Forro de gesso" className="border rounded px-2 py-1.5 text-sm" /></label>
+            <label className="col-span-4 sm:col-span-2 flex flex-col gap-1">Unidade *<input name="unidade" list="unidades-preco" defaultValue="m²" required className="border rounded px-2 py-1.5 text-sm" /></label>
+            <label className="col-span-5 sm:col-span-2 flex flex-col gap-1">Preço (R$) *<input name="valorUnitario" inputMode="decimal" required placeholder="55,00" className="border rounded px-2 py-1.5 text-sm" /></label>
+            <button className="col-span-3 sm:col-span-2 bg-primary text-white rounded px-3 py-2 font-semibold">Adicionar</button>
+            <datalist id="unidades-preco">{UNIDADES.map((u) => <option key={u} value={u} />)}</datalist>
+          </FormAcao>
         )}
       </section>
 

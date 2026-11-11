@@ -243,6 +243,52 @@ export async function excluirItem(fd: FormData): Promise<Resultado> {
   return { ok: "Item excluído." };
 }
 
+// ─── Preços unitários / contrato tipo (ADM) ─────────────────────────────────
+
+export async function adicionarPreco(fd: FormData): Promise<Resultado> {
+  const p = await perfilAtual();
+  if (!p?.ehAdmin) return { erro: "Apenas o ADM altera os preços do contrato." };
+  const contratoId = txt(fd, "contratoId");
+  const servico = txt(fd, "servico");
+  const unidade = txt(fd, "unidade");
+  const valor = parseNum(fd.get("valorUnitario"));
+  if (!contratoId || !servico || !unidade) return { erro: "Preencha serviço e unidade." };
+  if (!(valor >= 0) || !txt(fd, "valorUnitario")) return { erro: "Informe o preço por unidade." };
+  const { data: ult } = await p.supabase
+    .from("contrato_precos").select("ordem").eq("contrato_id", contratoId).order("ordem", { ascending: false }).limit(1);
+  const { error } = await p.supabase.from("contrato_precos").insert({
+    contrato_id: contratoId, servico, unidade, valor_unitario: arred(valor), ordem: (ult?.[0]?.ordem ?? 0) + 1,
+  });
+  if (error) return { erro: error.message };
+  revalidarTudo(contratoId);
+  return { ok: "Preço adicionado." };
+}
+
+export async function editarPreco(fd: FormData): Promise<Resultado> {
+  const p = await perfilAtual();
+  if (!p?.ehAdmin) return { erro: "Apenas o ADM altera os preços do contrato." };
+  const id = txt(fd, "id");
+  const contratoId = txt(fd, "contratoId");
+  const servico = txt(fd, "servico");
+  const unidade = txt(fd, "unidade");
+  const valor = parseNum(fd.get("valorUnitario"));
+  if (!servico || !unidade || !txt(fd, "valorUnitario") || !(valor >= 0)) return { erro: "Preencha serviço, unidade e preço." };
+  const { error } = await p.supabase.from("contrato_precos").update({ servico, unidade, valor_unitario: arred(valor) }).eq("id", id);
+  if (error) return { erro: error.message };
+  revalidarTudo(contratoId);
+  return { ok: "Preço atualizado." };
+}
+
+export async function excluirPreco(fd: FormData): Promise<Resultado> {
+  const p = await perfilAtual();
+  if (!p?.ehAdmin) return { erro: "Apenas o ADM altera os preços do contrato." };
+  const contratoId = txt(fd, "contratoId");
+  const { error } = await p.supabase.from("contrato_precos").delete().eq("id", txt(fd, "id"));
+  if (error) return { erro: error.message };
+  revalidarTudo(contratoId);
+  return { ok: "Preço removido." };
+}
+
 // ─── Aditivos (ADM) ─────────────────────────────────────────────────────────
 
 async function aplicarAditivo(

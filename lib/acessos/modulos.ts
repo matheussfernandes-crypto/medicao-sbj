@@ -4,8 +4,7 @@
 
 export const MODULOS = [
   { key: "andamento_novo", label: "Andamento de Obra (novo)" },
-  { key: "posobra", label: "Pós-obra" },
-  { key: "posvenda", label: "Pós-venda" },
+  { key: "posobra", label: "Pós-venda" },
   { key: "contratos", label: "Contratos" },
   { key: "lancamentos", label: "Lançamentos" },
   { key: "financeiro", label: "Financeiro" },
@@ -15,11 +14,11 @@ export type ItemDef = { key: string; modulo: string; label: string; prefixos: st
 
 export const ITENS: ItemDef[] = [
   { key: "andamento_novo", modulo: "andamento_novo", label: "Andamento (novo)", prefixos: ["/andamento-novo"] },
-  { key: "posobra/vistorias", modulo: "posobra", label: "Vistorias", prefixos: ["/posobra/vistorias"] },
+  { key: "posobra/vistorias", modulo: "posobra", label: "Vistorias e entrega", prefixos: ["/posobra/vistorias"] },
   { key: "posobra/empreendimentos", modulo: "posobra", label: "Empreendimentos", prefixos: ["/posobra/empreendimentos"] },
   { key: "posobra/clientes", modulo: "posobra", label: "Clientes", prefixos: ["/posobra/clientes"] },
   { key: "posobra/fornecedores", modulo: "posobra", label: "Fornecedores", prefixos: ["/posobra/fornecedores"] },
-  { key: "posvenda/chamados", modulo: "posvenda", label: "Pós-venda", prefixos: ["/posvenda"] },
+  { key: "posvenda/chamados", modulo: "posobra", label: "Chamados e manutenção", prefixos: ["/posvenda"] },
   { key: "contratos/lista", modulo: "contratos", label: "Contratos", prefixos: ["/contratos"] },
   { key: "contratos/medicoes", modulo: "contratos", label: "Medições", prefixos: ["/contratos/medicoes"] },
   { key: "contratos/autorizacao", modulo: "contratos", label: "Autorização", prefixos: ["/contratos/aprovacoes"] },

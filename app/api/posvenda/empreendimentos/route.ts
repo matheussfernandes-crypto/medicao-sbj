@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { gravarEmpreendimento, listarEmpreendimentos } from "@/lib/posvenda/empreendimentos";
+import { excluirEmpreendimento, gravarEmpreendimento, listarEmpreendimentos } from "@/lib/posvenda/empreendimentos";
 import { erro, exigirPosvenda } from "@/lib/posvenda/server";
 
 // Pós-venda: empreendimentos são as obras do Pós-obra (uma lista só).
@@ -28,6 +28,15 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function DELETE() {
-  return erro("Empreendimentos são cadastrados em Pós-obra e não podem ser excluídos por aqui.", 400);
+export async function DELETE(req: NextRequest) {
+  const r = await exigirPosvenda();
+  if ("erro" in r) return r.erro;
+  const id = req.nextUrl.searchParams.get("id");
+  if (!id) return erro("Falta o id", 400);
+  try {
+    await excluirEmpreendimento(r.supabase, r.user.id, id);
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    return erro(e?.message || "Não foi possível excluir.", 500);
+  }
 }

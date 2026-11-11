@@ -134,3 +134,16 @@ export async function gravarEmpreendimento(supabase: any, userId: string, kitId:
   const { error } = await supabase.from("posobra_obras").update(campos).eq("id", obra.id);
   if (error) throw new Error(error.message);
 }
+
+// exclusão pelo cadastro do Pós-venda: a obra sai das listas, mas nada é apagado (unidades, chamados e histórico ficam)
+export async function excluirEmpreendimento(supabase: any, userId: string, kitId: string) {
+  const lo = await obras(supabase);
+  const lista = await ligacoesGravadas(supabase);
+  await completarLigacoes(supabase, lista, lo);
+  const link = lista.find((l) => l.id === kitId);
+  const obraId = link?.dados?.obraId ?? (lo.some((o) => o.id === kitId) ? kitId : null);
+  if (!obraId) throw new Error("Empreendimento não encontrado.");
+  const agora = new Date().toISOString();
+  const { error } = await supabase.from("posobra_obras").update({ excluido_em: agora, atualizado_em: agora, atualizado_por: userId }).eq("id", obraId);
+  if (error) throw new Error(error.message);
+}

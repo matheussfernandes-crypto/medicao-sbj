@@ -93,7 +93,7 @@ export default function PosObraLayout({ children }: { children: React.ReactNode 
       <iframe
         ref={quadro}
         src="/pos-obra/"
-        title="Pós-obra"
+        title="Vistorias e entrega"
         onLoad={aoCarregar}
         className="block w-full border-0 bg-white"
         style={{ height: "calc(100dvh - 4rem)" }}

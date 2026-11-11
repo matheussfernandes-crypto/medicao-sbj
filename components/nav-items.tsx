@@ -175,14 +175,14 @@ export const NAV_ITEMS: NavItem[] = [
     grupo: "Administração",
   },
 
-  // ---- Pós-obra (módulo estático em public/pos-obra, aberto dentro do site em /posobra) ----
+  // ---- Pós-venda: entrega (vistorias, módulo em public/pos-obra) ----
   {
     label: "Vistorias",
     href: "/posobra/vistorias",
     icon: ClipboardCheck,
     description: "Vistorias de entrega dos apartamentos, com pendências, fotos e assinaturas.",
     secao: "posobra",
-    grupo: "Pós-venda",
+    grupo: "Entrega",
   },
   {
     label: "Hoje",
@@ -190,7 +190,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: LifeBuoy,
     description: "Registro rápido e o que precisa de atenção hoje no pós-venda.",
     secao: "posobra",
-    grupo: "Pós-venda",
+    grupo: "Manutenção",
   },
   {
     label: "Chamados",
@@ -198,7 +198,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: ClipboardList,
     description: "Chamados do pós-venda, com histórico e garantia NBR 15575.",
     secao: "posobra",
-    grupo: "Pós-venda",
+    grupo: "Manutenção",
   },
   {
     label: "Agenda",
@@ -206,7 +206,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: CalendarDays,
     description: "Visitas marcadas e avisos por WhatsApp.",
     secao: "posobra",
-    grupo: "Pós-venda",
+    grupo: "Manutenção",
   },
   {
     label: "Painel",
@@ -214,7 +214,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: BarChart3,
     description: "Indicadores do pós-venda.",
     secao: "posobra",
-    grupo: "Pós-venda",
+    grupo: "Manutenção",
   },
   {
     label: "Relatórios",
@@ -222,7 +222,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: FileSpreadsheet,
     description: "Relatórios e exportações do pós-venda.",
     secao: "posobra",
-    grupo: "Pós-venda",
+    grupo: "Manutenção",
   },
 
   // ---- Financeiro ----

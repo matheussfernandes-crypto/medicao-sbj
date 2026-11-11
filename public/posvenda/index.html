@@ -1608,7 +1608,7 @@ function cadEmp(){
   return `<div class="row" style="justify-content:space-between"><span class="small muted">${S.emp.filter(e=>e.status!=="obra").length} entregues · ${S.emp.filter(e=>e.status==="obra").length} em construção${semData?` · <b style="color:var(--warn)">${semData} sem data de entrega</b> (necessária para calcular a garantia)`:""}</span><button class="btn pri sm" data-a="cad-new" data-k="emp" ${S.edit?"disabled":""}>Novo empreendimento</button></div>
   <div class="tbl-wrap"><table><thead><tr><th>Empreendimento</th><th>Situação</th><th>Entrega</th><th>Endereço</th><th class="n">Chamados</th><th></th></tr></thead><tbody>
   ${novo?form({}):""}
-  ${lista.map(e=>isEd("emp",e.id)?form(e):`<tr><td><b>${esc(e.nome)}</b></td><td>${e.status==="obra"?`<span class="pill c-warn">Em construção</span>`:`<span class="pill c-ok">Entregue</span>`}</td><td class="mono">${e.dataEntrega?esc(fmtD(e.dataEntrega)):`<span class="muted">—</span>`}</td><td>${esc(e.endereco||"")}</td><td class="n">${S.ch.filter(c=>c.empId===e.id&&c.status!=="resolvido").length} / ${S.ch.filter(c=>c.empId===e.id).length}</td><td><button class="btn sm ghost" data-a="cad-edit" data-k="emp" data-id="${esc(e.id)}" ${S.edit?"disabled":""}>Editar</button></td></tr>`).join("")}
+  ${lista.map(e=>isEd("emp",e.id)?form(e):`<tr><td><b>${esc(e.nome)}</b></td><td>${e.status==="obra"?`<span class="pill c-warn">Em construção</span>`:`<span class="pill c-ok">Entregue</span>`}</td><td class="mono">${e.dataEntrega?esc(fmtD(e.dataEntrega)):`<span class="muted">—</span>`}</td><td>${esc(e.endereco||"")}</td><td class="n">${S.ch.filter(c=>c.empId===e.id&&c.status!=="resolvido").length} / ${S.ch.filter(c=>c.empId===e.id).length}</td><td><button class="btn sm ghost" data-a="cad-edit" data-k="emp" data-id="${esc(e.id)}" ${S.edit?"disabled":""}>Editar</button> <button class="btn sm ghost" data-a="emp-del" data-id="${esc(e.id)}" ${S.edit?"disabled":""}>Excluir</button></td></tr>`).join("")}
   ${!lista.length&&!novo?`<tr><td colspan="6"><div class="empty" style="border:0">Nenhum empreendimento ainda. Cadastre os 26 aqui ou deixe que eles apareçam conforme os chamados chegam.</div></td></tr>`:""}
   </tbody></table></div>`;
 }
@@ -1872,7 +1872,8 @@ if(a==="forn-new"){S.edit={kind:"forn",id:"__new"};renderView(true);return}
 if(a==="forn-edit"){S.edit={kind:"forn",id:el.dataset.id};renderView(true);return}
 if(a==="forn-save"){fornGravar(el.dataset.id);return}
   if(a==="cad-new"){S.edit={kind:el.dataset.k,id:"__new"};renderView(true);const f=$("#view tbody .in");f&&f.focus();return}
-  if(a==="cad-edit"){e.stopPropagation();S.edit={kind:el.dataset.k,id:el.dataset.id};renderView(true);return}
+  if(a==="emp-del"){const emp=S.emp.find(x=>x.id===el.dataset.id);const n=S.uni.filter(u=>u.empId===el.dataset.id).length;if(!confirm("Excluir "+(emp?emp.nome:"este empreendimento")+"?\n\nEle sai das listas e das vistorias. As "+n+" unidades, os chamados e o histórico continuam guardados."))return;dbDel("emp",el.dataset.id).then(()=>toast("Empreendimento excluído")).catch(()=>toast("Não consegui excluir. Tente de novo."));return}
+if(a==="cad-edit"){e.stopPropagation();S.edit={kind:el.dataset.k,id:el.dataset.id};renderView(true);return}
   if(["ce-save","cu-save","cr-save","cg-save","cm-save"].includes(a)){cadSave(a,el.dataset.id);return}
   if(a==="cr-del-ok"){const id=el.dataset.id;const r=resp(id);el.disabled=true;(async()=>{try{await dbDel("resp",id);S.edit=null;renderView(true);toast(`${r?r.nome:"Responsável"} excluído`)}catch(err){dbErr(err);el.disabled=false}})();return}
   if(a==="imp-reset"){if(S.imp&&S.imp.state==="run")return;S.imp=null;renderView(true);return}

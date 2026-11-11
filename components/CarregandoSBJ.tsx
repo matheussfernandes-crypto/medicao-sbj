@@ -1,26 +1,17 @@
 "use client";
 
-// Carregamento entre páginas: só a logo SBJ com um anel amarelo girando em volta.
-// (A animação completa da grua fica só na abertura do site, em public/intro-sbj.)
-const CSS = `
-.cs-wrap{display:flex;align-items:center;justify-content:center;min-height:55vh;animation:cs-in .2s ease-out .12s both}
-@keyframes cs-in{from{opacity:0}to{opacity:1}}
-.cs-box{position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center}
-.cs-ring{position:absolute;inset:0;border-radius:999px;border:3px solid rgba(12,107,118,.12);border-top-color:#F5E400;animation:cs-gira .9s linear infinite}
-.cs-logo{width:64px;height:auto;animation:cs-pulsa 1.8s ease-in-out infinite}
-@keyframes cs-gira{to{transform:rotate(360deg)}}
-@keyframes cs-pulsa{0%,100%{opacity:.55;transform:scale(.96)}50%{opacity:1;transform:scale(1)}}
-@media (prefers-reduced-motion:reduce){.cs-ring,.cs-logo{animation:none}}
-`;
+import { CARREGAMENTO_SVG } from "@/lib/carregamento-svg";
 
-export default function CarregandoSBJ() {
+// Carregamento do site: o desenho da logo SBJ sendo traçado e preenchido, com "Carregando…".
+// Usado em todas as telas que carregam (páginas do Next e coberturas dos módulos).
+const CSS = ".cs-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;min-height:55vh;width:100%}.cs-logo svg{width:min(70vw,300px);height:auto;display:block}.cs-status{font:600 14px/1 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;letter-spacing:.04em;color:#6b7f86}.cs-status span{display:inline-block;animation:cs-dot 1.2s infinite;opacity:.2}.cs-status span:nth-child(2){animation-delay:.2s}.cs-status span:nth-child(3){animation-delay:.4s}@keyframes cs-dot{0%,100%{opacity:.2}50%{opacity:1}}@media (prefers-reduced-motion:reduce){.cs-status span{animation:none;opacity:1}}";
+
+export default function CarregandoSBJ({ className = "" }: { className?: string }) {
   return (
-    <div className="cs-wrap" aria-busy="true" aria-label="Carregando" role="status">
+    <div role="status" aria-live="polite" aria-label="Carregando" className={"cs-wrap " + className}>
       <style>{CSS}</style>
-      <div className="cs-box">
-        <span className="cs-ring" aria-hidden="true" />
-        <img src="/logo-sbj.webp" alt="" className="cs-logo" />
-      </div>
+      <div className="cs-logo" dangerouslySetInnerHTML={{ __html: CARREGAMENTO_SVG }} />
+      <div className="cs-status">Carregando<span>.</span><span>.</span><span>.</span></div>
     </div>
   );
 }

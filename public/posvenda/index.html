@@ -310,7 +310,7 @@ pre.raw{white-space:pre-wrap;font-family:var(--f-body);font-size:13px;background
 </style>
 <script>
 (function(){var d=document.documentElement;try{if(window.self!==window.top)d.classList.add("embutido")}catch(e){d.classList.add("embutido")}
-var t="light";try{t=localStorage.getItem("posvenda-tema")==="dark"?"dark":"light"}catch(e){}d.setAttribute("data-theme",t);
+var t="light";try{t=window.parent&&window.parent.document.documentElement.classList.contains("dark")?"dark":"light"}catch(e){}d.setAttribute("data-theme",t);
 function rotulo(){var b=document.getElementById("tema-btn");if(b)b.textContent=d.getAttribute("data-theme")==="dark"?"☀ Modo claro":"☾ Modo escuro"}
 window.posvendaTema=function(){var n=d.getAttribute("data-theme")==="dark"?"light":"dark";d.setAttribute("data-theme",n);try{localStorage.setItem("posvenda-tema",n)}catch(e){}rotulo()};
 document.addEventListener("DOMContentLoaded",rotulo)})();
@@ -323,7 +323,7 @@ document.addEventListener("DOMContentLoaded",rotulo)})();
   </aside>
   <main>
     <div class="wrap">
-      <div class="topo-linha"><div class="busca" id="busca-w"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input class="in" id="busca" type="search" autocomplete="off" placeholder="Buscar unidade, cliente, telefone ou nº do chamado (ex.: 1104 Malta)" aria-label="Busca rápida"><div class="busca-r" id="busca-r" hidden></div></div><button type="button" class="tema-btn" id="tema-btn" onclick="posvendaTema()">☾ Modo escuro</button></div>
+      <div class="topo-linha"><div class="busca" id="busca-w"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input class="in" id="busca" type="search" autocomplete="off" placeholder="Buscar unidade, cliente, telefone ou nº do chamado (ex.: 1104 Malta)" aria-label="Busca rápida"><div class="busca-r" id="busca-r" hidden></div></div></div>
       <div id="sys-banner"></div>
       <section id="quick-sec" hidden></section>
       <section id="view" class="wrap" style="max-width:none;width:100%"></section>

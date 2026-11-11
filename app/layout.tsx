@@ -1,4 +1,6 @@
 import "./globals.css";
+import "./tema-escuro.css";
+import { SCRIPT_TEMA_INICIAL } from "@/lib/tema";
 import type { Metadata } from "next";
 import PushRegistrar from "@/components/PushRegistrar";
 
@@ -14,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* animação de entrada da logo SBJ (uma vez por sessão; ?intro na URL força de novo) */}
         <link rel="stylesheet" href="/intro-sbj/intro.css" />
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_INICIAL }} />
         <script
           dangerouslySetInnerHTML={{
             __html: `try{if(sessionStorage.getItem("sbjIntroVisto")&&location.search.indexOf("intro")<0)document.documentElement.classList.add("intro-done")}catch(e){}`,

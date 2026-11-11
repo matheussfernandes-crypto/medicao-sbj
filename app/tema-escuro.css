@@ -1,0 +1,38 @@
+/* Modo escuro do site inteiro: vale quando <html> tem a classe "dark" (ver lib/tema.ts).
+   As classes do Tailwind ficam como estão; aqui só trocamos as cores quando o escuro está ligado. */
+
+html.dark { color-scheme: dark; }
+html.dark body { background: #0e1517; color: #e4eef0; }
+html.dark *, html.dark *::before, html.dark *::after { border-color: #2a3a3f; }
+
+/* superfícies */
+html.dark .bg-white,
+html.dark .card,
+html.dark .card-table,
+html.dark .card-flush,
+html.dark .stat-tile { background-color: #152023; }
+html.dark .bg-surface-subtle,
+html.dark .bg-surface\/50 { background-color: #1d2b2f; }
+html.dark .hover\:bg-surface-subtle:hover,
+html.dark .hover\:bg-white:hover { background-color: #1d2b2f; }
+
+/* textos */
+html.dark .text-ink-900 { color: #e4eef0; }
+html.dark .text-ink-700 { color: #c9d6d9; }
+html.dark .text-ink-500 { color: #93a7ac; }
+html.dark .text-ink-400 { color: #7f9297; }
+html.dark .text-ink-300 { color: #5d6f74; }
+html.dark .text-primaryDark { color: #7fd0dc; }
+html.dark .text-primary { color: #5cc3d2; }
+html.dark .stat-tile .stat-value { color: #7fd0dc; }
+html.dark table th { color: #93a7ac; }
+html.dark .badge-pendente { background: #352813; color: #e3a44a; }
+html.dark .badge-aprovado { background: #173023; color: #62c48d; }
+html.dark .badge-rejeitado { background: #3a1a18; color: #f2766d; }
+html.dark .badge-desativado { background: #262629; color: #aeaeb8; }
+
+/* campos de formulário */
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea { background-color: #0e1517; color: #e4eef0; border-color: #2a3a3f; }
+html.dark input::placeholder, html.dark textarea::placeholder { color: #6f8488; }

@@ -19,6 +19,13 @@ const ESTILO_EMBUTIDO = `
   .main { margin-left: 0 !important; padding-bottom: 0 !important; min-height: 100vh; }
 `;
 
+const ESTILO_TEMA_ESCURO = `
+  html[data-tema="dark"] { --bg: #0e1517; --surface: #152023; --text: #e4eef0; --text-muted: #93a7ac; --border: #2a3a3f; color-scheme: dark; }
+  html[data-tema="dark"] body { background: #0e1517; color: #e4eef0; }
+  html[data-tema="dark"] .card, html[data-tema="dark"] .panel, html[data-tema="dark"] .modal, html[data-tema="dark"] .kpi-card, html[data-tema="dark"] .btn.ghost, html[data-tema="dark"] .topbar, html[data-tema="dark"] .sidebar, html[data-tema="dark"] .modal-header, html[data-tema="dark"] .modal-footer { background: #152023 !important; color: #e4eef0; }
+  html[data-tema="dark"] input, html[data-tema="dark"] select, html[data-tema="dark"] textarea { background: #0e1517; color: #e4eef0; border-color: #2a3a3f; }
+`;
+
 type JanelaModulo = Window & { showView?: (v: string) => void };
 
 export default function PosObraLayout({ children }: { children: React.ReactNode }) {
@@ -36,6 +43,24 @@ export default function PosObraLayout({ children }: { children: React.ReactNode 
     w.scrollTo({ top: 0 });
   };
 
+  // modo claro/escuro: o módulo acompanha o tema do site
+  const aplicaTema = (escuro: boolean) => {
+    const doc = quadro.current?.contentDocument;
+    if (!doc) return;
+    if (!doc.getElementById("sbj-tema-escuro")) {
+      const s = doc.createElement("style");
+      s.id = "sbj-tema-escuro";
+      s.textContent = ESTILO_TEMA_ESCURO;
+      doc.head.appendChild(s);
+    }
+    doc.documentElement.setAttribute("data-tema", escuro ? "dark" : "light");
+  };
+  useEffect(() => {
+    const aoMudar = (e: Event) => aplicaTema((e as CustomEvent).detail?.escuro === true);
+    window.addEventListener("sbj-tema", aoMudar);
+    return () => window.removeEventListener("sbj-tema", aoMudar);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const aoCarregar = () => {
     const doc = quadro.current?.contentDocument;
     if (!doc) return;
@@ -45,6 +70,7 @@ export default function PosObraLayout({ children }: { children: React.ReactNode 
       s.textContent = ESTILO_EMBUTIDO;
       doc.head.appendChild(s);
     }
+    aplicaTema(document.documentElement.classList.contains("dark"));
     // o módulo reabre a última tela usada logo após carregar; depois disso vale a tela do menu do site
     setTimeout(() => {
       pronto.current = true;

@@ -10,6 +10,7 @@ import { sair } from "@/app/auth-actions";
 import { itemDeCaminho, permitido } from "@/lib/acessos/modulos";
 import SemAcesso from "./SemAcesso";
 
+import TemaAlternar from "./TemaAlternar";
 export default function AppShell({
   setor,
   extras,
@@ -70,6 +71,7 @@ export default function AppShell({
               </Link>
             )}
 
+            <TemaAlternar />
             <form action={sair}>
               <button type="submit" className="text-ink-500 hover:text-danger">
                 Sair

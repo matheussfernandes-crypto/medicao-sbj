@@ -19,6 +19,16 @@ export default function PosVendaLayout({ children }: { children: React.ReactNode
   const inicial = useRef(telaDe(pathname));
   const tela = telaDe(pathname);
 
+  // modo claro/escuro: o kit acompanha o tema do site
+  useEffect(() => {
+    const aplica = (escuro: boolean) => {
+      try { quadro.current?.contentDocument?.documentElement.setAttribute("data-theme", escuro ? "dark" : "light"); } catch {}
+    };
+    const aoMudar = (e: Event) => aplica((e as CustomEvent).detail?.escuro === true);
+    window.addEventListener("sbj-tema", aoMudar);
+    return () => window.removeEventListener("sbj-tema", aoMudar);
+  }, []);
+
   useEffect(() => {
     const w = quadro.current?.contentWindow as JanelaModulo | null | undefined;
     try {

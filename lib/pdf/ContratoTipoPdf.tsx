@@ -104,6 +104,8 @@ export function ContratoTipoPdf({ d, engenheiroNome, dataGeracao }: { d: Contrat
         <Text style={s.clausula}>2. Os preços unitários permanecem fixos durante a vigência do contrato. Qualquer alteração de preço ou inclusão de serviço só vale por aditivo aprovado pela SBJ.</Text>
         <Text style={s.clausula}>3. {d.retencaoPct > 0 ? `Sobre cada medição será retido ${f2(d.retencaoPct)}% do valor medido, liberado conforme as regras do contrato.` : "Não há retenção sobre as medições, salvo alteração registrada no contrato."}</Text>
         <Text style={s.clausula}>4. Os pagamentos seguem o boletim de medição mensal emitido e aprovado pela engenharia da SBJ.</Text>
+        <Text style={s.clausula}>5. A contratada deve cumprir todas as normas de segurança da SBJ e as normas regulamentadoras de segurança do trabalho, com uso obrigatório de EPIs em obra.</Text>
+        <Text style={s.clausula}>6. Todos os trabalhadores da contratada na obra devem ser registrados. Não é permitido trabalhador sem registro.</Text>
 
         {d.observacoes ? (
           <View wrap={false}>

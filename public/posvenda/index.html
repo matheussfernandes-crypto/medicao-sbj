@@ -1593,9 +1593,9 @@ function repBaixarCSV(){
 /* ================= CADASTROS ================= */
 function vCadastros(){
   const t=S.cadTab;
-  const tabs=[["emp","Empreendimentos"],["uni","Unidades"],["resp","Responsáveis"],["gar","Garantia"],["msg","Mensagens"],["eq","Equipe"],["imp","Importar"],["bkp","Backup"]];
+  const tabs=[["emp","Empreendimentos"],["uni","Unidades"],["forn","Fornecedores"],["resp","Responsáveis"],["gar","Garantia"],["msg","Mensagens"],["eq","Equipe"],["imp","Importar"],["bkp","Backup"]];
   let body="";if(t==="imp")body=cadImp();if(t==="bkp")body=cadBkp();if(t==="eq")body=cadEq();
-  if(t==="emp")body=cadEmp();if(t==="uni")body=cadUni();if(t==="resp")body=cadResp();if(t==="gar")body=cadGar();if(t==="msg")body=cadMsg();
+  if(t==="emp")body=cadEmp();if(t==="uni")body=cadUni();if(t==="resp")body=cadResp();if(t==="gar")body=cadGar();if(t==="msg")body=cadMsg();if(t==="forn")body=cadForn();
   return `<div class="top"><div><h1>Cadastros</h1><div class="sub">Os cadastros também se formam sozinhos a partir dos chamados.</div></div></div>
   <div class="seg" role="group" aria-label="Seção">${tabs.map(([k,l])=>`<button data-a="cad-tab" data-t="${k}" aria-pressed="${t===k}">${l}</button>`).join("")}</div>${body}`;
 }
@@ -1655,6 +1655,50 @@ function cadMsg(){
   <label class="f">Lembrete para o cliente (véspera e dia)<textarea class="in" id="cm-lemb" rows="3" data-c="lock">${esc(c.lembCli)}</textarea></label>
   <label class="f">Aviso para o responsável<textarea class="in" id="cm-resp" rows="6" data-c="lock">${esc(c.resp)}</textarea></label>
   <div class="row" style="justify-content:space-between"><button class="btn ghost" data-a="cm-reset">Restaurar textos originais</button><button class="btn pri" data-a="cm-save">Salvar mensagens</button></div></div></div>`;
+}
+/* ================= FORNECEDORES (mesmo cadastro do módulo de vistorias) ================= */
+const FORN_API="/api/pos-obra/fornecedores";
+async function fornCarregar(){
+  try{
+    const r=await fetch(FORN_API,{credentials:"include",cache:"no-store"});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const j=await r.json();
+    S.forn=(j.registros||[]).sort((a,b)=>String(a.nomeFantasia||a.razaoSocial||"").localeCompare(String(b.nomeFantasia||b.razaoSocial||""),"pt"));
+    S.fornErro=null;
+  }catch(e){S.forn=[];S.fornErro="Não consegui carregar os fornecedores. Recarregue a página.";}
+  S.fornCarregando=false;
+  renderView(true);
+}
+function cadForn(){
+  if(!S.forn){
+    if(!S.fornCarregando){S.fornCarregando=true;fornCarregar();}
+    return `<div class="small muted">Carregando fornecedores…</div>`;
+  }
+  const novo=isEd("forn","__new");
+  const campo=(id,val,ph)=>`<input class="in" id="${id}" value="${esc(val||"")}" placeholder="${ph}">`;
+  const form=f=>`<tr><td>${campo("cf-nome",f.nomeFantasia,"Nome fantasia")}</td><td>${campo("cf-razao",f.razaoSocial,"Razão social")}</td><td>${campo("cf-cnpj",f.cnpj,"CNPJ")}</td><td>${campo("cf-tel",f.telefone,"Telefone")}</td><td>${campo("cf-email",f.email,"E-mail")}</td><td><select class="in" id="cf-st"><option value="ativo" ${f.status!=="inativo"?"selected":""}>Ativo</option><option value="inativo" ${f.status==="inativo"?"selected":""}>Inativo</option></select></td><td style="white-space:nowrap"><button class="btn sm pri" data-a="forn-save" data-id="${esc(f.id||"__new")}">Salvar</button> <button class="btn sm ghost" data-a="ed-cancel">Cancelar</button></td></tr>`;
+  const lista=S.forn;
+  return `<div class="row" style="justify-content:space-between"><span class="small muted">${lista.length} ${plural(lista.length,"fornecedor","fornecedores")} · o mesmo cadastro do módulo de vistorias</span><button class="btn pri sm" data-a="forn-new" ${S.edit?"disabled":""}>Novo fornecedor</button></div>
+  ${S.fornErro?`<div class="banner c-bad" style="margin-top:12px">${esc(S.fornErro)}</div>`:""}
+  <div class="tbl-wrap"><table><thead><tr><th>Nome fantasia</th><th>Razão social</th><th>CNPJ</th><th>Telefone</th><th>E-mail</th><th>Situação</th><th></th></tr></thead><tbody>
+  ${novo?form({}):""}
+  ${lista.map(f=>isEd("forn",f.id)?form(f):`<tr><td><b>${esc(f.nomeFantasia||f.razaoSocial||"—")}</b></td><td>${esc(f.razaoSocial||"")}</td><td class="mono">${esc(f.cnpj||"")}</td><td class="mono">${esc(f.telefone||"")}</td><td>${esc(f.email||"")}</td><td>${f.status==="inativo"?`<span class="pill">Inativo</span>`:`<span class="pill c-ok">Ativo</span>`}</td><td style="white-space:nowrap"><button class="btn sm ghost" data-a="forn-edit" data-id="${esc(f.id)}" ${S.edit?"disabled":""}>Editar</button></td></tr>`).join("")}
+  ${!lista.length&&!novo&&!S.fornErro?`<tr><td colspan="7"><div class="empty" style="border:0">Nenhum fornecedor cadastrado.</div></td></tr>`:""}
+  </tbody></table></div>`;
+}
+async function fornGravar(id){
+  const val=i=>((document.getElementById(i)||{}).value||"").trim();
+  const editando=id&&id!=="__new";
+  const base=editando?(S.forn.find(f=>f.id===id)||{}):{};
+  const reg={...base,id:editando?id:"sup"+Date.now().toString(36),nomeFantasia:val("cf-nome"),razaoSocial:val("cf-razao"),cnpj:val("cf-cnpj"),telefone:val("cf-tel"),email:val("cf-email"),status:val("cf-st")||"ativo"};
+  if(!reg.nomeFantasia&&!reg.razaoSocial)return toast("Informe o nome do fornecedor.");
+  try{
+    const r=await fetch(FORN_API,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({registros:[reg],excluidos:[]})});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    S.edit=null;S.forn=null;S.fornCarregando=true;
+    toast("Fornecedor salvo");
+    fornCarregar();
+  }catch(e){toast("Não consegui salvar o fornecedor. Verifique a conexão e tente de novo.");}
 }
 async function cadSave(a,id){
   try{
@@ -1824,6 +1868,9 @@ document.addEventListener("click",e=>{
   if(a==="rp-csv"){repBaixarCSV();return}
   // cadastros
   if(a==="cad-tab"){S.cadTab=el.dataset.t;S.edit=null;renderView(true);return}
+if(a==="forn-new"){S.edit={kind:"forn",id:"__new"};renderView(true);return}
+if(a==="forn-edit"){S.edit={kind:"forn",id:el.dataset.id};renderView(true);return}
+if(a==="forn-save"){fornGravar(el.dataset.id);return}
   if(a==="cad-new"){S.edit={kind:el.dataset.k,id:"__new"};renderView(true);const f=$("#view tbody .in");f&&f.focus();return}
   if(a==="cad-edit"){e.stopPropagation();S.edit={kind:el.dataset.k,id:el.dataset.id};renderView(true);return}
   if(["ce-save","cu-save","cr-save","cg-save","cm-save"].includes(a)){cadSave(a,el.dataset.id);return}

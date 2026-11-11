@@ -1,3 +1,4 @@
+import MesCampo from "@/components/MesCampo";
 import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -123,7 +124,7 @@ export default async function ObrasPage({
             <form method="get" className="flex items-center gap-2 mb-3">
               <input type="hidden" name="obra" value={obraSelecionada} />
               <label className="text-sm text-gray-500">Mês de referência</label>
-              <input type="month" name="mes" defaultValue={mes} className="border rounded px-2 py-1" />
+              <MesCampo name="mes" defaultValue={mes} />
               <button className="bg-gray-200 rounded px-3 py-1 text-sm">Atualizar</button>
             </form>
             <p className="text-xs text-gray-400 mb-3">

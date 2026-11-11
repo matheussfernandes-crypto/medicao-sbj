@@ -318,7 +318,7 @@ tbody tr:hover{background:var(--accent-soft)}
 @media (prefers-reduced-motion:reduce){.card,.tbl-wrap,.banner{animation:none}}
 /* títulos no padrão da Vistorias */
 h1{font-family:var(--f-body)!important;font-weight:600!important;font-size:24px;letter-spacing:-.01em}
-.cal-mv.desliza-dir,.cal-g.desliza-dir{animation:agDirDir .3s cubic-bezier(.22,1,.36,1) both}.cal-mv.desliza-esq,.cal-g.desliza-esq{animation:agDirEsq .3s cubic-bezier(.22,1,.36,1) both}</style>
+.cal-mv.desliza-dir,.cal-g.desliza-dir{animation:agDirDir .3s cubic-bezier(.22,1,.36,1) both}.cal-mv.desliza-esq,.cal-g.desliza-esq{animation:agDirEsq .3s cubic-bezier(.22,1,.36,1) both}.rel-sec-h{display:flex;align-items:center;justify-content:space-between;gap:8px}.rel-toggle{border:0;background:none;color:var(--muted);font-size:18px;line-height:1;width:34px;height:34px;border-radius:9px;cursor:pointer;transition:transform .3s cubic-bezier(.22,1,.36,1),background .15s}.rel-toggle:hover{background:var(--accent-soft);color:var(--accent)}.rel-sec.fechado .rel-toggle{transform:rotate(-90deg)}.rel-corpo{display:grid;grid-template-rows:1fr;transition:grid-template-rows .3s cubic-bezier(.22,1,.36,1),opacity .25s ease;opacity:1}.rel-sec.fechado .rel-corpo{grid-template-rows:0fr;opacity:0}.rel-corpo-in{min-height:0;overflow:hidden}.rel-filtros th{background:var(--surface);padding:6px 8px;font-weight:400;text-transform:none}.rel-filtros .in{min-height:34px;font-size:13px}tr.rel-oculta{display:none}@media print{.rel-ctrl{display:none!important}}</style>
 
 <style>
 .embutido .side,.embutido .bnav{display:none!important}
@@ -1598,7 +1598,7 @@ function repHTML(D,resumo){
   <div class="rk"><div><b>${D.novos.length}</b>novos chamados</div><div><b>${D.resolv.length}</b>resolvidos</div><div><b>${D.abertosFim.length}</b>em aberto no fim do mês</div><div><b>${D.tm?D.tm.toFixed(1).replace(".",","):"–"}</b>dias em média até resolver</div></div>
   ${resumo?`<div class="resumo">${esc(resumo)}</div>`:""}
   <div class="grid2"><div><h3>Por empreendimento</h3>${tb(D.porEmp)}</div><div><h3>Por tipo de problema</h3>${tb(D.porCat)}</div></div>
-  <div><h3>Chamados do mês</h3>${lista.length?`<div class="tbl-wrap"><table><thead><tr><th>Nº</th><th>Abertura</th><th>Unidade</th><th>Problema</th><th>Situação</th><th class="n">Dias</th></tr></thead><tbody>${lista.map(c=>`<tr><td class="mono">#${esc(c.num)}</td><td>${esc(fmtD(localDay(c.abertoEm)))}</td><td>${esc(chTitulo(c))}</td><td>${esc(c.cat)}${c.amb?" · "+esc(c.amb):""}<br><span class="muted">${esc(c.desc)}</span>${c.sol?`<br><b>Solução:</b> ${esc(c.sol)}`:""}</td><td>${esc((STATUS[c.status]||{}).l||"")}</td><td class="n">${idadeCh(c)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">Nenhum chamado no mês.</p>`}</div>
+  <div class="rel-sec"><div class="rel-sec-h"><h3>Chamados do mês</h3><button type="button" class="rel-toggle rel-ctrl" data-rel-toggle aria-expanded="true" aria-label="Recolher ou abrir a lista">▾</button></div><div class="rel-corpo"><div class="rel-corpo-in">${lista.length?`<div class="tbl-wrap rel-tbl"><table><thead><tr><th>Nº</th><th>Abertura</th><th>Unidade</th><th>Problema</th><th>Situação</th><th class="n">Dias</th></tr><tr class="rel-filtros rel-ctrl"><th></th><th></th><th><input class="in rel-f" data-col="un" placeholder="Buscar unidade" aria-label="Filtrar por unidade"></th><th><input class="in rel-f" data-col="pb" placeholder="Buscar problema" aria-label="Filtrar por problema"></th><th><select class="in rel-f" data-col="st" aria-label="Filtrar por situação"><option value="">Todas</option><option>Aberto</option><option>Agendado</option><option>Aguardando</option><option>Resolvido</option></select></th><th></th></tr></thead><tbody>${lista.map(c=>`<tr data-un="${esc(chTitulo(c)).toLowerCase()}" data-pb="${esc((c.cat||"")+" "+(c.amb||"")+" "+(c.desc||"")).toLowerCase()}" data-st="${esc((STATUS[c.status]||{}).l||"")}"><td class="mono">#${esc(c.num)}</td><td>${esc(fmtD(localDay(c.abertoEm)))}</td><td>${esc(chTitulo(c))}</td><td>${esc(c.cat)}${c.amb?" · "+esc(c.amb):""}<br><span class="muted">${esc(c.desc)}</span>${c.sol?`<br><b>Solução:</b> ${esc(c.sol)}`:""}</td><td>${esc((STATUS[c.status]||{}).l||"")}</td><td class="n">${idadeCh(c)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">Nenhum chamado no mês.</p>`}</div></div></div>
   <div class="muted small">Gerado em ${esc(new Date().toLocaleString("pt-BR"))} · ${D.visitas} ${plural(D.visitas,"visita concluída","visitas concluídas")} no mês</div>`;
 }
 function vRelatorios(){
@@ -1636,7 +1636,7 @@ function repBaixarHTML(){
   .resumo{background:#D5EAEE;border-radius:8px;padding:12px 14px;white-space:pre-wrap}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
   table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #D2D7D2;vertical-align:top}th{font-size:11px;text-transform:uppercase;color:#5B645F}.n{text-align:right}
-  @media print{body{margin:0}}</style></head><body><div style="display:flex;align-items:center;gap:14px;border-bottom:3px solid #F2E400;padding-bottom:12px;margin-bottom:18px"><img src="${$('.brand-logo')?$('.brand-logo').src:''}" alt="SBJ" style="width:60px;height:60px;object-fit:contain"><div style="font-family:Nunito,Arial,sans-serif;font-weight:900;color:#00687A;font-size:18px">Pós-Venda · SBJ Construtora e Incorporadora</div></div>${repHTML(D,resumoAuto(D))}</body></html>`;
+  @media print{body{margin:0}}.rel-ctrl{display:none!important}</style></head><body><div style="display:flex;align-items:center;gap:14px;border-bottom:3px solid #F2E400;padding-bottom:12px;margin-bottom:18px"><img src="${$('.brand-logo')?$('.brand-logo').src:''}" alt="SBJ" style="width:60px;height:60px;object-fit:contain"><div style="font-family:Nunito,Arial,sans-serif;font-weight:900;color:#00687A;font-size:18px">Pós-Venda · SBJ Construtora e Incorporadora</div></div>${repHTML(D,resumoAuto(D))}</body></html>`;
   salvarArquivo(`relatorio-pos-venda-${D.mes}.html`,html);
 }
 function repBaixarCSV(){
@@ -2097,6 +2097,34 @@ async function init(){
   });
   new MutationObserver(agendar).observe(document.body, { childList: true, subtree: true });
   agendar();
+})();
+/* relatório: recolher a lista e filtrar as linhas (sem redesenhar, para não perder o foco do campo) */
+(function(){
+  function filtra(sec){
+    const un=(sec.querySelector('[data-col="un"]')||{}).value||'';
+    const pb=(sec.querySelector('[data-col="pb"]')||{}).value||'';
+    const st=(sec.querySelector('[data-col="st"]')||{}).value||'';
+    const u=un.trim().toLowerCase(), p=pb.trim().toLowerCase();
+    sec.querySelectorAll('tbody tr').forEach(function(tr){
+      const ok=(!u||(tr.dataset.un||'').includes(u))&&(!p||(tr.dataset.pb||'').includes(p))&&(!st||tr.dataset.st===st);
+      tr.classList.toggle('rel-oculta',!ok);
+    });
+  }
+  document.addEventListener('click',function(e){
+    const b=e.target.closest&&e.target.closest('[data-rel-toggle]');
+    if(!b)return;
+    const sec=b.closest('.rel-sec');
+    sec.classList.toggle('fechado');
+    b.setAttribute('aria-expanded',sec.classList.contains('fechado')?'false':'true');
+  });
+  document.addEventListener('input',function(e){
+    const c=e.target;
+    if(c.classList&&c.classList.contains('rel-f')){const sec=c.closest('.rel-sec');if(sec)filtra(sec);}
+  });
+  document.addEventListener('change',function(e){
+    const c=e.target;
+    if(c.classList&&c.classList.contains('rel-f')){const sec=c.closest('.rel-sec');if(sec)filtra(sec);}
+  });
 })();
 init();
 </script>

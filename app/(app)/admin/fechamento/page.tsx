@@ -1,3 +1,4 @@
+import MesCampo from "@/components/MesCampo";
 import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -139,7 +140,7 @@ export default async function FechamentoPage({
                 <option key={o.id} value={o.id}>{o.nome}</option>
               ))}
             </select>
-            <input type="month" name="mes" defaultValue={mes} className="border rounded px-3 py-2" />
+            <MesCampo name="mes" defaultValue={mes} />
             <button className="bg-gray-200 rounded px-4 py-2">Ver</button>
           </form>
           {(!obras || obras.length === 0) && <p className="text-sm text-gray-400 mt-2">Nenhuma obra cadastrada ainda.</p>}

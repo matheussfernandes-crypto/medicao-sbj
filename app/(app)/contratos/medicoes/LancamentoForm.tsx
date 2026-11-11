@@ -1,5 +1,6 @@
 "use client";
 
+import MesCampo from "@/components/MesCampo";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Trash2, Camera } from "lucide-react";
@@ -184,7 +185,7 @@ export default function LancamentoForm({
         <div className="space-y-3">
           <div className="flex flex-wrap gap-3 text-xs">
             <label className="flex flex-col gap-1">Data<input type="date" value={data} onChange={(e) => setData(e.target.value)} className="border rounded px-2 py-2 text-sm" /></label>
-            <label className="flex flex-col gap-1">Mês de referência<input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="border rounded px-2 py-2 text-sm" /></label>
+            <label className="flex flex-col gap-1">Mês de referência<MesCampo value={mes} onChange={setMes} /></label>
             {ehVale && (
               <label className="flex flex-col gap-1">Valor do vale (R$)
                 <input inputMode="decimal" value={valorVale} onChange={(e) => setValorVale(e.target.value)} className="border rounded px-2 py-2 text-sm w-40" />

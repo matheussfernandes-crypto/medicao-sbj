@@ -1,3 +1,4 @@
+import MesCampo from "@/components/MesCampo";
 import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -209,7 +210,7 @@ export default async function DashboardGastosPage({
         <form method="get" className="flex flex-wrap items-end gap-2">
           <div>
             <label className="block text-xs text-gray-400 mb-1">Selecionar mês</label>
-            <input type="month" name="mes" defaultValue={mesSelecionado} className="border rounded px-2 py-1" />
+            <MesCampo name="mes" defaultValue={mesSelecionado} />
           </div>
           <button className="bg-primary text-white rounded px-3 py-1">Ver mês</button>
         </form>

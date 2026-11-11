@@ -1,3 +1,4 @@
+import MesCampo from "@/components/MesCampo";
 import Link from "next/link";
 import { FileDown } from "lucide-react";
 import { exigirPerfil } from "@/lib/contratos/server";
@@ -40,7 +41,7 @@ export default async function FechamentoContratosPage({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-ink-500">Mês de referência
-          <input type="month" name="mes" defaultValue={mes} className="border rounded px-2 py-2 text-sm text-ink-900" />
+          <MesCampo name="mes" defaultValue={mes} />
         </label>
         <button className="bg-primary text-white rounded px-4 py-2 text-sm font-semibold">Ver boletim</button>
       </form>

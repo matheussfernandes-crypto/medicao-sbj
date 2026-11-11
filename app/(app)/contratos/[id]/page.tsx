@@ -1,3 +1,4 @@
+import MesCampo from "@/components/MesCampo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FileText, ExternalLink } from "lucide-react";
@@ -310,7 +311,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
             <FormAcao action={novaRetencao} className="flex flex-wrap gap-2 items-end text-xs border-t pt-3">
               <input type="hidden" name="contratoId" value={c.id} />
               <label className="flex flex-col gap-1">Novo %<input name="percent" inputMode="decimal" required className="border rounded px-2 py-1.5 w-20" /></label>
-              <label className="flex flex-col gap-1">A partir de<input type="month" name="mes" required defaultValue={mesAtual()} className="border rounded px-2 py-1.5" /></label>
+              <label className="flex flex-col gap-1">A partir de<MesCampo name="mes" required defaultValue={mesAtual()} /></label>
               <label className="flex flex-col gap-1 flex-1 min-w-[140px]">Motivo<input name="motivo" className="border rounded px-2 py-1.5" /></label>
               <button className="bg-primary text-white rounded px-3 py-2 font-semibold">Alterar retenção</button>
               <p className="basis-full text-ink-400">Medições já aprovadas mantêm o % com que foram aprovadas.</p>

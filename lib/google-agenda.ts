@@ -2,11 +2,16 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypt
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Ligação da Agenda do Pós-venda com o Google Agenda (sentido site → Google).
-// O site só pede a permissão "calendar.app.created": cria uma agenda própria ("SBJ · Pós-venda")
-// e só consegue mexer nela. As outras agendas da pessoa ficam fora do alcance do site.
+// A pessoa escolhe uma agenda que já usa (a que o encarregado também vê). Regras para não bagunçar o que existe:
+// - o site só mexe em eventos que ele mesmo criou (marcados com sbj=1 e id próprio);
+// - só vão para o Google as visitas marcadas ou alteradas no site depois da ligação (as antigas já estão lá).
 
-export const ESCOPOS = ["openid", "email", "https://www.googleapis.com/auth/calendar.app.created"].join(" ");
-export const NOME_AGENDA = "SBJ · Pós-venda";
+export const ESCOPOS = [
+  "openid",
+  "email",
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
+].join(" ");
 const FUSO = "America/Sao_Paulo";
 const JANELA_DIAS = 30; // visitas de até 30 dias atrás em diante
 const API = "https://www.googleapis.com/calendar/v3";
@@ -86,19 +91,18 @@ async function g(token: string, metodo: string, caminho: string, corpo?: unknown
   return { status: r.status, ok: r.ok, j };
 }
 
-export async function criaAgenda(acesso: string) {
-  const r = await g(acesso, "POST", "/calendars", { summary: NOME_AGENDA, description: "Visitas do Pós-venda marcadas no site SBJ. Atualizada pelo site.", timeZone: FUSO });
-  if (!r.ok) throw new Error(r.j?.error?.message || "Não foi possível criar a agenda no Google");
-  return r.j.id as string;
-}
-
-export async function agendaExiste(acesso: string, id: string) {
-  const r = await g(acesso, "GET", "/calendars/" + encodeURIComponent(id));
-  return r.ok;
+// agendas da pessoa em que ela pode criar eventos (dona ou com permissão de editar)
+export async function listaAgendas(tokenCifrado: string) {
+  const token = await tokenDeAcesso(decifra(tokenCifrado));
+  const r = await g(token, "GET", "/users/me/calendarList?minAccessRole=writer&maxResults=250");
+  if (!r.ok) throw new Error(r.j?.error?.message || "Não foi possível ler as agendas do Google");
+  return ((r.j.items ?? []) as any[])
+    .map((c) => ({ id: String(c.id), nome: String(c.summaryOverride || c.summary || c.id), principal: !!c.primary, cor: String(c.backgroundColor || "") }))
+    .sort((a, b) => Number(b.principal) - Number(a.principal) || a.nome.localeCompare(b.nome, "pt-BR"));
 }
 
 // ---------- montagem dos eventos a partir das visitas ----------
-type Doc = { id: string; dados: Record<string, any> };
+type Doc = { id: string; dados: Record<string, any>; atualizado_em?: string };
 const TIPO: Record<string, string> = { vistoria: "Vistoria", execucao: "Execução do serviço", retorno: "Retorno" };
 
 export type Base = { ag: Doc[]; ch: Map<string, any>; uni: Map<string, any>; emp: Map<string, any>; resp: Map<string, any> };
@@ -107,7 +111,7 @@ export async function carregaBase(supabase: SupabaseClient): Promise<Base> {
   const le = async (col: string) => {
     const itens: Doc[] = [];
     for (let de = 0; ; de += 1000) {
-      const { data, error } = await supabase.from("posvenda_docs").select("id, dados").eq("colecao", col).order("id").range(de, de + 999);
+      const { data, error } = await supabase.from("posvenda_docs").select("id, dados, atualizado_em").eq("colecao", col).order("id").range(de, de + 999);
       if (error) throw new Error("Não foi possível ler a agenda do site");
       itens.push(...((data ?? []) as Doc[]));
       if (!data || data.length < 1000) break;
@@ -192,18 +196,15 @@ async function emLotes<T>(itens: T[], fn: (x: T) => Promise<void>, n = 5) {
   for (let i = 0; i < itens.length; i += n) await Promise.all(itens.slice(i, i + n).map(fn));
 }
 
-export type Conexao = { usuario_id: string; token_cifrado: string; calendario_id: string };
+export type Conexao = { usuario_id: string; token_cifrado: string; calendario_id: string; conectado_em: string };
 
-// Deixa a agenda Google igual à do site (só dentro da janela; eventos mais antigos ficam como estão).
+// Confere a agenda Google com a do site. Só entram visitas mexidas no site depois da ligação
+// (ou que o site já tinha mandado); eventos que não são do site nunca são tocados.
 export async function reconcilia(con: Conexao, b: Base) {
+  if (!con.calendario_id) return { gravados: 0, apagados: 0, total: 0 };
   const token = await tokenDeAcesso(decifra(con.token_cifrado));
   const ini = inicioJanela();
-  const desejados = new Map<string, Evento>();
-  for (const v of b.ag) {
-    if ((v.dados?.data || "") < ini) continue;
-    const ev = eventoDaVisita(v, b);
-    if (ev) desejados.set(ev.id, ev);
-  }
+  const desde = new Date(con.conectado_em).getTime();
   // eventos do site que já estão no Google
   const atuais = new Map<string, string>();
   let pagina = "";
@@ -216,6 +217,14 @@ export async function reconcilia(con: Conexao, b: Base) {
     pagina = r.j.nextPageToken ?? "";
   } while (pagina);
 
+  const desejados = new Map<string, Evento>();
+  for (const v of b.ag) {
+    if ((v.dados?.data || "") < ini) continue;
+    const nova = v.atualizado_em ? new Date(v.atualizado_em).getTime() >= desde : false;
+    if (!nova && !atuais.has(idEvento(v.id))) continue; // visita antiga: já está no Google pelo uso de antes
+    const ev = eventoDaVisita(v, b);
+    if (ev) desejados.set(ev.id, ev);
+  }
   const gravar = [...desejados.values()].filter((ev) => atuais.get(ev.id) !== ev.extendedProperties.private.h);
   const apagar = [...atuais.keys()].filter((id) => !desejados.has(id));
   await emLotes(gravar, (ev) => grava(token, con.calendario_id, ev));

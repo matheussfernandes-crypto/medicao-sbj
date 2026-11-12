@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exigirArquitetura } from "@/lib/google-agenda-acesso";
-import { agendaExiste, carregaBase, cifra, configGoogle, criaAgenda, decifra, origemDa, reconcilia, trocaCodigo } from "@/lib/google-agenda";
+import { cifra, configGoogle, decifra, origemDa, trocaCodigo } from "@/lib/google-agenda";
 
-// O Google devolve a pessoa para cá depois que ela autoriza: guarda a autorização (cifrada),
-// cria a agenda "SBJ · Pós-venda" na conta dela e copia as visitas do site.
+// O Google devolve a pessoa para cá depois que ela autoriza: guarda a autorização (cifrada) e
+// volta para a Agenda, onde ela escolhe em qual agenda do Google as visitas entram.
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   const origem = origemDa(req);
@@ -24,23 +23,22 @@ export async function GET(req: NextRequest) {
 
   try {
     const t = await trocaCodigo(p.get("code")!, origem);
-    if (!t.escopos.includes("calendar.app.created")) return volta("sem-permissao");
-    const { data: antiga } = await r.supabase.from("google_agenda_conexoes").select("token_cifrado, calendario_id, google_email").eq("usuario_id", r.user.id).maybeSingle();
+    if (!t.escopos.includes("calendar.events") || !t.escopos.includes("calendar.calendarlist")) return volta("sem-permissao");
+    const { data: antiga } = await r.supabase.from("google_agenda_conexoes").select("token_cifrado, calendario_id, calendario_nome, google_email").eq("usuario_id", r.user.id).maybeSingle();
     const refresh = t.refresh ?? (antiga ? decifra(antiga.token_cifrado) : "");
     if (!refresh) return volta("erro");
-    // mesma conta Google de antes e a agenda ainda existe: reaproveita (não duplica a agenda)
-    let cal = antiga && antiga.google_email === t.email && (await agendaExiste(t.acesso, antiga.calendario_id)) ? antiga.calendario_id : "";
-    if (!cal) cal = await criaAgenda(t.acesso);
-    const con = { usuario_id: r.user.id, google_email: t.email, token_cifrado: cifra(refresh), calendario_id: cal, ultimo_erro: null };
-    const { error } = await r.supabase.from("google_agenda_conexoes").upsert(con);
+    // mesma conta de antes: mantém a agenda escolhida; conta nova: pede para escolher
+    const mesma = antiga && antiga.google_email === t.email;
+    const { error } = await r.supabase.from("google_agenda_conexoes").upsert({
+      usuario_id: r.user.id,
+      google_email: t.email,
+      token_cifrado: cifra(refresh),
+      calendario_id: mesma ? antiga.calendario_id : "",
+      calendario_nome: mesma ? antiga.calendario_nome : "",
+      ultimo_erro: null,
+    });
     if (error) return volta("erro");
-    try {
-      await reconcilia(con, await carregaBase(r.supabase));
-      await r.supabase.rpc("google_agenda_registrar", { p_usuario: r.user.id, p_erro: null });
-    } catch (e) {
-      await r.supabase.rpc("google_agenda_registrar", { p_usuario: r.user.id, p_erro: String((e as Error).message).slice(0, 300) });
-    }
-    return volta("ok");
+    return volta(mesma && antiga.calendario_id ? "ok" : "escolher");
   } catch {
     return volta("erro");
   }

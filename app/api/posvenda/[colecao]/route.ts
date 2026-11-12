@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COLECOES, erro, exigirPosvenda } from "@/lib/posvenda/server";
+import { propagaVisita, semTravar } from "@/lib/google-agenda";
 
 // Pós-venda: listar, gravar e excluir os documentos de uma coleção.
 export const dynamic = "force-dynamic";
@@ -32,6 +33,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const modo = corpo.modo === "merge" ? "merge" : "set";
   const { error } = await r.supabase.rpc("posvenda_gravar", { p_colecao: col, p_id: corpo.id, p_dados: corpo.dados, p_modo: modo });
   if (error) return erro("Não foi possível gravar.", 500);
+  // visita nova ou alterada: vai também para o Google Agenda de quem conectou (sem travar o salvamento)
+  if (col === "agenda") await semTravar(propagaVisita(r.supabase, corpo.id));
   return NextResponse.json({ ok: true });
 }
 
@@ -44,5 +47,6 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
   if ("erro" in r) return r.erro;
   const { error } = await r.supabase.from("posvenda_docs").delete().eq("colecao", col).eq("id", id);
   if (error) return erro("Não foi possível excluir.", 500);
+  if (col === "agenda") await semTravar(propagaVisita(r.supabase, id));
   return NextResponse.json({ ok: true });
 }

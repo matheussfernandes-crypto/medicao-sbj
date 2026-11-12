@@ -8,7 +8,7 @@ import { HardHat } from "lucide-react";
 import { agendaDoSetor } from "@/lib/agenda-setor";
 import { ehGestorAcessos, permitido } from "@/lib/acessos/modulos";
 import { carregarPainelObras } from "./painel-obras";
-import SlideProgresso from "./SlideProgresso";
+import SlideObra from "./SlideObra";
 import PainelObrasSeletor from "./PainelObrasSeletor";
 import PersonalizarAtalhos from "@/components/PersonalizarAtalhos";
 import RegistroRapido from "@/components/RegistroRapido";
@@ -34,24 +34,7 @@ export default async function DashboardPage() {
   const painel = await carregarPainelObras();
   const slides: React.ReactNode[] = [];
   for (const prog of painel.progresso) {
-    slides.push(<SlideProgresso key={"prog-" + prog.obraId} p={prog} />);
-    painel.fotos
-      .filter((f) => f.obraId === prog.obraId)
-      .forEach((f, i) =>
-        slides.push(
-          <div key={`foto-${prog.obraId}-${i}`} className="h-full w-full relative bg-primaryDark">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={f.url} alt={f.legenda ?? f.obraNome} className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pt-12 pb-9">
-              <p className="text-white font-semibold">{f.obraNome}</p>
-              <p className="text-white/80 text-xs">
-                Atualizado em {f.dataFoto.split("-").reverse().join("/")}
-                {f.legenda ? ` · ${f.legenda}` : ""}
-              </p>
-            </div>
-          </div>
-        )
-      );
+    slides.push(<SlideObra key={"obra-" + prog.obraId} p={prog} fotos={painel.fotos.filter((f) => f.obraId === prog.obraId)} />);
   }
   if (slides.length === 0) {
     slides.push(
@@ -112,7 +95,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
           <div className="relative h-full">
-            <Carousel slides={slides} intervalMs={7000} />
+            <Carousel slides={slides} intervalMs={14000} />
             {setor === "ADMIN" && <PainelObrasSeletor obras={painel.obras} />}
           </div>
         </div>

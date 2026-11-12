@@ -18,6 +18,8 @@ export type ProgressoObra = {
   unidades: number; // locais cadastrados (apartamentos, áreas comuns…)
   grupos: { nome: string; pct: number }[]; // pavimentos e sistemas
   servicos: { nome: string; pct: number }[];
+  // serviços da fase em que a obra está (os que estão andando, os de maior peso primeiro) e onde estão
+  frentes: { nome: string; pct: number; onde: string }[];
 };
 
 export type FotoPainel = { obraId: string; obraNome: string; url: string; dataFoto: string; legenda: string | null };
@@ -73,6 +75,31 @@ async function progressoDaObra(supabase: ReturnType<typeof createClient>, obra: 
     .filter((s) => s.fatia > 0)
     .sort((x, y) => y.fatia - x.fatia || x.ordem - y.ordem)
     .slice(0, 8);
+  // frente de serviço: o que está andando agora e em qual pavimento
+  const pavs = (pavimentos ?? []) as { id: string; nome: string }[];
+  const andando = [...servs]
+    .filter((s) => s.fatia > 0)
+    .map((s) => ({ s, p: pct(rec(locais, itens, (sv) => sv.id === s.id)) }))
+    .filter((x) => x.p > 0 && x.p < 100)
+    .sort((x, y) => y.s.fatia - x.s.fatia || x.s.ordem - y.s.ordem)
+    .slice(0, 4);
+  const frentes = andando.map(({ s, p }) => {
+    const porPav = pavs
+      .map((pv) => {
+        const soma = rec(locais.filter((l) => l.pavimento_id === pv.id), [], (sv) => sv.id === s.id);
+        return { nome: pv.nome, tem: soma.tot > 0 || soma.W > 0, p: pct(soma) };
+      })
+      .filter((x) => x.tem);
+    const emAndamento = porPav.filter((x) => x.p > 0 && x.p < 100).map((x) => x.nome);
+    let onde = "";
+    if (emAndamento.length) onde = emAndamento.length > 2 ? `${emAndamento[0]} e mais ${emAndamento.length - 1}` : emAndamento.join(" e ");
+    else {
+      const proximo = porPav.find((x) => x.p === 0);
+      onde = proximo ? `próximo: ${proximo.nome}` : "";
+    }
+    return { nome: s.nome, pct: pct1(p), onde };
+  });
+
   const grupos = [
     ...(pavimentos ?? []).map((p) => ({ nome: p.nome, soma: rec(locais.filter((l) => l.pavimento_id === p.id), []) })),
     ...sists.map((s) => ({ nome: s.nome, soma: rec([], itens.filter((i) => i.sistema_id === s.id)) })),
@@ -89,6 +116,7 @@ async function progressoDaObra(supabase: ReturnType<typeof createClient>, obra: 
     unidades: locais.length,
     grupos: grupos.map((g) => ({ nome: g.nome, pct: pct1(pct(g.soma)) })),
     servicos: destaque.map((s) => ({ nome: s.nome, pct: pct1(pct(rec(locais, itens, (sv) => sv.id === s.id))) })),
+    frentes,
   };
 }
 
@@ -106,7 +134,7 @@ export async function carregarPainelObras() {
 
   const progresso = await Promise.all(obrasNovo.map((o) => progressoDaObra(supabase, o)));
 
-  // Fotos: só a rodada mais recente de cada obra ligada ao cadastro geral (até 4 fotos por obra).
+  // Fotos: as mais recentes de cada obra ligada ao cadastro geral (até 8 por obra, de várias datas).
   const idsGerais = obrasNovo.map((o) => o.obra_geral_id).filter(Boolean) as string[];
   const { data: fotosRows } = idsGerais.length
     ? await supabase
@@ -121,7 +149,7 @@ export async function carregarPainelObras() {
   for (const id of idsGerais) {
     const daObra = (fotosRows ?? []).filter((f: any) => f.obra_id === id);
     if (!daObra.length) continue;
-    maisRecentes.push(...daObra.filter((f: any) => f.data_foto === daObra[0].data_foto).slice(0, 4));
+    maisRecentes.push(...daObra.slice(0, 8));
   }
   const caminhos = maisRecentes.map((f) => f.storage_path);
   const { data: assinadas } = caminhos.length

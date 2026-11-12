@@ -92,7 +92,8 @@ async function progressoDaObra(supabase: ReturnType<typeof createClient>, obra: 
       .filter((x) => x.tem);
     const emAndamento = porPav.filter((x) => x.p > 0 && x.p < 100).map((x) => x.nome);
     let onde = "";
-    if (emAndamento.length) onde = emAndamento.length > 2 ? `${emAndamento[0]} e mais ${emAndamento.length - 1}` : emAndamento.join(" e ");
+    // pavimentos vêm de cima para baixo: mostra a faixa de baixo para cima (ex.: "Pav 04 a Pav 09")
+    if (emAndamento.length) onde = emAndamento.length > 2 ? `${emAndamento[emAndamento.length - 1]} a ${emAndamento[0]}` : emAndamento.slice().reverse().join(" e ");
     else {
       const proximo = porPav.find((x) => x.p === 0);
       onde = proximo ? `próximo: ${proximo.nome}` : "";

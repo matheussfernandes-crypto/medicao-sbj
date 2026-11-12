@@ -90,7 +90,7 @@ export default function SlideObra({ p, fotos, ativo }: { p: ProgressoObra; fotos
       </div>
 
       {/* andamento */}
-      <div className="p-5 lg:p-6 flex flex-col min-h-0 overflow-y-auto">
+      <div className="p-5 pr-12 lg:p-6 lg:pr-12 flex flex-col min-h-0 overflow-y-auto">
         <div className="pr-10">
           <h2 className="text-primaryDark font-semibold text-lg leading-tight">{p.nome}</h2>
           <p className="text-xs text-ink-500">Andamento físico · {p.unidades} locais</p>

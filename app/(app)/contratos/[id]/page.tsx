@@ -11,10 +11,12 @@ import FormAcao from "@/components/contratos/FormAcao";
 import UploadArquivo from "@/components/contratos/UploadArquivo";
 import {
   editarContrato, adicionarItens, novaRetencao, liberarRetencao, excluirAnexo,
-  adicionarPreco, editarPreco, excluirPreco,
+  adicionarPreco,
 } from "../actions";
 import AditivoForm from "./AditivoForm";
 import ItemEditor from "./ItemEditor";
+import PrecosEditor from "./PrecosEditor";
+import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
 
 const BADGE: Record<string, string> = {
   PENDENTE: "badge-pendente", APROVADO: "badge-aprovado", REJEITADO: "badge-rejeitado",
@@ -146,49 +148,29 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
       </section>
 
       {/* Preços unitários (contrato tipo) */}
-      <section className="card space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="font-semibold text-primaryDark">Preços unitários combinados</h2>
-            <p className="text-xs text-ink-500">Valor por unidade de medida acertado com o fornecedor. É o que sai no PDF do contrato tipo.</p>
-          </div>
-          {ehAdmin && (precos ?? []).length > 0 && (
-            <a href={`/contratos/contrato-tipo/pdf?contrato=${c.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary font-semibold hover:underline">
-              <FileText className="w-4 h-4" /> Gerar PDF do contrato tipo
-            </a>
-          )}
-        </div>
-        {(precos ?? []).length ? (
+      <SecaoRecolhivel
+        chave="precos"
+        titulo="Preços unitários combinados"
+        subtitulo="Valor por unidade de medida acertado com o fornecedor. É o que sai no PDF do contrato tipo."
+        acoes={ehAdmin && (precos ?? []).length > 0 && (
+          <a href={`/contratos/contrato-tipo/pdf?contrato=${c.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary font-semibold hover:underline">
+            <FileText className="w-4 h-4" /> Gerar PDF do contrato tipo
+          </a>
+        )}
+      >
+        {ehAdmin ? (
+          <PrecosEditor contratoId={c.id} precos={(precos ?? []).map((p) => ({ id: p.id, servico: p.servico, unidade: p.unidade, valor_unitario: Number(p.valor_unitario) }))} />
+        ) : (precos ?? []).length ? (
           <div className="divide-y text-sm">
-            <div className="hidden sm:grid grid-cols-12 gap-2 pb-1 text-xs font-semibold text-ink-500">
-              <span className="col-span-6">Serviço</span><span className="col-span-2">Unidade</span><span className="col-span-2 text-right">Preço (R$)</span><span className="col-span-2"></span>
-            </div>
-            {(precos ?? []).map((pr) =>
-              ehAdmin ? (
-                <div key={pr.id} className="py-2 flex flex-wrap sm:flex-nowrap items-center gap-2">
-                  <FormAcao action={editarPreco} reset={false} mostrarOk={false} className="grid grid-cols-12 gap-2 items-center flex-1 text-sm">
-                    <input type="hidden" name="id" value={pr.id} />
-                    <input type="hidden" name="contratoId" value={c.id} />
-                    <input name="servico" defaultValue={pr.servico} required className="col-span-12 sm:col-span-6 border rounded px-2 py-1.5" />
-                    <input name="unidade" list="unidades-preco" defaultValue={pr.unidade} required className="col-span-4 sm:col-span-2 border rounded px-2 py-1.5" />
-                    <input name="valorUnitario" inputMode="decimal" defaultValue={String(pr.valor_unitario).replace(".", ",")} required className="col-span-5 sm:col-span-2 border rounded px-2 py-1.5 text-right" />
-                    <button className="col-span-3 sm:col-span-2 text-xs text-primary font-semibold border border-primary rounded px-2 py-1.5">Salvar</button>
-                  </FormAcao>
-                  <FormAcao action={excluirPreco} confirmar={`Remover "${pr.servico}" dos preços do contrato?`} mostrarOk={false}>
-                    <input type="hidden" name="id" value={pr.id} />
-                    <input type="hidden" name="contratoId" value={c.id} />
-                    <button className="text-xs text-danger px-1">Remover</button>
-                  </FormAcao>
-                </div>
-              ) : (
+            {(precos ?? []).map((pr) => (
                 <div key={pr.id} className="py-2 grid grid-cols-12 gap-2">
                   <span className="col-span-6">{pr.servico}</span><span className="col-span-2">{pr.unidade}</span>
                   <span className="col-span-4 text-right font-semibold">{brl(pr.valor_unitario)} / {pr.unidade}</span>
                 </div>
-              )
-            )}
+            ))}
           </div>
-        ) : (
+        ) : null}
+        {!(precos ?? []).length && (
           <p className="text-sm text-ink-400">Nenhum preço cadastrado. {ehAdmin ? "Cadastre abaixo os serviços e o valor de cada unidade (ex.: Forro de gesso · m² · 55,00)." : ""}</p>
         )}
         {ehAdmin && (
@@ -201,14 +183,14 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
             <datalist id="unidades-preco">{UNIDADES.map((u) => <option key={u} value={u} />)}</datalist>
           </FormAcao>
         )}
-      </section>
+      </SecaoRecolhivel>
 
       {/* Itens */}
-      <section className="card space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold text-primaryDark">Itens de serviço ({itens.length})</h2>
-          {!ehAdmin && <span className="text-xs text-ink-400">Somente o ADM altera quantidades e valores.</span>}
-        </div>
+      <SecaoRecolhivel
+        chave="itens"
+        titulo={`Itens de serviço (${itens.length})`}
+        acoes={!ehAdmin && <span className="text-xs text-ink-400">Somente o ADM altera quantidades e valores.</span>}
+      >
         <div className="table-scroll">
           <table className="w-full text-sm">
             <thead>
@@ -318,7 +300,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
             </FormAcao>
           </div>
         )}
-      </section>
+      </SecaoRecolhivel>
 
       {/* Aditivos */}
       <section className="card space-y-3">

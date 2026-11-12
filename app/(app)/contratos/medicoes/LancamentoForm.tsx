@@ -259,11 +259,22 @@ export default function LancamentoForm({
                 className="border-2 border-dashed border-primary/40 rounded-lg px-3 py-2 text-sm w-full sm:w-auto text-primary font-semibold"
               >
                 <option value="">+ Adicionar item do contrato…</option>
-                {disponiveis.map((i) => (
-                  <option key={i.id} value={i.id} disabled={i.saldo <= EPS}>
-                    {i.codigo ?? ""} {i.descricao} – {i.unidade} – {brl(i.valor_unitario)} {i.saldo <= EPS ? "(sem saldo)" : `(saldo ${num(i.saldo)})`}
-                  </option>
-                ))}
+                {(() => {
+                  const opcao = (i: ItemMedivel) => (
+                    <option key={i.id} value={i.id} disabled={i.saldo <= EPS}>
+                      {i.codigo ?? ""} {i.descricao} – {i.unidade} – {brl(i.valor_unitario)} {i.saldo <= EPS ? "(sem saldo)" : `(saldo ${num(i.saldo)})`}
+                    </option>
+                  );
+                  const ehAT = (i: ItemMedivel) => /área técnica/i.test(i.descricao);
+                  const at = disponiveis.filter(ehAT);
+                  if (!at.length) return disponiveis.map(opcao);
+                  return (
+                    <>
+                      <optgroup label="Apartamentos e demais itens">{disponiveis.filter((i) => !ehAT(i)).map(opcao)}</optgroup>
+                      <optgroup label="Áreas técnicas (cobradas à parte)">{at.map(opcao)}</optgroup>
+                    </>
+                  );
+                })()}
               </select>
 
               {excedidos.map((c) => (

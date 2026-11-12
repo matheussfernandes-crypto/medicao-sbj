@@ -17,8 +17,9 @@ const JANELA_DIAS = 30; // visitas de até 30 dias atrás em diante
 const API = "https://www.googleapis.com/calendar/v3";
 
 export function configGoogle() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const segredo = process.env.GOOGLE_CLIENT_SECRET;
+  // tolera o valor colado como link ("http://...googleusercontent.com/"), com aspas ou espaços
+  const clientId = (process.env.GOOGLE_CLIENT_ID || "").trim().replace(/^["']|["']$/g, "").replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  const segredo = (process.env.GOOGLE_CLIENT_SECRET || "").trim().replace(/^["']|["']$/g, "");
   if (!clientId || !segredo) return null;
   return { clientId, segredo };
 }

@@ -17,7 +17,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  const rotasPublicas = ["/login", "/cadastro", "/esqueci-senha", "/redefinir-senha"];
+  const rotasPublicas = ["/login", "/cadastro", "/esqueci-senha", "/redefinir-senha", "/privacidade"];
   const isPublica = rotasPublicas.some((r) => path.startsWith(r));
 
   // Supabase armazena a sessão neste cookie (leitura local, sem rede)
@@ -39,7 +39,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (logado && isPublica) {
+  if (logado && isPublica && path !== "/privacidade") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

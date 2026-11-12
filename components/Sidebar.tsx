@@ -87,7 +87,7 @@ export default function Sidebar({
           <nav className="flex-1 flex flex-col items-center gap-1 overflow-y-auto w-full px-1.5" aria-label="Setores">
             {secoes.map((s) => {
               const Icon = s.icon;
-              const eAtiva = s.href ? pathname === s.href && ativa === s.id : s.id === secao?.id;
+              const eAtiva = s.href ? pathname === s.href && ativa === s.id : s.id === ativa;
               const pend = pendencias(s);
               const classe =
                 "relative w-full flex items-center justify-center rounded-xl py-2.5 transition-all duration-200 active:scale-95 " +

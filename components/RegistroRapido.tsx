@@ -18,14 +18,6 @@ const DESTINOS: Destino[] = [
   },
   // Pós-venda: vistoria de entrega
   { nome: "vistoria de entrega", href: "/posobra/vistorias", teste: /(vistoria|entrega de chave|entrega da unidade|termo de entrega)/i },
-  // Medições
-  { nome: "medição", chave: "registro-medicao", href: "/contratos/medicoes", teste: /(medi[cç][aã]o|medir|reten[cç][aã]o|empreiteir|empreitada|contrato)/i },
-  // Vales e lançamentos
-  { nome: "lançamento", href: "/lancamentos", teste: /(vale|lan[cç]amento|lan[cç]ar|adiantamento)/i },
-  // Fechamento
-  { nome: "fechamento", href: "/contratos/fechamento", teste: /(fechamento|fechar o m[eê]s)/i },
-  // Andamento de obra
-  { nome: "andamento da obra", href: "/andamento-obra", teste: /(andamento|cronograma|progresso|etapa|foto da obra)/i },
   // Fornecedores, clientes, empreendimentos
   { nome: "cadastros do pós-venda", href: "/posvenda/cadastros", teste: /(fornecedor|cadastr|cliente|propriet[aá]rio|empreendimento)/i },
 ];
@@ -41,7 +33,7 @@ export default function RegistroRapido() {
     // número de unidade sozinho (ex.: "703 Campeche") também é chamado
     const destino = DESTINOS.find((d) => d.teste.test(t)) ?? (/\b\d{3,4}\b/.test(t) ? DESTINOS[0] : null);
     if (!destino) {
-      setDica("Não entendi para onde levar. Tente com mais detalhes, por exemplo: “infiltração 703 Campeche” ou “medição do empreiteiro João”.");
+      setDica("Não entendi para onde levar. Tente com mais detalhes, por exemplo: “infiltração 703 Campeche” ou “vistoria 501 Campeche”.");
       return;
     }
     if (destino.chave) {
@@ -60,7 +52,7 @@ export default function RegistroRapido() {
         e.preventDefault();
         entender();
       }}
-      className="card !p-2 !pl-4 flex items-center gap-3 focus-within:ring-2 focus-within:ring-primary/20 transition-shadow"
+      className="registro-rapido card !p-2 !pl-4 flex items-center gap-3 focus-within:ring-2 focus-within:ring-primary/20 transition-shadow"
     >
       <Sparkles className="w-5 h-5 text-primary shrink-0" aria-hidden />
       <input
@@ -70,7 +62,7 @@ export default function RegistroRapido() {
           setDica(null);
         }}
         aria-label="Registro rápido"
-        placeholder="O que você precisa? Ex.: infiltração 703 Campeche · medição do empreiteiro João"
+        placeholder="O que você precisa? Ex.: infiltração 703 Campeche · vistoria 501 Campeche"
         className="flex-1 min-w-0 bg-transparent py-2 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none"
       />
       <button type="submit" disabled={!texto.trim()} className="btn primary sm shrink-0 inline-flex items-center gap-1">

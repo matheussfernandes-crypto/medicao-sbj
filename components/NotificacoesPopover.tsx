@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, BellOff } from "lucide-react";
-import { marcarComoLida, marcarTodasComoLidas } from "@/app/(app)/notificacoes/actions";
 
 type Item = { id: string; titulo: string; corpo: string | null; url: string | null; lida: boolean; criado_em: string };
 
@@ -32,7 +31,6 @@ export default function NotificacoesPopover({ naoLidas: inicial }: { naoLidas: n
 
   useEffect(() => {
     if (!aberto) return;
-    setItens(null);
     fetch("/api/notificacoes", { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => {
@@ -54,18 +52,33 @@ export default function NotificacoesPopover({ naoLidas: inicial }: { naoLidas: n
     };
   }, [aberto]);
 
-  async function lerUma(id: string) {
-    const fd = new FormData();
-    fd.append("id", id);
-    await marcarComoLida(fd);
-    setItens((l) => (l ? l.map((i) => (i.id === id ? { ...i, lida: true } : i)) : l));
-    setNaoLidas((n) => Math.max(0, n - 1));
+  // a tela muda na hora; a gravação vai por trás (sem recarregar a página, então nada pisca)
+  function grava(corpo: { id?: string; todas?: boolean }) {
+    return fetch("/api/notificacoes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) }).then((r) => {
+      if (!r.ok) throw new Error();
+    });
   }
 
-  async function lerTodas() {
-    await marcarTodasComoLidas(new FormData());
+  function lerUma(id: string) {
+    const antes = itens;
+    const antesN = naoLidas;
+    setItens((l) => (l ? l.map((i) => (i.id === id ? { ...i, lida: true } : i)) : l));
+    setNaoLidas((n) => Math.max(0, n - 1));
+    grava({ id }).catch(() => {
+      setItens(antes);
+      setNaoLidas(antesN);
+    });
+  }
+
+  function lerTodas() {
+    const antes = itens;
+    const antesN = naoLidas;
     setItens((l) => (l ? l.map((i) => ({ ...i, lida: true })) : l));
     setNaoLidas(0);
+    grava({ todas: true }).catch(() => {
+      setItens(antes);
+      setNaoLidas(antesN);
+    });
   }
 
   return (

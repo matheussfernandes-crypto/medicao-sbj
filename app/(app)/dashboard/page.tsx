@@ -6,16 +6,12 @@ import Carousel from "@/components/Carousel";
 import MiniCalendar, { type EventoCalendario } from "@/components/MiniCalendar";
 import { HardHat } from "lucide-react";
 import { agendaDoSetor } from "@/lib/agenda-setor";
-import { ehGestorAcessos, itensLiberados, permitido } from "@/lib/acessos/modulos";
+import { ehGestorAcessos, permitido } from "@/lib/acessos/modulos";
 import { carregarPainelObras } from "./painel-obras";
 import SlideProgresso from "./SlideProgresso";
 import PainelObrasSeletor from "./PainelObrasSeletor";
 import PersonalizarAtalhos from "@/components/PersonalizarAtalhos";
 import RegistroRapido from "@/components/RegistroRapido";
-
-function mesAtualISO() {
-  return new Date().toISOString().slice(0, 7);
-}
 
 export default async function DashboardPage() {
   const supabase = createClient();
@@ -23,78 +19,6 @@ export default async function DashboardPage() {
   const { data: perfil } = await perfilDaRequisicao(user!.id);
 
   const setor = perfil?.setor ?? "ESTAGIARIO";
-  const mes = mesAtualISO();
-
-  // KPIs — cada um é opcional e só é buscado/mostrado conforme o setor,
-  // para não disparar consultas que o usuário não tem permissão de ver.
-  const kpis: { label: string; value: string; hint?: string; href: string }[] = [];
-
-  if (setor === "ADMIN") {
-    const [{ count: cadastrosPendentes }, { count: lancamentosPendentes }, { data: medicoesMes }] =
-      await Promise.all([
-        supabase.from("perfis").select("id", { count: "exact", head: true }).eq("status", "pendente"),
-        supabase.from("lancamentos").select("id", { count: "exact", head: true }).eq("status", "PENDENTE"),
-        supabase
-          .from("lancamentos")
-          .select("total_reais")
-          .eq("tipo", "MEDICAO")
-          .eq("status", "APROVADO")
-          .eq("mes_referencia", mes),
-      ]);
-
-    const totalMedidoMes = (medicoesMes ?? []).reduce((s, l) => s + Number(l.total_reais ?? 0), 0);
-
-    kpis.push(
-      { label: "Cadastros pendentes", value: String(cadastrosPendentes ?? 0), href: "/admin/aprovacoes" },
-      { label: "Lançamentos pendentes", value: String(lancamentosPendentes ?? 0), href: "/lancamentos" },
-      { label: "Medido este mês", value: `R$ ${totalMedidoMes.toFixed(2)}`, hint: mes, href: "/admin/fechamento" }
-    );
-  }
-
-  // quem vê o módulo de Medições (ou é gestor) vê o saldo retido geral
-  const acessosPerfil = ((perfil as { acessos?: string[] | null } | null)?.acessos ?? []) as string[];
-  const verMedicoes = setor === "FINANCEIRO" || setor === "ADMIN" || ehGestorAcessos(user!.email) || itensLiberados(acessosPerfil).has("contratos/medicoes");
-  if (verMedicoes) {
-    const [{ data: pessoasRetencao }, { data: medicoesRetencao }, { data: retiradas }] = await Promise.all([
-      supabase
-        .from("pessoas")
-        .select("id, saldo_inicial_retido")
-        .not("papel", "in", "(MESTRE,MESTRE_GERAL)"),
-      supabase
-        .from("lancamentos")
-        .select("pessoa_id, total_reais, retencao_pct_usado")
-        .in("tipo", ["MEDICAO", "VALE_MEDICAO"])
-        .eq("status", "APROVADO"),
-      supabase.from("retiradas_retido").select("pessoa_id, valor"),
-    ]);
-
-    const retidoPorPessoa: Record<string, number> = {};
-    for (const l of medicoesRetencao ?? []) {
-      const pct = Number(l.retencao_pct_usado ?? 0);
-      retidoPorPessoa[l.pessoa_id] = (retidoPorPessoa[l.pessoa_id] ?? 0) + Number(l.total_reais) * pct;
-    }
-    const retiradoPorPessoa: Record<string, number> = {};
-    for (const r of retiradas ?? []) {
-      retiradoPorPessoa[r.pessoa_id] = (retiradoPorPessoa[r.pessoa_id] ?? 0) + Number(r.valor);
-    }
-    const saldoRetidoGeral = (pessoasRetencao ?? []).reduce((soma, p) => {
-      const totalRetido = Number(p.saldo_inicial_retido ?? 0) + (retidoPorPessoa[p.id] ?? 0);
-      const totalRetirado = retiradoPorPessoa[p.id] ?? 0;
-      return soma + (totalRetido - totalRetirado);
-    }, 0);
-
-    kpis.push({ label: "Saldo retido (geral)", value: `R$ ${saldoRetidoGeral.toFixed(2)}`, href: "/financeiro/retiradas" });
-  }
-
-  if (setor === "ESTAGIARIO") {
-    const { count: meusPendentes } = await supabase
-      .from("lancamentos")
-      .select("id", { count: "exact", head: true })
-      .eq("criado_por", user!.id)
-      .eq("status", "PENDENTE");
-
-    kpis.push({ label: "Meus lançamentos pendentes", value: String(meusPendentes ?? 0), href: "/lancamentos" });
-  }
 
   // atalhos: os que a pessoa escolheu (só entre as telas que ela acessa); padrão: os 6 primeiros
   const { data: meuPerfil } = await supabase.from("perfis").select("acessos, email, atalhos_home").eq("id", user!.id).single();
@@ -143,7 +67,7 @@ export default async function DashboardPage() {
     );
   }
   // agenda individual: só os compromissos dos setores a que a pessoa tem acesso
-  const eventosAgenda: EventoCalendario[] = await agendaDoSetor(supabase, user!.email, (meuPerfil?.acessos as string[] | null) ?? []);
+  const eventosAgenda: EventoCalendario[] = await agendaDoSetor(supabase, user!.email, (meuPerfil?.acessos as string[] | null) ?? [], setor);
 
   return (
     <>
@@ -152,7 +76,7 @@ export default async function DashboardPage() {
         <h1 className="text-xl font-semibold text-ink-900">
           Olá, {perfil?.nome_completo?.split(" ")[0] ?? "bem-vindo"}
         </h1>
-        <RegistroRapido />
+        {(setor === "ARQUITETO" || ehGestorAcessos(user!.email)) && <RegistroRapido />}
       </div>
 
       {/* atalhos do setor, escolhidos pela pessoa */}
@@ -195,17 +119,6 @@ export default async function DashboardPage() {
         <MiniCalendar eventos={eventosAgenda} />
       </div>
 
-      {kpis.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {kpis.map((kpi) => (
-            <Link key={kpi.label} href={kpi.href} className="stat-tile hover:shadow-panel transition-shadow">
-              <span className="stat-label">{kpi.label}</span>
-              <span className="stat-value">{kpi.value}</span>
-              {kpi.hint && <span className="stat-hint">{kpi.hint}</span>}
-            </Link>
-          ))}
-        </div>
-      )}
     </>
   );
 }

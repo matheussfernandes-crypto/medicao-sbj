@@ -40,3 +40,5 @@ html.dark input::placeholder, html.dark textarea::placeholder { color: #6f8488; 
 /* cobertura enquanto o módulo embutido monta */
 .cobertura-modulo { background: #f4f6f9; }
 html.dark .cobertura-modulo { background: #0e1517; }
+
+html.dark .registro-rapido input:not([type="checkbox"]):not([type="radio"]) { background-color: transparent; border: 0; }

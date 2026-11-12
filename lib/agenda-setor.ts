@@ -8,7 +8,9 @@ export type EventoAgenda = { data: string; label: string };
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const TIPO_VISITA: Record<string, string> = { vistoria: "Vistoria", execucao: "Execução", retorno: "Retorno" };
 
-export async function agendaDoSetor(supabase: any, email: string | null | undefined, acessos: string[] | null | undefined): Promise<EventoAgenda[]> {
+export async function agendaDoSetor(supabase: any, email: string | null | undefined, acessos: string[] | null | undefined, setor?: string | null): Promise<EventoAgenda[]> {
+  // pós-venda e vistorias são da arquitetura; medições e fechamento, dos demais setores
+  const arquitetura = setor === "ARQUITETO";
   const gestor = ehGestorAcessos(email);
   const livres = itensLiberados(acessos ?? []);
   const tem = (chave: string) => gestor || livres.has(chave);
@@ -17,12 +19,12 @@ export async function agendaDoSetor(supabase: any, email: string | null | undefi
   const eventos: EventoAgenda[] = [];
 
   // Medições e vales: fechamento mensal no dia 21
-  if (tem("contratos/fechamento") || tem("lancamentos")) {
+  if (!arquitetura && (tem("contratos/fechamento") || tem("lancamentos"))) {
     eventos.push({ data: iso(new Date(hoje.getFullYear(), hoje.getMonth(), 21)), label: "Fechamento mensal (dia 21)" });
   }
 
   // Pós-venda: visitas marcadas na agenda
-  if (tem("posvenda/chamados")) {
+  if (arquitetura && tem("posvenda/chamados")) {
     try {
       const { data: visitas } = await supabase.from("posvenda_docs").select("id, dados").eq("colecao", "agenda").gte("dados->>data", inicioMes).limit(500);
       const marcadas = (visitas ?? []).filter((v: any) => v.dados?.status !== "cancelado" && v.dados?.data);
@@ -47,7 +49,7 @@ export async function agendaDoSetor(supabase: any, email: string | null | undefi
   }
 
   // Pós-obra: vistorias de entrega
-  if (tem("posobra/vistorias")) {
+  if (arquitetura && tem("posobra/vistorias")) {
     try {
       const [{ data: vist }, { data: obras }] = await Promise.all([
         supabase.from("posobra_vistorias").select("obra_id, apartamento, data").gte("data", inicioMes).limit(500),

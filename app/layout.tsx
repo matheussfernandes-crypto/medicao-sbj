@@ -1,4 +1,5 @@
 import "./globals.css";
+import "./anima.css";
 import "./tema-escuro.css";
 import { SCRIPT_TEMA_INICIAL } from "@/lib/tema";
 import type { Metadata } from "next";

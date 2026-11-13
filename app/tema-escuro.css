@@ -42,3 +42,26 @@ html.dark input::placeholder, html.dark textarea::placeholder { color: #6f8488; 
 html.dark .cobertura-modulo { background: #0e1517; }
 
 html.dark .registro-rapido input:not([type="checkbox"]):not([type="radio"]) { background-color: transparent; border: 0; }
+
+/* tons claros do Tailwind usados em avisos e botões */
+html.dark .bg-red-50 { background-color: #2a1715; }
+html.dark .border-red-200 { border-color: #5a2a26; }
+html.dark .text-red-600, html.dark .text-red-700 { color: #f2766d; }
+html.dark .bg-green-100 { background-color: #173023; }
+html.dark .text-green-800 { color: #62c48d; }
+html.dark .bg-red-100 { background-color: #3a1a18; }
+html.dark .bg-amber-50, html.dark .bg-yellow-50 { background-color: #2e2814; }
+html.dark .border-amber-200, html.dark .border-yellow-200 { border-color: #5c4a17; }
+html.dark .text-amber-700, html.dark .text-amber-800 { color: #e3a44a; }
+html.dark .bg-gray-100, html.dark .bg-slate-100 { background-color: #1d2b2f; }
+html.dark .bg-gray-300, html.dark .bg-slate-300 { background-color: #3a4c51; }
+html.dark .text-slate-600, html.dark .text-gray-600 { color: #c9d6d9; }
+html.dark .border-gray-400 { border-color: #4f6368; }
+html.dark .bg-white\/90 { background-color: rgba(21,32,35,.9); }
+html.dark .bg-white\/60, html.dark .hover\:bg-white\/60:hover { background-color: rgba(29,43,47,.7); }
+html.dark .text-ink-800 { color: #d6e1e3; }
+html.dark .text-ink-600 { color: #aebfc3; }
+html.dark .bg-primary\/5 { background-color: rgba(92,195,210,.08); }
+html.dark .bg-primary\/10 { background-color: rgba(92,195,210,.12); }
+html.dark .bg-primary\/15 { background-color: rgba(92,195,210,.16); }
+html.dark .border-primary { border-color: #3fa9b9; }

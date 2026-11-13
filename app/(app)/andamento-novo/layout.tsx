@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { ehGestorAcessos } from "@/lib/acessos/modulos";
 import { createClient } from "@/lib/supabase/server";
 import AbasNovo from "./AbasNovo";
+import ConteudoAnimado from "./ConteudoAnimado";
 
 // Área nova do Andamento de Obra (reformulação). Por enquanto só o ADM e quem tem a permissão específica entram;
 // a tela atual (/andamento-obra) continua funcionando como antes.
@@ -21,7 +22,7 @@ export default async function AndamentoNovoLayout({ children }: { children: Reac
         <p className="text-sm text-ink-500">Pavimentos, locais, sistemas e fachada, com cálculo ponderado.</p>
       </div>
       <AbasNovo />
-      {children}
+      <ConteudoAnimado>{children}</ConteudoAnimado>
     </div>
   );
 }

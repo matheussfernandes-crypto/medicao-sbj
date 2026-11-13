@@ -1,5 +1,6 @@
 "use client";
 
+import Selecao from "@/components/ui/Selecao";
 import "./relatorio.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Download, Loader2, Mail, Printer, Trash2 } from "lucide-react";
@@ -598,7 +599,7 @@ ${cssImpressao()}
       )}
 
       {aviso && (
-        <div className="card text-sm flex justify-between print:hidden" style={{ background: "#e1f3e6", borderColor: "#b7dfc3", color: "#1c7440" }}>
+        <div className="card av-ok text-sm flex justify-between print:hidden">
           <span>
             {aviso} <Link href={`/andamento-novo/relatorios-gerados?obra=${obra.id}`} className="underline">Ver relatórios gerados</Link>
           </span>
@@ -644,7 +645,7 @@ ${cssImpressao()}
         <div className="flex flex-wrap items-center gap-2 relative">
           <label className="flex items-center gap-2 text-sm">
             <span className="text-ink-500">Relatório</span>
-            <select
+            <Selecao
               className="border border-primary rounded-md px-2 py-1.5 text-sm bg-white font-medium text-primaryDark"
               aria-label="Escolher o relatório (modelo)"
               value={emMont ? montId ?? "" : ""}
@@ -663,7 +664,7 @@ ${cssImpressao()}
                   {m.nome}
                 </option>
               ))}
-            </select>
+            </Selecao>
           </label>
           {!emMont && botao("filtros", <>Filtrar{qtdFiltros ? ` (${qtdFiltros})` : ""}</>)}
           {!emMont && (
@@ -837,7 +838,7 @@ ${cssImpressao()}
       {painel === "filtros" && !emMont && <PainelFiltros ctx={ctx} filtros={filtros} onChange={setFiltros} onFechar={() => setPainel(null)} />}
 
       {emMont && montAtual && (
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#e9c868] px-4 py-2.5 text-sm print:hidden" style={{ background: "#fbf3d7" }}>
+        <div className="av-amarelo flex flex-wrap items-center gap-3 rounded-xl border px-4 py-2.5 text-sm print:hidden">
           <span>
             Prévia da montagem <b>{montAtual.nome}</b>
           </span>
@@ -872,7 +873,7 @@ ${cssImpressao()}
             {res.N} página{res.N === 1 ? "" : "s"} · {textoFolha(res.papel, res.folha)}
           </p>
           {res.avisos.map((a) => (
-            <p key={a} className="text-xs rounded-md border px-3 py-1.5" style={{ background: "#fdf6e0", borderColor: "#f0d58a", color: "#7a5a00" }}>
+            <p key={a} className="av-amarelo2 text-xs rounded-md border px-3 py-1.5">
               {a}
             </p>
           ))}

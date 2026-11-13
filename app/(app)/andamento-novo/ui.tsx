@@ -11,7 +11,7 @@ export const fmtPct0 = (v: number) => String(Math.round(v));
 export function Barra({ s, h = 8, cor = "#24914f" }: { s: Soma; h?: number; cor?: string }) {
   const p = partes(s);
   return (
-    <div className="w-full overflow-hidden rounded-full flex" style={{ height: h, background: "#e3e7e9" }}>
+    <div className="w-full overflow-hidden rounded-full flex" style={{ height: h, background: "var(--sbj-trilho, #e3e7e9)" }}>
       <div style={{ width: `${Math.min(100, p.fin)}%`, background: cor }} />
       <div style={{ width: `${Math.min(100 - Math.min(100, p.fin), p.and)}%`, background: "#f0a020" }} />
     </div>

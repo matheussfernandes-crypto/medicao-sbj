@@ -1,5 +1,6 @@
 "use client";
 
+import Selecao from "@/components/ui/Selecao";
 import { useMemo, useState } from "react";
 import { BotaoIcone, Chave, Chip, Linha, Seg } from "./controles";
 import type { Predefinicao } from "./predefinicoes";
@@ -114,14 +115,14 @@ export default function PainelMontar(p: Props) {
   return (
     <div className="space-y-3 border-t border-border pt-3 mt-3">
       <div className="flex flex-wrap items-center gap-2">
-        <select className="border border-border rounded-md px-2 py-1.5 text-sm bg-white" aria-label="Montagem salva" value={p.atualId ?? ""} onChange={(e) => { setAberta(null); p.onSelecionar(e.target.value); }}>
+        <Selecao className="border border-border rounded-md px-2 py-1.5 text-sm bg-white" aria-label="Montagem salva" value={p.atualId ?? ""} onChange={(e) => { setAberta(null); p.onSelecionar(e.target.value); }}>
           {p.montagens.length === 0 && <option value="">Nenhuma montagem salva</option>}
           {p.montagens.map((x) => (
             <option key={x.id} value={x.id}>
               {x.nome}
             </option>
           ))}
-        </select>
+        </Selecao>
         <button className="text-xs px-2.5 py-1.5 border border-border rounded-md bg-white" onClick={p.onNova}>
           + Nova montagem
         </button>
@@ -195,7 +196,7 @@ export default function PainelMontar(p: Props) {
 
           <div className="flex flex-wrap items-center gap-2">
             <b className="text-[13px]">Adicionar seção:</b>
-            <select
+            <Selecao
               className="border border-border rounded-md px-2 py-1.5 text-sm bg-white disabled:opacity-50"
               aria-label="Adicionar seção de uma predefinição"
               disabled={!p.predefs.length}
@@ -216,7 +217,7 @@ export default function PainelMontar(p: Props) {
                   {x.nome}
                 </option>
               ))}
-            </select>
+            </Selecao>
             <button className="text-xs px-2.5 py-1.5 border border-border rounded-md bg-white" onClick={() => { setSecoes([...secoes, { nome: `Seção ${secoes.length + 1}`, filtro: { pav: [], sis: [], cat: [], serv: [], fases: [] }, linhas: "local", det: "un" }]); setAberta(secoes.length); }}>
               + Em branco (escolher aqui)
             </button>

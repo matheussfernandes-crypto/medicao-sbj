@@ -1,5 +1,6 @@
 "use client";
 
+import Selecao from "@/components/ui/Selecao";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, Minus, Plus, X } from "lucide-react";
@@ -161,35 +162,35 @@ export default function FachadaView(p: Props) {
                 <div className="grid grid-cols-2 gap-2">
                   <label className="text-xs text-ink-500">
                     Parte
-                    <select value={lp} onChange={(e) => { setLp(e.target.value as Parte); setLd(1); }} className="w-full h-12 border border-border rounded-lg px-2 text-base bg-white">
+                    <Selecao value={lp} onChange={(e) => { setLp(e.target.value as Parte); setLd(1); }} className="w-full h-12 border border-border rounded-lg px-2 text-base bg-white">
                       {PARTES.map((pt) => (
                         <option key={pt} value={pt}>{NOME_PARTE[pt]}</option>
                       ))}
-                    </select>
+                    </Selecao>
                   </label>
                   <label className="text-xs text-ink-500">
                     Fachada
-                    <select value={lf} onChange={(e) => { setLf(e.target.value as Face); setLd(1); }} className="w-full h-12 border border-border rounded-lg px-2 text-base bg-white">
+                    <Selecao value={lf} onChange={(e) => { setLf(e.target.value as Face); setLd(1); }} className="w-full h-12 border border-border rounded-lg px-2 text-base bg-white">
                       {FACES.map((f2) => (
                         <option key={f2} value={f2}>{NOME_FACE[f2]}</option>
                       ))}
-                    </select>
+                    </Selecao>
                   </label>
                   <label className="text-xs text-ink-500">
                     Descida
-                    <select value={Math.min(ld, Math.max(1, descidas[lp][lf]))} onChange={(e) => setLd(parseInt(e.target.value, 10))} className="w-full h-12 border border-border rounded-lg px-2 text-base bg-white">
+                    <Selecao value={Math.min(ld, Math.max(1, descidas[lp][lf]))} onChange={(e) => setLd(parseInt(e.target.value, 10))} className="w-full h-12 border border-border rounded-lg px-2 text-base bg-white">
                       {Array.from({ length: Math.max(1, descidas[lp][lf]) }, (_, i) => (
                         <option key={i + 1} value={i + 1}>D{i + 1}</option>
                       ))}
-                    </select>
+                    </Selecao>
                   </label>
                   <label className="text-xs text-ink-500">
                     Serviço
-                    <select value={servId} onChange={(e) => setServId(e.target.value)} className="w-full h-12 border border-border rounded-lg px-2 text-base bg-white">
+                    <Selecao value={servId} onChange={(e) => setServId(e.target.value)} className="w-full h-12 border border-border rounded-lg px-2 text-base bg-white">
                       {servicos.map((s) => (
                         <option key={s.id} value={s.id}>{s.nome}</option>
                       ))}
-                    </select>
+                    </Selecao>
                   </label>
                 </div>
                 <p className="text-[11px] text-ink-500">Os pavimentos desta descida, de cima para baixo (como o balancim desce).</p>
@@ -213,13 +214,13 @@ export default function FachadaView(p: Props) {
                 <div className="flex flex-wrap items-center gap-3 mb-3">
                   <label className="text-xs text-ink-500">
                     Serviço
-                    <select value={servId} onChange={(e) => setServId(e.target.value)} className="ml-2 border border-border rounded-md px-2 py-1 text-sm bg-white">
+                    <Selecao value={servId} onChange={(e) => setServId(e.target.value)} className="ml-2 border border-border rounded-md px-2 py-1 text-sm bg-white">
                       {servicos.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.nome}
                         </option>
                       ))}
-                    </select>
+                    </Selecao>
                   </label>
                   <Legenda />
                   <div className="ml-auto">{botaoSel}</div>
@@ -303,18 +304,18 @@ export default function FachadaView(p: Props) {
             <h3 className="text-sm font-semibold text-primaryDark mb-1">Descidas por fachada</h3>
             <label className="block text-[11px] text-ink-500 mb-2">
               Serviço
-              <select value={servId} onChange={(e) => setServId(e.target.value)} className="mt-0.5 w-full border border-border rounded-md px-2 py-1 text-sm bg-white text-ink-900">
+              <Selecao value={servId} onChange={(e) => setServId(e.target.value)} className="mt-0.5 w-full border border-border rounded-md px-2 py-1 text-sm bg-white text-ink-900">
                 {servicos.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.nome}
                   </option>
                 ))}
-              </select>
+              </Selecao>
             </label>
             <p className="text-[11px] text-ink-500 mb-2">Cada serviço tem as suas descidas de balancim (nº por parte e fachada). O desenho e os trechos só deste serviço se atualizam; os apontamentos que continuam existindo são mantidos.</p>
             {servicos.length > 1 && p.podeApontar && (
               <div className="flex items-center gap-1.5 mb-2">
-                <select value={copiarDe} onChange={(e) => setCopiarDe(e.target.value)} className="flex-1 min-w-0 border border-border rounded-md px-2 py-1 text-xs bg-white">
+                <Selecao value={copiarDe} onChange={(e) => setCopiarDe(e.target.value)} className="flex-1 min-w-0 border border-border rounded-md px-2 py-1 text-xs bg-white">
                   <option value="">Copiar descidas de…</option>
                   {servicos
                     .filter((s) => s.id !== servId)
@@ -323,7 +324,7 @@ export default function FachadaView(p: Props) {
                         {s.nome}
                       </option>
                     ))}
-                </select>
+                </Selecao>
                 <button className="text-xs px-2 py-1 border border-border rounded-md bg-white disabled:opacity-50" disabled={!copiarDe} onClick={copiarDescidas}>
                   Copiar
                 </button>

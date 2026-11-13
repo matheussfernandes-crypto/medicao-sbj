@@ -1,5 +1,6 @@
 "use client";
 
+import Selecao from "@/components/ui/Selecao";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckSquare, ChevronLeft, ChevronRight, LayoutGrid, List, X } from "lucide-react";
@@ -286,7 +287,7 @@ export default function AndamentoClient({ dados }: { dados: DadosAndamento }) {
           <div className="card">
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-lg font-semibold text-primaryDark">{pav.nome}</h2>
-              <span className="text-2xl font-bold tabular-nums" style={{ color: "#2c6975" }}>
+              <span className="text-2xl font-bold tabular-nums" style={{ color: "var(--sbj-tit2, #2c6975)" }}>
                 {fmtPct(pct(sPav))}%
               </span>
               <div className="w-40">
@@ -362,13 +363,13 @@ export default function AndamentoClient({ dados }: { dados: DadosAndamento }) {
           <button className="w-12 h-12 rounded-lg border border-border bg-white flex items-center justify-center disabled:opacity-40" disabled={pavIdx === 0} onClick={() => { setPavSel(pavs[pavIdx - 1].id); setChipId(null); }}>
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <select value={pav.id} onChange={(e) => { setPavSel(e.target.value); setChipId(null); }} className="flex-1 h-12 border border-border rounded-lg px-3 text-base bg-white">
+          <Selecao value={pav.id} onChange={(e) => { setPavSel(e.target.value); setChipId(null); }} className="flex-1 h-12 border border-border rounded-lg px-3 text-base bg-white">
             {pavs.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.nome} · {fmtPct0(pct(agregados.porPav.get(p.id) ?? somaZero()))}%
               </option>
             ))}
-          </select>
+          </Selecao>
           <button className="w-12 h-12 rounded-lg border border-border bg-white flex items-center justify-center disabled:opacity-40" disabled={pavIdx === pavs.length - 1} onClick={() => { setPavSel(pavs[pavIdx + 1].id); setChipId(null); }}>
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -711,13 +712,13 @@ export default function AndamentoClient({ dados }: { dados: DadosAndamento }) {
       <div className="flex flex-wrap items-end gap-3 print:hidden">
         <div>
           <label className="block text-xs text-ink-500 mb-1">Obra</label>
-          <select className="border border-border rounded-lg px-3 py-2 text-sm min-w-[220px] bg-white" value={obra.id} onChange={(e) => router.push(`/andamento-novo?obra=${e.target.value}`)}>
+          <Selecao className="border border-border rounded-lg px-3 py-2 text-sm min-w-[220px] bg-white" value={obra.id} onChange={(e) => router.push(`/andamento-novo?obra=${e.target.value}`)}>
             {obras.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.nome}
               </option>
             ))}
-          </select>
+          </Selecao>
         </div>
         <div className="ml-auto flex gap-5 text-sm">
           <div>

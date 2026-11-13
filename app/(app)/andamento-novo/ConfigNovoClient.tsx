@@ -1,9 +1,11 @@
 "use client";
 
+import Selecao from "@/components/ui/Selecao";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, ChevronUp, Copy, GripVertical, Lock, LockOpen, Pencil, Plus, Trash2, X } from "lucide-react";
 import * as acoes from "./actions";
+import { DataCampo, Recolher, Seta } from "@/components/ui/anima";
 import PainelModelo from "./PainelModelo";
 import { montarIndice } from "./calculo";
 import { montarFatias, servicosDosLocais } from "./fatias";
@@ -63,19 +65,86 @@ function Secao({
   acoes?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  // o conteúdo só é montado na primeira vez que abre; depois fica montado para a animação de recolher
+  const [montada, setMontada] = useState(aberta);
+  useEffect(() => {
+    if (aberta) setMontada(true);
+  }, [aberta]);
   return (
     <div className="card">
       <div className="flex items-center gap-2">
-        <button type="button" onClick={onAlternar} className="flex items-center gap-2 flex-1 text-left">
-          {aberta ? <ChevronDown className="w-4 h-4 text-ink-400" /> : <ChevronRight className="w-4 h-4 text-ink-400" />}
+        <button type="button" onClick={onAlternar} aria-expanded={aberta} className="group flex items-center gap-2 flex-1 text-left min-w-0">
+          <span className="sbj-seta-btn -ml-1.5 group-hover:bg-primary/10 group-hover:text-primary">
+            <Seta aberto={aberta} />
+          </span>
           <h2 className="font-semibold text-primaryDark">{titulo}</h2>
-          {!aberta && resumo && <span className="text-xs text-ink-500 truncate">{resumo}</span>}
+          <span className={`text-xs text-ink-500 truncate transition-opacity duration-300 ${!aberta && resumo ? "opacity-100" : "opacity-0"}`}>{resumo}</span>
         </button>
-        {aberta && acoes}
+        {aberta && acoes && <span className="sbj-entra">{acoes}</span>}
       </div>
-      {aberta && <div className="mt-3">{children}</div>}
+      <Recolher aberto={aberta}>{montada && <div className="pt-3">{children}</div>}</Recolher>
     </div>
   );
+}
+
+// grupo recolhível das Fatias da obra (fase de serviço, sistema, categoria de um sistema)
+function GrupoFatia({
+  titulo,
+  detalhe,
+  cor,
+  aberto,
+  onAlternar,
+  parte,
+  campo,
+  children,
+  leve,
+}: {
+  titulo: string;
+  detalhe?: string;
+  cor?: string;
+  aberto: boolean;
+  onAlternar: () => void;
+  parte?: number; // 0 a 1: barrinha com o peso do grupo
+  campo?: React.ReactNode;
+  children: React.ReactNode;
+  leve?: boolean;
+}) {
+  return (
+    <div className={`rounded-xl border border-border overflow-hidden transition-shadow ${aberto ? "shadow-sm" : ""} ${leve ? "" : "bg-white"}`}>
+      <div className={`flex items-center gap-2 px-2.5 py-2 ${leve ? "" : "bg-surface-subtle"}`}>
+        <button type="button" onClick={onAlternar} aria-expanded={aberto} className="group flex items-center gap-1.5 flex-1 min-w-0 text-left">
+          <span className="sbj-seta-btn w-7 h-7 group-hover:bg-primary/10 group-hover:text-primary">
+            <Seta aberto={aberto} />
+          </span>
+          {cor && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cor }} />}
+          <span className={`font-semibold truncate ${leve ? "text-xs text-ink-700" : "text-sm text-primaryDark"}`}>{titulo}</span>
+          {detalhe && <span className="text-[11px] text-ink-500 whitespace-nowrap">{detalhe}</span>}
+        </button>
+        {parte != null && (
+          <span className="hidden sm:block w-20 h-1.5 rounded-full bg-primary/15 overflow-hidden" title="Peso do grupo">
+            <span className="block h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${Math.min(100, Math.max(0, parte * 100))}%` }} />
+          </span>
+        )}
+        {campo}
+      </div>
+      <Recolher aberto={aberto}>
+        <div className="border-t border-border">{children}</div>
+      </Recolher>
+    </div>
+  );
+}
+
+// conjunto de grupos abertos (começa tudo recolhido)
+function useGruposAbertos() {
+  const [abertos, setAbertos] = useState<Set<string>>(() => new Set());
+  const alternar = (k: string) =>
+    setAbertos((s) => {
+      const n = new Set(s);
+      if (n.has(k)) n.delete(k);
+      else n.add(k);
+      return n;
+    });
+  return { abertos, alternar, todos: (ks: string[]) => setAbertos(new Set(ks)), nenhum: () => setAbertos(new Set()) };
 }
 
 const btn = "text-xs px-2.5 py-1.5 border border-border rounded-md bg-white hover:bg-surface-subtle disabled:opacity-50";
@@ -151,14 +220,14 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
         <div className="card bg-red-50 border-red-200 text-sm flex flex-wrap items-center gap-3">
           <span className="text-danger">{confirmacao.texto}</span>
           {confirmacao.destinos && (
-            <select value={destino} onChange={(e) => setDestino(e.target.value)} className="border border-border rounded-md px-2 py-1 text-sm bg-white">
+            <Selecao value={destino} onChange={(e) => setDestino(e.target.value)} className="border border-border rounded-md px-2 py-1 text-sm bg-white">
               <option value="">Mover os locais para…</option>
               {confirmacao.destinos.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nome}
                 </option>
               ))}
-            </select>
+            </Selecao>
           )}
           <div className="flex gap-2 ml-auto">
             <button
@@ -183,7 +252,7 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
       <div className="flex flex-wrap items-end gap-3 print:hidden">
         <div>
           <label className="block text-xs text-ink-500 mb-1">Obra</label>
-          <select
+          <Selecao
             className="border border-border rounded-lg px-3 py-2 text-sm min-w-[220px] bg-white"
             value={obra.id}
             onChange={(e) => router.push(`/andamento-novo/config?obra=${e.target.value}`)}
@@ -193,7 +262,7 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
                 {o.nome}
               </option>
             ))}
-          </select>
+          </Selecao>
         </div>
         <button className={btn} onClick={() => setNovaObraAberta((v) => !v)}>
           {novaObraAberta ? "Fechar cadastro" : "+ Cadastrar nova obra"}
@@ -289,21 +358,11 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs text-ink-500 mb-1">Início da obra</label>
-            <input
-              type="date"
-              defaultValue={obra.data_inicio ?? ""}
-              onBlur={(e) => e.target.value !== (obra.data_inicio ?? "") && exec(() => acoes.salvarDatasObra(obra.id, e.target.value || null, obra.data_entrega_prevista))}
-              className="border border-border rounded-lg px-3 py-2 text-sm"
-            />
+            <DataCampo value={obra.data_inicio ?? ""} onChange={(v) => v !== (obra.data_inicio ?? "") && exec(() => acoes.salvarDatasObra(obra.id, v || null, obra.data_entrega_prevista))} />
           </div>
           <div>
             <label className="block text-xs text-ink-500 mb-1">Entrega prevista</label>
-            <input
-              type="date"
-              defaultValue={obra.data_entrega_prevista ?? ""}
-              onBlur={(e) => e.target.value !== (obra.data_entrega_prevista ?? "") && exec(() => acoes.salvarDatasObra(obra.id, obra.data_inicio, e.target.value || null))}
-              className="border border-border rounded-lg px-3 py-2 text-sm"
-            />
+            <DataCampo value={obra.data_entrega_prevista ?? ""} onChange={(v) => v !== (obra.data_entrega_prevista ?? "") && exec(() => acoes.salvarDatasObra(obra.id, obra.data_inicio, v || null))} />
           </div>
           <p className="text-xs text-ink-500 max-w-sm">Usadas no resumo do relatório (prazo decorrido x obra executada).</p>
         </div>
@@ -582,7 +641,7 @@ function MatrizCard(props: {
                         </td>
                         {editando && (
                           <td className="px-1 py-1 border-b border-r border-border">
-                            <select
+                            <Selecao
                               value={s.fase_id ?? ""}
                               onChange={(e) => exec(() => acoes.definirFaseServico(s.id, e.target.value || null))}
                               className="border border-border rounded px-1 py-0.5 text-[11px] w-full bg-white"
@@ -593,12 +652,12 @@ function MatrizCard(props: {
                                   {f.nome}
                                 </option>
                               ))}
-                            </select>
+                            </Selecao>
                           </td>
                         )}
                         {editando && (
                           <td className="px-1 py-1 border-b border-r border-border">
-                            <select
+                            <Selecao
                               value={s.grupo}
                               onChange={(e) => exec(() => acoes.moverServico(s.id, e.target.value, null))}
                               className="border border-border rounded px-1 py-0.5 text-[11px] w-full bg-white"
@@ -609,7 +668,7 @@ function MatrizCard(props: {
                                   {g}
                                 </option>
                               ))}
-                            </select>
+                            </Selecao>
                           </td>
                         )}
                         {categorias.map((c) => (
@@ -782,7 +841,9 @@ function FatiasCard(props: {
   const idx = useMemo(() => montarIndice(categorias, servicos, vinculos), [categorias, servicos, vinculos]);
   const doLocais = useMemo(() => servicosDosLocais(fat, servicos, idx, categorias), [fat, servicos, idx, categorias]);
   const grupos = useMemo(() => agruparServicosPorFase(doLocais, fases), [doLocais, fases]);
-  const [sisAberto, setSisAberto] = useState<string | null>(null);
+  const fases_ = useGruposAbertos();
+  const sisAbertos = useGruposAbertos();
+  const internos = useGruposAbertos();
 
   const fatiaDe = (s: Servico) => fat.servico.get(s.id) ?? 0;
   const somaLocais = doLocais.reduce((a, s) => a + fatiaDe(s), 0);
@@ -807,55 +868,55 @@ function FatiasCard(props: {
   const pesoDe = (cat: string, serv: string) => vinculos.find((v) => v.categoria_id === cat && v.servico_id === serv)?.peso ?? 0;
   function blocoInterno(sis: Sistema) {
     const cats = categorias.filter((c) => itens.some((i) => i.sistema_id === sis.id && i.categoria_id === c.id));
-    if (!cats.length) return <p className="text-xs text-ink-500 py-1">Este sistema ainda não tem itens cadastrados.</p>;
+    if (!cats.length) return <p className="text-xs text-ink-500 px-3 py-2">Este sistema ainda não tem itens cadastrados.</p>;
     return (
-      <div className="space-y-3 pl-2">
+      <div className="space-y-3 p-3">
         {cats.map((c) => {
           const lista = (idx.servicosDaCat.get(c.id) ?? []).map((x) => x.servico);
           const soma = lista.reduce((a, s) => a + pesoDe(c.id, s.id), 0);
           const somaOk = Math.abs(soma - 100) < 0.05;
           return (
-            <div key={c.id}>
+            <div key={c.id} className="space-y-1.5">
               {cats.length > 1 && (
-                <div className="text-xs font-semibold mb-1 flex items-center gap-1.5">
+                <div className="text-xs font-semibold flex items-center gap-1.5 text-ink-700">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ background: c.cor }} />
                   {c.nome}
                 </div>
               )}
-              <table className="w-full max-w-xl text-sm">
-                <tbody>
-                  {agruparServicosPorFase(lista, fases).map((g) => {
-                    const sub = g.itens.reduce((a, s) => a + pesoDe(c.id, s.id), 0);
-                    return (
-                      <GrupoLinhas key={g.chave}>
-                        <tr>
-                          <td className="pt-2 pb-1 text-xs font-semibold text-primaryDark border-b border-border">{g.titulo}</td>
-                          <td className="pt-2 pb-1 text-right border-b border-border">
-                            <CampoPct
-                              valor={sub}
-                              destaque
-                              desabilitado={ocupado}
-                              onOk={(n) => {
-                                const novos = escalar(g.itens.map((s) => pesoDe(c.id, s.id)), n);
-                                exec(() => acoes.definirPesosInternos(g.itens.map((s, k) => ({ c: c.id, s: s.id, v: novos[k] }))));
-                              }}
-                            />
-                          </td>
-                        </tr>
-                        {g.itens.map((s) => (
-                          <tr key={s.id} className="border-b border-border/60">
-                            <td className="py-1 pr-2">{s.nome}</td>
-                            <td className="py-1 text-right">
-                              <CampoPct valor={pesoDe(c.id, s.id)} desabilitado={ocupado} onOk={(n) => exec(() => acoes.definirPesosInternos([{ c: c.id, s: s.id, v: n }]))} />
-                            </td>
-                          </tr>
-                        ))}
-                      </GrupoLinhas>
-                    );
-                  })}
-                </tbody>
-              </table>
-              <p className={`text-xs mt-1 ${somaOk ? "text-ink-500" : "text-danger font-semibold"}`}>
+              {agruparServicosPorFase(lista, fases).map((g) => {
+                const sub = g.itens.reduce((a, s) => a + pesoDe(c.id, s.id), 0);
+                const k = `${sis.id}:${c.id}:${g.chave}`;
+                return (
+                  <GrupoFatia
+                    key={g.chave}
+                    leve
+                    titulo={g.titulo}
+                    detalhe={`${g.itens.length} serviço${g.itens.length === 1 ? "" : "s"}`}
+                    aberto={internos.abertos.has(k)}
+                    onAlternar={() => internos.alternar(k)}
+                    parte={sub / 100}
+                    campo={
+                      <CampoPct
+                        valor={sub}
+                        destaque
+                        desabilitado={ocupado}
+                        onOk={(n) => {
+                          const novos = escalar(g.itens.map((s) => pesoDe(c.id, s.id)), n);
+                          exec(() => acoes.definirPesosInternos(g.itens.map((s, j) => ({ c: c.id, s: s.id, v: novos[j] }))));
+                        }}
+                      />
+                    }
+                  >
+                    {g.itens.map((s) => (
+                      <div key={s.id} className="flex items-center gap-3 pl-11 pr-2.5 py-1.5 text-sm border-b border-border last:border-b-0 hover:bg-surface-subtle transition-colors">
+                        <span className="flex-1 min-w-0">{s.nome}</span>
+                        <CampoPct valor={pesoDe(c.id, s.id)} desabilitado={ocupado} onOk={(n) => exec(() => acoes.definirPesosInternos([{ c: c.id, s: s.id, v: n }]))} />
+                      </div>
+                    ))}
+                  </GrupoFatia>
+                );
+              })}
+              <p className={`text-xs ${somaOk ? "text-ink-500" : "text-danger font-semibold"}`}>
                 Soma interna: <b>{fmt2(soma)}%</b> do sistema
                 {!somaOk && (soma < 100 ? `, faltam ${fmt2(100 - soma)}%` : `, passou ${fmt2(soma - 100)}%`)}
               </p>
@@ -866,95 +927,128 @@ function FatiasCard(props: {
     );
   }
 
+  const maiorGrupo = Math.max(0.01, ...grupos.map((g) => g.itens.reduce((a, s) => a + fatiaDe(s), 0)));
+  const maiorSis = Math.max(0.01, ...sistemas.map((s) => fat.sistema.get(s.id) ?? 0));
+  const chavesGrupos = grupos.map((g) => g.chave);
+  const algumAberto = chavesGrupos.some((k) => fases_.abertos.has(k));
+
   return (
     <Secao titulo="Fatias da obra" resumo={`Soma ${fmt2(total)}%${totalOk ? "" : " — ajustar"}`} aberta={props.aberta} onAlternar={props.onAlternar}>
-      <p className="text-xs text-ink-500 mb-2">
+      <p className="text-xs text-ink-500 mb-3 max-w-3xl">
         <b>Vale só para esta obra.</b> Para levar a outras obras, salve como Modelo padrão e aplique. A obra vale 100%, dividida em fatias: cada serviço dos locais e cada sistema (fachada, elevadores, caixa d&apos;água…) ocupa uma. Dentro de um sistema, os serviços dividem a fatia dele. O avanço de um serviço é (finalizados + ½ em andamento) ÷ itens onde ele existe, então o número de apartamentos ou de trechos de fachada não muda o peso de nada.
       </p>
-      <div className={`rounded-lg border px-3 py-2 text-sm mb-3 flex flex-wrap items-center gap-3 ${totalOk ? "border-border bg-surface-subtle" : "border-danger/40 bg-danger/5 text-danger"}`}>
-        <span>
-          Soma: <b>{fmt2(total)}%</b>
-          {!totalOk && <> ({dif > 0 ? `faltam ${fmt2(dif)}%` : `passou ${fmt2(-dif)}%`})</>}
-        </span>
-        <span className="text-xs text-ink-500">
-          serviços dos locais {fmt2(somaLocais)}% + sistemas {fmt2(somaSistemas)}%
-        </span>
-        {!totalOk && (
-          <button className={`${btn} ml-auto`} disabled={ocupado} onClick={ajustarParaCem}>
-            Ajustar tudo proporcionalmente para 100%
-          </button>
-        )}
+
+      <div className={`rounded-xl border px-3 py-2.5 mb-4 max-w-3xl ${totalOk ? "border-border bg-surface-subtle" : "border-danger/40 bg-danger/5"}`}>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <span className={totalOk ? "" : "text-danger"}>
+            Soma: <b className="tabular-nums">{fmt2(total)}%</b>
+            {!totalOk && <> ({dif > 0 ? `faltam ${fmt2(dif)}%` : `passou ${fmt2(-dif)}%`})</>}
+          </span>
+          <span className="text-xs text-ink-500">
+            serviços dos locais {fmt2(somaLocais)}% + sistemas {fmt2(somaSistemas)}%
+          </span>
+          {!totalOk && (
+            <button className={`${btn} ml-auto`} disabled={ocupado} onClick={ajustarParaCem}>
+              Ajustar tudo proporcionalmente para 100%
+            </button>
+          )}
+        </div>
+        <div className="mt-2 h-2 rounded-full bg-primary/10 overflow-hidden flex" title="Serviços dos locais | Sistemas">
+          <span className="h-full bg-primary transition-[width] duration-500" style={{ width: `${Math.min(100, somaLocais)}%` }} />
+          <span className="h-full bg-amber-400 transition-[width] duration-500" style={{ width: `${Math.min(100 - Math.min(100, somaLocais), somaSistemas)}%` }} />
+        </div>
+        <div className="mt-1 flex gap-4 text-[11px] text-ink-500">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-primary" /> Serviços dos locais
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-amber-400" /> Sistemas
+          </span>
+        </div>
       </div>
 
-      <h3 className="text-xs font-bold uppercase tracking-wide text-ink-500 mb-1">Serviços dos locais · {fmt2(somaLocais)}%</h3>
-      <table className="w-full max-w-2xl text-sm">
-        <thead>
-          <tr className="text-left text-[11px] uppercase text-ink-400">
-            <th className="pb-1">Serviço</th>
-            <th className="pb-1 text-right pr-3">% da obra</th>
-            <th className="pb-1 text-center" title="Vale para o pavimento inteiro (ex.: Estrutura)">
-              Pav. inteiro
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+      <div className="max-w-3xl">
+        <div className="flex items-center gap-2 mb-2">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-ink-500">Serviços dos locais · {fmt2(somaLocais)}%</h3>
+          {grupos.length > 1 && (
+            <button type="button" className="ml-auto text-xs text-primary font-semibold hover:underline" onClick={() => (algumAberto ? fases_.nenhum() : fases_.todos(chavesGrupos))}>
+              {algumAberto ? "Recolher todos" : "Abrir todos"}
+            </button>
+          )}
+        </div>
+        <div className="space-y-2">
           {grupos.map((g) => {
             const sub = g.itens.reduce((a, s) => a + fatiaDe(s), 0);
             return (
-              <GrupoLinhas key={g.chave}>
-                <tr>
-                  <td className="pt-3 pb-1 text-xs font-semibold text-primaryDark border-b border-border">{g.titulo}</td>
-                  <td className="pt-3 pb-1 pr-3 text-right border-b border-border">
-                    <CampoPct
-                      valor={sub}
-                      destaque
-                      desabilitado={ocupado}
-                      onOk={(n) => {
-                        const novos = escalar(g.itens.map(fatiaDe), n);
-                        salvarFatias(g.itens.map((s, k) => ({ t: "s" as const, id: s.id, v: novos[k] })));
-                      }}
-                    />
-                  </td>
-                  <td className="border-b border-border" />
-                </tr>
+              <GrupoFatia
+                key={g.chave}
+                titulo={g.titulo}
+                detalhe={`${g.itens.length} serviço${g.itens.length === 1 ? "" : "s"}`}
+                aberto={fases_.abertos.has(g.chave)}
+                onAlternar={() => fases_.alternar(g.chave)}
+                parte={sub / maiorGrupo}
+                campo={
+                  <CampoPct
+                    valor={sub}
+                    destaque
+                    desabilitado={ocupado}
+                    onOk={(n) => {
+                      const novos = escalar(g.itens.map(fatiaDe), n);
+                      salvarFatias(g.itens.map((s, k) => ({ t: "s" as const, id: s.id, v: novos[k] })));
+                    }}
+                  />
+                }
+              >
+                <div className="flex items-center gap-3 pl-11 pr-2.5 py-1 text-[10px] uppercase tracking-wide text-ink-400 border-b border-border">
+                  <span className="flex-1">Serviço</span>
+                  <span className="w-20 text-center" title="Vale para o pavimento inteiro (ex.: Estrutura)">
+                    Pav. inteiro
+                  </span>
+                  <span className="w-[86px] text-right">% da obra</span>
+                </div>
                 {g.itens.map((s) => (
-                  <tr key={s.id} className="border-b border-border/60">
-                    <td className="py-1 pr-2">{s.nome}</td>
-                    <td className="py-1 pr-3 text-right">
-                      <CampoPct valor={fatiaDe(s)} desabilitado={ocupado} onOk={(n) => salvarFatias([{ t: "s", id: s.id, v: n }])} />
-                    </td>
-                    <td className="py-1 text-center">
-                      <input type="checkbox" checked={s.vale_pavimento_inteiro} disabled={ocupado} onChange={(e) => exec(() => acoes.definirPavInteiro(s.id, e.target.checked))} />
-                    </td>
-                  </tr>
+                  <div key={s.id} className="flex items-center gap-3 pl-11 pr-2.5 py-1.5 text-sm border-b border-border last:border-b-0 hover:bg-surface-subtle transition-colors">
+                    <span className="flex-1 min-w-0">{s.nome}</span>
+                    <span className="w-20 text-center">
+                      <input
+                        type="checkbox"
+                        className="accent-[#00687a]"
+                        title="Vale para o pavimento inteiro"
+                        checked={s.vale_pavimento_inteiro}
+                        disabled={ocupado}
+                        onChange={(e) => exec(() => acoes.definirPavInteiro(s.id, e.target.checked))}
+                      />
+                    </span>
+                    <CampoPct valor={fatiaDe(s)} desabilitado={ocupado} onOk={(n) => salvarFatias([{ t: "s", id: s.id, v: n }])} />
+                  </div>
                 ))}
-              </GrupoLinhas>
+              </GrupoFatia>
             );
           })}
-        </tbody>
-      </table>
+        </div>
 
-      <h3 className="text-xs font-bold uppercase tracking-wide text-ink-500 mt-5 mb-1">Sistemas · {fmt2(somaSistemas)}%</h3>
-      <div className="max-w-2xl divide-y divide-border border border-border rounded-lg">
-        {sistemas.length === 0 && <p className="text-xs text-ink-500 p-3">Esta obra ainda não tem sistemas.</p>}
-        {sistemas.map((sis) => {
-          const aberto = sisAberto === sis.id;
-          return (
-            <div key={sis.id} className="p-2.5">
-              <div className="flex items-center gap-2 text-sm">
-                <button type="button" onClick={() => setSisAberto(aberto ? null : sis.id)} className="flex items-center gap-1.5 flex-1 text-left font-medium">
-                  {aberto ? <ChevronDown className="w-4 h-4 text-ink-400" /> : <ChevronRight className="w-4 h-4 text-ink-400" />}
-                  {sis.nome}
-                  <span className="text-xs text-ink-500 font-normal">· serviços do sistema</span>
-                </button>
-                <CampoPct valor={fat.sistema.get(sis.id) ?? 0} destaque desabilitado={ocupado} onOk={(n) => salvarFatias([{ t: "y", id: sis.id, v: n }])} />
-              </div>
-              {aberto && <div className="mt-2">{blocoInterno(sis)}</div>}
-            </div>
-          );
-        })}
+        <h3 className="text-xs font-bold uppercase tracking-wide text-ink-500 mt-6 mb-2">Sistemas · {fmt2(somaSistemas)}%</h3>
+        <div className="space-y-2">
+          {sistemas.length === 0 && <p className="text-xs text-ink-500">Esta obra ainda não tem sistemas.</p>}
+          {sistemas.map((sis) => {
+            const v = fat.sistema.get(sis.id) ?? 0;
+            return (
+              <GrupoFatia
+                key={sis.id}
+                titulo={sis.nome}
+                detalhe="serviços do sistema"
+                aberto={sisAbertos.abertos.has(sis.id)}
+                onAlternar={() => sisAbertos.alternar(sis.id)}
+                parte={v / maiorSis}
+                campo={<CampoPct valor={v} destaque desabilitado={ocupado} onOk={(n) => salvarFatias([{ t: "y", id: sis.id, v: n }])} />}
+              >
+                {blocoInterno(sis)}
+              </GrupoFatia>
+            );
+          })}
+        </div>
+        <p className="text-xs text-ink-500 mt-3">Serviço novo entra com fatia 0%: ajuste acima até a soma dar 100%.</p>
       </div>
-      <p className="text-xs text-ink-500 mt-3">Serviço novo entra com fatia 0%: ajuste acima até a soma dar 100%.</p>
     </Secao>
   );
 }
@@ -990,6 +1084,9 @@ function EstruturaCard(props: {
   const [novoFilho, setNovoFilho] = useState<Record<string, { nome: string; cat: string }>>({});
   const nomeGrupo = pav ? "pavimento" : "sistema";
   const nomeFilho = pav ? "local" : "item";
+  // listas longas (ex.: os itens da fachada gerados pelas descidas) começam recolhidas
+  const LIMITE_ABERTO = 12;
+  const [abertos, setAbertos] = useState<Map<string, boolean>>(() => new Map());
 
   return (
     <Secao
@@ -1043,9 +1140,19 @@ function EstruturaCard(props: {
       <div className="divide-y divide-border">
         {grupos.map((g, i) => {
           const nf = novoFilho[g.id] ?? { nome: "", cat: categorias[0]?.id ?? "" };
+          const filhosAbertos = abertos.get(g.id) ?? g.filhos.length <= LIMITE_ABERTO;
           return (
             <div key={g.id} className="py-2">
               <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setAbertos((m) => new Map(m).set(g.id, !filhosAbertos))}
+                  aria-expanded={filhosAbertos}
+                  title={filhosAbertos ? `Recolher ${pav ? "os locais" : "os itens"}` : `Mostrar ${pav ? "os locais" : "os itens"}`}
+                  className="sbj-seta-btn w-7 h-7 -ml-1"
+                >
+                  <Seta aberto={filhosAbertos} />
+                </button>
                 {editando && pav && (
                   <span className="flex">
                     <button disabled={i === 0 || ocupado} onClick={() => exec(() => acoes.moverPavimento(g.id, -1))} title="Subir">
@@ -1066,7 +1173,9 @@ function EstruturaCard(props: {
                   <span className="font-semibold text-sm w-44">{g.nome}</span>
                 )}
                 {g.pct != null && <span className="text-xs tabular-nums text-primaryDark bg-primary/10 rounded-full px-2 py-0.5">{fmt(g.pct)}%</span>}
-                {g.fachada && <span className="text-[11px] text-ink-500">(itens gerados pelas descidas — Fase 4)</span>}
+                <span className="text-[11px] text-ink-500">
+                  {g.filhos.length} {pav ? (g.filhos.length === 1 ? "local" : "locais") : g.fachada ? (g.filhos.length === 1 ? "item gerado pelas descidas" : "itens gerados pelas descidas") : g.filhos.length === 1 ? "item" : "itens"}
+                </span>
                 {editando && (
                   <span className="flex items-center gap-2 ml-auto">
                     {pav && (
@@ -1095,7 +1204,8 @@ function EstruturaCard(props: {
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-1.5 mt-1.5 pl-1">
+              <Recolher aberto={filhosAbertos}>
+              <div className="flex flex-wrap gap-1.5 mt-1.5 pl-8 pb-0.5">
                 {g.filhos.map((f) => {
                   const c = catPorId.get(f.categoria_id);
                   return editando ? (
@@ -1106,7 +1216,7 @@ function EstruturaCard(props: {
                         onSalvar={(v) => exec(() => (pav ? acoes.renomearLocal(f.id, v) : acoes.renomearItem(f.id, v)))}
                         className="text-xs w-28"
                       />
-                      <select
+                      <Selecao
                         value={f.categoria_id}
                         onChange={(e) => exec(() => (pav ? acoes.trocarCategoriaLocal(f.id, e.target.value) : acoes.trocarCategoriaItem(f.id, e.target.value)))}
                         className="text-[11px] border border-border rounded px-0.5 bg-white max-w-[110px]"
@@ -1116,7 +1226,7 @@ function EstruturaCard(props: {
                             {x.nome}
                           </option>
                         ))}
-                      </select>
+                      </Selecao>
                       {confirmando === f.id ? (
                         <button
                           className="text-[11px] px-1.5 bg-danger text-white rounded"
@@ -1145,7 +1255,7 @@ function EstruturaCard(props: {
                       placeholder={pav ? "Novo local" : "Novo item"}
                       className="border border-dashed border-border rounded px-1.5 py-0.5 text-xs w-28"
                     />
-                    <select
+                    <Selecao
                       value={nf.cat}
                       onChange={(e) => setNovoFilho((m) => ({ ...m, [g.id]: { ...nf, cat: e.target.value } }))}
                       className="text-[11px] border border-border rounded px-0.5 bg-white max-w-[110px]"
@@ -1155,7 +1265,7 @@ function EstruturaCard(props: {
                           {x.nome}
                         </option>
                       ))}
-                    </select>
+                    </Selecao>
                     <button
                       className={btn}
                       disabled={!nf.nome.trim() || ocupado}
@@ -1169,6 +1279,7 @@ function EstruturaCard(props: {
                   </span>
                 )}
               </div>
+              </Recolher>
             </div>
           );
         })}
@@ -1208,7 +1319,7 @@ function NovaObra(props: {
           {props.obrasGerais.length > 0 && (
             <label className="sm:col-span-2 text-xs text-ink-500">
               Ligar a uma obra que já existe no sistema (opcional — a original não é alterada)
-              <select
+              <Selecao
                 value={ligar}
                 onChange={(e) => {
                   setLigar(e.target.value);
@@ -1223,7 +1334,7 @@ function NovaObra(props: {
                     {o.nome}
                   </option>
                 ))}
-              </select>
+              </Selecao>
             </label>
           )}
           <label className="sm:col-span-2 text-xs text-ink-500">
@@ -1270,20 +1381,20 @@ function NovaObra(props: {
           </label>
           <label className="text-xs text-ink-500">
             Onde fica o lazer
-            <select value={params.lazerOnde} onChange={(e) => set("lazerOnde", e.target.value as ParamsObraNova["lazerOnde"])} className={campo}>
+            <Selecao value={params.lazerOnde} onChange={(e) => set("lazerOnde", e.target.value as ParamsObraNova["lazerOnde"])} className={campo}>
               <option value="proprio">Pavimento próprio</option>
               <option value="cobertura">Na cobertura</option>
               <option value="terreo">No térreo</option>
               <option value="tipo">Junto com o último pavimento tipo</option>
               <option value="nao">Não tem</option>
-            </select>
+            </Selecao>
           </label>
           <label className="text-xs text-ink-500">
             Reservatório superior
-            <select value={params.cxSup} onChange={(e) => set("cxSup", e.target.value as "cxf" | "cxc")} className={campo}>
+            <Selecao value={params.cxSup} onChange={(e) => set("cxSup", e.target.value as "cxf" | "cxc")} className={campo}>
               <option value="cxf">Fibra</option>
               <option value="cxc">Concreto armado</option>
-            </select>
+            </Selecao>
           </label>
           <label className="text-xs text-ink-500 flex items-center gap-2 sm:col-span-2">
             <input type="checkbox" checked={params.cxInf} onChange={(e) => set("cxInf", e.target.checked)} />
@@ -1291,22 +1402,22 @@ function NovaObra(props: {
           </label>
           <label className="text-xs text-ink-500">
             Início da obra (opcional)
-            <input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} className={campo} />
+            <DataCampo value={inicio} onChange={setInicio} className="block" />
           </label>
           <label className="text-xs text-ink-500">
             Entrega prevista (opcional)
-            <input type="date" value={entrega} onChange={(e) => setEntrega(e.target.value)} className={campo} />
+            <DataCampo value={entrega} onChange={setEntrega} className="block" />
           </label>
           <label className="sm:col-span-2 text-xs text-ink-500">
             Categorias, serviços, fases e pesos
-            <select value={base} onChange={(e) => setBase(e.target.value)} className={campo}>
+            <Selecao value={base} onChange={(e) => setBase(e.target.value)} className={campo}>
               <option value="modelo">Modelo padrão SBJ</option>
               {props.obras.map((o) => (
                 <option key={o.id} value={o.id}>
                   Copiar da obra {o.nome}
                 </option>
               ))}
-            </select>
+            </Selecao>
           </label>
         </div>
 

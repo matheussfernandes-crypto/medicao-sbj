@@ -1,5 +1,6 @@
 "use client";
 
+import Selecao from "@/components/ui/Selecao";
 import { useMemo, useState } from "react";
 import { GripVertical } from "lucide-react";
 import { BotaoIcone } from "./controles";
@@ -78,7 +79,7 @@ export default function PainelOrdem({
   return (
     <div className="space-y-3 border-t border-border pt-3 mt-3">
       {modelo.tem && (
-        <p className="text-sm rounded-md border px-3 py-2" style={{ background: "#eef6f7", borderColor: "#c9dfe2", color: "#1f4a52" }}>
+        <p className="av-info text-sm rounded-md border px-3 py-2">
           Existe um Modelo padrão. Esta ordem vale para esta obra; se quiser que ela também seja a do modelo, use <b>Salvar no modelo padrão</b> (as outras obras só recebem quando o modelo for aplicado).
         </p>
       )}
@@ -86,13 +87,13 @@ export default function PainelOrdem({
       <div className="flex flex-wrap items-center gap-2">
         <label className="flex items-center gap-2 text-sm">
           <span className="text-ink-500">Categoria</span>
-          <select value={catId} onChange={(e) => setCatId(e.target.value)} className="border border-border rounded-md px-2 py-1.5 text-sm bg-white">
+          <Selecao value={catId} onChange={(e) => setCatId(e.target.value)} className="border border-border rounded-md px-2 py-1.5 text-sm bg-white">
             {categorias.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.nome}
               </option>
             ))}
-          </select>
+          </Selecao>
         </label>
         <span className="text-xs text-ink-500">Arraste pela alça (ou use ▲ ▼). Dá para soltar o serviço em outra fase. A prévia muda na hora; os status e as fatias não mudam.</span>
       </div>

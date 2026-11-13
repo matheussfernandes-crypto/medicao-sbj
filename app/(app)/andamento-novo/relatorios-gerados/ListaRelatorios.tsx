@@ -1,10 +1,12 @@
 "use client";
 
+import Selecao from "@/components/ui/Selecao";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Download, Mail } from "lucide-react";
 import EnviarEmail from "../relatorio/EnviarEmail";
+import { DataCampo, Paginador, usePaginas } from "@/components/ui/anima";
 import type { CorpoEmail, LinhaLog, RespostaRelatorio } from "../relatorio/tiposApi";
 
 const fmtDataHora = (iso: string) =>
@@ -32,6 +34,8 @@ export default function ListaRelatorios({ linhas, obraId, obraNome, todas }: { l
       }),
     [linhas, pessoa, acao, de, ate]
   );
+
+  const pg = usePaginas(filtradas, 20);
 
   function exportarCSV() {
     const cab = ["Data/hora", "Obra", "Junto com", "Quem gerou", "E-mail de quem gerou", "Ação", "Tipo", "Filtro/predefinição", "Folha", "Páginas", "% da obra", "Resumo na 1ª página", "Destinatários", "Situação", "Erro"];
@@ -68,7 +72,7 @@ export default function ListaRelatorios({ linhas, obraId, obraNome, todas }: { l
     return j;
   }
 
-  const campo = "border border-border rounded-md px-2 py-1.5 text-sm bg-white";
+  const campo = "border border-border rounded-[10px] px-3 py-1.5 text-sm bg-white min-w-[150px]";
   return (
     <div className="card space-y-3">
       <div className="flex flex-wrap items-end gap-3">
@@ -78,35 +82,35 @@ export default function ListaRelatorios({ linhas, obraId, obraNome, todas }: { l
         </Link>
         <label className="text-xs text-ink-500">
           Pessoa
-          <select value={pessoa} onChange={(e) => setPessoa(e.target.value)} className={`${campo} block`}>
+          <Selecao value={pessoa} onChange={(e) => setPessoa(e.target.value)} className={`${campo} block`}>
             <option value="">Todas</option>
             {pessoas.map((p) => (
               <option key={p}>{p}</option>
             ))}
-          </select>
+          </Selecao>
         </label>
         <label className="text-xs text-ink-500">
           Ação
-          <select value={acao} onChange={(e) => setAcao(e.target.value as "" | "PDF" | "EMAIL")} className={`${campo} block`}>
+          <Selecao value={acao} onChange={(e) => setAcao(e.target.value as "" | "PDF" | "EMAIL")} className={`${campo} block`}>
             <option value="">PDF e e-mail</option>
             <option value="PDF">PDF gerado</option>
             <option value="EMAIL">Enviado por e-mail</option>
-          </select>
+          </Selecao>
         </label>
         <label className="text-xs text-ink-500">
           De
-          <input type="date" value={de} onChange={(e) => setDe(e.target.value)} className={`${campo} block`} />
+          <DataCampo value={de} onChange={setDe} placeholder="Início" className="block" />
         </label>
         <label className="text-xs text-ink-500">
           Até
-          <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} className={`${campo} block`} />
+          <DataCampo value={ate} onChange={setAte} placeholder="Fim" className="block" />
         </label>
-        <button onClick={exportarCSV} className="ml-auto flex items-center gap-1.5 px-3 py-2 border border-border rounded-lg text-sm bg-white">
+        <button onClick={exportarCSV} className="ml-auto flex items-center gap-1.5 px-3 py-2 border border-border rounded-[10px] text-sm bg-white hover:border-primary hover:text-primary transition-colors">
           <Download className="w-4 h-4" /> Exportar CSV
         </button>
       </div>
 
-      <div className="overflow-auto">
+      <div ref={pg.topo} className="overflow-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-[11px] uppercase text-ink-400 border-b border-border">
@@ -117,7 +121,7 @@ export default function ListaRelatorios({ linhas, obraId, obraNome, todas }: { l
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody key={pg.giro} className={pg.classe}>
             {filtradas.length === 0 && (
               <tr>
                 <td colSpan={10} className="py-6 text-center text-ink-500">
@@ -125,8 +129,8 @@ export default function ListaRelatorios({ linhas, obraId, obraNome, todas }: { l
                 </td>
               </tr>
             )}
-            {filtradas.map((l) => (
-              <tr key={l.id} className="border-b border-border/60 align-top">
+            {pg.itens.map((l) => (
+              <tr key={l.id} className="border-b border-border/60 align-top hover:bg-surface-subtle transition-colors">
                 <td className="py-2 pr-3 whitespace-nowrap">{fmtDataHora(l.criado_em)}</td>
                 <td className="py-2 pr-3">{l.obra_nome}</td>
                 <td className="py-2 pr-3">
@@ -148,7 +152,7 @@ export default function ListaRelatorios({ linhas, obraId, obraNome, todas }: { l
                 <td className="py-2 pr-3 text-xs">{(l.destinatarios ?? []).join(", ") || "—"}</td>
                 <td className="py-2 pr-3">
                   {l.situacao ? (
-                    <span className={`text-xs font-semibold rounded-full px-2 py-0.5 ${l.situacao === "Enviado" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-700"}`} title={l.erro ?? ""}>
+                    <span className={`text-xs font-semibold rounded-full px-2 py-0.5 ${l.situacao === "Enviado" ? "badge-aprovado" : "badge-rejeitado"}`} title={l.erro ?? ""}>
                       {l.situacao}
                     </span>
                   ) : (
@@ -175,6 +179,7 @@ export default function ListaRelatorios({ linhas, obraId, obraNome, todas }: { l
           </tbody>
         </table>
       </div>
+      <Paginador {...pg} />
       <p className="text-[11px] text-ink-500">Só consulta: os registros não podem ser editados nem apagados por aqui.</p>
 
       {reenviando && (

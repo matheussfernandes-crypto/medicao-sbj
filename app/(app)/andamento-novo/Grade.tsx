@@ -160,7 +160,7 @@ export default function Grade({ linhas, colunas, ap, somaPorAlvo, modoSel, sel, 
                 className={`sticky top-0 z-20 bg-surface-subtle border-b border-r border-border font-semibold text-primaryDark ${modoSel ? "cursor-pointer hover:bg-accent/40" : ""}`}
                 style={{ height: tit.alt, padding: "6px 0", verticalAlign: "bottom", textAlign: "center" }}
               >
-                <div style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", display: "inline-block", whiteSpace: "nowrap", fontSize: tit.fs, lineHeight: LARG_LINHA + "px", color: "#1f4a52" }}>
+                <div style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", display: "inline-block", whiteSpace: "nowrap", fontSize: tit.fs, lineHeight: LARG_LINHA + "px", color: "var(--sbj-tit, #1f4a52)" }}>
                   {(tit.linhas[c] ?? [s.nome]).map((l, i, a) => (
                     <span key={i}>
                       {l}

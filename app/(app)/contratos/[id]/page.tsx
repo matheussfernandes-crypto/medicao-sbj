@@ -17,6 +17,8 @@ import AditivoForm from "./AditivoForm";
 import ItemEditor from "./ItemEditor";
 import PrecosEditor from "./PrecosEditor";
 import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
+import Selecao from "@/components/ui/Selecao";
+import { DataCampo } from "@/components/ui/anima";
 
 const BADGE: Record<string, string> = {
   PENDENTE: "badge-pendente", APROVADO: "badge-aprovado", REJEITADO: "badge-rejeitado",
@@ -377,7 +379,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
             <FormAcao action={liberarRetencao} className="flex flex-wrap gap-2 items-end text-xs border-t pt-3" confirmar="Registrar liberação da retenção para a empresa?">
               <input type="hidden" name="contratoId" value={c.id} />
               <label className="flex flex-col gap-1">Valor (R$)<input name="valor" inputMode="decimal" required className="border rounded px-2 py-1.5 w-28" /></label>
-              <label className="flex flex-col gap-1">Data<input type="date" name="data" defaultValue={hojeISO()} className="border rounded px-2 py-1.5" /></label>
+              <label className="flex flex-col gap-1">Data<DataCampo /></label>
               <label className="flex flex-col gap-1 flex-1 min-w-[140px]">Observação<input name="observacao" placeholder="Ex.: fim da obra / garantia" className="border rounded px-2 py-1.5" /></label>
               <button className="bg-primary text-white rounded px-3 py-2 font-semibold">Liberar</button>
             </FormAcao>
@@ -441,13 +443,13 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
             <input type="hidden" name="id" value={c.id} />
             <label className="flex flex-col gap-1">Número<input name="numero" defaultValue={c.numero} required className="border rounded px-3 py-2 text-sm" /></label>
             <label className="flex flex-col gap-1">Status
-              <select name="status" defaultValue={c.status} className="border rounded px-3 py-2 text-sm">
+              <Selecao name="status" defaultValue={c.status} className="border rounded px-3 py-2 text-sm">
                 <option value="ATIVO">Ativo</option><option value="SUSPENSO">Suspenso</option><option value="ENCERRADO">Encerrado</option>
-              </select>
+              </Selecao>
             </label>
             <label className="sm:col-span-2 flex flex-col gap-1">Objeto<input name="objeto" defaultValue={c.objeto} required className="border rounded px-3 py-2 text-sm" /></label>
-            <label className="flex flex-col gap-1">Início<input type="date" name="dataInicio" defaultValue={c.data_inicio ?? ""} className="border rounded px-3 py-2 text-sm" /></label>
-            <label className="flex flex-col gap-1">Término<input type="date" name="dataTermino" defaultValue={c.data_termino ?? ""} className="border rounded px-3 py-2 text-sm" /></label>
+            <label className="flex flex-col gap-1">Início<DataCampo /></label>
+            <label className="flex flex-col gap-1">Término<DataCampo /></label>
             <label className="sm:col-span-2 flex flex-col gap-1">Observações<textarea name="observacoes" defaultValue={c.observacoes ?? ""} rows={2} className="border rounded px-3 py-2 text-sm" /></label>
             <p className="sm:col-span-2 text-ink-400">Obra e empresa não mudam depois de criado (para não perder o histórico).</p>
             <button className="sm:col-span-2 bg-primary text-white rounded px-4 py-2 font-semibold w-fit">Salvar</button>

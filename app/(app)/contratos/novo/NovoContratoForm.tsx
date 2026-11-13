@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import FormAcao from "@/components/contratos/FormAcao";
 import { criarContrato } from "../actions";
+import Selecao from "@/components/ui/Selecao";
+import { DataCampo } from "@/components/ui/anima";
 
 type Empresa = { id: string; nome: string; especialidade: string | null };
 type Obra = { id: string; nome: string };
@@ -36,10 +38,10 @@ export default function NovoContratoForm({
     >
       <label className="sm:col-span-2 flex flex-col gap-1 text-xs text-ink-500">
         Empresa *
-        <select name="empresaId" required value={empresaId} onChange={(e) => setEmpresaId(e.target.value)} className="border rounded px-3 py-2 text-sm text-ink-900">
+        <Selecao name="empresaId" required value={empresaId} onChange={(e) => setEmpresaId(e.target.value)} className="border rounded px-3 py-2 text-sm text-ink-900">
           <option value="">Selecione a empresa…</option>
           {empresas.map((e) => <option key={e.id} value={e.id}>{e.nome}{e.especialidade ? ` — ${e.especialidade}` : ""}</option>)}
-        </select>
+        </Selecao>
       </label>
 
       {empresaId && (
@@ -64,10 +66,10 @@ export default function NovoContratoForm({
 
       <label className="flex flex-col gap-1 text-xs text-ink-500">
         Obra *
-        <select name="obraId" required className="border rounded px-3 py-2 text-sm text-ink-900">
+        <Selecao name="obraId" required className="border rounded px-3 py-2 text-sm text-ink-900">
           <option value="">Selecione a obra…</option>
           {obras.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-        </select>
+        </Selecao>
       </label>
       <label className="flex flex-col gap-1 text-xs text-ink-500">
         Número do contrato *
@@ -80,11 +82,11 @@ export default function NovoContratoForm({
       </label>
       <label className="flex flex-col gap-1 text-xs text-ink-500">
         Início
-        <input type="date" name="dataInicio" className="border rounded px-3 py-2 text-sm text-ink-900" />
+        <DataCampo />
       </label>
       <label className="flex flex-col gap-1 text-xs text-ink-500">
         Término previsto
-        <input type="date" name="dataTermino" className="border rounded px-3 py-2 text-sm text-ink-900" />
+        <DataCampo />
       </label>
       <label className="flex flex-col gap-1 text-xs text-ink-500">
         Retenção por medição (%)

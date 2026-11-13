@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import ConfirmDeleteButton from "../../lancamentos/ConfirmDeleteButton";
+import Selecao from "@/components/ui/Selecao";
+import { DataCampo } from "@/components/ui/anima";
 
 type Obra = { id: string; nome: string };
 
@@ -60,16 +62,16 @@ export default function PessoaLinha({
             <p className="text-xs text-amber-700 font-medium">Editando cadastro de {p.nome}</p>
             <div className="flex flex-wrap gap-2">
               <input name="nome" defaultValue={p.nome} placeholder="Nome da pessoa" className="border rounded px-2 py-1 flex-1 min-w-[160px]" required />
-              <select name="papel" defaultValue={p.papel} className="border rounded px-2 py-1">
+              <Selecao name="papel" defaultValue={p.papel} className="border rounded px-2 py-1">
                 <option value="EMPREITEIRO">Empreiteiro</option>
                 <option value="MESTRE">Mestre</option>
                 <option value="MESTRE_GERAL">Mestre Geral</option>
                 <option value="CONTRAMESTRE">Contramestre</option>
-              </select>
-              <select name="obraId" defaultValue={p.obra_id} className="border rounded px-2 py-1">
+              </Selecao>
+              <Selecao name="obraId" defaultValue={p.obra_id} className="border rounded px-2 py-1">
                 {obras.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-              </select>
-              <input name="admissao" type="date" defaultValue={p.admissao} className="border rounded px-2 py-1" />
+              </Selecao>
+              <DataCampo />
             </div>
             <div className="flex gap-2">
               <button className="bg-primary text-white rounded px-3 py-1 text-sm">Salvar</button>
@@ -105,14 +107,14 @@ export default function PessoaLinha({
           <>
             <form action={transferirObra} className="flex gap-1 mb-1">
               <input type="hidden" name="pessoaId" value={p.id} />
-              <select name="obraId" defaultValue={p.obra_id} className="border rounded px-1 text-xs">
+              <Selecao name="obraId" defaultValue={p.obra_id} className="border rounded px-1 text-xs">
                 {obras.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-              </select>
+              </Selecao>
               <button className="bg-gray-200 rounded px-2 text-xs">Transferir</button>
             </form>
             <form action={darBaixa} className="flex gap-1">
               <input type="hidden" name="pessoaId" value={p.id} />
-              <input type="date" name="saida" defaultValue={hoje} className="border rounded px-1 text-xs" />
+              <DataCampo />
               <button className="bg-red-100 text-red-700 rounded px-2 text-xs">Dar baixa</button>
             </form>
           </>

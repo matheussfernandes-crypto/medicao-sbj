@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { exigirPerfil, listarContratos } from "@/lib/contratos/server";
 import { SETORES_VEEM_CONTRATO, brl, pct } from "@/lib/contratos/util";
+import Selecao from "@/components/ui/Selecao";
 
 const STATUS_COR: Record<string, string> = {
   ATIVO: "badge-aprovado",
@@ -44,26 +45,26 @@ export default async function ContratosPage({
       <form method="get" className="card !p-4 flex flex-wrap gap-2 items-end">
         <label className="flex flex-col text-xs text-ink-500 gap-1 flex-1 min-w-[160px]">
           Obra
-          <select name="obra" defaultValue={searchParams.obra ?? ""} className="border rounded px-2 py-2 text-sm text-ink-900">
+          <Selecao name="obra" defaultValue={searchParams.obra ?? ""} className="border rounded px-2 py-2 text-sm text-ink-900">
             <option value="">Todas</option>
             {(obras ?? []).map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-          </select>
+          </Selecao>
         </label>
         <label className="flex flex-col text-xs text-ink-500 gap-1 flex-1 min-w-[160px]">
           Empresa
-          <select name="empresa" defaultValue={searchParams.empresa ?? ""} className="border rounded px-2 py-2 text-sm text-ink-900">
+          <Selecao name="empresa" defaultValue={searchParams.empresa ?? ""} className="border rounded px-2 py-2 text-sm text-ink-900">
             <option value="">Todas</option>
             {(empresas ?? []).map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
-          </select>
+          </Selecao>
         </label>
         <label className="flex flex-col text-xs text-ink-500 gap-1">
           Status
-          <select name="status" defaultValue={searchParams.status ?? "ATIVO"} className="border rounded px-2 py-2 text-sm text-ink-900">
+          <Selecao name="status" defaultValue={searchParams.status ?? "ATIVO"} className="border rounded px-2 py-2 text-sm text-ink-900">
             <option value="ATIVO">Ativos</option>
             <option value="SUSPENSO">Suspensos</option>
             <option value="ENCERRADO">Encerrados</option>
             <option value="">Todos</option>
-          </select>
+          </Selecao>
         </label>
         <button className="bg-gray-100 border rounded px-4 py-2 text-sm">Filtrar</button>
       </form>

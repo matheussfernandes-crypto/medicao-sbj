@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { salvarConfigNotificacao, finalizarFechamentoMedicao, finalizarFechamentoVale, excluirFechamento } from "./actions";
 import ConfirmDeleteButton from "../../lancamentos/ConfirmDeleteButton";
 import { calcularMedicao, saldoDeVales } from "@/lib/fechamento/medicao";
+import Selecao from "@/components/ui/Selecao";
 
 function mesAtual() {
   return new Date().toISOString().slice(0, 7);
@@ -135,11 +136,11 @@ export default async function FechamentoPage({
         <div className="card">
           <h2 className="font-semibold text-primaryDark mb-2">Selecionar obra e mês</h2>
           <form method="get" className="flex flex-wrap gap-2">
-            <select name="obra" defaultValue={obraSelecionada ?? ""} className="border rounded px-3 py-2 flex-1 min-w-[160px]">
+            <Selecao name="obra" defaultValue={obraSelecionada ?? ""} className="border rounded px-3 py-2 flex-1 min-w-[160px]">
               {(obras ?? []).map((o) => (
                 <option key={o.id} value={o.id}>{o.nome}</option>
               ))}
-            </select>
+            </Selecao>
             <MesCampo name="mes" defaultValue={mes} />
             <button className="bg-gray-200 rounded px-4 py-2">Ver</button>
           </form>

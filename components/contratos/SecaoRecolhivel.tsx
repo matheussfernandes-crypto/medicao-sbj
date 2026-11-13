@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronUp } from "lucide-react";
+import { Recolher, Seta } from "@/components/ui/anima";
 
 /**
  * Card com botão "Recolher / Mostrar" (mesmo estilo dos relatórios do pós-venda).
@@ -40,32 +40,19 @@ export default function SecaoRecolhivel({
 
   return (
     <section className="card">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={alternar} aria-expanded={!fechado} aria-label={fechado ? "Mostrar" : "Recolher"} title={fechado ? "Mostrar" : "Recolher"} className="sbj-seta-btn -ml-1.5">
+          <Seta aberto={!fechado} />
+        </button>
         <div className="min-w-0">
           <h2 className="font-semibold text-primaryDark">{titulo}</h2>
           {subtitulo && <p className="text-xs text-ink-500">{subtitulo}</p>}
         </div>
-        <div className="flex flex-wrap items-center gap-3 ml-auto">
-          {!fechado && acoes}
-          <button
-            type="button"
-            onClick={alternar}
-            aria-expanded={!fechado}
-            className="inline-flex items-center gap-1.5 h-[34px] px-3 rounded-[10px] border border-border bg-white text-primary text-[13px] font-semibold hover:border-primary hover:bg-primary/5 transition-colors"
-          >
-            {fechado ? "Mostrar" : "Recolher"}
-            <ChevronUp className={`w-3.5 h-3.5 transition-transform duration-300 ${fechado ? "rotate-180" : ""}`} />
-          </button>
-        </div>
+        {!fechado && acoes && <div className="flex flex-wrap items-center gap-3 ml-auto sbj-entra">{acoes}</div>}
       </div>
-      <div
-        className="grid transition-[grid-template-rows,opacity] duration-300 ease-out"
-        style={{ gridTemplateRows: fechado ? "0fr" : "1fr", opacity: fechado ? 0 : 1 }}
-      >
-        <div className="min-h-0 overflow-hidden">
-          <div className="pt-3 space-y-3">{children}</div>
-        </div>
-      </div>
+      <Recolher aberto={!fechado}>
+        <div className="pt-3 space-y-3">{children}</div>
+      </Recolher>
     </section>
   );
 }

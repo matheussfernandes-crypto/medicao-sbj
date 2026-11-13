@@ -6,6 +6,7 @@ import FormAcao from "@/components/contratos/FormAcao";
 import { reabrirLancamentoContrato } from "../actions";
 import AprovacaoCard from "./AprovacaoCard";
 import SolicitacaoCard from "./SolicitacaoCard";
+import Selecao from "@/components/ui/Selecao";
 
 const TIPO_COR: Record<string, string> = {
   MEDICAO: "bg-primary/10 text-primaryDark",
@@ -68,19 +69,19 @@ export default async function AprovacoesContratosPage({
 
       <form method="get" className="card !p-4 flex flex-wrap gap-2 items-end">
         <label className="flex flex-col gap-1 text-xs text-ink-500 flex-1 min-w-[150px]">Obra
-          <select name="obra" defaultValue={searchParams.obra ?? ""} className="border rounded px-2 py-2 text-sm text-ink-900">
+          <Selecao name="obra" defaultValue={searchParams.obra ?? ""} className="border rounded px-2 py-2 text-sm text-ink-900">
             <option value="">Todas</option>{(obras ?? []).map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-          </select>
+          </Selecao>
         </label>
         <label className="flex flex-col gap-1 text-xs text-ink-500 flex-1 min-w-[150px]">Empresa
-          <select name="empresa" defaultValue={searchParams.empresa ?? ""} className="border rounded px-2 py-2 text-sm text-ink-900">
+          <Selecao name="empresa" defaultValue={searchParams.empresa ?? ""} className="border rounded px-2 py-2 text-sm text-ink-900">
             <option value="">Todas</option>{(empresas ?? []).map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
-          </select>
+          </Selecao>
         </label>
         <label className="flex flex-col gap-1 text-xs text-ink-500">Tipo
-          <select name="tipo" defaultValue={searchParams.tipo ?? ""} className="border rounded px-2 py-2 text-sm text-ink-900">
+          <Selecao name="tipo" defaultValue={searchParams.tipo ?? ""} className="border rounded px-2 py-2 text-sm text-ink-900">
             <option value="">Todos</option><option value="MEDICAO">Medição</option><option value="VALE">Vale</option><option value="VALE_MEDICAO">Vale de medição</option>
-          </select>
+          </Selecao>
         </label>
         <button className="bg-gray-100 border rounded px-4 py-2 text-sm">Filtrar</button>
       </form>

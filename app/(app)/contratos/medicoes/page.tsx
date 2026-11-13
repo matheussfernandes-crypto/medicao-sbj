@@ -9,6 +9,7 @@ import FormAcao from "@/components/contratos/FormAcao";
 import { excluirLancamentoContrato, cancelarSolicitacao } from "../actions";
 import LancamentoForm, { type Edicao } from "./LancamentoForm";
 import PreencheRegistro from "./PreencheRegistro";
+import Selecao from "@/components/ui/Selecao";
 
 const BADGE: Record<string, string> = {
   PENDENTE: "badge-pendente", APROVADO: "badge-aprovado", REJEITADO: "badge-rejeitado",
@@ -40,10 +41,10 @@ export default async function MedicoesContratosPage({
       <form method="get" className="card !p-4 flex flex-wrap gap-2 items-end">
         <label className="flex flex-col gap-1 text-xs text-ink-500 flex-1 min-w-[220px]">
           Empresa
-          <select name="empresa" defaultValue={empresaId} className="border rounded px-3 py-2 text-sm text-ink-900">
+          <Selecao name="empresa" defaultValue={empresaId} className="border rounded px-3 py-2 text-sm text-ink-900">
             <option value="">Selecione a empresa…</option>
             {empresas.map(([id, nome]) => <option key={id} value={id}>{nome}</option>)}
-          </select>
+          </Selecao>
         </label>
         <button className="bg-primary text-white rounded px-4 py-2 text-sm font-semibold">Ver contratos</button>
       </form>

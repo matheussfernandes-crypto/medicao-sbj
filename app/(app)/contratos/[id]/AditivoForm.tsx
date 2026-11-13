@@ -4,6 +4,7 @@ import { useState } from "react";
 import FormAcao from "@/components/contratos/FormAcao";
 import { criarAditivo } from "../actions";
 import { brl, num, parseNum, UNIDADES } from "@/lib/contratos/util";
+import Selecao from "@/components/ui/Selecao";
 
 type Item = { id: string; nome: string; unidade: string; quantidade: number; valor_unitario: number };
 
@@ -29,20 +30,20 @@ export default function AditivoForm({ contratoId, itens }: { contratoId: string;
       <input type="hidden" name="contratoId" value={contratoId} />
       <p className="col-span-2 sm:col-span-6 font-semibold text-ink-700 text-sm">Lançar aditivo</p>
       <label className="col-span-2 flex flex-col gap-1">Tipo
-        <select name="tipo" value={tipo} onChange={(e) => setTipo(e.target.value)} className="border rounded px-2 py-1.5">
+        <Selecao name="tipo" value={tipo} onChange={(e) => setTipo(e.target.value)} className="border rounded px-2 py-1.5">
           <option value="ACRESCIMO">Acréscimo de quantidade</option>
           <option value="SUPRESSAO">Supressão de quantidade</option>
           <option value="ITEM_NOVO">Serviço novo</option>
           <option value="PRECO">Alteração de preço</option>
-        </select>
+        </Selecao>
       </label>
 
       {tipo !== "ITEM_NOVO" ? (
         <label className="col-span-2 sm:col-span-4 flex flex-col gap-1">Item
-          <select name="itemId" required value={itemId} onChange={(e) => setItemId(e.target.value)} className="border rounded px-2 py-1.5">
+          <Selecao name="itemId" required value={itemId} onChange={(e) => setItemId(e.target.value)} className="border rounded px-2 py-1.5">
             <option value="">Selecione…</option>
             {itens.map((i) => <option key={i.id} value={i.id}>{i.nome} — {num(i.quantidade)} {i.unidade} × {brl(i.valor_unitario)}</option>)}
-          </select>
+          </Selecao>
         </label>
       ) : (
         <>

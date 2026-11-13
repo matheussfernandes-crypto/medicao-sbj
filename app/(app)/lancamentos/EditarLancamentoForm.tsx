@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Selecao from "@/components/ui/Selecao";
+import { DataCampo } from "@/components/ui/anima";
 
 const TIPO_LABEL: Record<string, string> = {
   area: "Por m² (comprimento × altura)",
@@ -62,10 +64,10 @@ export default function EditarLancamentoForm({
       </p>
 
       <div className="flex flex-wrap gap-2">
-        <select name="pessoaId" defaultValue={lancamento.pessoa_id} className="border rounded px-2 py-1 flex-1 min-w-[150px]" required>
+        <Selecao name="pessoaId" defaultValue={lancamento.pessoa_id} className="border rounded px-2 py-1 flex-1 min-w-[150px]" required>
           {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-        </select>
-        <select
+        </Selecao>
+        <Selecao
           name="tipoLancamento"
           className="border rounded px-2 py-1"
           value={tipoLancamento}
@@ -74,8 +76,8 @@ export default function EditarLancamentoForm({
           <option value="MEDICAO">Medição</option>
           <option value="VALE">Vale</option>
           <option value="VALE_MEDICAO">Vale + Medição</option>
-        </select>
-        <input type="date" name="data" defaultValue={lancamento.data} className="border rounded px-2 py-1" />
+        </Selecao>
+        <DataCampo />
       </div>
 
       {mostrarValeReal && (
@@ -141,14 +143,14 @@ export default function EditarLancamentoForm({
       {mostrarCamposServico && (
         <>
           <div className="flex flex-wrap gap-2">
-            <select name="servicoId" defaultValue={servicoAtual?.id ?? ""} className="border rounded px-2 py-1 flex-1 min-w-[180px]">
+            <Selecao name="servicoId" defaultValue={servicoAtual?.id ?? ""} className="border rounded px-2 py-1 flex-1 min-w-[180px]">
               <option value="" disabled>Selecione o serviço…</option>
               {servicos.map((s) => (
                 <option key={s.id} value={s.id} data-tipo={s.tipo}>
                   {s.nome} — {TIPO_LABEL[s.tipo]} (R$ {Number(s.valor_unitario).toFixed(2)})
                 </option>
               ))}
-            </select>
+            </Selecao>
             <input name="local" placeholder="Local" defaultValue={lancamento.local ?? ""} className="border rounded px-2 py-1 flex-1 min-w-[150px]" />
           </div>
 

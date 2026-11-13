@@ -3,6 +3,7 @@
 import { useState } from "react";
 import ConfirmDeleteButton from "./ConfirmDeleteButton";
 import EditarLancamentoForm from "./EditarLancamentoForm";
+import { DataCampo } from "@/components/ui/anima";
 
 type Pessoa = { id: string; nome: string };
 type Servico = { id: string; nome: string; tipo: string; valor_unitario: number };
@@ -229,13 +230,7 @@ export default function LinhaLancamento({
           editandoData ? (
             <form action={editarDataLancamento} className="flex items-center gap-1 mt-1 flex-wrap" onSubmit={() => setEditandoData(false)}>
               <input type="hidden" name="id" value={l.id} />
-              <input
-                type="date"
-                name="data"
-                defaultValue={l.data}
-                className="border rounded px-1 py-0.5 text-xs"
-                autoFocus
-              />
+              <DataCampo />
               <button type="submit" className="bg-primary text-white rounded px-2 py-0.5 text-xs">Salvar</button>
               <button type="button" onClick={() => setEditandoData(false)} className="bg-gray-200 rounded px-2 py-0.5 text-xs">✕</button>
             </form>

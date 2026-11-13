@@ -7,6 +7,8 @@ import { AlertTriangle, Trash2, Camera } from "lucide-react";
 import { salvarLancamento, solicitarAditivo } from "../actions";
 import { enviarArquivos } from "@/components/contratos/UploadArquivo";
 import { brl, num, pct, parseNum, mesAtual, hojeISO, mesLabel, EPS, UNIDADES } from "@/lib/contratos/util";
+import Selecao from "@/components/ui/Selecao";
+import { DataCampo } from "@/components/ui/anima";
 
 export type ItemMedivel = {
   id: string;
@@ -157,10 +159,10 @@ export default function LancamentoForm({
           </label>
           {solTipo === "AUMENTO" ? (
             <label className="sm:col-span-3 flex flex-col gap-1">Item
-              <select name="itemId" required value={solItem} onChange={(e) => setSolItem(e.target.value)} className="border rounded px-2 py-2 text-sm">
+              <Selecao name="itemId" required value={solItem} onChange={(e) => setSolItem(e.target.value)} className="border rounded px-2 py-2 text-sm">
                 <option value="">Selecione…</option>
                 {itens.map((i) => <option key={i.id} value={i.id}>{i.codigo ?? ""} {i.descricao} — saldo {num(i.saldo)} {i.unidade}</option>)}
-              </select>
+              </Selecao>
             </label>
           ) : (
             <>
@@ -184,7 +186,7 @@ export default function LancamentoForm({
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap gap-3 text-xs">
-            <label className="flex flex-col gap-1">Data<input type="date" value={data} onChange={(e) => setData(e.target.value)} className="border rounded px-2 py-2 text-sm" /></label>
+            <label className="flex flex-col gap-1">Data<DataCampo value={data} onChange={setData} /></label>
             <label className="flex flex-col gap-1">Mês de referência<MesCampo value={mes} onChange={setMes} /></label>
             {ehVale && (
               <label className="flex flex-col gap-1">Valor do vale (R$)
@@ -220,10 +222,10 @@ export default function LancamentoForm({
                           <span className="block text-[10px] text-ink-400">{pct(c.it.quantidade > 0 ? (c.it.saldo / c.it.quantidade) * 100 : 0)}</span>
                         </td>
                         <td className="py-2 pr-2">
-                          <select value={c.modo} onChange={(e) => setLinha(idx, { modo: e.target.value as "QTD" | "PCT", valor: "" })} className="border rounded px-1 py-1 text-xs">
+                          <Selecao value={c.modo} onChange={(e) => setLinha(idx, { modo: e.target.value as "QTD" | "PCT", valor: "" })} className="border rounded px-1 py-1 text-xs">
                             <option value="QTD">Quantidade</option>
                             <option value="PCT">% do item</option>
-                          </select>
+                          </Selecao>
                         </td>
                         <td className="py-2 pr-2">
                           <div className="flex items-center gap-1">
@@ -253,7 +255,7 @@ export default function LancamentoForm({
                 </table>
               </div>
 
-              <select
+              <Selecao
                 value=""
                 onChange={(e) => { if (e.target.value) setLinhas((ls) => [...ls, { itemId: e.target.value, modo: "QTD", valor: "" }]); }}
                 className="border-2 border-dashed border-primary/40 rounded-lg px-3 py-2 text-sm w-full sm:w-auto text-primary font-semibold"
@@ -275,7 +277,7 @@ export default function LancamentoForm({
                     </>
                   );
                 })()}
-              </select>
+              </Selecao>
 
               {excedidos.map((c) => (
                 <div key={c.itemId} className="border border-amber-300 bg-amber-50 rounded-lg p-3 text-sm space-y-2">

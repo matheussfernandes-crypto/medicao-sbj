@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { criarPessoa, transferirObra, darBaixa, reativarPessoa, excluirPessoa, editarPessoa } from "./actions";
 import PessoaLinha from "./PessoaLinha";
+import Selecao from "@/components/ui/Selecao";
+import { DataCampo } from "@/components/ui/anima";
+import { TabelaPaginada } from "@/components/ui/anima";
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
@@ -59,16 +62,16 @@ export default async function PessoasPage({
         {obras && obras.length > 0 ? (
           <form action={criarPessoa} className="flex flex-wrap gap-2">
             <input name="nome" placeholder="Nome da pessoa" className="border rounded px-2 py-1 flex-1 min-w-[160px]" required />
-            <select name="papel" className="border rounded px-2 py-1">
+            <Selecao name="papel" className="border rounded px-2 py-1">
               <option value="EMPREITEIRO">Empreiteiro</option>
               <option value="MESTRE">Mestre</option>
               <option value="MESTRE_GERAL">Mestre Geral</option>
               <option value="CONTRAMESTRE">Contramestre</option>
-            </select>
-            <select name="obraId" className="border rounded px-2 py-1">
+            </Selecao>
+            <Selecao name="obraId" className="border rounded px-2 py-1">
               {obras.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-            </select>
-            <input name="admissao" type="date" defaultValue={hoje} className="border rounded px-2 py-1" />
+            </Selecao>
+            <DataCampo />
             <input name="retencao" type="number" min={0} max={100} placeholder="% retenção inicial" className="border rounded px-2 py-1 w-40" />
             <button className="bg-primary text-white rounded px-3 py-1">Cadastrar</button>
           </form>
@@ -83,14 +86,14 @@ export default async function PessoasPage({
       <div className="bg-white rounded-xl shadow p-4 overflow-x-auto">
         <h2 className="font-semibold text-primaryDark mb-2">Resumo de pessoas — situação e tempo na empresa</h2>
         {pessoas && pessoas.length > 0 ? (
-          <table className="w-full text-sm">
-            <thead className="text-left text-gray-400">
+          <TabelaPaginada por={25} className="w-full text-sm" cabecalho={
+<thead className="text-left text-gray-400">
               <tr>
                 <th className="p-1">Nome</th><th className="p-1">Papel</th><th className="p-1">Obra</th>
                 <th className="p-1">Admissão</th><th className="p-1">Tempo</th><th className="p-1">Status</th><th className="p-1">Ações</th>
               </tr>
             </thead>
-            <tbody>
+}>
               {pessoas.map((p) => {
                 const fim = p.status === "ATIVO" ? hoje : (p.saida || hoje);
                 return (
@@ -110,8 +113,7 @@ export default async function PessoasPage({
                   />
                 );
               })}
-            </tbody>
-          </table>
+            </TabelaPaginada>
         ) : (
           <p className="text-sm text-gray-400">Nenhum empreiteiro cadastrado ainda.</p>
         )}

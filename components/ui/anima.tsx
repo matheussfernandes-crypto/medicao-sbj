@@ -3,7 +3,7 @@
 // Peças de interface no padrão do pós-obra (recolher com setinha, páginas que deslizam,
 // campo de data com calendário). As animações ficam em app/anima.css.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Children, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -62,19 +62,21 @@ export function useAberto(chave: string, inicial = true): [boolean, () => void, 
 // ---------------------------------------------------------------------------
 // Páginas: N por página, deslizando para o lado da troca e subindo a tela
 
-export function usePaginas<T>(lista: T[], por = 20) {
+export function usePaginas<T>(lista: T[], por = 20, chave?: string | number) {
   const [pag, setPag] = useState(0);
   const [dir, setDir] = useState(0);
   const [giro, setGiro] = useState(0); // muda a cada troca para reiniciar a animação
   const pags = Math.max(1, Math.ceil(lista.length / por));
-  const anterior = useRef(lista);
+  // volta para a página 1 quando a lista muda (por identidade, ou pela chave informada)
+  const anterior = useRef<unknown>(chave ?? lista);
   useEffect(() => {
-    if (anterior.current !== lista) {
-      anterior.current = lista;
+    const atual = chave ?? lista;
+    if (anterior.current !== atual) {
+      anterior.current = atual;
       setPag(0);
       setDir(0);
     }
-  }, [lista]);
+  }, [lista, chave]);
   const atual = Math.min(pag, pags - 1);
   const itens = useMemo(() => lista.slice(atual * por, atual * por + por), [lista, atual, por]);
   const topo = useRef<HTMLDivElement>(null);
@@ -139,13 +141,35 @@ const hojeIso = () => {
   return iso(d.getFullYear(), d.getMonth(), d.getDate());
 };
 
-export function DataCampo({ value, onChange, placeholder = "Escolher", className = "" }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
+export function DataCampo({
+  value: valorControlado,
+  defaultValue,
+  name,
+  required,
+  onChange,
+  placeholder = "Escolher",
+  className = "",
+  btnClassName = "",
+}: {
+  value?: string;
+  defaultValue?: string;
+  name?: string;
+  required?: boolean;
+  onChange?: (v: string) => void;
+  placeholder?: string;
+  className?: string;
+  btnClassName?: string; // largura/ajustes do botão
+}) {
+  const controlado = valorControlado !== undefined;
+  const [interno, setInterno] = useState(defaultValue ?? "");
+  const value = controlado ? valorControlado ?? "" : interno;
   const [aberto, setAberto] = useState(false);
   const base = value || hojeIso();
   const [ano, setAno] = useState(Number(base.slice(0, 4)));
   const [mes, setMes] = useState(Number(base.slice(5, 7)) - 1);
   const [dir, setDir] = useState(0);
   const raiz = useRef<HTMLDivElement>(null);
+  const botao = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!aberto) return;
@@ -166,7 +190,8 @@ export function DataCampo({ value, onChange, placeholder = "Escolher", className
     setMes(((m % 12) + 12) % 12);
   }
   function escolhe(v: string) {
-    onChange(v);
+    if (!controlado) setInterno(v);
+    onChange?.(v);
     setAberto(false);
   }
 
@@ -178,7 +203,9 @@ export function DataCampo({ value, onChange, placeholder = "Escolher", className
 
   return (
     <div ref={raiz} className={`relative inline-block ${className}`}>
+      {name && <input name={name} value={value} required={required} tabIndex={-1} aria-hidden onChange={() => {}} onFocus={() => botao.current?.focus()} className="absolute inset-0 w-full h-full opacity-0 pointer-events-none" />}
       <button
+        ref={botao}
         type="button"
         onClick={() => {
           const b = value || hoje;
@@ -188,7 +215,7 @@ export function DataCampo({ value, onChange, placeholder = "Escolher", className
           setAberto((a) => !a);
         }}
         aria-expanded={aberto}
-        className={`flex items-center gap-2 min-h-[36px] rounded-[10px] border border-border bg-white px-3 py-1.5 text-sm hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 ${value ? "text-ink-900" : "text-ink-400"}`}
+        className={`flex items-center gap-2 min-h-[36px] rounded-[10px] border border-border bg-white px-3 py-1.5 text-sm hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 ${value ? "text-ink-900" : "text-ink-400"} ${btnClassName}`}
       >
         <span className="tabular-nums">{rotulo}</span>
         <CalendarDays className="w-4 h-4 text-ink-500" />
@@ -236,6 +263,25 @@ export function DataCampo({ value, onChange, placeholder = "Escolher", className
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// tabela do servidor com páginas: recebe o <thead> e as linhas (<tr>) como filhos
+export function TabelaPaginada({ cabecalho, children, por = 25, className = "w-full text-sm" }: { cabecalho: React.ReactNode; children: React.ReactNode; por?: number; className?: string }) {
+  const linhas = useMemo(() => Children.toArray(children), [children]);
+  const pg = usePaginas(linhas, por, linhas.length);
+  return (
+    <div ref={pg.topo}>
+      <div className="overflow-x-auto">
+        <table className={className}>
+          {cabecalho}
+          <tbody key={pg.giro} className={pg.classe}>
+            {pg.itens}
+          </tbody>
+        </table>
+      </div>
+      <Paginador {...pg} />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Selecao from "@/components/ui/Selecao";
+import { DataCampo } from "@/components/ui/anima";
 
 const TIPO_LABEL: Record<string, string> = {
   area: "Por m² (comprimento × altura)",
@@ -73,14 +75,14 @@ export default function NovoLancamentoForm({
       {/* ── PASSO 2: Quem vai medir ── */}
       <div className="flex flex-wrap gap-2">
         {tipoContratado === "SBJ" ? (
-          <select name="pessoaId" className="border rounded px-2 py-1 flex-1 min-w-[150px]" required>
+          <Selecao name="pessoaId" className="border rounded px-2 py-1 flex-1 min-w-[150px]" required>
             <option value="">Selecionar empreiteiro…</option>
             {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-          </select>
+          </Selecao>
         ) : (
           <>
             {temEmpresasAtivas ? (
-              <select name="empresaObraId" className="border rounded px-2 py-1 flex-1 min-w-[200px]" required>
+              <Selecao name="empresaObraId" className="border rounded px-2 py-1 flex-1 min-w-[200px]" required>
                 <option value="">Selecionar empresa…</option>
                 {empresasContrato.map((e) => (
                   <option key={e.id} value={e.id}>
@@ -88,7 +90,7 @@ export default function NovoLancamentoForm({
                     {e.retencao_contratual ? ` (retenção ${Number(e.retencao_pct).toFixed(0)}%)` : ""}
                   </option>
                 ))}
-              </select>
+              </Selecao>
             ) : (
               <div className="flex-1 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
                 Nenhuma empresa com contrato ativo vinculada a esta obra.{" "}
@@ -100,7 +102,7 @@ export default function NovoLancamentoForm({
           </>
         )}
 
-        <select
+        <Selecao
           name="tipoLancamento"
           className="border rounded px-2 py-1"
           value={tipoLancamento}
@@ -109,8 +111,8 @@ export default function NovoLancamentoForm({
           <option value="MEDICAO">Medição</option>
           <option value="VALE">Vale</option>
           <option value="VALE_MEDICAO">Vale + Medição</option>
-        </select>
-        <input type="date" name="data" defaultValue={new Date().toISOString().slice(0, 10)} className="border rounded px-2 py-1" />
+        </Selecao>
+        <DataCampo />
       </div>
 
       {mostrarValeReal && (
@@ -151,13 +153,13 @@ export default function NovoLancamentoForm({
       {mostrarCamposServico && (
         <>
           <div className="flex flex-wrap gap-2">
-            <select name="servicoId" className="border rounded px-2 py-1 flex-1 min-w-[180px]">
+            <Selecao name="servicoId" className="border rounded px-2 py-1 flex-1 min-w-[180px]">
               {servicos.map((s) => (
                 <option key={s.id} value={s.id} data-tipo={s.tipo}>
                   {s.nome} — {TIPO_LABEL[s.tipo]} (R$ {Number(s.valor_unitario).toFixed(2)})
                 </option>
               ))}
-            </select>
+            </Selecao>
             <input name="local" placeholder="Local (ex: bloco A, 3º pavimento)" className="border rounded px-2 py-1 flex-1 min-w-[150px]" />
           </div>
 

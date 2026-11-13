@@ -33,7 +33,10 @@ function lerOpcoes(children: React.ReactNode, grupo?: string, saida: Opcao[] = [
 const LAYOUT = /^(flex-1|w-full|w-\[|w-\d|block|min-w-|max-w-|ml-|mt-|mr-|mb-|shrink|grow)/;
 
 export default function Selecao({
-  value,
+  value: valorControlado,
+  defaultValue,
+  name,
+  required,
   onChange,
   children,
   className = "",
@@ -41,7 +44,10 @@ export default function Selecao({
   title,
   ...resto
 }: {
-  value: string | number;
+  value?: string | number;
+  defaultValue?: string | number;
+  name?: string; // dentro de <form>: o valor escolhido vai no envio, como no <select> nativo
+  required?: boolean;
   onChange?: (e: { target: { value: string } }) => void;
   children: React.ReactNode;
   className?: string;
@@ -50,7 +56,10 @@ export default function Selecao({
   "aria-label"?: string;
 }) {
   const opcoes = useMemo(() => lerOpcoes(children), [children]);
-  const atual = String(value ?? "");
+  const controlado = valorControlado !== undefined;
+  const [interno, setInterno] = useState(() => (defaultValue !== undefined ? String(defaultValue) : ""));
+  // sem valor inicial, o <select> nativo mostra a primeira opção
+  const atual = controlado ? String(valorControlado ?? "") : defaultValue !== undefined || interno !== "" ? interno : opcoes[0]?.valor ?? "";
   const sel = opcoes.find((o) => o.valor === atual);
   const [aberto, setAberto] = useState(false);
   const [saindo, setSaindo] = useState(false);
@@ -86,6 +95,7 @@ export default function Selecao({
   }
   function escolher(o?: Opcao) {
     if (!o || o.desab) return;
+    if (!controlado) setInterno(o.valor);
     if (o.valor !== atual) onChange?.({ target: { value: o.valor } });
     fechar();
     btn.current?.focus();
@@ -157,6 +167,10 @@ export default function Selecao({
 
   return (
     <span className={`relative inline-block align-middle max-w-full ${doWrap}`}>
+      {name && (
+        // campo de verdade para o envio do formulário; "required" faz o navegador avisar se estiver vazio
+        <input name={name} value={atual} required={required} disabled={disabled} tabIndex={-1} aria-hidden onChange={() => {}} onFocus={() => btn.current?.focus()} className="absolute inset-0 w-full h-full opacity-0 pointer-events-none" />
+      )}
       <button
         ref={btn}
         type="button"

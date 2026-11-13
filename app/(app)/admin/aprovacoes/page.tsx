@@ -6,6 +6,7 @@ import BotaoConfirmar from "@/components/BotaoConfirmar";
 import NotificacaoAvulsaPanel from "./NotificacaoAvulsaPanel";
 import { ITENS, ehGestorAcessos } from "@/lib/acessos/modulos";
 import PainelAcessos from "../acessos/PainelAcessos";
+import Selecao from "@/components/ui/Selecao";
 
 const MODULOS_APROVACAO = ITENS.map((i) => ({ key: i.key, label: i.label }));
 
@@ -136,11 +137,11 @@ export default async function AprovacoesPage() {
                     <span className="text-xs text-ink-500">Protegido</span>
                   ) : (
                   <form action={alterarSetor.bind(null, c.id)} className="flex items-center gap-1">
-                    <select name="setor" defaultValue={c.setor ?? ""} className="border rounded px-2 py-1 text-xs bg-white">
+                    <Selecao name="setor" defaultValue={c.setor ?? ""} className="border rounded px-2 py-1 text-xs bg-white">
                       {Object.entries(SETOR_LABEL).map(([v, r]) => (
                         <option key={v} value={v}>{r}</option>
                       ))}
-                    </select>
+                    </Selecao>
                     <button className="bg-gray-200 rounded px-2 py-1 text-xs">Salvar</button>
                   </form>
                   )}

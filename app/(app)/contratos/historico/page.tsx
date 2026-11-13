@@ -2,6 +2,8 @@ import Link from "next/link";
 import { FileDown } from "lucide-react";
 import { exigirPerfil } from "@/lib/contratos/server";
 import { brl, mesLabel, dataHoraBR } from "@/lib/contratos/util";
+import Selecao from "@/components/ui/Selecao";
+import { TabelaPaginada } from "@/components/ui/anima";
 
 export default async function HistoricoContratosPage({
   searchParams,
@@ -30,16 +32,16 @@ export default async function HistoricoContratosPage({
 
       <form method="get" className="card !p-4 flex flex-wrap gap-2 items-end">
         <label className="flex flex-col gap-1 text-xs text-ink-500 min-w-[220px]">Obra
-          <select name="obra" defaultValue={obra} className="border rounded px-2 py-2 text-sm text-ink-900">
+          <Selecao name="obra" defaultValue={obra} className="border rounded px-2 py-2 text-sm text-ink-900">
             <option value="">Todas</option>
             {obras.map(([id, nome]) => <option key={id} value={id}>{nome}</option>)}
-          </select>
+          </Selecao>
         </label>
         <label className="flex flex-col gap-1 text-xs text-ink-500 min-w-[220px]">Empresa
-          <select name="empresa" defaultValue={empresa} className="border rounded px-2 py-2 text-sm text-ink-900">
+          <Selecao name="empresa" defaultValue={empresa} className="border rounded px-2 py-2 text-sm text-ink-900">
             <option value="">Todas</option>
             {empresas.map(([id, nome]) => <option key={id} value={id}>{nome}</option>)}
-          </select>
+          </Selecao>
         </label>
         <button className="bg-primary text-white rounded px-4 py-2 text-sm font-semibold">Filtrar</button>
       </form>
@@ -48,8 +50,8 @@ export default async function HistoricoContratosPage({
         {filtrada.length === 0 ? (
           <p className="text-sm text-ink-400">Nenhuma medição fechada ainda. Os PDFs aparecem aqui depois do fechamento do mês.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
+          <TabelaPaginada por={20} className="w-full text-sm" cabecalho={
+<thead>
               <tr className="text-left border-b text-ink-500">
                 <th className="py-2 pr-3">Mês</th>
                 <th className="py-2 pr-3">Obra</th>
@@ -63,7 +65,7 @@ export default async function HistoricoContratosPage({
                 <th className="py-2"></th>
               </tr>
             </thead>
-            <tbody>
+}>
               {filtrada.map((f) => (
                 <tr key={f.id} className="border-b">
                   <td className="py-2 pr-3 whitespace-nowrap">{mesLabel(f.mes_referencia)}</td>
@@ -85,8 +87,7 @@ export default async function HistoricoContratosPage({
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+            </TabelaPaginada>
         )}
       </section>
     </div>

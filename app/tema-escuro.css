@@ -68,3 +68,28 @@ html.dark .border-primary { border-color: #3fa9b9; }
 
 /* linhas divisórias (divide-y) também no tom escuro */
 html.dark [class*="divide-"] > :not([hidden]) ~ :not([hidden]) { border-color: #2a3a3f; }
+
+/* ---- telas antigas (Lançamentos, Contratos, Financeiro, Admin, RH) que usam cinzas e cores do Tailwind ---- */
+html.dark .text-gray-300 { color: #5d6f74; }
+html.dark .text-gray-400 { color: #7f9297; }
+html.dark .text-gray-500 { color: #93a7ac; }
+html.dark .text-gray-600 { color: #aebfc3; }
+html.dark .text-gray-700, html.dark .text-gray-800, html.dark .text-gray-900 { color: #d6e1e3; }
+html.dark .hover\:text-gray-700:hover { color: #e4eef0; }
+html.dark .bg-gray-50, html.dark .hover\:bg-gray-50:hover, html.dark .odd\:bg-gray-50:nth-child(odd) { background-color: #1a272b; }
+html.dark .bg-gray-100, html.dark .disabled\:bg-gray-100:disabled { background-color: #1d2b2f; }
+html.dark .bg-gray-200, html.dark .hover\:bg-gray-200:hover { background-color: #263539; color: #e4eef0; }
+html.dark .border-gray-300, html.dark .border-gray-200 { border-color: #2a3a3f; }
+html.dark .bg-green-50 { background-color: #13261c; }
+html.dark .border-green-200 { border-color: #24563a; }
+html.dark .text-green-600, html.dark .text-green-700 { color: #62c48d; }
+html.dark .text-red-500 { color: #f2766d; }
+html.dark .text-red-700, html.dark .text-red-600 { color: #f2766d; }
+html.dark .bg-amber-100, html.dark .bg-yellow-100 { background-color: #352813; }
+html.dark .text-amber-800 { color: #e8b565; }
+html.dark .bg-blue-100 { background-color: #14283a; }
+html.dark .text-blue-700 { color: #7fb8ea; }
+html.dark tr.bg-gray-50, html.dark .even\:bg-gray-50:nth-child(even) { background-color: #1a272b; }
+html.dark .shadow, html.dark .shadow-sm, html.dark .shadow-md { --tw-shadow-color: rgba(0,0,0,.5); }
+/* campos antigos (border + rounded) */
+html.dark input[type="date"], html.dark input[type="month"] { color-scheme: dark; }

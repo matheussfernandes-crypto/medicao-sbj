@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { solicitarCadastro } from "./actions";
 import PasswordField from "../components/PasswordField";
+import Selecao from "@/components/ui/Selecao";
 
 export default function CadastroPage({
   searchParams,
@@ -28,7 +29,7 @@ export default function CadastroPage({
           </div>
           <div>
             <label className="block text-sm mb-1">Qual setor você quer se cadastrar</label>
-            <select name="setor" required className="w-full border rounded px-3 py-2 text-sm">
+            <Selecao name="setor" required className="w-full border rounded px-3 py-2 text-sm">
               <option value="ESTAGIARIO">Estagiário</option>
               <option value="ADMIN">Engenheiro / ADM</option>
               <option value="ARQUITETO">Arquiteto</option>
@@ -36,7 +37,7 @@ export default function CadastroPage({
               <option value="MESTRE_GERAL">Mestre Geral</option>
               <option value="RH">RH</option>
               <option value="FINANCEIRO">Financeiro</option>
-            </select>
+            </Selecao>
           </div>
 
           {searchParams.erro && <p className="text-sm text-red-600">{searchParams.erro}</p>}

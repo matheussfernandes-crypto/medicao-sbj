@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import FiltrosExtrato from "./FiltrosExtrato";
 import { Suspense } from "react";
+import { TabelaPaginada } from "@/components/ui/anima";
 
 function fmtData(s: string) {
   const [y, m, d] = s.slice(0, 10).split("-");
@@ -228,8 +229,8 @@ export default async function ExtratoRetidosPage({
               <p className="text-sm text-gray-400">Nenhuma movimentação encontrada para os filtros selecionados.</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
+                <TabelaPaginada por={25} className="w-full text-sm" cabecalho={
+<thead>
                     <tr className="bg-primaryDark text-white text-xs">
                       <th className="p-2 text-left">Data</th>
                       <th className="p-2 text-left">Obra</th>
@@ -241,7 +242,7 @@ export default async function ExtratoRetidosPage({
                       <th className="p-2 text-left">Responsável</th>
                     </tr>
                   </thead>
-                  <tbody>
+}>
                     {pessoaSelecionada.movs.map((m, i) => (
                       <tr key={i} className={i % 2 === 1 ? "bg-gray-50" : ""}>
                         <td className="p-2 whitespace-nowrap">{fmtData(m.data)}</td>
@@ -266,8 +267,7 @@ export default async function ExtratoRetidosPage({
                         <td className="p-2 text-xs text-gray-500">{m.responsavel ?? "—"}</td>
                       </tr>
                     ))}
-                  </tbody>
-                </table>
+                  </TabelaPaginada>
               </div>
             )}
           </div>

@@ -13,6 +13,7 @@ import {
 } from "./actions";
 import NovoLancamentoForm from "./NovoLancamentoForm";
 import LancamentosTable from "./LancamentosTable";
+import Selecao from "@/components/ui/Selecao";
 
 export default async function LancamentosPage({
   searchParams,
@@ -93,9 +94,9 @@ export default async function LancamentosPage({
 
         <div className="card">
           <form method="get" className="flex gap-2">
-            <select name="obra" defaultValue={obraId ?? ""} className="border rounded px-3 py-2 flex-1">
+            <Selecao name="obra" defaultValue={obraId ?? ""} className="border rounded px-3 py-2 flex-1">
               {(obras ?? []).map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-            </select>
+            </Selecao>
             <button className="bg-gray-200 rounded px-4 py-2">Ver obra</button>
           </form>
         </div>

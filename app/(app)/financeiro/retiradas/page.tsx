@@ -2,6 +2,8 @@ import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserPr
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { salvarSaldoInicial, lancarRetirada, excluirRetirada } from "./actions";
+import Selecao from "@/components/ui/Selecao";
+import { DataCampo } from "@/components/ui/anima";
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
@@ -75,12 +77,12 @@ export default async function RetiradasPage() {
         </p>
         {pessoas && pessoas.length > 0 ? (
           <form action={lancarRetirada} className="flex flex-wrap gap-2">
-            <select name="pessoaId" className="border rounded px-2 py-1 flex-1 min-w-[160px]" required>
+            <Selecao name="pessoaId" className="border rounded px-2 py-1 flex-1 min-w-[160px]" required>
               {pessoas.map((p) => (
                 <option key={p.id} value={p.id}>{p.nome} — {nomeObra[p.obra_id] ?? "?"}</option>
               ))}
-            </select>
-            <input type="date" name="data" defaultValue={hojeISO()} className="border rounded px-2 py-1" />
+            </Selecao>
+            <DataCampo />
             <input type="number" step="0.01" name="valor" placeholder="Valor (R$)" className="border rounded px-2 py-1 w-32" required />
             <input name="observacao" placeholder="Observação (opcional)" className="border rounded px-2 py-1 flex-1 min-w-[160px]" />
             <button className="bg-primary text-white rounded px-4 py-2">Lançar retirada</button>

@@ -2,6 +2,7 @@ import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserPr
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { TabelaPaginada } from "@/components/ui/anima";
 
 const TABELA_LABEL: Record<string, string> = {
   lancamentos: "Lançamentos (medição/vale)",
@@ -127,8 +128,8 @@ export default async function AuditoriaPage({
 
         <div className="card overflow-x-auto">
           {logs && logs.length > 0 ? (
-            <table className="w-full text-sm">
-              <thead className="text-left text-gray-400">
+            <TabelaPaginada por={25} className="w-full text-sm" cabecalho={
+<thead className="text-left text-gray-400">
                 <tr>
                   <th className="p-1">Data/hora</th>
                   <th className="p-1">Quem</th>
@@ -137,7 +138,7 @@ export default async function AuditoriaPage({
                   <th className="p-1">Detalhe</th>
                 </tr>
               </thead>
-              <tbody>
+}>
                 {logs.map((l) => {
                   const dados = l.acao === "DELETE" ? l.dados_anteriores : l.dados_novos;
                   return (
@@ -156,8 +157,7 @@ export default async function AuditoriaPage({
                     </tr>
                   );
                 })}
-              </tbody>
-            </table>
+              </TabelaPaginada>
           ) : (
             <p className="text-sm text-gray-400">Nenhum registro de auditoria ainda.</p>
           )}

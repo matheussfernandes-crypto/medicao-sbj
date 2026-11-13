@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import LinhaLancamento, { type Lancamento } from "./LinhaLancamento";
 import { aprovarEmLote, notificarEngenheiroConferir } from "./actions";
+import { TabelaPaginada } from "@/components/ui/anima";
 
 type Pessoa = { id: string; nome: string };
 type Servico = { id: string; nome: string; tipo: string; valor_unitario: number };
@@ -109,8 +110,8 @@ export default function LancamentosTable({
       )}
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-left text-gray-400">
+        <TabelaPaginada por={25} className="w-full text-sm" cabecalho={
+<thead className="text-left text-gray-400">
             <tr>
               {/* Select-all para ADM */}
               {ehAdmin && (
@@ -137,7 +138,7 @@ export default function LancamentosTable({
               <th className="p-1">Ações</th>
             </tr>
           </thead>
-          <tbody>
+}>
             {lancamentos.map((l) => {
               const isOwner = l.criado_por === meuUserId;
               const jaFechado =
@@ -167,8 +168,7 @@ export default function LancamentosTable({
                 />
               );
             })}
-          </tbody>
-        </table>
+          </TabelaPaginada>
       </div>
 
       {/* Botão "Notificar engenheiro" — apenas estagiários (não-ADM) */}

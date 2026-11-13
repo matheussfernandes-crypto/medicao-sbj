@@ -6,6 +6,7 @@ import { calcularBoletim } from "@/lib/contratos/boletim";
 import { brl, num, pct, mesAtual, mesLabel, dataBR, dataHoraBR } from "@/lib/contratos/util";
 import FormAcao from "@/components/contratos/FormAcao";
 import { fecharMesContrato, reabrirMesContrato } from "../actions";
+import Selecao from "@/components/ui/Selecao";
 
 export default async function FechamentoContratosPage({
   searchParams,
@@ -33,12 +34,12 @@ export default async function FechamentoContratosPage({
 
       <form method="get" className="card !p-4 flex flex-wrap gap-2 items-end">
         <label className="flex flex-col gap-1 text-xs text-ink-500 flex-1 min-w-[260px]">Contrato
-          <select name="contrato" defaultValue={contratoId} className="border rounded px-2 py-2 text-sm text-ink-900">
+          <Selecao name="contrato" defaultValue={contratoId} className="border rounded px-2 py-2 text-sm text-ink-900">
             <option value="">Selecione…</option>
             {(contratos ?? []).map((c: any) => (
               <option key={c.id} value={c.id}>Nº {c.numero} — {c.obras?.nome} — {c.empresas_terceirizadas?.nome} ({c.objeto}){c.status !== "ATIVO" ? ` [${c.status}]` : ""}</option>
             ))}
-          </select>
+          </Selecao>
         </label>
         <label className="flex flex-col gap-1 text-xs text-ink-500">Mês de referência
           <MesCampo name="mes" defaultValue={mes} />

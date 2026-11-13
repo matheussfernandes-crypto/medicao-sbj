@@ -2,6 +2,7 @@ import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserPr
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { criarEmpresa, editarEmpresa, toggleEmpresaAtivo } from "./actions";
+import Selecao from "@/components/ui/Selecao";
 
 const UF_LIST = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
@@ -91,10 +92,10 @@ export default async function EmpresasPage({
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">UF</label>
-              <select name="uf" defaultValue={e?.uf ?? ""} className="border rounded px-3 py-2 w-full">
+              <Selecao name="uf" defaultValue={e?.uf ?? ""} className="border rounded px-3 py-2 w-full">
                 <option value="">—</option>
                 {UF_LIST.map((u) => <option key={u} value={u}>{u}</option>)}
-              </select>
+              </Selecao>
             </div>
 
             {/* Contato + Telefone */}

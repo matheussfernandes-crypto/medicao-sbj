@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { criarObra, criarServico, editarValorServico } from "./actions";
 import RetencaoForm from "./RetencaoForm";
 import { vincularEmpresaObra, editarVinculoEmpresaObra, removerVinculoEmpresaObra } from "./empresa-obra-actions";
+import Selecao from "@/components/ui/Selecao";
+import { DataCampo } from "@/components/ui/anima";
 
 const TIPO_LABEL: Record<string, string> = {
   area: "Por m²",
@@ -106,11 +108,11 @@ export default async function ObrasPage({
       <div className="bg-white rounded-xl shadow p-4">
         <h2 className="font-semibold text-primaryDark mb-2">Selecionar obra</h2>
         <form method="get" className="flex gap-2">
-          <select name="obra" defaultValue={obraSelecionada ?? ""} className="border rounded px-3 py-2 flex-1">
+          <Selecao name="obra" defaultValue={obraSelecionada ?? ""} className="border rounded px-3 py-2 flex-1">
             {(obras ?? []).map((o) => (
               <option key={o.id} value={o.id}>{o.nome}</option>
             ))}
-          </select>
+          </Selecao>
           <input type="hidden" name="mes" value={mes} />
           <button className="bg-gray-200 rounded px-4 py-2">Ver</button>
         </form>
@@ -193,12 +195,12 @@ export default async function ObrasPage({
             )}
             <form action={criarServico.bind(null, obraSelecionada)} className="flex gap-2 flex-wrap">
               <input name="nome" placeholder="Novo serviço" className="border rounded px-2 py-1" required />
-              <select name="tipo" className="border rounded px-2 py-1">
+              <Selecao name="tipo" className="border rounded px-2 py-1">
                 <option value="area">Por m²</option>
                 <option value="linear">Por metro linear</option>
                 <option value="unidade">Por unidade</option>
                 <option value="diaria">Por diária</option>
-              </select>
+              </Selecao>
               <input name="valor" type="number" step="0.01" placeholder="Valor unitário" className="border rounded px-2 py-1 w-32" required />
               <button className="bg-primary text-white rounded px-3 py-1">Adicionar serviço</button>
             </form>
@@ -284,7 +286,7 @@ export default async function ObrasPage({
 
                 <div>
                   <label className="text-xs text-gray-500 block mb-1">Empresa *</label>
-                  <select
+                  <Selecao
                     name="empresaId"
                     className="border rounded px-2 py-1 w-full"
                     defaultValue={vinculoEditando?.empresa_id ?? ""}
@@ -294,7 +296,7 @@ export default async function ObrasPage({
                     {(todasEmpresas ?? []).map((e) => (
                       <option key={e.id} value={e.id}>{e.nome}</option>
                     ))}
-                  </select>
+                  </Selecao>
                 </div>
 
                 <div>
@@ -310,28 +312,17 @@ export default async function ObrasPage({
 
                 <div>
                   <label className="text-xs text-gray-500 block mb-1">Data início *</label>
-                  <input
-                    type="date"
-                    name="dataInicio"
-                    defaultValue={vinculoEditando?.data_inicio ?? ""}
-                    className="border rounded px-2 py-1 w-full"
-                    required
-                  />
+                  <DataCampo required />
                 </div>
 
                 <div>
                   <label className="text-xs text-gray-500 block mb-1">Data término</label>
-                  <input
-                    type="date"
-                    name="dataTermino"
-                    defaultValue={vinculoEditando?.data_termino ?? ""}
-                    className="border rounded px-2 py-1 w-full"
-                  />
+                  <DataCampo />
                 </div>
 
                 <div>
                   <label className="text-xs text-gray-500 block mb-1">Status do contrato</label>
-                  <select
+                  <Selecao
                     name="status"
                     defaultValue={vinculoEditando?.status ?? "ATIVO"}
                     className="border rounded px-2 py-1 w-full"
@@ -339,7 +330,7 @@ export default async function ObrasPage({
                     <option value="ATIVO">Ativo</option>
                     <option value="INATIVO">Inativo</option>
                     <option value="ENCERRADO">Encerrado</option>
-                  </select>
+                  </Selecao>
                 </div>
 
                 <div>

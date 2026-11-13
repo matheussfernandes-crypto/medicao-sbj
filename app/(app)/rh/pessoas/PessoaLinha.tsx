@@ -71,7 +71,7 @@ export default function PessoaLinha({
               <Selecao name="obraId" defaultValue={p.obra_id} className="border rounded px-2 py-1">
                 {obras.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
               </Selecao>
-              <DataCampo />
+              <DataCampo name="admissao" defaultValue={p.admissao} />
             </div>
             <div className="flex gap-2">
               <button className="bg-primary text-white rounded px-3 py-1 text-sm">Salvar</button>
@@ -114,7 +114,7 @@ export default function PessoaLinha({
             </form>
             <form action={darBaixa} className="flex gap-1">
               <input type="hidden" name="pessoaId" value={p.id} />
-              <DataCampo />
+              <DataCampo name="saida" defaultValue={hoje} />
               <button className="bg-red-100 text-red-700 rounded px-2 text-xs">Dar baixa</button>
             </form>
           </>

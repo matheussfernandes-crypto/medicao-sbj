@@ -7,6 +7,7 @@ import NotificacaoAvulsaPanel from "./NotificacaoAvulsaPanel";
 import { ITENS, ehGestorAcessos } from "@/lib/acessos/modulos";
 import PainelAcessos from "../acessos/PainelAcessos";
 import Selecao from "@/components/ui/Selecao";
+import { TabelaPaginada } from "@/components/ui/anima";
 
 const MODULOS_APROVACAO = ITENS.map((i) => ({ key: i.key, label: i.label }));
 
@@ -56,9 +57,9 @@ export default async function AprovacoesPage() {
     .order("nome_completo");
 
   return (
-    <>
+    <div className="space-y-5">
       <h1 className="text-xl font-semibold text-primaryDark">Cadastros pendentes de aprovação</h1>
-      <p className="text-sm text-gray-500 -mt-4">
+      <p className="text-sm text-gray-500 -mt-3">
         Toda solicitação de cadastro (qualquer setor) precisa ser aprovada aqui antes da pessoa conseguir entrar.
       </p>
 
@@ -111,8 +112,8 @@ export default async function AprovacoesPage() {
         funcionar, mas o histórico de medições e fechamentos continua intacto.
       </p>
       <div className="card !p-0 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-left">
+        <TabelaPaginada por={20} className="w-full text-sm" cabecalho={
+<thead className="bg-gray-50 text-left">
             <tr>
               <th className="p-3">Nome completo</th>
               <th className="p-3">Email</th>
@@ -122,7 +123,7 @@ export default async function AprovacoesPage() {
               <th className="p-3">Ação</th>
             </tr>
           </thead>
-          <tbody>
+}>
             {(decididas ?? []).map((c) => (
               <tr
                 key={c.id}
@@ -186,8 +187,7 @@ export default async function AprovacoesPage() {
             {(!decididas || decididas.length === 0) && (
               <tr><td className="p-3 text-gray-400" colSpan={6}>Nenhum cadastro decidido ainda.</td></tr>
             )}
-          </tbody>
-        </table>
+          </TabelaPaginada>
       </div>
 
       {ehGestor && (
@@ -199,6 +199,6 @@ export default async function AprovacoesPage() {
       )}
 
       <NotificacaoAvulsaPanel usuarios={usuariosAprovados ?? []} />
-    </>
+    </div>
   );
 }

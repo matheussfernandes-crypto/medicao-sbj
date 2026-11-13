@@ -7,6 +7,7 @@ import RetencaoForm from "./RetencaoForm";
 import { vincularEmpresaObra, editarVinculoEmpresaObra, removerVinculoEmpresaObra } from "./empresa-obra-actions";
 import Selecao from "@/components/ui/Selecao";
 import { DataCampo } from "@/components/ui/anima";
+import { TabelaPaginada } from "@/components/ui/anima";
 
 const TIPO_LABEL: Record<string, string> = {
   area: "Por m²",
@@ -97,7 +98,7 @@ export default async function ObrasPage({
     <div className="space-y-4">
       <h1 className="text-xl font-semibold text-primaryDark">Obras &amp; Pessoas</h1>
 
-      <div className="bg-white rounded-xl shadow p-4">
+      <div className="card">
         <h2 className="font-semibold text-primaryDark mb-2">Cadastrar nova obra</h2>
         <form action={criarObra} className="flex gap-2">
           <input name="nome" placeholder="Nome da obra (ex: Residencial Aurora)" className="border rounded px-3 py-2 flex-1" required />
@@ -105,7 +106,7 @@ export default async function ObrasPage({
         </form>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-4">
+      <div className="card">
         <h2 className="font-semibold text-primaryDark mb-2">Selecionar obra</h2>
         <form method="get" className="flex gap-2">
           <Selecao name="obra" defaultValue={obraSelecionada ?? ""} className="border rounded px-3 py-2 flex-1">
@@ -121,7 +122,7 @@ export default async function ObrasPage({
 
       {obraSelecionada && (
         <>
-          <div className="bg-white rounded-xl shadow p-4">
+          <div className="card">
             <h2 className="font-semibold text-primaryDark mb-2">Retenção mensal por pessoa</h2>
             <form method="get" className="flex items-center gap-2 mb-3">
               <input type="hidden" name="obra" value={obraSelecionada} />
@@ -148,11 +149,11 @@ export default async function ObrasPage({
                 <summary className="text-sm font-semibold text-primaryDark cursor-pointer">
                   ▶ Histórico de alterações de % de retenção ({log.length})
                 </summary>
-                <table className="w-full text-xs mt-2">
-                  <thead className="text-left text-gray-400">
+                <TabelaPaginada por={15} className="w-full text-xs mt-2" cabecalho={
+<thead className="text-left text-gray-400">
                     <tr><th className="p-1">Data</th><th className="p-1">Pessoa</th><th className="p-1">Antes</th><th className="p-1">Depois</th><th className="p-1">Vale a partir de</th></tr>
                   </thead>
-                  <tbody>
+}>
                     {log.map((l, i) => (
                       <tr key={i} className="border-t">
                         <td className="p-1">{new Date(l.alterado_em).toLocaleDateString("pt-BR")}</td>
@@ -162,13 +163,12 @@ export default async function ObrasPage({
                         <td className="p-1">{l.mes_aplicacao}</td>
                       </tr>
                     ))}
-                  </tbody>
-                </table>
+                  </TabelaPaginada>
               </details>
             )}
           </div>
 
-          <div className="bg-white rounded-xl shadow p-4">
+          <div className="card">
             <h2 className="font-semibold text-primaryDark mb-2">Tabela de serviços e valores</h2>
             {servicos && servicos.length > 0 && (
               <table className="w-full text-sm mb-3">
@@ -207,7 +207,7 @@ export default async function ObrasPage({
           </div>
 
           {/* ───────── EMPRESAS CONTRATADAS ───────── */}
-          <div className="bg-white rounded-xl shadow p-4">
+          <div className="card">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold text-primaryDark">Empresas Contratadas nesta Obra</h2>
               <a href="/admin/empresas" className="text-xs text-primary underline">
@@ -312,12 +312,12 @@ export default async function ObrasPage({
 
                 <div>
                   <label className="text-xs text-gray-500 block mb-1">Data início *</label>
-                  <DataCampo required />
+                  <DataCampo name="dataInicio" defaultValue={vinculoEditando?.data_inicio ?? ""} required />
                 </div>
 
                 <div>
                   <label className="text-xs text-gray-500 block mb-1">Data término</label>
-                  <DataCampo />
+                  <DataCampo name="dataTermino" defaultValue={vinculoEditando?.data_termino ?? ""} />
                 </div>
 
                 <div>

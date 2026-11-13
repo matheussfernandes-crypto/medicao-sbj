@@ -82,11 +82,11 @@ export default function NovoContratoForm({
       </label>
       <label className="flex flex-col gap-1 text-xs text-ink-500">
         Início
-        <DataCampo />
+        <DataCampo name="dataInicio" />
       </label>
       <label className="flex flex-col gap-1 text-xs text-ink-500">
         Término previsto
-        <DataCampo />
+        <DataCampo name="dataTermino" />
       </label>
       <label className="flex flex-col gap-1 text-xs text-ink-500">
         Retenção por medição (%)

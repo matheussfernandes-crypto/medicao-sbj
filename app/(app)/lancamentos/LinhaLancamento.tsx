@@ -230,7 +230,7 @@ export default function LinhaLancamento({
           editandoData ? (
             <form action={editarDataLancamento} className="flex items-center gap-1 mt-1 flex-wrap" onSubmit={() => setEditandoData(false)}>
               <input type="hidden" name="id" value={l.id} />
-              <DataCampo />
+              <DataCampo name="data" defaultValue={l.data} />
               <button type="submit" className="bg-primary text-white rounded px-2 py-0.5 text-xs">Salvar</button>
               <button type="button" onClick={() => setEditandoData(false)} className="bg-gray-200 rounded px-2 py-0.5 text-xs">✕</button>
             </form>

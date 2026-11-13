@@ -28,7 +28,7 @@ export default function FiltrosExtrato({ pessoas, obras }: Props) {
   const inp = "border rounded px-2 py-1.5 text-sm";
 
   return (
-    <form ref={formRef} onSubmit={submit} className="bg-white rounded-xl shadow p-4 flex flex-wrap gap-3 items-end">
+    <form ref={formRef} onSubmit={submit} className="card flex flex-wrap gap-3 items-end">
       <div className="flex flex-col gap-1">
         <label className="text-xs text-gray-500 font-medium">Empreiteiro</label>
         <Selecao name="pessoaId" defaultValue={sp.get("pessoaId") ?? ""} className={inp + " min-w-[200px]"}>
@@ -49,11 +49,11 @@ export default function FiltrosExtrato({ pessoas, obras }: Props) {
       </div>
       <div className="flex flex-col gap-1">
         <label className="text-xs text-gray-500 font-medium">Data inicial</label>
-        <DataCampo />
+        <DataCampo name="dataInicio" defaultValue={sp.get("dataInicio") ?? ""} />
       </div>
       <div className="flex flex-col gap-1">
         <label className="text-xs text-gray-500 font-medium">Data final</label>
-        <DataCampo />
+        <DataCampo name="dataFim" defaultValue={sp.get("dataFim") ?? ""} />
       </div>
       <div className="flex flex-col gap-1">
         <label className="text-xs text-gray-500 font-medium">Situação</label>

@@ -102,7 +102,7 @@ export default async function AuditoriaPage({
   const tabelasDisponiveis = Object.keys(TABELA_LABEL);
 
   return (
-    <>
+    <div className="space-y-5">
         <h1 className="text-xl font-semibold text-primaryDark">Log de auditoria</h1>
         <p className="text-sm text-gray-500">
           Histórico de criação, edição e exclusão registrado automaticamente pelo banco de dados. Mostra os últimos 200 registros.
@@ -162,6 +162,6 @@ export default async function AuditoriaPage({
             <p className="text-sm text-gray-400">Nenhum registro de auditoria ainda.</p>
           )}
         </div>
-    </>
+    </div>
   );
 }

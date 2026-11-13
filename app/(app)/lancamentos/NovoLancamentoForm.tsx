@@ -112,7 +112,7 @@ export default function NovoLancamentoForm({
           <option value="VALE">Vale</option>
           <option value="VALE_MEDICAO">Vale + Medição</option>
         </Selecao>
-        <DataCampo />
+        <DataCampo name="data" defaultValue={new Date().toISOString().slice(0, 10)} />
       </div>
 
       {mostrarValeReal && (

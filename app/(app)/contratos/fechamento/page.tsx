@@ -7,6 +7,7 @@ import { brl, num, pct, mesAtual, mesLabel, dataBR, dataHoraBR } from "@/lib/con
 import FormAcao from "@/components/contratos/FormAcao";
 import { fecharMesContrato, reabrirMesContrato } from "../actions";
 import Selecao from "@/components/ui/Selecao";
+import { TabelaPaginada } from "@/components/ui/anima";
 
 export default async function FechamentoContratosPage({
   searchParams,
@@ -169,9 +170,9 @@ export default async function FechamentoContratosPage({
           {(historico ?? []).length > 0 && (
             <section className="card space-y-2">
               <h2 className="font-semibold text-primaryDark">Meses fechados deste contrato</h2>
-              <table className="w-full text-sm">
-                <thead><tr className="text-left border-b"><th className="py-2">Mês</th><th className="py-2 text-right">Bruto</th><th className="py-2 text-right">Retenção</th><th className="py-2 text-right">Vales</th><th className="py-2 text-right">Líquido</th><th></th></tr></thead>
-                <tbody>
+              <TabelaPaginada por={15} className="w-full text-sm" cabecalho={
+<thead><tr className="text-left border-b"><th className="py-2">Mês</th><th className="py-2 text-right">Bruto</th><th className="py-2 text-right">Retenção</th><th className="py-2 text-right">Vales</th><th className="py-2 text-right">Líquido</th><th></th></tr></thead>
+}>
                   {(historico ?? []).map((f: any) => (
                     <tr key={f.id} className="border-b">
                       <td className="py-2"><Link href={`/contratos/fechamento?contrato=${contratoId}&mes=${f.mes_referencia}`} className="text-primary hover:underline">{mesLabel(f.mes_referencia)}</Link></td>
@@ -182,8 +183,7 @@ export default async function FechamentoContratosPage({
                       <td className="py-2 text-right"><a href={`/contratos/fechamento/pdf?contrato=${contratoId}&mes=${f.mes_referencia}`} target="_blank" rel="noreferrer" className="text-xs text-primary underline">PDF</a></td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
+                </TabelaPaginada>
             </section>
           )}
         </>

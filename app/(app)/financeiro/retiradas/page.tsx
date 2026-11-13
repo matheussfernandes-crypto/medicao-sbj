@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { salvarSaldoInicial, lancarRetirada, excluirRetirada } from "./actions";
 import Selecao from "@/components/ui/Selecao";
 import { DataCampo } from "@/components/ui/anima";
+import { TabelaPaginada } from "@/components/ui/anima";
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
@@ -70,7 +71,7 @@ export default async function RetiradasPage() {
       <a href="/financeiro/extrato-retidos" className="bg-primary text-white rounded px-4 py-2 text-sm font-medium hover:bg-primaryDark transition">Extrato de Retidos</a>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-4">
+      <div className="card">
         <h2 className="font-semibold text-primaryDark mb-2">Lançar retirada de valor retido</h2>
         <p className="text-xs text-gray-400 mb-2">
           Use quando um empreiteiro solicita receber, antes da hora, uma parte do que está retido com ele. O valor lançado aqui é abatido do saldo disponível dessa pessoa.
@@ -82,7 +83,7 @@ export default async function RetiradasPage() {
                 <option key={p.id} value={p.id}>{p.nome} — {nomeObra[p.obra_id] ?? "?"}</option>
               ))}
             </Selecao>
-            <DataCampo />
+            <DataCampo name="data" defaultValue={hojeISO()} />
             <input type="number" step="0.01" name="valor" placeholder="Valor (R$)" className="border rounded px-2 py-1 w-32" required />
             <input name="observacao" placeholder="Observação (opcional)" className="border rounded px-2 py-1 flex-1 min-w-[160px]" />
             <button className="bg-primary text-white rounded px-4 py-2">Lançar retirada</button>
@@ -92,20 +93,20 @@ export default async function RetiradasPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow p-4 overflow-x-auto">
+      <div className="card overflow-x-auto">
         <h2 className="font-semibold text-primaryDark mb-2">Saldo de retenção por pessoa</h2>
         <p className="text-xs text-gray-400 mb-2">
           Total retido (saldo inicial + medições aprovadas) menos o que já foi retirado — é o que ainda está disponível.
         </p>
         {pessoas && pessoas.length > 0 ? (
-          <table className="w-full text-sm">
-            <thead className="text-left text-gray-400">
+          <TabelaPaginada por={25} className="w-full text-sm" cabecalho={
+<thead className="text-left text-gray-400">
               <tr>
                 <th className="p-1">Pessoa</th><th className="p-1">Obra</th><th className="p-1">Saldo inicial</th>
                 <th className="p-1">Total retido</th><th className="p-1">Total retirado</th><th className="p-1">Saldo disponível</th>
               </tr>
             </thead>
-            <tbody>
+}>
               {pessoas.map((p) => {
                 const inicial = Number(p.saldo_inicial_retido ?? 0);
                 return (
@@ -126,8 +127,7 @@ export default async function RetiradasPage() {
                   </tr>
                 );
               })}
-            </tbody>
-          </table>
+            </TabelaPaginada>
         ) : (
           <p className="text-sm text-gray-400">Nenhuma pessoa cadastrada ainda.</p>
         )}
@@ -136,17 +136,17 @@ export default async function RetiradasPage() {
         </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-4 overflow-x-auto">
+      <div className="card overflow-x-auto">
         <h2 className="font-semibold text-primaryDark mb-2">Retiradas já lançadas</h2>
         {retiradas && retiradas.length > 0 ? (
-          <table className="w-full text-sm">
-            <thead className="text-left text-gray-400">
+          <TabelaPaginada por={20} className="w-full text-sm" cabecalho={
+<thead className="text-left text-gray-400">
               <tr>
                 <th className="p-1">Data</th><th className="p-1">Pessoa</th><th className="p-1">Obra</th>
                 <th className="p-1">Valor</th><th className="p-1">Observação</th><th className="p-1">Ações</th>
               </tr>
             </thead>
-            <tbody>
+}>
               {retiradas.map((r) => (
                 <tr key={r.id} className="border-t">
                   <td className="p-1">{new Date(r.data).toLocaleDateString("pt-BR")}</td>
@@ -162,8 +162,7 @@ export default async function RetiradasPage() {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+            </TabelaPaginada>
         ) : (
           <p className="text-sm text-gray-400">Nenhuma retirada de retido lançada ainda.</p>
         )}

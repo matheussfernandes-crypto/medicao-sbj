@@ -22,6 +22,11 @@ body {
   padding: 22px;
 }
 
+@layer base {
+  input, select, textarea, button { font-size: 0.875rem; line-height: 1.25rem; }
+  input::placeholder, textarea::placeholder { color: #9aa6ad; opacity: 1; }
+}
+
 table th {
   color: var(--muted);
   font-weight: 600;

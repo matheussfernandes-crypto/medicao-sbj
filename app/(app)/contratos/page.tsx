@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { exigirPerfil, listarContratos } from "@/lib/contratos/server";
 import { SETORES_VEEM_CONTRATO, brl, pct } from "@/lib/contratos/util";
 import Selecao from "@/components/ui/Selecao";
+import { TabelaPaginada } from "@/components/ui/anima";
 
 const STATUS_COR: Record<string, string> = {
   ATIVO: "badge-aprovado",
@@ -76,8 +77,8 @@ export default async function ContratosPage({
       </div>
 
       <div className="card-table table-scroll">
-        <table className="w-full text-sm">
-          <thead className="bg-surface-subtle">
+        <TabelaPaginada por={20} className="w-full text-sm" cabecalho={
+<thead className="bg-surface-subtle">
             <tr className="text-left">
               <th className="px-4 py-3">Nº</th>
               <th className="px-4 py-3">Obra</th>
@@ -89,7 +90,7 @@ export default async function ContratosPage({
               <th className="px-4 py-3">Status</th>
             </tr>
           </thead>
-          <tbody>
+}>
             {contratos.map((c) => (
               <tr key={c.id} className="border-t hover:bg-surface-subtle">
                 <td className="px-4 py-3 font-semibold text-primaryDark whitespace-nowrap">
@@ -117,8 +118,7 @@ export default async function ContratosPage({
             {!contratos.length && (
               <tr><td colSpan={8} className="px-4 py-8 text-center text-ink-400">Nenhum contrato encontrado.</td></tr>
             )}
-          </tbody>
-        </table>
+          </TabelaPaginada>
       </div>
     </div>
   );

@@ -43,7 +43,7 @@ export default function ItemEditor({ contratoId, item, temMedicao }: { contratoI
       </button>
       {aberto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setAberto(false)}>
-          <div className="w-full max-w-md bg-white rounded-xl shadow-panel p-5 text-left" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md card !p-0-panel p-5 text-left" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-primaryDark">Editar item</h3>
               <button type="button" onClick={() => setAberto(false)} className="text-ink-400 hover:text-ink-700" aria-label="Fechar"><X className="w-5 h-5" /></button>

@@ -203,7 +203,7 @@ export default async function ExtratoRetidosPage({
 
         {/* MODO INDIVIDUAL */}
         {pessoaSelecionada && (
-          <div className="bg-white rounded-xl shadow p-5 space-y-4">
+          <div className="card space-y-4">
             <div className="flex items-start justify-between flex-wrap gap-2">
               <div>
                 <h2 className="text-lg font-bold text-primaryDark">{pessoaSelecionada.nome}</h2>
@@ -277,7 +277,7 @@ export default async function ExtratoRetidosPage({
         {!pessoaId && (
           <div className="space-y-4">
             {/* Resumo geral */}
-            <div className="bg-white rounded-xl shadow p-5">
+            <div className="card">
               <h2 className="text-base font-semibold text-primaryDark mb-3">
                 Resumo Geral — {periodoLabel}
               </h2>
@@ -340,7 +340,7 @@ export default async function ExtratoRetidosPage({
 
             {/* Extratos individuais expandidos */}
             {extratosFiltrados.filter((e) => e.movs.length > 0).map((e) => (
-              <div key={e.id} className="bg-white rounded-xl shadow p-4">
+              <div key={e.id} className="card">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-primaryDark">{e.nome}</h3>
                   <div className="flex gap-4 text-right text-xs">

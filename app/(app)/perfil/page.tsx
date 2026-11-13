@@ -42,7 +42,7 @@ export default async function PerfilPage({
           <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl p-3">{searchParams.sucesso}</div>
         )}
 
-        <form action={salvarPerfil} className="bg-white rounded-xl shadow p-4 space-y-4">
+        <form action={salvarPerfil} className="card space-y-4">
           <div>
             <label className="block text-sm mb-1">Nome</label>
             <input

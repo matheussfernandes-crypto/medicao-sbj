@@ -77,7 +77,7 @@ export default function EditarLancamentoForm({
           <option value="VALE">Vale</option>
           <option value="VALE_MEDICAO">Vale + Medição</option>
         </Selecao>
-        <DataCampo />
+        <DataCampo name="data" defaultValue={lancamento.data} />
       </div>
 
       {mostrarValeReal && (

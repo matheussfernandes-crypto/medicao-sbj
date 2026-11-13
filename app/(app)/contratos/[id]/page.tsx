@@ -379,7 +379,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
             <FormAcao action={liberarRetencao} className="flex flex-wrap gap-2 items-end text-xs border-t pt-3" confirmar="Registrar liberação da retenção para a empresa?">
               <input type="hidden" name="contratoId" value={c.id} />
               <label className="flex flex-col gap-1">Valor (R$)<input name="valor" inputMode="decimal" required className="border rounded px-2 py-1.5 w-28" /></label>
-              <label className="flex flex-col gap-1">Data<DataCampo /></label>
+              <label className="flex flex-col gap-1">Data<DataCampo name="data" defaultValue={hojeISO()} /></label>
               <label className="flex flex-col gap-1 flex-1 min-w-[140px]">Observação<input name="observacao" placeholder="Ex.: fim da obra / garantia" className="border rounded px-2 py-1.5" /></label>
               <button className="bg-primary text-white rounded px-3 py-2 font-semibold">Liberar</button>
             </FormAcao>
@@ -448,8 +448,8 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
               </Selecao>
             </label>
             <label className="sm:col-span-2 flex flex-col gap-1">Objeto<input name="objeto" defaultValue={c.objeto} required className="border rounded px-3 py-2 text-sm" /></label>
-            <label className="flex flex-col gap-1">Início<DataCampo /></label>
-            <label className="flex flex-col gap-1">Término<DataCampo /></label>
+            <label className="flex flex-col gap-1">Início<DataCampo name="dataInicio" defaultValue={c.data_inicio ?? ""} /></label>
+            <label className="flex flex-col gap-1">Término<DataCampo name="dataTermino" defaultValue={c.data_termino ?? ""} /></label>
             <label className="sm:col-span-2 flex flex-col gap-1">Observações<textarea name="observacoes" defaultValue={c.observacoes ?? ""} rows={2} className="border rounded px-3 py-2 text-sm" /></label>
             <p className="sm:col-span-2 text-ink-400">Obra e empresa não mudam depois de criado (para não perder o histórico).</p>
             <button className="sm:col-span-2 bg-primary text-white rounded px-4 py-2 font-semibold w-fit">Salvar</button>

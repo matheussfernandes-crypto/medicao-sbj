@@ -116,7 +116,7 @@ export default function RetencaoForm({ pessoas, retencoesPorPessoa, obraId, mes 
       {/* Modal de confirmação */}
       {confirmando && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full mx-4">
+          <div className="card !p-0-lg p-6 max-w-sm w-full mx-4">
             <h3 className="font-bold text-lg mb-3" style={{ color: "#2c6975" }}>
               Atualizar retenção
             </h3>

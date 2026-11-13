@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { criarEmpresa, editarEmpresa, toggleEmpresaAtivo } from "./actions";
 import Selecao from "@/components/ui/Selecao";
+import PainelCadastro from "@/components/ui/PainelCadastro";
+import { TabelaPaginada } from "@/components/ui/anima";
 
 const UF_LIST = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
@@ -36,11 +38,8 @@ export default async function EmpresasPage({
     <div className="space-y-6">
         <h1 className="text-xl font-semibold text-primaryDark">Cadastro de Terceirizado</h1>
 
-        {/* Formulário criar / editar */}
-        <div className="bg-white rounded-xl shadow p-5">
-          <h2 className="font-semibold text-primaryDark mb-4">
-            {e ? `Editando: ${e.nome}` : "Cadastrar nova empresa"}
-          </h2>
+        {/* Formulário criar / editar: fechado por padrão; abre ao clicar em Cadastrar ou ao editar uma empresa */}
+        <PainelCadastro key={e?.id ?? "novo"} titulo={e ? `Editando: ${e.nome}` : "Cadastrar nova empresa"} rotuloBotao="Cadastrar empresa" abertoInicial={!!e}>
           <form
             action={e ? editarEmpresa : criarEmpresa}
             className="grid grid-cols-1 sm:grid-cols-2 gap-3"
@@ -141,12 +140,12 @@ export default async function EmpresasPage({
               )}
             </div>
           </form>
-        </div>
+        </PainelCadastro>
 
         {/* Lista */}
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-gray-400 text-xs uppercase tracking-wide">
+        <div className="card !p-0 overflow-hidden">
+          <TabelaPaginada por={15} className="w-full text-sm" cabecalho={
+<thead className="bg-gray-50 text-left text-gray-400 text-xs uppercase tracking-wide">
               <tr>
                 <th className="p-3">Empresa</th>
                 <th className="p-3">CNPJ / Insc. Mun.</th>
@@ -156,7 +155,7 @@ export default async function EmpresasPage({
                 <th className="p-3 text-center">Ações</th>
               </tr>
             </thead>
-            <tbody>
+}>
               {(empresas ?? []).length === 0 && (
                 <tr>
                   <td colSpan={6} className="p-4 text-center text-gray-400">Nenhuma empresa cadastrada ainda.</td>
@@ -213,8 +212,7 @@ export default async function EmpresasPage({
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+            </TabelaPaginada>
         </div>
     </div>
   );

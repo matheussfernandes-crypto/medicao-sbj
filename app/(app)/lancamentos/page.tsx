@@ -89,7 +89,7 @@ export default async function LancamentosPage({
   const mesesFechadosArr = (fechamentosObra ?? []).map((f) => `${f.tipo}-${f.mes_referencia}`);
 
   return (
-    <>
+    <div className="space-y-5">
         <h1 className="text-xl font-semibold text-primaryDark">Lançamentos — Medição &amp; Vale</h1>
 
         <div className="card">
@@ -151,6 +151,6 @@ export default async function LancamentosPage({
             )}
           </div>
         )}
-    </>
+    </div>
   );
 }

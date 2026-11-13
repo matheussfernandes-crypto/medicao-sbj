@@ -168,6 +168,7 @@ export function DataCampo({
   const [ano, setAno] = useState(Number(base.slice(0, 4)));
   const [mes, setMes] = useState(Number(base.slice(5, 7)) - 1);
   const [dir, setDir] = useState(0);
+  const [direita, setDireita] = useState(false); // abre alinhado à direita quando falta espaço
   const raiz = useRef<HTMLDivElement>(null);
   const botao = useRef<HTMLButtonElement>(null);
 
@@ -212,16 +213,18 @@ export function DataCampo({
           setAno(Number(b.slice(0, 4)));
           setMes(Number(b.slice(5, 7)) - 1);
           setDir(0);
+          const r = raiz.current?.getBoundingClientRect();
+          if (r) setDireita(r.left + 280 > window.innerWidth - 8 && r.right - 280 > 8);
           setAberto((a) => !a);
         }}
         aria-expanded={aberto}
-        className={`flex items-center gap-2 min-h-[36px] rounded-[10px] border border-border bg-white px-3 py-1.5 text-sm hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 ${value ? "text-ink-900" : "text-ink-400"} ${btnClassName}`}
+        className={`flex items-center gap-2 min-h-[40px] rounded-[10px] border border-border bg-white px-3 py-1.5 text-sm hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 ${value ? "text-ink-900" : "text-ink-400"} ${btnClassName}`}
       >
         <span className="tabular-nums">{rotulo}</span>
         <CalendarDays className="w-4 h-4 text-ink-500" />
       </button>
       {aberto && (
-        <div role="dialog" aria-label="Escolher a data" className={`sbj-pop absolute left-0 top-full mt-2 z-50 w-[272px] rounded-[14px] border border-border bg-white p-3 shadow-xl aberto`}>
+        <div role="dialog" aria-label="Escolher a data" className={`sbj-pop absolute ${direita ? "right-0" : "left-0"} top-full mt-2 z-50 w-[272px] max-w-[calc(100vw-16px)] rounded-[14px] border border-border bg-white p-3 shadow-xl aberto`}>
         <div className="flex items-center justify-between mb-2">
           <button type="button" onClick={() => mudaMes(-1)} className="w-8 h-8 rounded-lg text-ink-700 hover:bg-primary/10 hover:text-primary transition-colors" aria-label="Mês anterior">
             ‹

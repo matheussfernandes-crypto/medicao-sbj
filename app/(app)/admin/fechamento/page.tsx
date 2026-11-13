@@ -6,6 +6,7 @@ import { salvarConfigNotificacao, finalizarFechamentoMedicao, finalizarFechament
 import ConfirmDeleteButton from "../../lancamentos/ConfirmDeleteButton";
 import { calcularMedicao, saldoDeVales } from "@/lib/fechamento/medicao";
 import Selecao from "@/components/ui/Selecao";
+import { TabelaPaginada } from "@/components/ui/anima";
 
 function mesAtual() {
   return new Date().toISOString().slice(0, 7);
@@ -81,7 +82,7 @@ export default async function FechamentoPage({
   }
 
   return (
-    <>
+    <div className="space-y-5">
         <h1 className="text-xl font-semibold text-primaryDark">Fechamento mensal — Medição e Vale</h1>
         <p className="text-sm text-gray-500 -mt-2">
           Ao finalizar, o relatório em PDF (com as três assinaturas — Mestre, Estagiário, Engenheiro) é gerado e
@@ -261,8 +262,8 @@ export default async function FechamentoPage({
         <div className="card overflow-x-auto">
           <h2 className="font-semibold text-primaryDark mb-2">Histórico de fechamentos</h2>
           {historico && historico.length > 0 ? (
-            <table className="w-full text-sm">
-              <thead className="text-left text-gray-400">
+            <TabelaPaginada por={15} className="w-full text-sm" cabecalho={
+<thead className="text-left text-gray-400">
                 <tr>
                   <th className="p-1">Obra</th>
                   <th className="p-1">Tipo</th>
@@ -273,7 +274,7 @@ export default async function FechamentoPage({
                   <th className="p-1">Ações</th>
                 </tr>
               </thead>
-              <tbody>
+}>
                 {historico.map((h, i) => (
                   <tr key={i} className="border-t">
                     <td className="p-1">{nomeObra[h.obra_id] ?? "—"}</td>
@@ -307,12 +308,11 @@ export default async function FechamentoPage({
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
+              </TabelaPaginada>
           ) : (
             <p className="text-sm text-gray-400">Nenhum fechamento realizado ainda.</p>
           )}
         </div>
-    </>
+    </div>
   );
 }

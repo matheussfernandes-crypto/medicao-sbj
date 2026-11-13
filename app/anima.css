@@ -101,3 +101,14 @@ html.dark .av-amarelo { background: #2e2814 !important; border-color: #5c4a17 !i
 html.dark .av-amarelo2 { background: #2e2814 !important; border-color: #5c4a17 !important; color: #f0d58a; }
 html.dark .av-info { background: #13282c !important; border-color: #24464d !important; color: #9fd6df; }
 html.dark { --sbj-tit: #9fd6df; --sbj-tit2: #7fd0dc; --sbj-trilho: #2a3a3f; }
+
+/* campos de texto: mesma forma e mesmo foco em todo o site */
+input.rounded, input.rounded-md, input.rounded-lg, textarea.rounded, textarea.rounded-md, textarea.rounded-lg, .sbj-sel { border-radius: 10px; }
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"]):not([type="file"]):focus, textarea:focus { outline: none; border-color: #00687a; box-shadow: 0 0 0 3px rgba(0,104,122,.14); }
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):focus, html.dark textarea:focus { border-color: #5cc3d2; box-shadow: 0 0 0 3px rgba(92,195,210,.18); }
+:where(.sbj-sel) { font-size: 0.875rem; line-height: 1.25rem; }
+.sbj-sel { min-height: 40px; }
+.sbj-sel.py-1, .sbj-sel.py-0.5, .sbj-sel.py-1.5 { min-height: 30px; }
+html.dark input::placeholder, html.dark textarea::placeholder { color: #6f8488; }
+/* espaço entre o título da página e o texto de apoio */
+.sbj-sub { margin-top: -0.5rem; }

@@ -57,7 +57,7 @@ export default async function PessoasPage({
         <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl p-3">{searchParams.sucesso}</div>
       )}
 
-      <div className="bg-white rounded-xl shadow p-4">
+      <div className="card">
         <h2 className="font-semibold text-primaryDark mb-2">Cadastrar novo empreiteiro</h2>
         {obras && obras.length > 0 ? (
           <form action={criarPessoa} className="flex flex-wrap gap-2">
@@ -71,7 +71,7 @@ export default async function PessoasPage({
             <Selecao name="obraId" className="border rounded px-2 py-1">
               {obras.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
             </Selecao>
-            <DataCampo />
+            <DataCampo name="admissao" defaultValue={hoje} />
             <input name="retencao" type="number" min={0} max={100} placeholder="% retenção inicial" className="border rounded px-2 py-1 w-40" />
             <button className="bg-primary text-white rounded px-3 py-1">Cadastrar</button>
           </form>
@@ -83,7 +83,7 @@ export default async function PessoasPage({
         </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-4 overflow-x-auto">
+      <div className="card overflow-x-auto">
         <h2 className="font-semibold text-primaryDark mb-2">Resumo de pessoas — situação e tempo na empresa</h2>
         {pessoas && pessoas.length > 0 ? (
           <TabelaPaginada por={25} className="w-full text-sm" cabecalho={

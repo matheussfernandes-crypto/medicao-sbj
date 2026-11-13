@@ -7,6 +7,7 @@ import { reabrirLancamentoContrato } from "../actions";
 import AprovacaoCard from "./AprovacaoCard";
 import SolicitacaoCard from "./SolicitacaoCard";
 import Selecao from "@/components/ui/Selecao";
+import { TabelaPaginada } from "@/components/ui/anima";
 
 const TIPO_COR: Record<string, string> = {
   MEDICAO: "bg-primary/10 text-primaryDark",
@@ -187,9 +188,9 @@ export default async function AprovacoesContratosPage({
       <section className="card space-y-2">
         <h2 className="font-semibold text-primaryDark">Decididos recentemente</h2>
         <div className="table-scroll">
-          <table className="w-full text-sm">
-            <thead><tr className="text-left border-b"><th className="py-2 pr-2">Quando</th><th className="py-2 pr-2">Obra / contrato</th><th className="py-2 pr-2">Tipo</th><th className="py-2 pr-2 text-right">Valor</th><th className="py-2 pr-2">Status</th><th></th></tr></thead>
-            <tbody>
+          <TabelaPaginada por={15} className="w-full text-sm" cabecalho={
+<thead><tr className="text-left border-b"><th className="py-2 pr-2">Quando</th><th className="py-2 pr-2">Obra / contrato</th><th className="py-2 pr-2">Tipo</th><th className="py-2 pr-2 text-right">Valor</th><th className="py-2 pr-2">Status</th><th></th></tr></thead>
+}>
               {(recentes ?? []).map((l: any) => (
                 <tr key={l.id} className="border-b">
                   <td className="py-2 pr-2 whitespace-nowrap">{dataHoraBR(l.aprovado_em)}</td>
@@ -210,8 +211,7 @@ export default async function AprovacoesContratosPage({
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+            </TabelaPaginada>
         </div>
       </section>
     </div>

@@ -201,7 +201,7 @@ export default async function DashboardGastosPage({
   const totalAPagar = linhasPagar.reduce((s, l) => s + l.pagar, 0);
 
   return (
-    <>
+    <div className="space-y-5">
         <h1 className="text-xl font-semibold text-primaryDark">Dashboard de gastos</h1>
         <p className="text-sm text-gray-500">
           Visão geral dos valores aprovados (medições e vales). Mês de referência: {mesLabel(mesSelecionado)}.
@@ -379,6 +379,6 @@ export default async function DashboardGastosPage({
             Baixar relatório em PDF
           </a>
         </div>
-    </>
+    </div>
   );
 }

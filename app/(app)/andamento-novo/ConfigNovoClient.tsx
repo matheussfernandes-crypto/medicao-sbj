@@ -247,7 +247,7 @@ export default function ConfigNovoClient({ dados }: { dados: DadosConfig }) {
 
       {verExcluidas && excluidas.length > 0 && (
         <div className="card text-sm space-y-2">
-          <h2 className="font-semibold text-primaryDark">Obras excluídas do Andamento (novo)</h2>
+          <h2 className="font-semibold text-primaryDark">Obras excluídas do Andamento</h2>
           {excluidas.map((o) => {
             const dias = Math.max(0, 30 - Math.floor((Date.now() - new Date(o.excluida_em).getTime()) / 86400000));
             return (
@@ -1217,7 +1217,7 @@ function NovaObra(props: {
                 }}
                 className={campo}
               >
-                <option value="">Não ligar: obra só do Andamento (novo)</option>
+                <option value="">Não ligar: obra só do Andamento</option>
                 {props.obrasGerais.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.nome}

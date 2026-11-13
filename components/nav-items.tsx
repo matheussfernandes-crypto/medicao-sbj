@@ -17,7 +17,6 @@ import {
   ClipboardPen,
   CheckCheck,
   FileSpreadsheet,
-  Layers,
   Home,
   Coins,
   Settings,
@@ -67,20 +66,12 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Painel", href: "/dashboard", icon: LayoutDashboard, description: "Visão geral", secao: "inicio", grupo: "Início" },
 
   // ---- Obras ----
+  // a tela antiga (/andamento-obra) saiu em 13/11/2026: tudo dela já estava no novo; o endereço antigo leva para cá
   {
     label: "Andamento de Obra",
-    href: "/andamento-obra",
-    icon: HardHat,
-    description: "Fluxograma de andamento por pavimento e unidade, com relatório e histórico.",
-    allowedSetores: ["ESTAGIARIO", "ADMIN"],
-    secao: "obras",
-    grupo: "Andamento de Obra",
-  },
-  {
-    label: "Andamento (novo)",
     href: "/andamento-novo",
-    icon: Layers,
-    description: "Reformulação do Andamento: pavimentos, locais, categorias, serviços, pesos, relatórios e fachada.",
+    icon: HardHat,
+    description: "Andamento por pavimento e local, com fachada, relatórios, histórico e fotos.",
     allowedSetores: ["ADMIN"],
     extra: "andamento_novo",
     secao: "obras",

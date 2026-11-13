@@ -13,7 +13,7 @@ export const MODULOS = [
 export type ItemDef = { key: string; modulo: string; label: string; prefixos: string[] };
 
 export const ITENS: ItemDef[] = [
-  { key: "andamento_novo", modulo: "andamento_novo", label: "Andamento (novo)", prefixos: ["/andamento-novo"] },
+  { key: "andamento_novo", modulo: "andamento_novo", label: "Andamento de Obra", prefixos: ["/andamento-novo"] },
   { key: "posobra/vistorias", modulo: "posobra", label: "Vistorias e entrega", prefixos: ["/posobra/vistorias"] },
   { key: "posobra/empreendimentos", modulo: "posobra", label: "Empreendimentos", prefixos: ["/posobra/empreendimentos"] },
   { key: "posobra/clientes", modulo: "posobra", label: "Clientes", prefixos: ["/posobra/clientes"] },

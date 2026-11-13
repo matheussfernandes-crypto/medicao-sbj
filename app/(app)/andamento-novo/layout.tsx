@@ -17,8 +17,8 @@ export default async function AndamentoNovoLayout({ children }: { children: Reac
   return (
     <div className="space-y-4">
       <div className="print:hidden">
-        <h1 className="text-lg font-semibold text-primaryDark">Andamento de Obra (novo)</h1>
-        <p className="text-sm text-ink-500">Pavimentos, locais, sistemas e fachada, com cálculo ponderado. Em validação: a tela atual continua valendo.</p>
+        <h1 className="text-lg font-semibold text-primaryDark">Andamento de Obra</h1>
+        <p className="text-sm text-ink-500">Pavimentos, locais, sistemas e fachada, com cálculo ponderado.</p>
       </div>
       <AbasNovo />
       {children}

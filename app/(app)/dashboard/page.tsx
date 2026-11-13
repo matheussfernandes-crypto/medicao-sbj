@@ -53,9 +53,9 @@ export default async function DashboardPage() {
   const eventosAgenda: EventoCalendario[] = await agendaDoSetor(supabase, user!.email, (meuPerfil?.acessos as string[] | null) ?? [], setor);
 
   return (
-    <>
+    <div className="space-y-7">
       {/* saudação e, no lugar do subtítulo, o registro rápido */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <h1 className="text-xl font-semibold text-ink-900">
           Olá, {perfil?.nome_completo?.split(" ")[0] ?? "bem-vindo"}
         </h1>
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* atalhos do setor, escolhidos pela pessoa */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <p className="nav-group-label !text-ink-400 !px-0 !py-0">Acesso rápido</p>
           <PersonalizarAtalhos opcoes={acessiveis.map((i) => ({ href: i.href, label: i.label }))} escolhidos={atalhos.map((i) => i.href)} />
@@ -92,7 +92,7 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
           <div className="relative h-full">
             <Carousel slides={slides} intervalMs={14000} />
@@ -102,6 +102,6 @@ export default async function DashboardPage() {
         <MiniCalendar eventos={eventosAgenda} />
       </div>
 
-    </>
+    </div>
   );
 }

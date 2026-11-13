@@ -156,7 +156,8 @@ export default function LinhaLancamento({
           <p className="text-xs text-red-600 mt-0.5 max-w-[180px] break-words">{l.motivo_rejeicao}</p>
         )}
       </td>
-      <td className="p-1 space-y-1">
+      <td className="p-1">
+       <div className="flex flex-wrap items-center gap-1 min-w-[200px]">
         {ehAdmin && l.status === "PENDENTE" && (
           <div className="flex flex-wrap gap-1">
             {/* Aprovar individual (o lote está no toolbar acima da tabela) */}
@@ -235,11 +236,12 @@ export default function LinhaLancamento({
               <button type="button" onClick={() => setEditandoData(false)} className="bg-gray-200 rounded px-2 py-0.5 text-xs">✕</button>
             </form>
           ) : (
-            <button onClick={() => setEditandoData(true)} className="mt-1 bg-yellow-100 text-yellow-800 rounded px-2 py-0.5 text-xs">
+            <button onClick={() => setEditandoData(true)} className="bg-yellow-100 text-yellow-800 rounded px-2 py-0.5 text-xs">
               Data
             </button>
           )
         )}
+       </div>
       </td>
     </tr>
   );

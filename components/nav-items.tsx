@@ -176,7 +176,7 @@ export const NAV_ITEMS: NavItem[] = [
     grupo: "Entrega",
   },
   {
-    label: "Agenda de vistorias",
+    label: "Agenda",
     href: "/posobra/agenda",
     icon: CalendarDays,
     description: "Marcar as vistorias de entrega por dia e copiar o mês para o WhatsApp.",

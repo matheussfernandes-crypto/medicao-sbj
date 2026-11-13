@@ -70,7 +70,7 @@ const viewTitles = {
   tickets: ["Chamados", "Cadastro, status e acompanhamento das solicitações"],
   agenda: ["Agenda", "Etapas do Plano de Atendimento de todos os chamados, por data"],
   vistorias: ["Vistorias", "Pendências da entrega dos apartamentos, por ambiente"],
-  vtagenda: ["Agenda de vistorias", "Vistorias de entrega marcadas, por dia"],
+  vtagenda: ["Agenda", "Vistorias de entrega marcadas, por dia"],
   modifications: ["Modificações", "Solicitações de modificação de apartamento, da análise à finalização"],
   reports: ["Relatórios", "Por empreendimento, painel gerencial e exportação para Excel"],
 };

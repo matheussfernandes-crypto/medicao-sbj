@@ -141,7 +141,7 @@ function renderVistorias() {
       `}
       <div class="vt-acoes">
         <button type="button" class="btn primary" id="vt-folha">Realizar vistoria</button>
-        <button type="button" class="btn ghost" id="vt-agenda">Agenda de vistorias</button>
+        <button type="button" class="btn ghost" id="vt-agenda">Agenda</button>
         <button type="button" class="btn ghost" id="vt-relatorio">Gerar relatório</button>
         <button type="button" class="btn ghost" id="vt-importar">Importar planilha</button>
         <button type="button" class="btn ghost" id="vt-nova">Cadastrar pendências</button>

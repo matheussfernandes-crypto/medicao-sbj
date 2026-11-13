@@ -7,6 +7,7 @@ import { reabrirLancamentoContrato } from "../actions";
 import AprovacaoCard from "./AprovacaoCard";
 import SolicitacaoCard from "./SolicitacaoCard";
 import Selecao from "@/components/ui/Selecao";
+import FormFiltro from "@/components/ui/FormFiltro";
 import { TabelaPaginada } from "@/components/ui/anima";
 
 const TIPO_COR: Record<string, string> = {
@@ -68,7 +69,7 @@ export default async function AprovacoesContratosPage({
     <div className="space-y-5">
       <h1 className="text-xl font-semibold text-primaryDark">Autorização de medições</h1>
 
-      <form method="get" className="card !p-4 flex flex-wrap gap-2 items-end">
+      <FormFiltro className="card !p-4 flex flex-wrap gap-2 items-end">
         <label className="flex flex-col gap-1 text-xs text-ink-500 flex-1 min-w-[150px]">Obra
           <Selecao name="obra" defaultValue={searchParams.obra ?? ""} className="border rounded px-2 py-2 text-sm text-ink-900">
             <option value="">Todas</option>{(obras ?? []).map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
@@ -84,8 +85,7 @@ export default async function AprovacoesContratosPage({
             <option value="">Todos</option><option value="MEDICAO">Medição</option><option value="VALE">Vale</option><option value="VALE_MEDICAO">Vale de medição</option>
           </Selecao>
         </label>
-        <button className="bg-gray-100 border rounded px-4 py-2 text-sm">Filtrar</button>
-      </form>
+      </FormFiltro>
 
       {/* Solicitações de aditivo */}
       <section className="space-y-3">

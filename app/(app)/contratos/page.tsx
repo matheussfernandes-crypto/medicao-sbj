@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { exigirPerfil, listarContratos } from "@/lib/contratos/server";
 import { SETORES_VEEM_CONTRATO, brl, pct } from "@/lib/contratos/util";
 import Selecao from "@/components/ui/Selecao";
+import FormFiltro from "@/components/ui/FormFiltro";
 import { TabelaPaginada } from "@/components/ui/anima";
 
 const STATUS_COR: Record<string, string> = {
@@ -43,7 +44,7 @@ export default async function ContratosPage({
         )}
       </div>
 
-      <form method="get" className="card !p-4 flex flex-wrap gap-2 items-end">
+      <FormFiltro className="card !p-4 flex flex-wrap gap-2 items-end">
         <label className="flex flex-col text-xs text-ink-500 gap-1 flex-1 min-w-[160px]">
           Obra
           <Selecao name="obra" defaultValue={searchParams.obra ?? ""} className="border rounded px-2 py-2 text-sm text-ink-900">
@@ -67,8 +68,7 @@ export default async function ContratosPage({
             <option value="">Todos</option>
           </Selecao>
         </label>
-        <button className="bg-gray-100 border rounded px-4 py-2 text-sm">Filtrar</button>
-      </form>
+      </FormFiltro>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="stat-tile"><span className="stat-label">Valor contratado (atualizado)</span><span className="stat-value">{brl(totalContratado)}</span></div>

@@ -96,7 +96,12 @@ export default function Selecao({
   function escolher(o?: Opcao) {
     if (!o || o.desab) return;
     if (!controlado) setInterno(o.valor);
-    if (o.valor !== atual) onChange?.({ target: { value: o.valor } });
+    if (o.valor !== atual) {
+      onChange?.({ target: { value: o.valor } });
+      // dentro de um <FormFiltro>: avisa o formulário depois que o valor escondido foi atualizado
+      const f = btn.current?.closest("form[data-filtro-auto]");
+      if (f) setTimeout(() => f.dispatchEvent(new CustomEvent("filtro-mudou")), 30);
+    }
     fechar();
     btn.current?.focus();
   }

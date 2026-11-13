@@ -6,6 +6,7 @@ import PessoaLinha from "./PessoaLinha";
 import Selecao from "@/components/ui/Selecao";
 import { DataCampo } from "@/components/ui/anima";
 import { TabelaPaginada } from "@/components/ui/anima";
+import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
@@ -57,8 +58,7 @@ export default async function PessoasPage({
         <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl p-3">{searchParams.sucesso}</div>
       )}
 
-      <div className="card">
-        <h2 className="font-semibold text-primaryDark mb-2">Cadastrar novo empreiteiro</h2>
+      <SecaoRecolhivel chave="rh-cadastro" titulo="Cadastrar novo empreiteiro">
         {obras && obras.length > 0 ? (
           <form action={criarPessoa} className="flex flex-wrap gap-2">
             <input name="nome" placeholder="Nome da pessoa" className="border rounded px-2 py-1 flex-1 min-w-[160px]" required />
@@ -81,7 +81,7 @@ export default async function PessoasPage({
         <p className="text-xs text-gray-400 mt-2">
           O Mestre de uma obra é quem assina &quot;Conferido por&quot; nas folhas de medição/vale daquela obra.
         </p>
-      </div>
+      </SecaoRecolhivel>
 
       <div className="card overflow-x-auto">
         <h2 className="font-semibold text-primaryDark mb-2">Resumo de pessoas — situação e tempo na empresa</h2>

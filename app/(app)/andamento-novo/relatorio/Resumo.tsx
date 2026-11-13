@@ -610,8 +610,8 @@ export default function Resumo({ ctx, escopo, largura, altura, fotos = [], fotos
                     <div key={s.id} className="mb-1.5">
                       <div className="flex items-center gap-2 text-[12px]">
                         <b className="truncate flex-1">{s.nome}</b>
-                        {p >= 80 && <span className="text-[10px] rounded px-1" style={{ background: "#e3f4e8", color: "#1f7a42" }}>quase pronto</span>}
-                        {p < 20 && <span className="text-[10px] rounded px-1" style={{ background: "#fdf0d8", color: "#9a6200" }}>começando</span>}
+                        {p >= 80 && <span className="text-[10px] rounded px-1" style={{ background: "#e3f4e8", color: "#1f7a42" }}>fase de finalização</span>}
+                        {p < 20 && <span className="text-[10px] rounded px-1" style={{ background: "#fdf0d8", color: "#9a6200" }}>iniciado</span>}
                         <b>{fmtPct0(p)}%</b>
                       </div>
                       <div className="rounded-full overflow-hidden" style={{ height: 6, background: "#e3e7e9" }}>

@@ -1,0 +1,56 @@
+/* Agenda de vistorias de entrega (js/vistoria-agenda.js). Usa as variáveis do módulo; no modo escuro o site injeta
+   --surface/--text/--border e os blocos acompanham. */
+#view-vtagenda { --va-fundo: var(--surface, var(--panel, #fff)); --va-linha: var(--border, #e2e6ec); --va-texto: var(--text, #1c2530); --va-suave: var(--text-muted, #6b7686); }
+
+.va-rapido { display: flex; gap: 10px; margin-bottom: 14px; }
+.va-rapido input { flex: 1; min-width: 0; height: 44px; padding: 0 14px; border: 1px solid var(--va-linha); border-radius: 12px; background: var(--va-fundo); color: var(--va-texto); font: inherit; font-size: 14px; }
+.va-rapido input:focus { outline: none; border-color: var(--primary, #0C6B76); box-shadow: 0 0 0 3px rgba(12, 107, 118, .15); }
+.va-rapido .btn { height: 44px; padding: 0 18px; }
+
+.va-barra { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.va-mes { display: flex; align-items: center; gap: 8px; }
+.va-mes h2 { margin: 0 6px; font-size: 22px; text-transform: capitalize; color: var(--va-texto); min-width: 190px; text-align: center; }
+.va-mes .btn { min-width: 40px; }
+.va-acoes { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.va-acoes .vt-campo { min-width: 200px; }
+.va-resumo { font-size: 13px; color: var(--va-suave); margin: 4px 2px 12px; }
+.va-resumo strong { color: var(--va-texto); }
+.va-estado { margin-left: 10px; font-style: italic; }
+
+.va-grade-wrap { border: 1px solid var(--va-linha); border-radius: 14px; overflow: hidden; background: var(--va-fundo); }
+.va-cab { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); background: rgba(12, 107, 118, .08); }
+.va-cab > div { padding: 10px 12px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--primary-dark, #094F58); }
+.va-grade { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.va-cel { min-height: 118px; padding: 8px 8px 10px; border-top: 1px solid var(--va-linha); border-left: 1px solid var(--va-linha); display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: background .15s; }
+.va-cel:nth-child(7n + 1) { border-left: 0; }
+.va-cel:hover { background: rgba(12, 107, 118, .05); }
+.va-cel.fora { opacity: .45; cursor: default; }
+.va-cel.fora:hover { background: none; }
+.va-cel.fds { background: rgba(120, 130, 140, .06); }
+.va-dia-n { display: flex; align-items: baseline; justify-content: space-between; }
+.va-dia-n span { font-size: 14px; font-weight: 600; color: var(--va-suave); }
+.va-dia-n em { display: none; font-style: normal; font-size: 11px; color: var(--va-suave); }
+.va-cel.hoje .va-dia-n span { background: var(--primary, #0C6B76); color: #fff; border-radius: 999px; padding: 1px 9px; }
+.va-ev { text-align: left; border: 0; border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 13px; line-height: 1.25; color: var(--primary-dark, #094F58); background: rgba(12, 107, 118, .12); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.va-ev:hover { background: rgba(12, 107, 118, .22); }
+.va-ev b { font-weight: 800; }
+.va-ev small { opacity: .75; }
+.va-ev.realizada { color: #1f7a42; background: rgba(31, 138, 76, .14); }
+.va-ev.cancelada { color: var(--va-suave); background: rgba(120, 130, 140, .12); text-decoration: line-through; }
+
+.va-rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.va-rodape .va-esp { flex: 1; }
+.va-aviso { margin-top: 10px; padding: 8px 12px; border-radius: 10px; background: rgba(185, 119, 14, .14); font-size: 13px; }
+.va-aviso.ok { background: rgba(31, 138, 76, .14); }
+
+.vf-agendadas { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border, #e2e6ec); }
+
+@media (max-width: 760px) {
+  .va-rapido { flex-direction: column; }
+  .va-cab { display: none; }
+  .va-grade { display: flex; flex-direction: column; }
+  .va-cel { min-height: 0; border-left: 0; }
+  .va-cel.vazia, .va-cel.fora { display: none; }
+  .va-dia-n em { display: inline; }
+  .va-mes h2 { min-width: 0; font-size: 18px; }
+}

@@ -9,6 +9,7 @@ import CarregandoSBJ from "@/components/CarregandoSBJ";
 // de tela vem do menu do site (/posobra/<tela>). O módulo não é alterado: só recebe um estilo extra.
 const TELAS: Record<string, string> = {
   vistorias: "vistorias",
+  agenda: "vtagenda",
   empreendimentos: "buildings",
   clientes: "clients",
   fornecedores: "suppliers",

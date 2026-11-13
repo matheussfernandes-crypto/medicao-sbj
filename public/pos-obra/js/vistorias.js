@@ -141,6 +141,7 @@ function renderVistorias() {
       `}
       <div class="vt-acoes">
         <button type="button" class="btn primary" id="vt-folha">Realizar vistoria</button>
+        <button type="button" class="btn ghost" id="vt-agenda">Agenda de vistorias</button>
         <button type="button" class="btn ghost" id="vt-relatorio">Gerar relatório</button>
         <button type="button" class="btn ghost" id="vt-importar">Importar planilha</button>
         <button type="button" class="btn ghost" id="vt-nova">Cadastrar pendências</button>
@@ -156,6 +157,7 @@ function renderVistorias() {
   root.querySelector("#vt-importar").addEventListener("click", vtEscolherPlanilha);
   root.querySelector("#vt-relatorio").addEventListener("click", vtAbrirRelatorio);
   root.querySelector("#vt-folha").addEventListener("click", vfAbrir);
+  root.querySelector("#vt-agenda").addEventListener("click", () => showView("vtagenda"));
   root.querySelectorAll("[data-vt-modo]").forEach(b => b.addEventListener("click", () => { vtModo = b.dataset.vtModo; vtLimitePlanilha = 300; renderVistorias(); }));
   if (plan) vtRenderPlanilha(root); else vtRenderGrade(root);
   if (window.SBJSync) SBJSync.avisar();

@@ -1,6 +1,6 @@
 /* Service worker: deixa o site abrir e funcionar SEM INTERNET depois da primeira visita.
    (Arquivo gerado por gerar-sw.py a partir de sw.modelo.js. Só funciona em endereço seguro: https:// ou localhost.) */
-const VERSAO = "92a7cf645f";
+const VERSAO = "b2df7ad111";
 const CACHE = "posobra-" + VERSAO;
 const CACHE_EXTRA = "posobra-extra"; // fontes e outros arquivos de fora
 const ARQUIVOS = [
@@ -12,6 +12,7 @@ const ARQUIVOS = [
   "assets/logo-sbj-pdf.png",
   "assets/logo-sbj.png",
   "assets/logo-sbj.svg",
+  "css/agenda-vistorias.css",
   "css/intro.css",
   "css/mobile.css",
   "css/redesign.css",
@@ -50,6 +51,7 @@ const ARQUIVOS = [
   "js/ticket-cockpit.js",
   "js/ticket-novo.js",
   "js/tickets.js",
+  "js/vistoria-agenda.js",
   "js/vistoria-folha.js",
   "js/vistoria-fotos.js",
   "js/vistorias.js",

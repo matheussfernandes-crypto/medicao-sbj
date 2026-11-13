@@ -67,6 +67,19 @@ function vfAbrir() {
   const campeche = state.buildings.find(b => b.id === vtFiltroPredio) || state.buildings.find(b => /campeche/i.test(b.name)) || state.buildings[0];
   vf = { etapa: "inicio", buildingId: campeche.id, unit: "", date: todayISODate(), resp: localStorage.getItem("posvenda_vf_resp") || "", suites: 1, dorms: 2, opc: { demi: true, lavabo: true, sacada: true, tec: true }, ambs: [], marcas: {} };
   renderVistorias();
+  /* atualiza a agenda em segundo plano; se nada foi digitado ainda, redesenha com as agendadas mais novas */
+  if (typeof vaCarregar === "function") vaCarregar().then(() => { if (vf && vf.etapa === "inicio" && !vf.unit && !vf.agendaId) renderVistorias(); });
+}
+
+/* Realizar vistoria a partir de uma vistoria agendada: já vem com obra, apartamento e responsável */
+function vfIniciarAgendada(a) {
+  const rasc = vfRascunhoLer();
+  if (rasc && !confirm("Há uma vistoria em andamento (apto " + (rasc.unit || "sem número") + "). Descartar para começar a do apto " + a.unit + "?")) return;
+  if (rasc) vfRascunhoApagar();
+  const b = getBuilding(a.buildingId) || state.buildings[0];
+  if (!b) return;
+  vf = { etapa: "inicio", buildingId: b.id, unit: a.unit, date: todayISODate(), resp: a.resp || localStorage.getItem("posvenda_vf_resp") || "", suites: 1, dorms: 2, opc: { demi: true, lavabo: true, sacada: true, tec: true }, ambs: [], marcas: {}, agendaId: a.id };
+  renderVistorias(); window.scrollTo({ top: 0 });
 }
 function vfSair() { if (vf && vf.etapa !== "final") vfRascunhoSalvar(); vf = null; renderVistorias(); }
 
@@ -81,6 +94,17 @@ function vfRender(root) {
   vfRenderFolha(root);
 }
 
+/* vistorias agendadas que dá para começar agora (vêm da agenda de vistorias) */
+function vfAgendadasHTML() {
+  if (typeof vaAgendadasParaFazer !== "function") return "";
+  const lista = vaAgendadasParaFazer();
+  if (!lista.length) return "";
+  const hoje = todayISODate();
+  const quando = (x) => x.date === hoje ? "hoje" : fmtDate(x.date).slice(0, 5);
+  return `<div class="vf-agendadas"><div class="vt-rot">Vistorias agendadas — toque para começar</div>
+    <div class="vt-chips">${lista.slice(0, 12).map(x => `<button type="button" class="vt-chip ${vf && vf.agendaId === x.id ? "ativo" : ""}" data-vf-ag="${escapeHtml(x.id)}">${quando(x)}${x.hora ? " · " + escapeHtml(x.hora.replace(/^0/, "")) : ""} · apto ${escapeHtml(x.unit)}${x.nome ? " · " + escapeHtml(String(x.nome).split(" ")[0]) : ""}</button>`).join("")}${vf && vf.agendaId ? `<button type="button" class="vt-chip" id="vf-ag-limpar">Outra (não agendada)</button>` : ""}</div></div>`;
+}
+
 /* ---------- 1) dados do apartamento ---------- */
 function vfRenderInicio(root) {
   const b = getBuilding(vf.buildingId);
@@ -88,6 +112,7 @@ function vfRenderInicio(root) {
     <div class="vt-topo"><button type="button" class="btn ghost small" id="vf-voltar">← Vistorias</button>
       <div class="vt-titulo"><h2>Realizar vistoria</h2><span>Marque o que está errado em cada ambiente. Ao salvar, cada item errado vira uma pendência.</span></div></div>
     <div class="panel vf-inicio">
+      ${vfAgendadasHTML()}
       <div class="vt-linha2">
         <label class="vt-campo">Obra<select id="vf-obra">${state.buildings.map(x => `<option value="${x.id}" ${x.id === vf.buildingId ? "selected" : ""}>${escapeHtml(x.name)}</option>`).join("")}</select></label>
         <label class="vt-campo">Apartamento<input type="text" id="vf-unit" placeholder="ex: 704" value="${escapeHtml(vf.unit)}" autocomplete="off"></label>
@@ -108,6 +133,11 @@ function vfRenderInicio(root) {
   $("vf-voltar").onclick = vfSair;
   const desc = $("vf-descartar"); if (desc) desc.onclick = () => { if (confirm("Descartar a vistoria em andamento? O que foi marcado será perdido.")) { vfRascunhoApagar(); vf = null; vfAbrir(); } };
   const guarda = () => { vf.buildingId = $("vf-obra").value; vf.unit = $("vf-unit").value.trim(); vf.date = $("vf-data").value || todayISODate(); vf.resp = $("vf-resp").value.trim(); };
+  root.querySelectorAll("[data-vf-ag]").forEach(c => c.onclick = () => {
+    const a = (typeof va !== "undefined" ? va.lista : []).find(x => x.id === c.dataset.vfAg); if (!a) return;
+    guarda(); vf.buildingId = a.buildingId; vf.unit = a.unit; vf.agendaId = a.id; if (a.resp) vf.resp = a.resp; renderVistorias();
+  });
+  const semAg = root.querySelector("#vf-ag-limpar"); if (semAg) semAg.onclick = () => { guarda(); vf.agendaId = ""; renderVistorias(); };
   root.querySelectorAll("[data-vf-n]").forEach(c => c.onclick = () => { guarda(); vf[c.dataset.vfN] = Number(c.dataset.v); renderVistorias(); });
   root.querySelectorAll("[data-vf-o]").forEach(c => c.onclick = () => { guarda(); vf.opc[c.dataset.vfO] = !vf.opc[c.dataset.vfO]; renderVistorias(); });
   $("vf-comecar").onclick = () => {
@@ -252,6 +282,7 @@ function vfSalvar() {
     v.items.push({ id: vtId("it"), ambiente: i.ambiente, tipo: i.tipo, descricao: i.descricao, feito: false, feitoEm: "", fotos: i.fotos }); novos++;
   });
   persist(); vfRascunhoApagar();
+  if (typeof vaMarcarRealizada === "function") { if (vf.agendaId) vaMarcarRealizada(vf.agendaId, v.id); else if (typeof vaAutoRealizada === "function") vaAutoRealizada(v); }
   vf = { etapa: "final", vid: v.id, novos }; renderVistorias(); window.scrollTo({ top: 0 });
   toast(!itens.length ? `Vistoria do apto ${v.unit} salva, sem pendências.` : `${novos} pendência${novos === 1 ? "" : "s"} salva${novos === 1 ? "" : "s"} no apto ${v.unit}.`, "success");
 }

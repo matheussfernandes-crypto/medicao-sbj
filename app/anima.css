@@ -25,8 +25,8 @@
 .sbj-pg-btn.atual { background: #00687a; border-color: #00687a; color: #fff; }
 
 /* janelinhas (calendário etc.) */
-.sbj-pop { transform-origin: top left; opacity: 0; transform: translateY(-6px) scale(.96); pointer-events: none; transition: opacity .18s ease, transform .2s cubic-bezier(.22,1,.36,1); }
-.sbj-pop.aberto { opacity: 1; transform: none; pointer-events: auto; }
+.sbj-pop { transform-origin: top left; animation: sbjPopIn .2s cubic-bezier(.22,1,.36,1) backwards; }
+@keyframes sbjPopIn { from { opacity: 0; transform: translateY(-6px) scale(.96); } to { opacity: 1; transform: none; } }
 
 /* abas com marcador que desliza */
 .sbj-abas { position: relative; display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 14px; background: #eef2f3; border: 1px solid #e3e8ea; width: fit-content; max-width: 100%; }
@@ -41,7 +41,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sbj-recolhe, .sbj-abas-marca, .sbj-pop { transition: none; }
-  .sbj-pg-dir, .sbj-pg-esq, .sbj-entra, .sbj-conteudo { animation: none; }
+  .sbj-pg-dir, .sbj-pg-esq, .sbj-entra, .sbj-conteudo, .sbj-pop { animation: none; }
 }
 
 /* modo escuro */

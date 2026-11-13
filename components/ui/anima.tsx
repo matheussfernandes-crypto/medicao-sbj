@@ -220,7 +220,8 @@ export function DataCampo({
         <span className="tabular-nums">{rotulo}</span>
         <CalendarDays className="w-4 h-4 text-ink-500" />
       </button>
-      <div role="dialog" aria-label="Escolher a data" className={`sbj-pop absolute left-0 top-full mt-2 z-50 w-[272px] rounded-[14px] border border-border bg-white p-3 shadow-xl ${aberto ? "aberto" : ""}`}>
+      {aberto && (
+        <div role="dialog" aria-label="Escolher a data" className={`sbj-pop absolute left-0 top-full mt-2 z-50 w-[272px] rounded-[14px] border border-border bg-white p-3 shadow-xl aberto`}>
         <div className="flex items-center justify-between mb-2">
           <button type="button" onClick={() => mudaMes(-1)} className="w-8 h-8 rounded-lg text-ink-700 hover:bg-primary/10 hover:text-primary transition-colors" aria-label="Mês anterior">
             ‹
@@ -263,6 +264,7 @@ export function DataCampo({
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 }

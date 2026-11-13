@@ -12,7 +12,7 @@ const VA_DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 const va = { lista: [], mes: "", obra: "", ok: false, erro: "", carregando: false };
 (function () {
   try { va.lista = JSON.parse(localStorage.getItem(VA_CACHE) || "[]") || []; } catch (e) { va.lista = []; }
-  va.mes = todayISODate().slice(0, 7);
+  /* o mês aberto só é definido quando a tela é desenhada (este arquivo carrega antes do app.js) */
 })();
 
 function vaGuardarCache() { try { localStorage.setItem(VA_CACHE, JSON.stringify(va.lista)); } catch (e) { /* sem armazenamento */ } }
@@ -68,6 +68,7 @@ function vaDoMes() {
 function renderVtAgenda() {
   const root = document.getElementById("view-vtagenda");
   if (!root || !root.classList.contains("active")) return;
+  if (!va.mes) va.mes = todayISODate().slice(0, 7);
   if (!va.ok && !va.carregando && !va.erro) vaCarregar();
 
   const [ano, mes] = va.mes.split("-").map(Number);

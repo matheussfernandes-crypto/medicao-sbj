@@ -158,13 +158,13 @@ export function eventoDaVisita(v: Doc, b: Base) {
   const feita = a.status === "concluido";
   const hora = /^\d{2}:\d{2}$/.test(a.hora || "") ? a.hora : "";
   // título: horário - apto - obra - quem vai (o tipo vai na descrição)
-  const summary = (feita ? "✓ " : "") + [hora, unidade, obraCurta(e.nome), r.nome].filter(Boolean).join(" - ");
+  const summary = (feita ? "✓ " : "") + [hora, unidade, obraCurta(e.nome), r.nome || a.cargo].filter(Boolean).join(" - ");
   const description = [
     TIPO[a.tipo] || "Visita",
     c.num ? `Chamado #${c.num}${c.cat ? " · " + c.cat : ""}` : "",
     c.amb ? "Ambiente: " + c.amb : "",
     c.desc ? String(c.desc).slice(0, 600) : "",
-    r.nome ? `Responsável: ${r.nome}${r.esp ? " (" + r.esp + ")" : ""}` : "",
+    r.nome ? `Responsável: ${r.nome}${r.esp ? " (" + r.esp + ")" : ""}` : a.cargo ? `Cargo: ${a.cargo} (responsável ainda não definido)` : "",
     feita ? "Visita realizada." : "",
     "",
     "Marcado pelo site SBJ. Para alterar, use a Agenda do Pós-venda no site: mudanças feitas aqui no Google são substituídas.",

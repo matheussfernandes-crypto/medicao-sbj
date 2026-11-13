@@ -65,3 +65,6 @@ html.dark .bg-primary\/5 { background-color: rgba(92,195,210,.08); }
 html.dark .bg-primary\/10 { background-color: rgba(92,195,210,.12); }
 html.dark .bg-primary\/15 { background-color: rgba(92,195,210,.16); }
 html.dark .border-primary { border-color: #3fa9b9; }
+
+/* linhas divisórias (divide-y) também no tom escuro */
+html.dark [class*="divide-"] > :not([hidden]) ~ :not([hidden]) { border-color: #2a3a3f; }

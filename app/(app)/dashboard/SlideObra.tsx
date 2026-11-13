@@ -6,7 +6,7 @@ import type { FotoPainel, ProgressoObra } from "./painel-obras";
 
 // Slide de uma obra na página inicial: fotos recentes passando à esquerda e, à direita,
 // o andamento com os serviços da fase atual (o texto alterna entre a % e o pavimento onde estão).
-const COR = { fin: "#1f8a4c", and: "#f59e0b", nao: "#e5e7eb" };
+const COR = { fin: "#1f8a4c", and: "#f59e0b", nao: "var(--sbj-trilho, #e5e7eb)" };
 const fmt = (v: number) => String(Math.round(v));
 const dataBR = (iso: string) => iso.split("-").reverse().join("/");
 
@@ -136,7 +136,7 @@ export default function SlideObra({ p, fotos, ativo }: { p: ProgressoObra; fotos
                         )}
                       </span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-[#e5e7eb] overflow-hidden mt-1">
+                    <div className="h-1.5 rounded-full bg-[var(--sbj-trilho,#e5e7eb)] overflow-hidden mt-1">
                       <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${Math.min(100, s.pct)}%`, background: s.pct >= 100 ? COR.fin : COR.and }} />
                     </div>
                   </div>

@@ -6,7 +6,8 @@ import { salvarConfigNotificacao, finalizarFechamentoMedicao, finalizarFechament
 import ConfirmDeleteButton from "../../lancamentos/ConfirmDeleteButton";
 import { calcularMedicao, saldoDeVales } from "@/lib/fechamento/medicao";
 import Selecao from "@/components/ui/Selecao";
-import { TabelaPaginada } from "@/components/ui/anima";
+import TabelaFiltravel from "@/components/ui/TabelaFiltravel";
+import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
 
 function mesAtual() {
   return new Date().toISOString().slice(0, 7);
@@ -259,10 +260,17 @@ export default async function FechamentoPage({
           </>
         )}
 
-        <div className="card overflow-x-auto">
-          <h2 className="font-semibold text-primaryDark mb-2">Histórico de fechamentos</h2>
+        <SecaoRecolhivel chave="fech-historico" titulo="Histórico de fechamentos">
           {historico && historico.length > 0 ? (
-            <TabelaPaginada por={15} className="w-full text-sm" cabecalho={
+            <TabelaFiltravel
+              por={15}
+              className="w-full text-sm"
+              filtros={[
+                { tipo: "selecao", chave: "obra", rotulo: "Obra" },
+                { tipo: "selecao", chave: "tipo", rotulo: "Tipo" },
+                { tipo: "periodo", chave: "data", rotulo: "Fechado em" },
+              ]}
+              cabecalho={
 <thead className="text-left text-gray-400">
                 <tr>
                   <th className="p-1">Obra</th>
@@ -274,8 +282,11 @@ export default async function FechamentoPage({
                   <th className="p-1">Ações</th>
                 </tr>
               </thead>
-}>
-                {historico.map((h, i) => (
+}
+              itens={historico.map((h, i) => ({
+                id: String(h.id ?? i),
+                d: { obra: nomeObra[h.obra_id] ?? "—", tipo: h.tipo === "MEDICAO" ? "Medição" : "Vale", data: new Date(h.fechado_em).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }) },
+                linha: (
                   <tr key={i} className="border-t">
                     <td className="p-1">{nomeObra[h.obra_id] ?? "—"}</td>
                     <td className="p-1">
@@ -307,12 +318,13 @@ export default async function FechamentoPage({
                       </form>
                     </td>
                   </tr>
-                ))}
-              </TabelaPaginada>
+                ),
+              }))}
+            />
           ) : (
             <p className="text-sm text-gray-400">Nenhum fechamento realizado ainda.</p>
           )}
-        </div>
+        </SecaoRecolhivel>
     </div>
   );
 }

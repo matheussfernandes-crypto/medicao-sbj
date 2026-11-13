@@ -3,7 +3,8 @@ import { FileDown } from "lucide-react";
 import { exigirPerfil } from "@/lib/contratos/server";
 import { brl, mesLabel, dataHoraBR } from "@/lib/contratos/util";
 import Selecao from "@/components/ui/Selecao";
-import { TabelaPaginada } from "@/components/ui/anima";
+import TabelaFiltravel from "@/components/ui/TabelaFiltravel";
+import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
 
 export default async function HistoricoContratosPage({
   searchParams,
@@ -46,11 +47,15 @@ export default async function HistoricoContratosPage({
         <button className="bg-primary text-white rounded px-4 py-2 text-sm font-semibold">Filtrar</button>
       </form>
 
-      <section className="card overflow-x-auto">
+      <SecaoRecolhivel chave="contratos-historico" titulo="Medições fechadas">
         {filtrada.length === 0 ? (
           <p className="text-sm text-ink-400">Nenhuma medição fechada ainda. Os PDFs aparecem aqui depois do fechamento do mês.</p>
         ) : (
-          <TabelaPaginada por={20} className="w-full text-sm" cabecalho={
+          <TabelaFiltravel
+            por={20}
+            className="w-full text-sm"
+            filtros={[{ tipo: "periodo", chave: "data", rotulo: "Fechado em" }]}
+            cabecalho={
 <thead>
               <tr className="text-left border-b text-ink-500">
                 <th className="py-2 pr-3">Mês</th>
@@ -65,8 +70,11 @@ export default async function HistoricoContratosPage({
                 <th className="py-2"></th>
               </tr>
             </thead>
-}>
-              {filtrada.map((f) => (
+}
+            itens={filtrada.map((f) => ({
+              id: String(f.id),
+              d: { data: f.fechado_em ? new Date(f.fechado_em).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }) : "" },
+              linha: (
                 <tr key={f.id} className="border-b">
                   <td className="py-2 pr-3 whitespace-nowrap">{mesLabel(f.mes_referencia)}</td>
                   <td className="py-2 pr-3">{f.contratos?.obras?.nome}</td>
@@ -86,10 +94,11 @@ export default async function HistoricoContratosPage({
                     </a>
                   </td>
                 </tr>
-              ))}
-            </TabelaPaginada>
+              ),
+            }))}
+          />
         )}
-      </section>
+      </SecaoRecolhivel>
     </div>
   );
 }

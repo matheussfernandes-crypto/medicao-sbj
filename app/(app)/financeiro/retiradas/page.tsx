@@ -4,7 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { salvarSaldoInicial, lancarRetirada, excluirRetirada } from "./actions";
 import Selecao from "@/components/ui/Selecao";
 import { DataCampo } from "@/components/ui/anima";
-import { TabelaPaginada } from "@/components/ui/anima";
+import TabelaFiltravel from "@/components/ui/TabelaFiltravel";
+import PainelCadastro from "@/components/ui/PainelCadastro";
+import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
@@ -71,9 +73,8 @@ export default async function RetiradasPage() {
       <a href="/financeiro/extrato-retidos" className="bg-primary text-white rounded px-4 py-2 text-sm font-medium hover:bg-primaryDark transition">Extrato de Retidos</a>
       </div>
 
-      <div className="card">
-        <h2 className="font-semibold text-primaryDark mb-2">Lançar retirada de valor retido</h2>
-        <p className="text-xs text-gray-400 mb-2">
+      <PainelCadastro titulo="Lançar retirada de valor retido" rotuloBotao="Nova retirada">
+        <p className="text-xs text-gray-400 mb-3">
           Use quando um empreiteiro solicita receber, antes da hora, uma parte do que está retido com ele. O valor lançado aqui é abatido do saldo disponível dessa pessoa.
         </p>
         {pessoas && pessoas.length > 0 ? (
@@ -91,25 +92,28 @@ export default async function RetiradasPage() {
         ) : (
           <p className="text-sm text-gray-400">Nenhum empreiteiro cadastrado ainda.</p>
         )}
-      </div>
+      </PainelCadastro>
 
-      <div className="card overflow-x-auto">
-        <h2 className="font-semibold text-primaryDark mb-2">Saldo de retenção por pessoa</h2>
-        <p className="text-xs text-gray-400 mb-2">
-          Total retido (saldo inicial + medições aprovadas) menos o que já foi retirado — é o que ainda está disponível.
-        </p>
+      <SecaoRecolhivel chave="ret-saldo" titulo="Saldo de retenção por pessoa" subtitulo="Total retido (saldo inicial + medições aprovadas) menos o que já foi retirado — é o que ainda está disponível.">
         {pessoas && pessoas.length > 0 ? (
-          <TabelaPaginada por={25} className="w-full text-sm" cabecalho={
+          <TabelaFiltravel
+            por={25}
+            className="w-full text-sm"
+            filtros={[
+              { tipo: "selecao", chave: "pessoa", rotulo: "Pessoa", todas: "Todas as pessoas" },
+              { tipo: "selecao", chave: "obra", rotulo: "Obra", todas: "Todas as obras" },
+            ]}
+            cabecalho={
 <thead className="text-left text-gray-400">
               <tr>
                 <th className="p-1">Pessoa</th><th className="p-1">Obra</th><th className="p-1">Saldo inicial</th>
                 <th className="p-1">Total retido</th><th className="p-1">Total retirado</th><th className="p-1">Saldo disponível</th>
               </tr>
             </thead>
-}>
-              {pessoas.map((p) => {
+}
+            itens={pessoas.map((p) => {
                 const inicial = Number(p.saldo_inicial_retido ?? 0);
-                return (
+                return { id: p.id, d: { pessoa: p.nome, obra: nomeObra[p.obra_id] ?? "—" }, linha: (
                   <tr key={p.id} className="border-t">
                     <td className="p-1">{p.nome}</td>
                     <td className="p-1">{nomeObra[p.obra_id] ?? "—"}</td>
@@ -125,29 +129,39 @@ export default async function RetiradasPage() {
                     <td className="p-1">R$ {totalRetirado(p.id).toFixed(2)}</td>
                     <td className="p-1 font-semibold">R$ {saldoDisponivel(p.id, inicial).toFixed(2)}</td>
                   </tr>
-                );
+                ) };
               })}
-            </TabelaPaginada>
+          />
         ) : (
           <p className="text-sm text-gray-400">Nenhuma pessoa cadastrada ainda.</p>
         )}
         <p className="text-xs text-gray-400 mt-2">
           Use &quot;Saldo inicial&quot; para lançar quanto a pessoa já tinha de retido antes de começar a usar o sistema.
         </p>
-      </div>
+      </SecaoRecolhivel>
 
-      <div className="card overflow-x-auto">
-        <h2 className="font-semibold text-primaryDark mb-2">Retiradas já lançadas</h2>
+      <SecaoRecolhivel chave="ret-lancadas" titulo="Retiradas já lançadas">
         {retiradas && retiradas.length > 0 ? (
-          <TabelaPaginada por={20} className="w-full text-sm" cabecalho={
+          <TabelaFiltravel
+            por={20}
+            className="w-full text-sm"
+            filtros={[
+              { tipo: "selecao", chave: "pessoa", rotulo: "Pessoa", todas: "Todas as pessoas" },
+              { tipo: "selecao", chave: "obra", rotulo: "Obra", todas: "Todas as obras" },
+              { tipo: "periodo", chave: "data", rotulo: "Data" },
+            ]}
+            cabecalho={
 <thead className="text-left text-gray-400">
               <tr>
                 <th className="p-1">Data</th><th className="p-1">Pessoa</th><th className="p-1">Obra</th>
                 <th className="p-1">Valor</th><th className="p-1">Observação</th><th className="p-1">Ações</th>
               </tr>
             </thead>
-}>
-              {retiradas.map((r) => (
+}
+            itens={retiradas.map((r) => ({
+              id: String(r.id),
+              d: { pessoa: nomePessoa[r.pessoa_id] ?? "—", obra: r.obra_id ? (nomeObra[r.obra_id] ?? "—") : "—", data: String(r.data ?? "").slice(0, 10) },
+              linha: (
                 <tr key={r.id} className="border-t">
                   <td className="p-1">{new Date(r.data).toLocaleDateString("pt-BR")}</td>
                   <td className="p-1">{nomePessoa[r.pessoa_id] ?? "—"}</td>
@@ -161,12 +175,13 @@ export default async function RetiradasPage() {
                     </form>
                   </td>
                 </tr>
-              ))}
-            </TabelaPaginada>
+              ),
+            }))}
+          />
         ) : (
           <p className="text-sm text-gray-400">Nenhuma retirada de retido lançada ainda.</p>
         )}
-      </div>
+      </SecaoRecolhivel>
     </div>
   );
 }

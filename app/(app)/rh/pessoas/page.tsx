@@ -5,12 +5,14 @@ import { criarPessoa, transferirObra, darBaixa, reativarPessoa, excluirPessoa, e
 import PessoaLinha from "./PessoaLinha";
 import Selecao from "@/components/ui/Selecao";
 import { DataCampo } from "@/components/ui/anima";
-import { TabelaPaginada } from "@/components/ui/anima";
 import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
+import TabelaFiltravel from "@/components/ui/TabelaFiltravel";
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
 }
+
+const ROTULO_PAPEL: Record<string, string> = { EMPREITEIRO: "Empreiteiro", MESTRE: "Mestre", MESTRE_GERAL: "Mestre Geral", CONTRAMESTRE: "Contramestre" };
 
 function diffTempo(inicioISO: string, fimISO: string) {
   const ini = new Date(inicioISO);
@@ -83,20 +85,28 @@ export default async function PessoasPage({
         </p>
       </SecaoRecolhivel>
 
-      <div className="card overflow-x-auto">
-        <h2 className="font-semibold text-primaryDark mb-2">Resumo de pessoas — situação e tempo na empresa</h2>
+      <SecaoRecolhivel chave="rh-resumo" titulo="Resumo de pessoas — situação e tempo na empresa">
         {pessoas && pessoas.length > 0 ? (
-          <TabelaPaginada por={25} className="w-full text-sm" cabecalho={
+          <TabelaFiltravel
+            por={25}
+            className="w-full text-sm"
+            filtros={[
+              { tipo: "busca", chaves: ["nome"], rotulo: "Pessoa", placeholder: "Digite o nome…" },
+              { tipo: "selecao", chave: "obra", rotulo: "Obra" },
+              { tipo: "selecao", chave: "papel", rotulo: "Papel" },
+              { tipo: "selecao", chave: "status", rotulo: "Status" },
+            ]}
+            cabecalho={
 <thead className="text-left text-gray-400">
               <tr>
                 <th className="p-1">Nome</th><th className="p-1">Papel</th><th className="p-1">Obra</th>
                 <th className="p-1">Admissão</th><th className="p-1">Tempo</th><th className="p-1">Status</th><th className="p-1">Ações</th>
               </tr>
             </thead>
-}>
-              {pessoas.map((p) => {
+}
+            itens={pessoas.map((p) => {
                 const fim = p.status === "ATIVO" ? hoje : (p.saida || hoje);
-                return (
+                return { id: p.id, d: { nome: p.nome, obra: nomeObra[p.obra_id] ?? "—", papel: ROTULO_PAPEL[p.papel] ?? "Empreiteiro", status: p.status === "ATIVO" ? "Ativo" : "Inativo" }, linha: (
                   <PessoaLinha
                     key={p.id}
                     p={p as any}
@@ -111,13 +121,13 @@ export default async function PessoasPage({
                     editarPessoa={editarPessoa}
                     hoje={hoje}
                   />
-                );
+                ) };
               })}
-            </TabelaPaginada>
+          />
         ) : (
           <p className="text-sm text-gray-400">Nenhum empreiteiro cadastrado ainda.</p>
         )}
-      </div>
+      </SecaoRecolhivel>
     </div>
   );
 }

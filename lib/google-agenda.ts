@@ -104,7 +104,9 @@ export async function listaAgendas(tokenCifrado: string) {
 
 // ---------- montagem dos eventos a partir das visitas ----------
 type Doc = { id: string; dados: Record<string, any>; atualizado_em?: string };
-const TIPO: Record<string, string> = { vistoria: "Vistoria", execucao: "Execução do serviço", retorno: "Retorno" };
+const TIPO: Record<string, string> = { vistoria: "Avaliação", entrega: "Vistoria de entrega", execucao: "Execução do serviço", retorno: "Retorno" };
+// "Ilha do Campeche" → "Campeche"
+const obraCurta = (nome: string) => String(nome || "").replace(/^Ilhas?\s+(de|do|dos|da|das)\s+/i, "").trim();
 
 export type Base = { ag: Doc[]; ch: Map<string, any>; uni: Map<string, any>; emp: Map<string, any>; resp: Map<string, any> };
 
@@ -152,10 +154,13 @@ export function eventoDaVisita(v: Doc, b: Base) {
   const u = b.uni.get(c.uniId) || {};
   const e = b.emp.get(c.empId) || {};
   const r = b.resp.get(a.respId) || {};
-  const unidade = u.numero ? (u.bloco ? `Bl. ${u.bloco} · ` : "") + u.numero : "";
+  const unidade = u.numero ? (u.bloco ? `Bl. ${u.bloco} ` : "") + u.numero : "";
   const feita = a.status === "concluido";
-  const summary = [(feita ? "✓ " : "") + (TIPO[a.tipo] || "Visita"), e.nome, unidade, r.nome].filter(Boolean).join(" · ");
+  const hora = /^\d{2}:\d{2}$/.test(a.hora || "") ? a.hora : "";
+  // título: horário - apto - obra - quem vai (o tipo vai na descrição)
+  const summary = (feita ? "✓ " : "") + [hora, unidade, obraCurta(e.nome), r.nome].filter(Boolean).join(" - ");
   const description = [
+    TIPO[a.tipo] || "Visita",
     c.num ? `Chamado #${c.num}${c.cat ? " · " + c.cat : ""}` : "",
     c.amb ? "Ambiente: " + c.amb : "",
     c.desc ? String(c.desc).slice(0, 600) : "",
@@ -166,7 +171,6 @@ export function eventoDaVisita(v: Doc, b: Base) {
   ]
     .filter((x, i, l) => x || (i > 0 && l[i - 1]))
     .join("\n");
-  const hora = /^\d{2}:\d{2}$/.test(a.hora || "") ? a.hora : "";
   const start = hora ? { dateTime: `${a.data}T${hora}:00`, timeZone: FUSO } : { date: a.data };
   const end = hora ? { ...somaHora(a.data, hora), timeZone: FUSO } : { date: somaDia(a.data) };
   const corpo = { summary, description, start, end, status: "confirmed", colorId: feita ? "8" : undefined, transparency: "opaque" };

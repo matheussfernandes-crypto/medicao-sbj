@@ -6,7 +6,7 @@ import { listarEmpreendimentos } from "@/lib/posvenda/empreendimentos";
 export type EventoAgenda = { data: string; label: string };
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const TIPO_VISITA: Record<string, string> = { vistoria: "Vistoria", execucao: "Execução", retorno: "Retorno" };
+const TIPO_VISITA: Record<string, string> = { vistoria: "Avaliação", entrega: "Vistoria de entrega", execucao: "Execução", retorno: "Retorno" };
 
 export async function agendaDoSetor(supabase: any, email: string | null | undefined, acessos: string[] | null | undefined, setor?: string | null): Promise<EventoAgenda[]> {
   // pós-venda e vistorias são da arquitetura; medições e fechamento, dos demais setores

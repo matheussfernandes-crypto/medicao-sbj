@@ -18,11 +18,17 @@ export default async function AndamentoNovoPage({ searchParams }: { searchParams
 
   // quem passou de 30 dias na lista de excluídas é apagado de vez (só dados do módulo)
   await supabase.rpc("an_purgar_obras_excluidas");
-  const obras = await listarObrasAndamento(supabase);
-  const excluidas = await listarObrasExcluidas(supabase);
-  // obras do cadastro geral que ainda não estão no Andamento novo (só leitura: serve para LIGAR, nunca para alterar)
-  const { data: geraisRows } = await supabase.from("obras").select("id, nome").order("nome");
-  const { data: ligadasRows } = await supabase.from("andamento_novo_obras").select("obra_id").not("obra_id", "is", null).is("excluida_em", null);
+  // leituras independentes entre si: feitas juntas (antes eram uma depois da outra)
+  const [obras, excluidas, { data: geraisRows }, { data: ligadasRows }, { data: versoesRows }, { data: aplicRows }, { data: infoObras }] = await Promise.all([
+    listarObrasAndamento(supabase),
+    listarObrasExcluidas(supabase),
+    // obras do cadastro geral que ainda não estão no Andamento novo (só leitura: serve para LIGAR, nunca para alterar)
+    supabase.from("obras").select("id, nome").order("nome"),
+    supabase.from("andamento_novo_obras").select("obra_id").not("obra_id", "is", null).is("excluida_em", null),
+    supabase.from("an_modelo_versao").select("id, numero, criado_em, criado_por_nome, obra_origem_nome, resumo").order("numero", { ascending: false }).limit(30),
+    supabase.from("an_aplicacao_log").select("id, criado_em, por_nome, versao_numero, obra_id, obra_nome, resumo, opcoes, desfeita_em").order("criado_em", { ascending: false }).limit(60),
+    supabase.rpc("an_info_obras_modelo"),
+  ]);
   const ligadas = new Set((ligadasRows ?? []).map((r: any) => r.obra_id));
   const obrasGerais = ((geraisRows ?? []) as { id: string; nome: string }[]).filter((o) => !ligadas.has(o.id));
   const obra = obras.find((o) => o.id === searchParams.obra) ?? obras[0];
@@ -30,13 +36,6 @@ export default async function AndamentoNovoPage({ searchParams }: { searchParams
 
   // situação desta obra frente à versão atual do Modelo padrão (o modelo só chega nas obras quando alguém aplica)
   const { data: dif } = await supabase.rpc("an_modelo_diferencas", { p_obra: obra.id });
-  const { data: versoesRows } = await supabase.from("an_modelo_versao").select("id, numero, criado_em, criado_por_nome, obra_origem_nome, resumo").order("numero", { ascending: false }).limit(30);
-  const { data: aplicRows } = await supabase
-    .from("an_aplicacao_log")
-    .select("id, criado_em, por_nome, versao_numero, obra_id, obra_nome, resumo, opcoes, desfeita_em")
-    .order("criado_em", { ascending: false })
-    .limit(60);
-  const { data: infoObras } = await supabase.rpc("an_info_obras_modelo");
   const [{ data: fases }, { data: categorias }, { data: servicos }, { data: pavimentos }, { data: sistemas }, { data: contagensRows }, andamento] =
     await Promise.all([
       supabase.from("an_fase").select("id, nome, ordem").eq("obra_id", obra.id).order("ordem"),

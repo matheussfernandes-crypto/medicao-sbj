@@ -9,7 +9,12 @@ import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-rea
 // ---------------------------------------------------------------------------
 // Recolher: o conteúdo abre e fecha deslizando (altura animada)
 
-export function Recolher({ aberto, children, className = "" }: { aberto: boolean; children: React.ReactNode; className?: string }) {
+// preguica: o conteúdo só passa a existir na tela quando abre pela primeira vez (listas longas)
+export function Recolher({ aberto, children, className = "", preguica = false }: { aberto: boolean; children: React.ReactNode; className?: string; preguica?: boolean }) {
+  const [montado, setMontado] = useState(aberto);
+  useEffect(() => {
+    if (aberto) setMontado(true);
+  }, [aberto]);
   // depois de aberto, o conteúdo deixa de ser cortado (calendários e menus podem sair para fora)
   const [solto, setSolto] = useState(aberto);
   useEffect(() => {
@@ -21,7 +26,7 @@ export function Recolher({ aberto, children, className = "" }: { aberto: boolean
       aria-hidden={!aberto}
       onTransitionEnd={(e) => e.target === e.currentTarget && e.propertyName === "grid-template-rows" && aberto && setSolto(true)}
     >
-      <div className="sbj-recolhe-in">{children}</div>
+      <div className="sbj-recolhe-in">{preguica && !montado && !aberto ? null : children}</div>
     </div>
   );
 }
@@ -288,5 +293,22 @@ export function TabelaPaginada({ cabecalho, children, por = 25, className = "w-f
       </div>
       <Paginador {...pg} />
     </div>
+  );
+}
+
+// botão "Ações" de cada linha de tabela: abre/fecha a faixa de ações logo abaixo da linha
+export function BotaoAcoes({ aberto, onClick, rotulo = "Ações" }: { aberto: boolean; onClick: () => void; rotulo?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={aberto}
+      className={`inline-flex items-center gap-1 rounded-[9px] border px-2.5 py-1 text-xs font-semibold transition-colors ${
+        aberto ? "border-primary bg-primary/10 text-primaryDark" : "border-border bg-white text-ink-700 hover:border-primary hover:text-primary"
+      }`}
+    >
+      {rotulo}
+      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${aberto ? "rotate-180" : ""}`} />
+    </button>
   );
 }

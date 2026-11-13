@@ -3,7 +3,7 @@
 import { useState } from "react";
 import ConfirmDeleteButton from "./ConfirmDeleteButton";
 import EditarLancamentoForm from "./EditarLancamentoForm";
-import { DataCampo } from "@/components/ui/anima";
+import { BotaoAcoes, DataCampo } from "@/components/ui/anima";
 
 type Pessoa = { id: string; nome: string };
 type Servico = { id: string; nome: string; tipo: string; valor_unitario: number };
@@ -75,11 +75,13 @@ export default function LinhaLancamento({
   const [rejeitando, setRejeitando] = useState(false);
   const [motivoTexto, setMotivoTexto] = useState("");
   const [editandoData, setEditandoData] = useState(false);
+  const [aberta, setAberta] = useState(false); // faixa de ações aberta
 
   // checkbox + 9 colunas existentes (quando admin); 9 sem checkbox (não-admin)
   const COLUNAS = ehAdmin ? 10 : 9;
 
   const podeEditarOuExcluirProprio = l.status === "PENDENTE" && (isOwner || ehAdmin);
+  const temAcoes = ehAdmin || podeEditarOuExcluirProprio;
 
   if (editando) {
     return (
@@ -99,7 +101,8 @@ export default function LinhaLancamento({
   }
 
   return (
-    <tr className="border-t">
+    <>
+    <tr className={"border-t " + (aberta ? "bg-surface-subtle" : "")}>
       {/* Checkbox de seleção — apenas para ADM em lançamentos PENDENTES */}
       {ehAdmin && (
         <td className="p-1 w-8 text-center">
@@ -114,8 +117,8 @@ export default function LinhaLancamento({
         </td>
       )}
 
-      <td className="p-1">{new Date(l.data).toLocaleDateString("pt-BR")}</td>
-      <td className="p-1">{rotuloTipo(l.tipo)}</td>
+      <td className="p-1 whitespace-nowrap">{new Date(l.data).toLocaleDateString("pt-BR")}</td>
+      <td className="p-1 whitespace-nowrap">{rotuloTipo(l.tipo)}</td>
       <td className="p-1">{nomePessoa}</td>
       <td className="p-1">
         {l.tipo === "VALE_MEDICAO" ? (
@@ -133,7 +136,7 @@ export default function LinhaLancamento({
       </td>
       <td className="p-1">{l.local ?? "—"}</td>
       <td className="p-1">{nomeCriador}</td>
-      <td className="p-1">
+      <td className="p-1 whitespace-nowrap tabular-nums font-medium">
         {l.tipo === "VALE_MEDICAO"
           ? `R$ ${(Number(l.valor_vale_hibrido ?? 0) + Number(l.total_reais)).toFixed(2)}`
           : `R$ ${Number(l.total_reais).toFixed(2)}`}
@@ -156,8 +159,14 @@ export default function LinhaLancamento({
           <p className="text-xs text-red-600 mt-0.5 max-w-[180px] break-words">{l.motivo_rejeicao}</p>
         )}
       </td>
-      <td className="p-1">
-       <div className="flex flex-wrap items-center gap-1 min-w-[200px]">
+      <td className="p-1 text-right whitespace-nowrap">
+        {temAcoes ? <BotaoAcoes aberto={aberta} onClick={() => setAberta((v) => !v)} /> : l.status === "APROVADO" && <span className="text-xs text-gray-400">Aprovado</span>}
+      </td>
+    </tr>
+    {aberta && temAcoes && (
+      <tr className="bg-surface-subtle sbj-entra">
+        <td colSpan={COLUNAS} className="px-3 py-3">
+          <div className="flex flex-wrap items-center gap-2">
         {ehAdmin && l.status === "PENDENTE" && (
           <div className="flex flex-wrap gap-1">
             {/* Aprovar individual (o lote está no toolbar acima da tabela) */}
@@ -241,8 +250,10 @@ export default function LinhaLancamento({
             </button>
           )
         )}
-       </div>
-      </td>
-    </tr>
+          </div>
+        </td>
+      </tr>
+    )}
+    </>
   );
 }

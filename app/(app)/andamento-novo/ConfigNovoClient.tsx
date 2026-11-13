@@ -127,7 +127,7 @@ function GrupoFatia({
         )}
         {campo}
       </div>
-      <Recolher aberto={aberto}>
+      <Recolher aberto={aberto} preguica>
         <div className="border-t border-border">{children}</div>
       </Recolher>
     </div>
@@ -1204,7 +1204,7 @@ function EstruturaCard(props: {
                 )}
               </div>
 
-              <Recolher aberto={filhosAbertos}>
+              <Recolher aberto={filhosAbertos} preguica>
               <div className="flex flex-wrap gap-1.5 mt-1.5 pl-8 pb-0.5">
                 {g.filhos.map((f) => {
                   const c = catPorId.get(f.categoria_id);

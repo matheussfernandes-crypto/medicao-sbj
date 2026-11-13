@@ -21,9 +21,8 @@ export async function carregarAndamento(obraIdPedida?: string): Promise<DadosAnd
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { data: perfil } = await supabase.from("perfis").select("nome_completo, setor").eq("id", user!.id).single();
-
-  const obras = await listarObrasAndamento(supabase);
+  // duas leituras independentes: juntas, uma ida a menos ao banco
+  const [{ data: perfil }, obras] = await Promise.all([supabase.from("perfis").select("nome_completo, setor").eq("id", user!.id).single(), listarObrasAndamento(supabase)]);
   const obra = obras.find((o) => o.id === obraIdPedida) ?? obras[0];
   if (!obra) return null;
 

@@ -14,6 +14,7 @@ import {
 import NovoLancamentoForm from "./NovoLancamentoForm";
 import LancamentosTable from "./LancamentosTable";
 import Selecao from "@/components/ui/Selecao";
+import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
 
 export default async function LancamentosPage({
   searchParams,
@@ -102,8 +103,7 @@ export default async function LancamentosPage({
         </div>
 
         {obraId && (
-          <div className="card">
-            <h2 className="font-semibold text-primaryDark mb-2">Novo lançamento</h2>
+          <SecaoRecolhivel chave="lancamentos-novo" titulo="Novo lançamento">
             {pessoas && pessoas.length > 0 ? (
               <NovoLancamentoForm
                 obraId={obraId}
@@ -115,7 +115,7 @@ export default async function LancamentosPage({
             ) : (
               <p className="text-sm text-gray-400">Nenhuma pessoa ativa nesta obra. Cadastre em RH &amp; Pessoas.</p>
             )}
-          </div>
+          </SecaoRecolhivel>
         )}
 
         {searchParams.erro && (
@@ -125,8 +125,7 @@ export default async function LancamentosPage({
         )}
 
         {obraId && (
-          <div className="card">
-            <h2 className="font-semibold text-primaryDark mb-3">Histórico de lançamentos</h2>
+          <SecaoRecolhivel chave="lancamentos-historico" titulo="Histórico de lançamentos">
             {lancamentos && lancamentos.length > 0 ? (
               <LancamentosTable
                 lancamentos={lancamentos as any}
@@ -149,7 +148,7 @@ export default async function LancamentosPage({
             ) : (
               <p className="text-sm text-gray-400">Nenhum lançamento encontrado para esta obra.</p>
             )}
-          </div>
+          </SecaoRecolhivel>
         )}
     </div>
   );

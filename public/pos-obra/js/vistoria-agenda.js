@@ -108,7 +108,7 @@ function renderVtAgenda() {
     <div class="va-barra">
       <div class="va-mes">
         <button type="button" class="btn ghost" id="va-ant" aria-label="Mês anterior">‹</button>
-        <h2>${VA_MESES[mes - 1]} de ${ano}</h2>
+        <h2>${VA_MESES[mes - 1].charAt(0).toUpperCase() + VA_MESES[mes - 1].slice(1)} de ${ano}</h2>
         <button type="button" class="btn ghost" id="va-prox" aria-label="Próximo mês">›</button>
         <button type="button" class="btn ghost" id="va-hoje">Hoje</button>
       </div>

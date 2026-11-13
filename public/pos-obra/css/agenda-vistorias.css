@@ -9,7 +9,7 @@
 
 .va-barra { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .va-mes { display: flex; align-items: center; gap: 8px; }
-.va-mes h2 { margin: 0 6px; font-size: 22px; text-transform: capitalize; color: var(--va-texto); min-width: 190px; text-align: center; }
+.va-mes h2 { margin: 0 6px; font-size: 22px; color: var(--va-texto); min-width: 190px; text-align: center; }
 .va-mes .btn { min-width: 40px; }
 .va-acoes { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
 .va-acoes .vt-campo { min-width: 200px; }

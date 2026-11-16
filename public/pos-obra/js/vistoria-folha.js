@@ -94,6 +94,13 @@ function vfRender(root) {
   vfRenderFolha(root);
 }
 
+/* vaga de garagem do cliente (cadastrada em Clientes), para responder na hora */
+function vfVagaHTML(buildingId, unit) {
+  const c = (typeof state !== "undefined" && state.clients || []).find(x => x.buildingId === buildingId && String(x.unit) === String(unit));
+  const vaga = c && c.garage ? String(c.garage).trim() : "";
+  return `<span class="vf-vaga">🚗 Vaga: ${vaga ? escapeHtml(vaga) : "não cadastrada"}</span>`;
+}
+
 /* vistorias agendadas que dá para começar agora (vêm da agenda de vistorias) */
 function vfAgendadasHTML() {
   if (typeof vaAgendadasParaFazer !== "function") return "";
@@ -201,7 +208,7 @@ function vfRenderFolha(root) {
   root.innerHTML = `
     <div class="vf-barra">
       <button type="button" class="btn ghost small" id="vf-ajustar">← Dados</button>
-      <div class="vf-id"><strong>Apto ${escapeHtml(vf.unit)}</strong><span>${b ? escapeHtml(b.name) : ""} · ${fmtDate(vf.date)}${vf.resp ? " · " + escapeHtml(vf.resp) : ""}</span></div>
+      <div class="vf-id"><strong>Apto ${escapeHtml(vf.unit)}</strong><span>${b ? escapeHtml(b.name) : ""} · ${fmtDate(vf.date)}${vf.resp ? " · " + escapeHtml(vf.resp) : ""}</span>${vfVagaHTML(vf.buildingId, vf.unit)}</div>
       <span class="vf-cont" id="vf-cont"></span>
       <button type="button" class="btn primary" id="vf-salvar">Salvar vistoria</button>
     </div>

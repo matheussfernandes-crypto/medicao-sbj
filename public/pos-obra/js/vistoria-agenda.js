@@ -282,7 +282,18 @@ function vaAbrirModal(item, dataPref, pref) {
       });
       pop.querySelectorAll("[data-iso]").forEach(b => b.onclick = e => { e.stopPropagation(); hidden.value = b.dataset.iso; rot(); pop.hidden = true; });
     };
-    btn.onclick = e => { e.stopPropagation(); cur = hidden.value || todayISODate(); desenha(); pop.hidden = !pop.hidden; };
+    btn.onclick = e => {
+      e.stopPropagation();
+      cur = hidden.value || todayISODate();
+      // o calendário flutua por cima da janela (não empurra o formulário nem precisa de rolagem)
+      if (pop.parentNode !== document.body) document.body.appendChild(pop);
+      const r = btn.getBoundingClientRect();
+      pop.style.top = (r.bottom + 6) + "px";
+      pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 308)) + "px";
+      desenha();
+      pop.hidden = !pop.hidden;
+    };
+    document.addEventListener("click", e => { if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) pop.hidden = true; });
     rot();
   })();
 

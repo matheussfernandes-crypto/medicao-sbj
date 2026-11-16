@@ -110,6 +110,8 @@ document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest('.nav-btn[data-view="vistorias"]');
   if (!b) return;
   vtModo = b.dataset.modo || "aptos";
+  // ao abrir o controle, busca de novo no Andamento (para refletir o que acabou de ser marcado)
+  if (vtModo === "controle") vtCtrl.lista = null;
   setTimeout(() => document.querySelectorAll(".nav-btn").forEach(x => x.classList.toggle("active", x === b)), 0);
 }, true);
 

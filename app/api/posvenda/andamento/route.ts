@@ -42,9 +42,10 @@ export async function GET() {
     const total = somaRecorte(fat, idx, ap, [...alvosDeLocais(d.locais), ...alvosDeItens(d.itens)]);
     const pintura = d.servicos.find((s) => chaveEmp(s.nome) === "pintura final");
     const aptos = d.locais
-      .filter((l) => /^apto\s/i.test(l.nome))
+      // no Andamento o apartamento aparece como "Apto 1501" ou "Apartamento 1206" (depende da obra)
+      .filter((l) => /^(apto|apartamento)\s/i.test(l.nome))
       .map((l) => ({
-        unit: l.nome.replace(/^apto\s*/i, "").trim(),
+        unit: l.nome.replace(/^(apto|apartamento)\s*/i, "").trim(),
         // 0 não iniciado · 1 andamento · 2 finalizado · 3 ausência
         pintura: pintura ? ap.get(chaveAp(l.id, pintura.id))?.status ?? 0 : null,
       }));

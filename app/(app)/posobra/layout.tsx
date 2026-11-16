@@ -29,7 +29,7 @@ const ESTILO_TEMA_ESCURO = `
   html[data-tema="dark"] input, html[data-tema="dark"] select, html[data-tema="dark"] textarea { background: #0e1517; color: #e4eef0; border-color: #2a3a3f; }
 `;
 
-type JanelaModulo = Window & { showView?: (v: string) => void };
+type JanelaModulo = Window & { showView?: (v: string) => void; vtAbrirControle?: () => void; vtAbrirVistorias?: () => void };
 
 export default function PosObraLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

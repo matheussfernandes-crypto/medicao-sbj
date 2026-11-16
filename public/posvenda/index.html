@@ -1705,16 +1705,19 @@ function cadEmp(){
   ${!lista.length&&!novo?`<tr><td colspan="6"><div class="empty" style="border:0">Nenhum empreendimento ainda. Cadastre os 26 aqui ou deixe que eles apareçam conforme os chamados chegam.</div></td></tr>`:""}
   </tbody></table></div>`;
 }
+// financiamento da unidade (mesmos códigos usados no controle de entregas)
+const FIN_OPTS=[["","Não informado"],["nao","Não financia"],["analise","Financiando (aguardando aprovação)"],["aprovado","Aprovado"]];
+const finLabel=v=>(FIN_OPTS.find(o=>o[0]===(v||""))||FIN_OPTS[0])[1];
 function cadUni(){
   if(!S.cadEmp){const cont={};S.uni.forEach(u=>cont[u.empId]=(cont[u.empId]||0)+1);
     return `<div class="small muted">Escolha o empreendimento, ou use a busca no topo para achar uma unidade ou cliente.</div>
     <div class="emp-pick">${[...S.emp].sort((a,b)=>a.nome.localeCompare(b.nome)).map(e=>`<button data-a="cad-emp-pick" data-id="${esc(e.id)}"><b>${esc(e.nome)}</b><div class="small muted">${cont[e.id]||0} ${plural(cont[e.id]||0,"unidade")}${e.status==="obra"?" · em construção":""}</div></button>`).join("")}</div>`}
   const lista=S.uni.filter(u=>!S.cadEmp||u.empId===S.cadEmp).sort((a,b)=>((emp(a.empId)||{}).nome||"").localeCompare((emp(b.empId)||{}).nome||"")||String(a.bloco).localeCompare(String(b.bloco))||String(a.numero).localeCompare(String(b.numero),"pt",{numeric:true}));
-  const form=u=>`<tr><td>${esc((emp(u.empId)||{}).nome||"")}</td><td><input class="in" id="cu-num" value="${esc(u.numero||"")}" style="width:90px"></td><td><input class="in" id="cu-bl" value="${esc(u.bloco||"")}" style="width:70px"></td><td><input class="in" id="cu-prop" value="${esc(u.prop||"")}"></td><td><input class="in" id="cu-tel" value="${esc(fmtTel(u.tel))}"></td><td></td><td style="white-space:nowrap"><button class="btn sm ghost" data-a="ed-cancel">Cancelar</button> <button class="btn sm pri" data-a="cu-save" data-id="${esc(u.id)}">Salvar</button></td></tr>`;
+  const form=u=>`<tr><td>${esc((emp(u.empId)||{}).nome||"")}</td><td><input class="in" id="cu-num" value="${esc(u.numero||"")}" style="width:90px"></td><td><input class="in" id="cu-bl" value="${esc(u.bloco||"")}" style="width:70px"></td><td><input class="in" id="cu-prop" value="${esc(u.prop||"")}"></td><td><input class="in" id="cu-tel" value="${esc(fmtTel(u.tel))}"></td><td><input class="in" id="cu-vaga" value="${esc(u.vaga||"")}" style="width:90px"></td><td><select class="in" id="cu-fin">${FIN_OPTS.map(o=>`<option value="${o[0]}" ${(u.fin||"")===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></td><td></td><td style="white-space:nowrap"><button class="btn sm ghost" data-a="ed-cancel">Cancelar</button> <button class="btn sm pri" data-a="cu-save" data-id="${esc(u.id)}">Salvar</button></td></tr>`;
   return `<div class="row"><select class="in" id="cad-emp" data-c="cad-emp" style="width:auto"><option value="">‹ Escolher outro empreendimento</option>${[...S.emp].sort((a,b)=>a.nome.localeCompare(b.nome)).map(e=>`<option value="${esc(e.id)}" ${S.cadEmp===e.id?"selected":""}>${esc(e.nome)}</option>`).join("")}</select><span class="small muted">${lista.length} ${plural(lista.length,"unidade")}</span></div>
-  <div class="tbl-wrap"><table><thead><tr><th>Empreendimento</th><th>Unidade</th><th>Bloco</th><th>Proprietário</th><th>WhatsApp</th><th class="n">Chamados</th><th></th></tr></thead><tbody>
-  ${lista.map(u=>isEd("uni",u.id)?form(u):`<tr class="click" data-a="open-uni" data-id="${esc(u.id)}"><td>${esc((emp(u.empId)||{}).nome||"")}</td><td><b>${esc(u.numero)}</b></td><td>${esc(u.bloco||"")}</td><td>${esc(u.prop||"")}</td><td class="mono">${u.tel?esc(fmtTel(u.tel)):`<span class="small muted" style="font-family:var(--f-body)">${esc(u.contatos||"")}</span>`}</td><td class="n">${S.ch.filter(c=>c.uniId===u.id).length}</td><td><button class="btn sm ghost" data-a="cad-edit" data-k="uni" data-id="${esc(u.id)}" ${S.edit?"disabled":""}>Editar</button></td></tr>`).join("")}
-  ${!lista.length?`<tr><td colspan="7"><div class="empty" style="border:0">As unidades são criadas automaticamente quando um chamado é registrado.</div></td></tr>`:""}
+  <div class="tbl-wrap"><table><thead><tr><th>Empreendimento</th><th>Unidade</th><th>Bloco</th><th>Proprietário</th><th>WhatsApp</th><th>Vaga</th><th>Financiamento</th><th class="n">Chamados</th><th></th></tr></thead><tbody>
+  ${lista.map(u=>isEd("uni",u.id)?form(u):`<tr class="click" data-a="open-uni" data-id="${esc(u.id)}"><td>${esc((emp(u.empId)||{}).nome||"")}</td><td><b>${esc(u.numero)}</b></td><td>${esc(u.bloco||"")}</td><td>${esc(u.prop||"")}</td><td class="mono">${u.tel?esc(fmtTel(u.tel)):`<span class="small muted" style="font-family:var(--f-body)">${esc(u.contatos||"")}</span>`}</td><td>${esc(u.vaga||"—")}</td><td>${esc(finLabel(u.fin))}</td><td class="n">${S.ch.filter(c=>c.uniId===u.id).length}</td><td><button class="btn sm ghost" data-a="cad-edit" data-k="uni" data-id="${esc(u.id)}" ${S.edit?"disabled":""}>Editar</button></td></tr>`).join("")}
+  ${!lista.length?`<tr><td colspan="9"><div class="empty" style="border:0">As unidades são criadas automaticamente quando um chamado é registrado.</div></td></tr>`:""}
   </tbody></table></div>`;
 }
 function cadResp(){
@@ -1800,7 +1803,7 @@ async function cadSave(a,id){
   try{
     if(a==="ce-save"){const d={nome:val("ce-nome"),status:val("ce-st"),dataEntrega:val("ce-dt"),endereco:val("ce-end")};if(!d.nome)return toast("Informe o nome.");
       if(id==="__new"){if(S.emp.some(e=>norm(e.nome)===norm(d.nome)))return toast("Já existe um empreendimento com esse nome.");d.criadoEm=nowTs();await dbAdd("emp",d)}else await dbUpd("emp",id,d)}
-    if(a==="cu-save"){const d={numero:val("cu-num"),bloco:val("cu-bl"),prop:val("cu-prop"),tel:digits(val("cu-tel"))};if(!d.numero)return toast("Informe a unidade.");await dbUpd("uni",id,d)}
+    if(a==="cu-save"){const d={numero:val("cu-num"),bloco:val("cu-bl"),prop:val("cu-prop"),tel:digits(val("cu-tel")),vaga:val("cu-vaga"),fin:val("cu-fin")};if(!d.numero)return toast("Informe a unidade.");await dbUpd("uni",id,d)}
     if(a==="cr-save"){const d={nome:val("cr-nome"),esp:val("cr-esp"),tel:digits(val("cr-tel"))};if(!d.nome)return toast("Informe o nome.");
       if(id==="__new"){d.criadoEm=nowTs();await dbAdd("resp",d)}else await dbUpd("resp",id,d)}
     if(a==="cg-save"){const g={};GAR_NBR.forEach(x=>{const v=parseFloat(val("cg-"+x.id).replace(",","."));if(isFinite(v)&&v!==x.anos)g[x.id]=v});await saveCfg({garItens:g});toast("Prazos salvos");document.activeElement&&document.activeElement.blur();return}

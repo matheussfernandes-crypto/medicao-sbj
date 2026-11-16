@@ -220,11 +220,14 @@ function vtControleDados() {
     let st, cls;
     if (feita) { st = "Vistoria realizada"; cls = "feita"; }
     else if (marcada) { st = "Agendada"; cls = "agendada"; }
+    else if (c.situacaoVistoria === "financiamento") { st = "Financiamento — não agendar"; cls = "fin"; }
+    else if (c.situacaoVistoria === "obra") { st = "Aguardando obra"; cls = "obra"; }
+    else if (c.situacaoVistoria === "liberado") { st = "Liberado p/ agendar"; cls = "ok"; }
     else if (fin === "analise") { st = "Financiamento — não agendar"; cls = "fin"; }
     else if (obra !== true) { st = "Aguardando obra"; cls = "obra"; }
     else { st = "Liberado p/ agendar"; cls = "ok"; }
     const data = marcada ? fmtDate(marcada.date) + (marcada.hora ? " · " + marcada.hora : "") : feita ? fmtDate(feita.date) : "";
-    return { c, b, st, cls, data, fin, obra };
+    return { c, b, st, cls, data, fin, obra, feita: !!feita, marcada: !!marcada };
   });
 }
 function vtRenderControle(root) {
@@ -245,7 +248,7 @@ function vtRenderControle(root) {
       <td>${l.c.garage ? escapeHtml(l.c.garage) : "—"}</td>
       <td>${VTC_FIN[l.fin] || "—"}</td>
       <td>${l.obra === null ? "a ligar" : l.obra ? "Pronta" : "Não pronta"}</td>
-      <td><span class="vtc-tag vtc-${l.cls}">${l.st}</span></td>
+      <td>${l.feita || l.marcada ? `<span class="vtc-tag vtc-${l.cls}">${l.st}</span>` : `<select class="vtc-sit" data-id="${escapeHtml(l.c.id)}">${[["", "Automática"], ["financiamento", "Financiamento — não agendar"], ["obra", "Aguardando obra"], ["liberado", "Liberado p/ agendar"]].map(([v, t]) => `<option value="${v}" ${(l.c.situacaoVistoria || "") === v ? "selected" : ""}>${t}</option>`).join("")}</select>`}</td>
       <td>${l.data || "—"}</td></tr>`).join("");
   grade.innerHTML = `
     <style>
@@ -269,6 +272,7 @@ function vtRenderControle(root) {
     <tbody>${corpo || '<tr><td colspan="8">Nenhum apartamento deste empreendimento.</td></tr>'}</tbody></table></div>`;
   const sel = grade.querySelector("#vtc-emp");
   if (sel) sel.onchange = e => { vtCtrl.emp = e.target.value; renderVistorias(); };
+  grade.querySelectorAll(".vtc-sit").forEach(s => s.onchange = () => vtSituacaoSalvar(s.dataset.id, s.value));
   // no controle, as ações da tela Vistorias são trocadas por estas duas
   const acoes = root.querySelector(".vt-acoes");
   if (acoes) {
@@ -276,6 +280,19 @@ function vtRenderControle(root) {
     acoes.querySelector("#vtc-imp").onclick = vtControleImportarFin;
     acoes.querySelector("#vtc-rel").onclick = vtControleRelatorio;
   }
+}
+
+/* situação escolhida no controle: fica salva no cadastro do cliente daquela obra.
+   "Financiamento" marca o financiamento como "Financiando"; "Liberado" marca como "Aprovado" (se estava financiando). */
+function vtSituacaoSalvar(id, v) {
+  const c = (state.clients || []).find(x => x.id === id);
+  if (!c) return;
+  c.situacaoVistoria = v;
+  if (v === "financiamento") c.financiamento = "analise";
+  if (v === "liberado" && c.financiamento === "analise") c.financiamento = "aprovado";
+  persist();
+  if (typeof toast === "function") toast("Situação salva no cadastro do cliente.", "success");
+  renderVistorias();
 }
 
 /* linhas do controle do empreendimento escolhido */

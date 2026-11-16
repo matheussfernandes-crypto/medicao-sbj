@@ -58,6 +58,12 @@ const vaHoraTxt = (h) => { const m = /^(\d{2}):(\d{2})$/.exec(h || ""); if (!m) 
 const vaPrimeiroNome = (n) => String(n || "").trim().split(/\s+/)[0] || "";
 const vaNomeObra = (it) => { const b = getBuilding(it.buildingId); return b ? b.name : (it.buildingNome || ""); };
 const vaObraCurta = (nome) => (typeof vtObraCurta === "function" ? vtObraCurta(nome) : nome);
+// horários fixos: 07:30 às 18:00, de 30 em 30 min (se a visita já tiver outro horário, ele continua aparecendo)
+const VA_HORARIOS = (() => { const l = []; for (let m = 7 * 60 + 30; m <= 18 * 60; m += 30) l.push(String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0")); return l; })();
+const vaOpcoesHora = (atual) => {
+  const lista = atual && !VA_HORARIOS.includes(atual) ? [...VA_HORARIOS, atual].sort() : VA_HORARIOS;
+  return `<option value="">— escolha —</option>` + lista.map(h => `<option value="${h}"${h === atual ? " selected" : ""}>${h.replace(":", "h").replace(/h00$/, "h")}</option>`).join("");
+};
 const vaOrdem = (a, b) => (a.date + (a.hora || "99:99")).localeCompare(b.date + (b.hora || "99:99")) || String(a.unit).localeCompare(String(b.unit), "pt-BR", { numeric: true });
 
 function vaDoMes() {
@@ -230,7 +236,7 @@ function vaAbrirModal(item, dataPref, pref) {
       </div>
       <div class="vt-linha2">
         <label>Data<input type="date" id="va-m-data" value="${it.date}"></label>
-        <label>Horário<input type="time" id="va-m-hora" value="${escapeHtml(it.hora || "")}"></label>
+        <label>Horário<select id="va-m-hora">${vaOpcoesHora(it.hora || "")}</select></label>
       </div>
       <div class="vt-linha2">
         <label>Responsável pela vistoria<input type="text" id="va-m-resp" placeholder="ex: Carlucia" value="${escapeHtml(it.resp || "")}" autocomplete="off"></label>
@@ -310,7 +316,7 @@ function vaAgendadasParaFazer() {
   const hoje = todayISODate();
   const limite = new Date(); limite.setDate(limite.getDate() + 21);
   const ate = limite.getFullYear() + "-" + String(limite.getMonth() + 1).padStart(2, "0") + "-" + String(limite.getDate()).padStart(2, "0");
-  return va.lista.filter(x => x.status === "agendada" && x.date <= ate && x.date >= vaAddDias(hoje, -30)).sort(vaOrdem);
+  return va.lista.filter(x => x.status === "agendada" && !x.vistoriaId && x.date <= ate && x.date >= vaAddDias(hoje, -30)).sort(vaOrdem);
 }
 function vaAddDias(iso, n) { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 
@@ -318,8 +324,11 @@ function vaAddDias(iso, n) { const d = new Date(iso + "T12:00:00"); d.setDate(d.
 async function vaMarcarRealizada(agendaId, vistoriaId) {
   const it = va.lista.find(x => x.id === agendaId);
   if (!it || it.status === "realizada") return;
-  try { await vaGravar({ ...it, status: "realizada", vistoriaId: vistoriaId || "", realizadaEm: new Date().toISOString() }); } catch (e) { /* a agenda se acerta na próxima vez */ }
+  // some da lista e fica verde na agenda já, mesmo que a gravação demore
+  Object.assign(it, { status: "realizada", vistoriaId: vistoriaId || "", realizadaEm: new Date().toISOString() });
   if (typeof renderVtAgenda === "function") renderVtAgenda();
+  try { await vaGravar({ ...it }); }
+  catch (e) { if (typeof toast === "function") toast("A vistoria foi salva, mas a agenda não foi atualizada. Confira a agenda.", "error"); }
 }
 function vaAutoRealizada(v) {
   const it = va.lista.find(x => x.status === "agendada" && x.buildingId === v.buildingId && String(x.unit).toLowerCase() === String(v.unit).toLowerCase() && x.date === v.date);
@@ -345,12 +354,37 @@ async function vaGerarImagem() {
   const dias = new Date(ano, mes, 0).getDate();
   const semanas = Math.ceil((desloc + dias) / 7);
   const larg = (W - PAD * 2) / 7;
+  // texto de cada visita quebrado em linhas (nada cortado com "..."): a célula cresce conforme o texto
+  const mg = document.createElement("canvas").getContext("2d");
+  mg.font = `700 25px ${FONTE}`;
+  const quebra = (txt, max) => {
+    const out = [];
+    let atual = "";
+    for (const palavra of txt.split(" ")) {
+      let p = palavra;
+      while (mg.measureText(p).width > max && p.length > 1) { // palavra sem espaço maior que a célula
+        let i = p.length - 1;
+        while (i > 1 && mg.measureText(p.slice(0, i)).width > max) i--;
+        if (atual) { out.push(atual); atual = ""; }
+        out.push(p.slice(0, i));
+        p = p.slice(i);
+      }
+      const t = atual ? atual + " " + p : p;
+      if (!atual || mg.measureText(t).width <= max) atual = t;
+      else { out.push(atual); atual = p; }
+    }
+    if (atual) out.push(atual);
+    return out;
+  };
+  const textoVisita = e => `${vaHoraTxt(e.hora) || "—"} - ${e.unit} ${vaPrimeiroNome(e.nome)}` + (mostrarObra ? ` · ${vaObraCurta(vaNomeObra(e))}` : "");
+  const linhasDia = {};
+  Object.keys(porDia).forEach(d => { linhasDia[d] = porDia[d].flatMap(e => quebra(textoVisita(e), larg - 26)); });
   const maxPorSemana = [];
   for (let s = 0; s < semanas; s++) {
     let m = 0;
     for (let c = 0; c < 7; c++) {
       const n = s * 7 + c - desloc + 1;
-      if (n >= 1 && n <= dias) m = Math.max(m, (porDia[va.mes + "-" + String(n).padStart(2, "0")] || []).length);
+      if (n >= 1 && n <= dias) m = Math.max(m, (linhasDia[va.mes + "-" + String(n).padStart(2, "0")] || []).length);
     }
     maxPorSemana.push(m);
   }
@@ -398,15 +432,13 @@ async function vaGerarImagem() {
       g.textAlign = "left"; g.fillStyle = dentro ? "#5b6775" : "#b4bcc6"; g.font = `600 24px ${FONTE}`;
       g.fillText(String(d.getDate()), x + 14, y + 34);
       if (!dentro) continue;
-      const evs = porDia[va.mes + "-" + String(n).padStart(2, "0")] || [];
-      evs.forEach((e, k) => {
-        const txt = `${vaHoraTxt(e.hora) || "—"} - ${e.unit} ${vaPrimeiroNome(e.nome)}` + (mostrarObra ? ` · ${vaObraCurta(vaNomeObra(e))}` : "");
+      const chave = va.mes + "-" + String(n).padStart(2, "0");
+      const evs = porDia[chave] || [];
+      let k = 0;
+      evs.forEach(e => {
         g.font = `700 25px ${FONTE}`;
         g.fillStyle = e.status === "realizada" ? "#1f8a4c" : "#094F58";
-        let t = txt;
-        while (t.length > 3 && g.measureText(t).width > larg - 26) t = t.slice(0, -2);
-        if (t !== txt) t = t.trimEnd() + "…";
-        g.fillText(t, x + 14, y + 66 + k * 34);
+        quebra(textoVisita(e), larg - 26).forEach(linha => { g.fillText(linha, x + 14, y + 66 + k * 34); k++; });
       });
     }
     y += alt;

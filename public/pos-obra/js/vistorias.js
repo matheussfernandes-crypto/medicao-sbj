@@ -117,6 +117,7 @@ function renderVistorias() {
   const predios = state.buildings.filter(b => todas.some(v => v.buildingId === b.id));
   const baseObra = todas.filter(v => !vtFiltroPredio || v.buildingId === vtFiltroPredio);
   const plan = vtModo === "planilha";
+  const controle = vtModo === "controle";
   const itensBase = baseObra.flatMap(v => v.items.filter(i => (!vtSelApto.size || vtSelApto.has(v.unit)) && (!vtSelData.size || vtSelData.has(v.date)) && (!vtSelTipo.size || vtSelTipo.has(i.tipo)) && (!vtSelAmb.size || vtSelAmb.has(i.ambiente))));
   const nPend = plan ? itensBase.filter(i => !i.feito).length : baseObra.filter(v => vtResumo(v).abertas > 0).length;
   const nRes = plan ? itensBase.filter(i => i.feito).length : baseObra.filter(v => vtResumo(v).abertas === 0).length;
@@ -126,12 +127,13 @@ function renderVistorias() {
 
   root.innerHTML = `
     <div class="vt-modos" role="group" aria-label="Forma de ver">
-      <button type="button" class="vt-modo ${!plan ? "ativo" : ""}" data-vt-modo="aptos">Apartamentos</button>
+      <button type="button" class="vt-modo ${!plan && !controle ? "ativo" : ""}" data-vt-modo="aptos">Apartamentos</button>
       <button type="button" class="vt-modo ${plan ? "ativo" : ""}" data-vt-modo="planilha">Planilha</button>
+      <button type="button" class="vt-modo ${controle ? "ativo" : ""}" data-vt-modo="controle">Controle de entregas</button>
     </div>
     <div class="vt-barra">
       <label class="vt-campo">Obra<select id="vt-predio"><option value="">Todas as obras</option>${predios.map(b => `<option value="${b.id}" ${b.id === vtFiltroPredio ? "selected" : ""}>${escapeHtml(b.name)}</option>`).join("")}</select></label>
-      ${plan ? "" : `
+      ${plan || controle ? "" : `
       <label class="vt-campo">Apartamento<input type="search" id="vt-busca" placeholder="ex: 404" value="${escapeHtml(vtBusca)}" autocomplete="off"></label>
       <div class="vt-chipbar" role="group" aria-label="Situação">
         <button type="button" class="chip ${vtStatus === "pendentes" ? "active" : ""}" data-vt-st="pendentes">${plan ? "A resolver" : "Com pendência"} (${nPend})</button>
@@ -159,8 +161,101 @@ function renderVistorias() {
   root.querySelector("#vt-folha").addEventListener("click", vfAbrir);
   root.querySelector("#vt-agenda").addEventListener("click", () => showView("vtagenda"));
   root.querySelectorAll("[data-vt-modo]").forEach(b => b.addEventListener("click", () => { vtModo = b.dataset.vtModo; vtLimitePlanilha = 300; renderVistorias(); }));
-  if (plan) vtRenderPlanilha(root); else vtRenderGrade(root);
+  if (controle) vtRenderControle(root); else if (plan) vtRenderPlanilha(root); else vtRenderGrade(root);
   if (window.SBJSync) SBJSync.avisar();
+}
+
+/* ---------- Controle de entregas: quem já pode ser agendado, quem espera obra ou financiamento ---------- */
+const VTC_FIN = { "": "—", nao: "Não financia", analise: "Financiando", aprovado: "Aprovado" };
+// Andamento de Obra: % de cada empreendimento e Pintura Final de cada apartamento (vem de /api/posvenda/andamento)
+const vtChaveEmp = (nome) => String(nome || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+  .replace(/^residencial\s+/, "").replace(/^ilhas?\s+(de|do|da|dos|das)\s+/, "").replace(/^ilhas?\s+/, "").trim();
+let vtCtrl = { lista: null, carregando: false, erro: "", emp: "" };
+async function vtCtrlCarregar() {
+  vtCtrl.carregando = true;
+  try {
+    const r = await fetch("/api/posvenda/andamento", { credentials: "include", cache: "no-store" });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.erro || "Não foi possível ler o Andamento de Obra.");
+    vtCtrl.lista = j.empreendimentos || [];
+    vtCtrl.erro = "";
+    // abre sempre no empreendimento com maior % (a lista já vem ordenada assim)
+    if (!vtCtrl.lista.some(e => e.id === vtCtrl.emp)) vtCtrl.emp = vtCtrl.lista[0] ? vtCtrl.lista[0].id : "";
+  } catch (e) { vtCtrl.lista = []; vtCtrl.erro = String(e.message || e); }
+  finally { vtCtrl.carregando = false; }
+  renderVistorias();
+}
+function vtEmpSel() { return (vtCtrl.lista || []).find(e => e.id === vtCtrl.emp) || null; }
+// true = Pintura Final finalizada · false = não · null = ainda não ligado ao Andamento
+function vtObraPronta(c) {
+  const b = getBuilding(c.buildingId) || {};
+  const emp = (vtCtrl.lista || []).find(e => e.chave === vtChaveEmp(b.name));
+  if (!emp || !emp.temPintura) return null;
+  const ap = emp.aptos.find(a => String(a.unit) === String(c.unit));
+  if (!ap) return null;
+  return ap.pintura === 2;
+}
+function vtControleDados() {
+  const ag = (typeof va !== "undefined" && va.lista) || [];
+  return (state.clients || []).filter(c => c.unit).map(c => {
+    const b = getBuilding(c.buildingId) || {};
+    const itens = ag.filter(x => x.buildingId === c.buildingId && String(x.unit).toLowerCase() === String(c.unit).toLowerCase() && x.status !== "cancelada");
+    const feita = itens.find(x => x.status === "realizada");
+    const marcada = itens.filter(x => x.status === "agendada").sort((p, q) => (p.date + (p.hora || "")).localeCompare(q.date + (q.hora || "")))[0];
+    const fin = c.financiamento || "";
+    const obra = vtObraPronta(c);
+    let st, cls;
+    if (feita) { st = "Vistoria realizada"; cls = "feita"; }
+    else if (marcada) { st = "Agendada"; cls = "agendada"; }
+    else if (fin === "analise") { st = "Financiamento — não agendar"; cls = "fin"; }
+    else if (obra !== true) { st = "Aguardando obra"; cls = "obra"; }
+    else { st = "Liberado p/ agendar"; cls = "ok"; }
+    const data = marcada ? fmtDate(marcada.date) + (marcada.hora ? " · " + marcada.hora : "") : feita ? fmtDate(feita.date) : "";
+    return { c, b, st, cls, data, fin, obra };
+  });
+}
+function vtRenderControle(root) {
+  const grade = root.querySelector("#vt-grade");
+  if (!vtCtrl.lista && !vtCtrl.carregando) vtCtrlCarregar();
+  const emp = vtEmpSel();
+  const seletor = `<style>.vtc-emp{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0 4px}.vtc-emp select{min-width:280px;padding:8px 10px;border-radius:10px;border:1px solid var(--border,#e2e6ec);font:inherit;background:var(--surface,#fff)}.vtc-msg{font-size:13px;color:var(--text-muted,#64748b)}.vtc-erro{color:#b91c1c}</style>
+    <div class="vtc-emp"><label>Empreendimento <select id="vtc-emp">${(vtCtrl.lista || []).map(e => `<option value="${escapeHtml(e.id)}" ${emp && e.id === emp.id ? "selected" : ""}>${escapeHtml(e.nome)} · ${e.pct}%</option>`).join("")}</select></label>${vtCtrl.carregando ? `<span class="vtc-msg">Carregando do Andamento…</span>` : ""}${vtCtrl.erro ? `<span class="vtc-msg vtc-erro">${escapeHtml(vtCtrl.erro)}</span>` : ""}</div>`;
+  // cada empreendimento tem a sua tabela; um novo empreendimento aparece aqui sozinho quando entrar no Andamento
+  let linhas = vtControleDados().filter(l => emp && vtChaveEmp(l.b.name) === emp.chave);
+  const cont = k => linhas.filter(l => l.cls === k).length;
+  const cartoes = [["ok", "Liberado p/ agendar"], ["agendada", "Agendadas"], ["feita", "Realizadas"], ["fin", "Financiamento"], ["obra", "Aguardando obra"]]
+    .map(([k, t]) => `<div class="vtc-card vtc-${k}"><strong>${cont(k)}</strong><span>${t}</span></div>`).join("");
+  const corpo = linhas.map(l => `<tr class="vtc-l">
+      <td>${escapeHtml(l.b.name || "")}</td>
+      <td><strong>${escapeHtml(l.c.unit)}</strong></td>
+      <td>${l.c.name ? escapeHtml(l.c.name) : '<span class="empty-hint">sem cliente</span>'}</td>
+      <td>${l.c.garage ? escapeHtml(l.c.garage) : "—"}</td>
+      <td>${VTC_FIN[l.fin] || "—"}</td>
+      <td>${l.obra === null ? "a ligar" : l.obra ? "Pronta" : "Não pronta"}</td>
+      <td><span class="vtc-tag vtc-${l.cls}">${l.st}</span></td>
+      <td>${l.data || "—"}</td></tr>`).join("");
+  grade.innerHTML = `
+    <style>
+      .vtc-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0 16px; }
+      .vtc-card { background: var(--surface, #fff); border: 1px solid var(--border, #e2e6ec); border-left: 4px solid #94a3b8; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+      .vtc-card strong { font-size: 26px; line-height: 1; }
+      .vtc-card span { font-size: 13px; color: var(--text-muted, #64748b); }
+      .vtc-card.vtc-ok { border-left-color: #1f8a4c; } .vtc-card.vtc-agendada { border-left-color: #0C6B76; }
+      .vtc-card.vtc-feita { border-left-color: #16a34a; } .vtc-card.vtc-fin { border-left-color: #dc2626; } .vtc-card.vtc-obra { border-left-color: #f59e0b; }
+      .vtc-wrap { overflow-x: auto; border: 1px solid var(--border, #e2e6ec); border-radius: 12px; }
+      .vtc-tab { width: 100%; border-collapse: collapse; font-size: 14px; }
+      .vtc-tab th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted, #64748b); padding: 10px 12px; background: var(--surface-2, #f4f6f9); border-bottom: 1px solid var(--border, #e2e6ec); }
+      .vtc-tab td { padding: 9px 12px; border-bottom: 1px solid var(--border, #eef1f5); vertical-align: middle; }
+      .vtc-tag { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+      .vtc-tag.vtc-ok { background: #dcfce7; color: #15803d; } .vtc-tag.vtc-agendada { background: #cffafe; color: #0e7490; }
+      .vtc-tag.vtc-feita { background: #bbf7d0; color: #166534; } .vtc-tag.vtc-fin { background: #fee2e2; color: #b91c1c; } .vtc-tag.vtc-obra { background: #fef3c7; color: #b45309; }
+    </style>
+    ${seletor}
+    <div class="vtc-cards">${cartoes}</div>
+    <div class="vtc-wrap"><table class="vtc-tab"><thead><tr><th>Obra</th><th>Apto</th><th>Cliente</th><th>Vaga</th><th>Financiamento</th><th>Pintura final</th><th>Situação</th><th>Data</th></tr></thead>
+    <tbody>${corpo || '<tr><td colspan="8">Nenhum apartamento deste empreendimento.</td></tr>'}</tbody></table></div>`;
+  const sel = grade.querySelector("#vtc-emp");
+  if (sel) sel.onchange = e => { vtCtrl.emp = e.target.value; renderVistorias(); };
 }
 
 /* ---------- Visão em planilha: todas as pendências em linhas, como a planilha da obra, mas com filtros ---------- */

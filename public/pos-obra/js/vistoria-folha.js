@@ -94,6 +94,13 @@ function vfRender(root) {
   vfRenderFolha(root);
 }
 
+/* vaga de garagem do cliente (cadastrada em Clientes), para responder na hora */
+function vfVagaHTML(buildingId, unit) {
+  const c = (typeof state !== "undefined" && state.clients || []).find(x => x.buildingId === buildingId && String(x.unit) === String(unit));
+  const vaga = c && c.garage ? String(c.garage).trim() : "";
+  return `<span class="vf-vaga">🚗 Vaga: ${vaga ? escapeHtml(vaga) : "não cadastrada"}</span>`;
+}
+
 /* vistorias agendadas que dá para começar agora (vêm da agenda de vistorias) */
 function vfAgendadasHTML() {
   if (typeof vaAgendadasParaFazer !== "function") return "";
@@ -101,8 +108,12 @@ function vfAgendadasHTML() {
   if (!lista.length) return "";
   const hoje = todayISODate();
   const quando = (x) => x.date === hoje ? "hoje" : fmtDate(x.date).slice(0, 5);
-  return `<div class="vf-agendadas"><div class="vt-rot">Vistorias agendadas — toque para começar</div>
-    <div class="vt-chips">${lista.slice(0, 12).map(x => `<button type="button" class="vt-chip ${vf && vf.agendaId === x.id ? "ativo" : ""}" data-vf-ag="${escapeHtml(x.id)}">${quando(x)}${x.hora ? " · " + escapeHtml(x.hora.replace(/^0/, "")) : ""} · apto ${escapeHtml(x.unit)}${x.nome ? " · " + escapeHtml(String(x.nome).split(" ")[0]) : ""}</button>`).join("")}${vf && vf.agendaId ? `<button type="button" class="vt-chip" id="vf-ag-limpar">Outra (não agendada)</button>` : ""}</div></div>`;
+  // uma lista só (menu): aguenta 20, 30 vistorias sem poluir a tela
+  const opcoes = lista.map(x => `<option value="${escapeHtml(x.id)}"${vf && vf.agendaId === x.id ? " selected" : ""}>${quando(x)}${x.hora ? " · " + escapeHtml(x.hora.replace(/^0/, "")) : ""} · apto ${escapeHtml(x.unit)}${x.nome ? " · " + escapeHtml(String(x.nome).split(" ")[0]) : ""}</option>`).join("");
+  return `<div class="vf-agendadas">
+    <label class="vt-rot" for="vf-ag-sel">Vistoria agendada (${lista.length}) — escolha para começar</label>
+    <select id="vf-ag-sel" class="in"><option value="">Escolher uma vistoria…</option>${opcoes}</select>
+    ${vf && vf.agendaId ? `<button type="button" class="btn ghost small" id="vf-ag-limpar" style="margin-top:8px">Outra (não agendada)</button>` : ""}</div>`;
 }
 
 /* ---------- 1) dados do apartamento ---------- */
@@ -133,10 +144,11 @@ function vfRenderInicio(root) {
   $("vf-voltar").onclick = vfSair;
   const desc = $("vf-descartar"); if (desc) desc.onclick = () => { if (confirm("Descartar a vistoria em andamento? O que foi marcado será perdido.")) { vfRascunhoApagar(); vf = null; vfAbrir(); } };
   const guarda = () => { vf.buildingId = $("vf-obra").value; vf.unit = $("vf-unit").value.trim(); vf.date = $("vf-data").value || todayISODate(); vf.resp = $("vf-resp").value.trim(); };
-  root.querySelectorAll("[data-vf-ag]").forEach(c => c.onclick = () => {
-    const a = (typeof va !== "undefined" ? va.lista : []).find(x => x.id === c.dataset.vfAg); if (!a) return;
+  const selAg = root.querySelector("#vf-ag-sel");
+  if (selAg) selAg.onchange = () => {
+    const a = (typeof va !== "undefined" ? va.lista : []).find(x => x.id === selAg.value); if (!a) return;
     guarda(); vf.buildingId = a.buildingId; vf.unit = a.unit; vf.agendaId = a.id; if (a.resp) vf.resp = a.resp; renderVistorias();
-  });
+  };
   const semAg = root.querySelector("#vf-ag-limpar"); if (semAg) semAg.onclick = () => { guarda(); vf.agendaId = ""; renderVistorias(); };
   root.querySelectorAll("[data-vf-n]").forEach(c => c.onclick = () => { guarda(); vf[c.dataset.vfN] = Number(c.dataset.v); renderVistorias(); });
   root.querySelectorAll("[data-vf-o]").forEach(c => c.onclick = () => { guarda(); vf.opc[c.dataset.vfO] = !vf.opc[c.dataset.vfO]; renderVistorias(); });
@@ -196,7 +208,7 @@ function vfRenderFolha(root) {
   root.innerHTML = `
     <div class="vf-barra">
       <button type="button" class="btn ghost small" id="vf-ajustar">← Dados</button>
-      <div class="vf-id"><strong>Apto ${escapeHtml(vf.unit)}</strong><span>${b ? escapeHtml(b.name) : ""} · ${fmtDate(vf.date)}${vf.resp ? " · " + escapeHtml(vf.resp) : ""}</span></div>
+      <div class="vf-id"><strong>Apto ${escapeHtml(vf.unit)}</strong><span>${b ? escapeHtml(b.name) : ""} · ${fmtDate(vf.date)}${vf.resp ? " · " + escapeHtml(vf.resp) : ""}</span>${vfVagaHTML(vf.buildingId, vf.unit)}</div>
       <span class="vf-cont" id="vf-cont"></span>
       <button type="button" class="btn primary" id="vf-salvar">Salvar vistoria</button>
     </div>

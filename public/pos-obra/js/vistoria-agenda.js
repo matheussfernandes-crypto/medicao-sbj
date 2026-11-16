@@ -235,7 +235,7 @@ function vaAbrirModal(item, dataPref, pref) {
         <label>Proprietário<input type="text" id="va-m-nome" placeholder="nome do dono" value="${escapeHtml(it.nome)}" autocomplete="off"></label>
       </div>
       <div class="vt-linha2">
-        <label>Data<input type="date" id="va-m-data" value="${it.date}"></label>
+        <label>Data<div class="va-dp"><input type="hidden" id="va-m-data" value="${it.date}"><button type="button" class="va-dp-btn" id="va-m-data-btn"></button><div class="va-dp-pop" id="va-m-dp" hidden></div></div></label>
         <label>Horário<select id="va-m-hora">${vaOpcoesHora(it.hora || "")}</select></label>
       </div>
       <div class="vt-linha2">
@@ -253,6 +253,38 @@ function vaAbrirModal(item, dataPref, pref) {
     </div>`);
   const $ = id => document.getElementById(id);
   $("va-x").onclick = closeModal;
+
+  // calendário no mesmo estilo da Agenda de vistorias (em vez do calendário nativo do navegador)
+  (() => {
+    const hidden = $("va-m-data"), btn = $("va-m-data-btn"), pop = $("va-m-dp");
+    let cur = hidden.value || todayISODate();
+    const fmtBR = iso => { const [y, m, d] = iso.split("-"); return `${d}/${m}/${y}`; };
+    const rot = () => { btn.textContent = hidden.value ? fmtBR(hidden.value) : "Escolher a data"; };
+    const desenha = () => {
+      const [ano, mes] = cur.split("-").map(Number);
+      const primeiro = (new Date(ano, mes - 1, 1).getDay() + 6) % 7;
+      const dias = new Date(ano, mes, 0).getDate();
+      const hoje = todayISODate();
+      let cel = "";
+      for (let i = 0; i < primeiro; i++) cel += `<span></span>`;
+      for (let d = 1; d <= dias; d++) {
+        const iso = `${ano}-${String(mes).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        cel += `<button type="button" class="va-dp-d${iso === hidden.value ? " sel" : ""}${iso === hoje ? " hoje" : ""}" data-iso="${iso}">${d}</button>`;
+      }
+      pop.innerHTML = `<div class="va-dp-cab"><button type="button" data-mes="-1" aria-label="Mês anterior">‹</button><strong>${VA_MESES[mes - 1].replace(/^./, c => c.toUpperCase())} de ${ano}</strong><button type="button" data-mes="1" aria-label="Próximo mês">›</button></div>
+        <div class="va-dp-sem">${VA_DIAS.map(x => `<span>${x.slice(0, 2)}</span>`).join("")}</div><div class="va-dp-grade">${cel}</div>`;
+      pop.querySelectorAll("[data-mes]").forEach(b => b.onclick = e => {
+        e.stopPropagation();
+        const [a, m] = cur.split("-").map(Number);
+        const n = new Date(a, m - 1 + Number(b.dataset.mes), 1);
+        cur = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-01`;
+        desenha();
+      });
+      pop.querySelectorAll("[data-iso]").forEach(b => b.onclick = e => { e.stopPropagation(); hidden.value = b.dataset.iso; rot(); pop.hidden = true; });
+    };
+    btn.onclick = e => { e.stopPropagation(); cur = hidden.value || todayISODate(); desenha(); pop.hidden = !pop.hidden; };
+    rot();
+  })();
 
   // o nome do proprietário vem do cadastro de clientes quando o campo está vazio
   const sugerir = () => {

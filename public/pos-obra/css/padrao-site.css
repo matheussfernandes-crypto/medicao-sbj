@@ -1,0 +1,131 @@
+/* ==========================================================================
+   PADRÃO VISUAL DO SITE (igual às telas de Chamados / Cadastros do pós-venda)
+   Carregado por último: só muda aparência (cores, fontes, tamanhos, cantos).
+   Nenhuma função, posição ou dado muda. Para voltar ao visual antigo, basta
+   remover o <link> deste arquivo no index.html.
+   ========================================================================== */
+
+:root {
+  --bg: #EDF2F3;
+  --panel: #FFFFFF;
+  --border: #CFDBDE;
+  --text: #14242A;
+  --text-muted: #55676D;
+  --ink: #14242A;
+  --primary: #00687A;
+  --primary-dark: #00566A;
+  --navy: #00687A;
+  --font-display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ps-seg: #E1E9EB;
+  --ps-linha: #E8EEF0;
+  --ps-tag: #E3EEF1;
+  --ps-tag-fg: #1D5560;
+}
+html[data-tema="dark"] {
+  --panel: #152023;
+  --border: #2A3A3F;
+  --ink: #E4EEF0;
+  --ps-seg: #1D2A2E;
+  --ps-linha: #22313A;
+  --ps-tag: #1F3236;
+  --ps-tag-fg: #9FD3DC;
+}
+
+body { background: var(--bg); font-family: var(--font-body); color: var(--text); }
+
+/* ---------- título da tela: sem a faixa branca, igual Chamados ---------- */
+.topbar { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+.topbar-title h1 { font-family: var(--font-body); font-size: 24px; font-weight: 600; color: var(--primary); letter-spacing: 0; }
+.topbar-title p { font-size: 13px; color: var(--text-muted); }
+
+/* conteúdo centralizado, com a mesma largura máxima em todas as telas */
+.main > .topbar, .main > section.view { width: 100%; max-width: 1180px; margin-left: auto; margin-right: auto; box-sizing: border-box; }
+/* telas de tabela (Controle de entregas e Planilha) ficam mais largas para as colunas caberem */
+.main:has(section.view.active .vtc-wrap) > .topbar, .main:has(section.view.active .vp-tabela) > .topbar,
+.main > section.view:has(.vtc-wrap), .main > section.view:has(.vp-tabela) { max-width: 1600px; }
+
+/* ---------- botões ---------- */
+.btn { font-family: var(--font-body); border-radius: 10px; font-weight: 600; }
+.btn.primary { background: var(--primary); border: 1.3px solid var(--primary); color: #fff; }
+.btn.primary:hover { background: var(--primary-dark); box-shadow: 0 4px 14px rgba(0, 104, 122, .3); }
+.btn.ghost { background: var(--panel); border: 1.3px solid var(--border); color: var(--text); }
+.btn.ghost:hover { border-color: var(--primary); color: var(--primary); background: var(--panel); }
+.danger-txt { color: #B3261E !important; }
+.btn.ghost.danger-txt { border-color: #F1C4BF; }
+
+/* ---------- campos ---------- */
+.vt-campo { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.vt-campo select, .vt-campo input { border: 1px solid var(--border); border-radius: 10px; font-family: var(--font-body); background-color: var(--panel); color: var(--text); }
+.vt-campo select:focus, .vt-campo input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0, 104, 122, .15); outline: none; }
+
+/* ---------- abas em "pílula" cinza (Apartamentos/Planilha e Com pendência/Tudo resolvido/Todos) ---------- */
+.vt-modos, .vt-seg { background: var(--ps-seg); border-radius: 12px; padding: 4px; gap: 2px; }
+.vt-modo, .vt-seg-op { font-family: var(--font-body); font-weight: 600; color: var(--text-muted); border-radius: 9px; }
+.vt-modo.ativo, .vt-seg-op.ativo { background: var(--panel); color: var(--primary); box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+.vt-seg .seg-marca { background: var(--panel); border-radius: 9px; box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+.vt-seg-op b { font-weight: 600; opacity: .75; }
+
+.vt-chipbar { display: inline-flex; background: var(--ps-seg); border-radius: 12px; padding: 4px; gap: 2px; min-height: 0; }
+.vt-chipbar .chip { border: 0; background: transparent; color: var(--text-muted); font-family: var(--font-body); font-weight: 600; border-radius: 9px; }
+.vt-chipbar .chip:hover { color: var(--text); }
+.vt-chipbar .chip.active { background: var(--panel); color: var(--primary); box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+
+/* abas de dentro do apartamento (Pendências / + Lançar pendências) */
+.vt-abas { border-bottom: 0; gap: 0; }
+.vt-aba { background: var(--ps-seg); border: 0; border-bottom: 0 !important; font-family: var(--font-body); font-weight: 600; color: var(--text-muted); border-radius: 0; padding: 10px 14px; }
+.vt-abas > .vt-aba:first-child { border-radius: 12px 0 0 12px; padding-left: 16px; }
+.vt-abas > .vt-aba:nth-child(2) { border-radius: 0 12px 12px 0; padding-right: 16px; }
+.vt-aba.ativa { color: var(--primary); background: var(--panel); border-radius: 9px !important; box-shadow: 0 0 0 4px var(--ps-seg), 0 1px 2px 4px rgba(0, 0, 0, .04); position: relative; z-index: 1; }
+.vt-aba span { background: var(--panel); color: var(--text-muted); font-weight: 600; }
+.vt-aba.ativa span { background: var(--ps-tag); color: var(--primary); }
+
+/* ---------- lista de apartamentos ---------- */
+.vt-total { color: var(--text-muted); font-size: 13px; }
+.vt-total strong { font-family: var(--font-body); font-size: 16px; color: var(--text); }
+.vt-obra { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+.vt-obra-titulo { font-family: var(--font-body); font-size: 15px; font-weight: 600; letter-spacing: 0; color: var(--text); }
+.vt-obra-titulo span { font-size: 12px; }
+.vt-card { border: 1px solid var(--border); border-radius: 12px; box-shadow: none; background: var(--panel); }
+.vt-card:hover { border-color: var(--primary); box-shadow: none; transform: none; }
+.vt-unidade { font-family: var(--font-body); font-weight: 600; letter-spacing: 0; color: var(--text); }
+.vt-trilho { background: #E6ECEE; }
+html[data-tema="dark"] .vt-trilho { background: #22313A; }
+.vt-meta strong { color: #C2410C; }
+
+/* ---------- dentro do apartamento ---------- */
+.vt-titulo h2 { font-family: var(--font-body); font-weight: 600; color: var(--primary); letter-spacing: 0; }
+.vt-titulo span { font-size: 13px; }
+
+.vt-lista { gap: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.vt-row { border: 0; border-bottom: 1px solid var(--ps-linha); border-radius: 0; background: var(--panel); }
+.vt-row:last-child { border-bottom: 0; }
+.vt-row.feito { background: var(--panel); }
+.vt-amb-tag, .vt-tag { font-size: 11px; font-weight: 600; border-radius: 999px; padding: 2px 8px; background: var(--ps-tag); color: var(--ps-tag-fg); }
+.vt-status { font-size: 11px; font-weight: 600; padding: 2px 8px; }
+.vt-status.aberto { background: #FDF0DC; color: #9A5B00; }
+.vt-resolver { border: 1.3px solid #9CC7CF; color: var(--primary); background: var(--panel); border-radius: 10px; font-family: var(--font-body); }
+.vt-resolver.ok { background: #2C7A4B; border-color: #2C7A4B; color: #fff; }
+.vt-cam { border-radius: 9px; border-color: var(--border); background: var(--panel); color: var(--text-muted); }
+
+/* ---------- tamanhos de computador (no celular ficam os tamanhos grandes, bons para o dedo) ---------- */
+@media (min-width: 721px) {
+  .topbar { padding: 28px 20px 4px !important; }
+  section.view { padding: 12px 20px 40px; }
+  .btn { font-size: 14px; padding: 8px 13px; min-height: 40px; }
+  .btn.small { font-size: 13px; padding: 6px 11px; min-height: 34px; }
+  .vt-acoes .btn { min-height: 40px; padding: 8px 13px; }
+  .vt-campo select, .vt-campo input { min-height: 38px; font-size: 13px; }
+  .vt-modo, .vt-seg-op, .vt-chipbar .chip { font-size: 13px; padding: 8px 14px; min-height: 36px; }
+  .vt-aba { font-size: 13px; min-height: 44px; }
+  .vt-grid { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+  .vt-card { padding: 10px 12px; gap: 2px; }
+  .vt-unidade { font-size: 20px; margin-bottom: 0; }
+  .vt-trilho { height: 5px; margin: 6px 0 5px; }
+  .vt-meta { font-size: 11.5px; }
+  .vt-titulo h2 { font-size: 24px; }
+  .vt-row { padding: 12px 14px; }
+  .vt-row .vt-desc { font-size: 14px; }
+  .vt-resolver { min-height: 34px; font-size: 13px; padding: 0 12px; }
+  .vt-row .vt-cam, .vt-row .vt-rem { width: 34px; height: 34px; }
+}

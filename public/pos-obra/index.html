@@ -2,6 +2,9 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<script>/* Este módulo só abre dentro do site (Pós-venda > Entrega). Aberto sozinho e com internet, vai para o site.
+   Sem internet continua abrindo aqui, para não perder vistoria em campo. */
+if (window.top === window.self && navigator.onLine !== false) location.replace("/posobra/vistorias");</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#073F45">
 <meta name="mobile-web-app-capable" content="yes">
@@ -28,6 +31,8 @@
 .embutido .app { display: block !important; }
 .embutido .main { margin-left: 0 !important; padding-bottom: 0 !important; min-height: 100vh; }
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/padrao-site.css?v=20261116a">
 <script>try{if(sessionStorage.getItem("sbjIntroVisto")&&location.search.indexOf("intro")<0)document.documentElement.classList.add("intro-done")}catch(e){}</script>
 </head>
 <body>

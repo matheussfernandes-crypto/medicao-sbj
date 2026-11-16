@@ -272,7 +272,7 @@ function vaAbrirModal(item, dataPref, pref) {
         cel += `<button type="button" class="va-dp-d${iso === hidden.value ? " sel" : ""}${iso === hoje ? " hoje" : ""}" data-iso="${iso}">${d}</button>`;
       }
       pop.innerHTML = `<div class="va-dp-cab"><button type="button" data-mes="-1" aria-label="Mês anterior">‹</button><strong>${VA_MESES[mes - 1].replace(/^./, c => c.toUpperCase())} de ${ano}</strong><button type="button" data-mes="1" aria-label="Próximo mês">›</button></div>
-        <div class="va-dp-sem">${VA_DIAS.map(x => `<span>${x.slice(0, 2)}</span>`).join("")}</div><div class="va-dp-grade">${cel}</div>`;
+        <div class="va-dp-sem">${VA_DIAS.map(x => `<span>${x}</span>`).join("")}</div><div class="va-dp-grade">${cel}</div>`;
       pop.querySelectorAll("[data-mes]").forEach(b => b.onclick = e => {
         e.stopPropagation();
         const [a, m] = cur.split("-").map(Number);

@@ -49,7 +49,7 @@
 .va-dp { position: relative; }
 .va-dp-btn { width: 100%; text-align: left; padding: 10px 12px; border: 1px solid var(--border, #e2e6ec); border-radius: 10px; background: #fff; font: inherit; font-size: 14px; color: var(--primary-dark, #094F58); cursor: pointer; }
 .va-dp-btn:hover { border-color: var(--primary, #0C6B76); }
-.va-dp-pop { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; width: 300px; max-width: calc(100vw - 32px); background: #fff; border: 1px solid var(--border, #e2e6ec); border-radius: 14px; box-shadow: 0 12px 30px rgba(6, 27, 30, .18); padding: 12px; }
+.va-dp-pop { position: relative; margin-top: 8px; width: 100%; background: #fff; border: 1px solid var(--border, #e2e6ec); border-radius: 14px; box-shadow: 0 12px 30px rgba(6, 27, 30, .18); padding: 12px; }
 .va-dp-pop[hidden] { display: none; }
 .va-dp-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .va-dp-cab strong { font-size: 14px; color: var(--primary-dark, #094F58); }

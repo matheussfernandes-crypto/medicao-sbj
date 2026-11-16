@@ -108,6 +108,16 @@ html[data-tema="dark"] .vt-trilho { background: #22313A; }
 .vt-resolver.ok { background: #2C7A4B; border-color: #2C7A4B; color: #fff; }
 .vt-cam { border-radius: 9px; border-color: var(--border); background: var(--panel); color: var(--text-muted); }
 
+/* ---------- barra de filtros da lista: Obra e Apartamento em cima (com os botões à direita);
+   Com pendência / Tudo resolvido / Todos na linha de baixo ---------- */
+@media (min-width: 721px) {
+  .vt-barra { align-items: flex-end; row-gap: 12px; }
+  .vt-barra > .vt-campo { order: 1; }
+  .vt-barra > .vt-acoes { order: 2; }
+  .vt-barra:has(.vt-chipbar)::after { content: ""; order: 3; flex-basis: 100%; height: 0; }
+  .vt-barra > .vt-chipbar { order: 4; }
+}
+
 /* ---------- tamanhos de computador (no celular ficam os tamanhos grandes, bons para o dedo) ---------- */
 @media (min-width: 721px) {
   .topbar { padding: 28px 20px 4px !important; }

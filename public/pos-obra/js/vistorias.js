@@ -232,6 +232,57 @@ function vtControleDados() {
     return { c, b, st, cls, data, fin, obra, feita: !!feita, marcada: !!marcada };
   });
 }
+/* filtros de cada coluna e páginas da tabela do controle (20 por página, como na Medição) */
+const vtcF = { apto: "", cliente: "", vaga: "", fin: "", pintura: "", sit: "", data: "" };
+let vtcPag = 0;
+const VTC_POR = 20;
+function vtcPassa(l) {
+  const tem = (txt, q) => !q || vtNorm(txt).includes(vtNorm(q));
+  if (!tem(l.c.unit, vtcF.apto) || !tem(l.c.name, vtcF.cliente) || !tem(l.c.garage, vtcF.vaga) || !tem(l.data, vtcF.data)) return false;
+  if (vtcF.fin && (vtcF.fin === "-" ? !!l.fin : l.fin !== vtcF.fin)) return false;
+  if (vtcF.pintura && vtcF.pintura !== (l.obra === null ? "ligar" : l.obra ? "pronta" : "nao")) return false;
+  if (vtcF.sit && l.cls !== vtcF.sit) return false;
+  return true;
+}
+function vtcDesenharLinhas(grade, linhas) {
+  const vis = linhas.filter(vtcPassa);
+  const pags = Math.max(1, Math.ceil(vis.length / VTC_POR));
+  if (vtcPag > pags - 1) vtcPag = pags - 1;
+  const pagina = vis.slice(vtcPag * VTC_POR, vtcPag * VTC_POR + VTC_POR);
+  const sitOpc = [["", "Automática"], ["financiamento", "Financiamento — não agendar"], ["obra", "Aguardando obra"], ["liberado", "Liberado p/ agendar"]];
+  grade.querySelector("#vtc-corpo").innerHTML = pagina.map(l => `<tr class="vtc-l">
+      <td>${escapeHtml(l.b.name || "")}</td>
+      <td><strong>${escapeHtml(l.c.unit)}</strong></td>
+      <td>${l.c.name ? escapeHtml(l.c.name) : '<span class="empty-hint">sem cliente</span>'}</td>
+      <td>${l.c.garage ? escapeHtml(l.c.garage) : "—"}</td>
+      <td>${VTC_FIN[l.fin] || "—"}</td>
+      <td>${l.obra === null ? "a ligar" : l.obra ? "Pronta" : "Não pronta"}</td>
+      <td>${l.feita || l.marcada ? `<span class="vtc-tag vtc-${l.cls}">${l.st}</span>` : `<select class="vtc-sit" data-id="${escapeHtml(l.c.id)}">${sitOpc.map(([v, t]) => `<option value="${v}" ${(l.c.situacaoVistoria || "") === v ? "selected" : ""}>${t}</option>`).join("")}</select>`}</td>
+      <td>${l.data || "—"}</td></tr>`).join("")
+    || `<tr><td colspan="8" style="text-align:center;padding:28px;color:var(--text-muted)">${linhas.length ? "Nenhum apartamento com esses filtros." : "Nenhum apartamento deste empreendimento."}</td></tr>`;
+  grade.querySelectorAll(".vtc-sit").forEach(s => s.onchange = () => vtSituacaoSalvar(s.dataset.id, s.value));
+  const filtrando = Object.values(vtcF).some(Boolean);
+  grade.querySelector("#vtc-conta").textContent = filtrando ? `${vis.length} de ${linhas.length} apartamentos` : `${linhas.length} apartamento${linhas.length === 1 ? "" : "s"}`;
+  grade.querySelector("#vtc-limpar").hidden = !filtrando;
+  // páginas: 1 … atual-1 atual atual+1 … última
+  const pager = grade.querySelector("#vtc-pager");
+  if (pags < 2) { pager.innerHTML = ""; return; }
+  const nums = [];
+  for (let i = 0; i < pags; i++) {
+    if (i === 0 || i === pags - 1 || Math.abs(i - vtcPag) <= 1) nums.push(i);
+    else if (nums[nums.length - 1] !== "…") nums.push("…");
+  }
+  pager.innerHTML = `<span>${vtcPag * VTC_POR + 1}–${Math.min(vis.length, vtcPag * VTC_POR + VTC_POR)} de ${vis.length}</span>
+    <div class="vtc-pg">
+      <button type="button" data-pg="${vtcPag - 1}" ${vtcPag === 0 ? "disabled" : ""} aria-label="Página anterior">‹</button>
+      ${nums.map(n => n === "…" ? `<span style="padding:0 4px">…</span>` : `<button type="button" data-pg="${n}" class="${n === vtcPag ? "atual" : ""}">${n + 1}</button>`).join("")}
+      <button type="button" data-pg="${vtcPag + 1}" ${vtcPag === pags - 1 ? "disabled" : ""} aria-label="Próxima página">›</button>
+    </div>`;
+  pager.querySelectorAll("[data-pg]").forEach(b => b.onclick = () => {
+    vtcPag = +b.dataset.pg; vtcDesenharLinhas(grade, linhas);
+    const q = grade.querySelector(".vtc-quadro"); if (q) q.scrollIntoView({ block: "start", behavior: "smooth" });
+  });
+}
 function vtRenderControle(root) {
   const grade = root.querySelector("#vt-grade");
   if (!vtCtrl.lista && !vtCtrl.carregando) vtCtrlCarregar();
@@ -243,15 +294,17 @@ function vtRenderControle(root) {
   const cont = k => linhas.filter(l => l.cls === k).length;
   const cartoes = [["ok", "Liberado p/ agendar"], ["agendada", "Agendadas"], ["feita", "Realizadas"], ["fin", "Financiamento"], ["obra", "Aguardando obra"]]
     .map(([k, t]) => `<div class="vtc-card vtc-${k}"><strong>${cont(k)}</strong><span>${t}</span></div>`).join("");
-  const corpo = linhas.map(l => `<tr class="vtc-l">
-      <td>${escapeHtml(l.b.name || "")}</td>
-      <td><strong>${escapeHtml(l.c.unit)}</strong></td>
-      <td>${l.c.name ? escapeHtml(l.c.name) : '<span class="empty-hint">sem cliente</span>'}</td>
-      <td>${l.c.garage ? escapeHtml(l.c.garage) : "—"}</td>
-      <td>${VTC_FIN[l.fin] || "—"}</td>
-      <td>${l.obra === null ? "a ligar" : l.obra ? "Pronta" : "Não pronta"}</td>
-      <td>${l.feita || l.marcada ? `<span class="vtc-tag vtc-${l.cls}">${l.st}</span>` : `<select class="vtc-sit" data-id="${escapeHtml(l.c.id)}">${[["", "Automática"], ["financiamento", "Financiamento — não agendar"], ["obra", "Aguardando obra"], ["liberado", "Liberado p/ agendar"]].map(([v, t]) => `<option value="${v}" ${(l.c.situacaoVistoria || "") === v ? "selected" : ""}>${t}</option>`).join("")}</select>`}</td>
-      <td>${l.data || "—"}</td></tr>`).join("");
+  const opc = (lista, atual) => lista.map(([v, t]) => `<option value="${v}" ${atual === v ? "selected" : ""}>${t}</option>`).join("");
+  const filtroLinha = `<tr class="vtc-filtros">
+      <th></th>
+      <th><input data-f="apto" placeholder="Filtrar" value="${escapeHtml(vtcF.apto)}"></th>
+      <th><input data-f="cliente" placeholder="Filtrar" value="${escapeHtml(vtcF.cliente)}"></th>
+      <th><input data-f="vaga" placeholder="Filtrar" value="${escapeHtml(vtcF.vaga)}"></th>
+      <th><select data-f="fin">${opc([["", "Todos"], ["-", "—"], ["nao", "Não financia"], ["analise", "Financiando"], ["aprovado", "Aprovado"]], vtcF.fin)}</select></th>
+      <th><select data-f="pintura">${opc([["", "Todas"], ["pronta", "Pronta"], ["nao", "Não pronta"], ["ligar", "a ligar"]], vtcF.pintura)}</select></th>
+      <th><select data-f="sit">${opc([["", "Todas"], ["ok", "Liberado p/ agendar"], ["agendada", "Agendada"], ["feita", "Vistoria realizada"], ["fin", "Financiamento"], ["obra", "Aguardando obra"]], vtcF.sit)}</select></th>
+      <th><input data-f="data" placeholder="Filtrar" value="${escapeHtml(vtcF.data)}"></th>
+    </tr>`;
   grade.innerHTML = `
     <style>
       .vtc-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0 16px; }
@@ -260,21 +313,46 @@ function vtRenderControle(root) {
       .vtc-card span { font-size: 13px; color: var(--text-muted, #64748b); }
       .vtc-card.vtc-ok { border-left-color: #1f8a4c; } .vtc-card.vtc-agendada { border-left-color: #0C6B76; }
       .vtc-card.vtc-feita { border-left-color: #16a34a; } .vtc-card.vtc-fin { border-left-color: #dc2626; } .vtc-card.vtc-obra { border-left-color: #f59e0b; }
-      .vtc-wrap { overflow-x: auto; border: 1px solid var(--border, #e2e6ec); border-radius: 12px; }
-      .vtc-tab { width: 100%; border-collapse: collapse; font-size: 14px; }
-      .vtc-tab th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted, #64748b); padding: 10px 12px; background: var(--surface-2, #f4f6f9); border-bottom: 1px solid var(--border, #e2e6ec); }
-      .vtc-tab td { padding: 9px 12px; border-bottom: 1px solid var(--border, #eef1f5); vertical-align: middle; }
+      .vtc-quadro { background: var(--panel, #fff); border: 1px solid var(--border, #e2e6ec); border-radius: 14px; padding: 6px 6px 4px; }
+      .vtc-wrap { overflow-x: auto; }
+      .vtc-tab { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--panel, #fff); }
+      .vtc-tab th { text-align: left; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted, #64748b); padding: 10px 12px 6px; background: var(--panel, #fff); }
+      .vtc-tab tr.vtc-filtros th { padding: 0 6px 10px; border-bottom: 1px solid var(--border, #e2e6ec); text-transform: none; letter-spacing: 0; }
+      .vtc-filtros input, .vtc-filtros select { width: 100%; min-width: 70px; box-sizing: border-box; height: 32px; padding: 0 8px; border: 1px solid var(--border, #e2e6ec); border-radius: 8px; font: inherit; font-size: 12.5px; font-weight: 400; color: var(--text, #14242a); background-color: var(--panel, #fff); }
+      .vtc-filtros input:focus, .vtc-filtros select:focus { outline: none; border-color: var(--primary, #00687a); box-shadow: 0 0 0 3px rgba(0,104,122,.15); }
+      .vtc-tab td { padding: 9px 12px; border-bottom: 1px solid var(--ps-linha, #e8eef0); vertical-align: middle; }
+      .vtc-tab tbody tr:last-child td { border-bottom: 0; }
+      .vtc-tab tbody tr:hover td { background: rgba(0, 104, 122, .04); }
+      .vtc-topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 4px 8px 8px; font-size: 12.5px; color: var(--text-muted, #64748b); }
+      .vtc-limpar { border: 0; background: none; color: var(--primary, #00687a); font: inherit; font-weight: 600; cursor: pointer; padding: 0; }
+      .vtc-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 8px 6px; border-top: 1px solid var(--border, #e2e6ec); font-size: 12px; color: var(--text-muted, #64748b); }
+      .vtc-pager:empty { display: none; }
+      .vtc-pg { display: flex; align-items: center; gap: 4px; }
+      .vtc-pg button { min-width: 32px; height: 32px; padding: 0 8px; border-radius: 9px; border: 1px solid var(--border, #dfe5e7); background: var(--panel, #fff); color: var(--text, #33424a); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+      .vtc-pg button:hover:not(:disabled) { border-color: var(--primary, #00687a); color: var(--primary, #00687a); }
+      .vtc-pg button:disabled { opacity: .4; cursor: default; }
+      .vtc-pg button.atual { background: var(--primary, #00687a); border-color: var(--primary, #00687a); color: #fff; }
       .vtc-tag { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
       .vtc-tag.vtc-ok { background: #dcfce7; color: #15803d; } .vtc-tag.vtc-agendada { background: #cffafe; color: #0e7490; }
       .vtc-tag.vtc-feita { background: #bbf7d0; color: #166534; } .vtc-tag.vtc-fin { background: #fee2e2; color: #b91c1c; } .vtc-tag.vtc-obra { background: #fef3c7; color: #b45309; }
     </style>
     ${seletor}
     <div class="vtc-cards">${cartoes}</div>
-    <div class="vtc-wrap"><table class="vtc-tab"><thead><tr><th>Obra</th><th>Apto</th><th>Cliente</th><th>Vaga</th><th>Financiamento</th><th>Pintura final</th><th>Situação</th><th>Data</th></tr></thead>
-    <tbody>${corpo || '<tr><td colspan="8">Nenhum apartamento deste empreendimento.</td></tr>'}</tbody></table></div>`;
+    <div class="vtc-quadro">
+      <div class="vtc-topo"><span id="vtc-conta"></span><button type="button" class="vtc-limpar" id="vtc-limpar" hidden>Limpar filtros</button></div>
+      <div class="vtc-wrap"><table class="vtc-tab"><thead><tr><th>Obra</th><th>Apto</th><th>Cliente</th><th>Vaga</th><th>Financiamento</th><th>Pintura final</th><th>Situação</th><th>Data</th></tr>${filtroLinha}</thead>
+      <tbody id="vtc-corpo"></tbody></table></div>
+      <div class="vtc-pager" id="vtc-pager"></div>
+    </div>`;
   const sel = grade.querySelector("#vtc-emp");
-  if (sel) sel.onchange = e => { vtCtrl.emp = e.target.value; renderVistorias(); };
-  grade.querySelectorAll(".vtc-sit").forEach(s => s.onchange = () => vtSituacaoSalvar(s.dataset.id, s.value));
+  if (sel) sel.onchange = e => { vtCtrl.emp = e.target.value; vtcPag = 0; renderVistorias(); };
+  // filtros de cada coluna: só redesenham as linhas (o campo onde se digita não perde o foco)
+  grade.querySelectorAll(".vtc-filtros [data-f]").forEach(f => {
+    const aoMudar = () => { vtcF[f.dataset.f] = f.value; vtcPag = 0; vtcDesenharLinhas(grade, linhas); };
+    f.oninput = aoMudar; f.onchange = aoMudar;
+  });
+  grade.querySelector("#vtc-limpar").onclick = () => { Object.keys(vtcF).forEach(k => vtcF[k] = ""); vtcPag = 0; renderVistorias(); };
+  vtcDesenharLinhas(grade, linhas);
   // no controle, as ações da tela Vistorias são trocadas por estas duas
   const acoes = root.querySelector(".vt-acoes");
   if (acoes) {

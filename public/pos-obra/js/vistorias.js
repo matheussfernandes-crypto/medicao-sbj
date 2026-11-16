@@ -105,6 +105,14 @@ function vtRenderGrade(root) {
   grade.querySelectorAll("[data-vt]").forEach(b => b.addEventListener("click", () => { vtAbertaId = b.dataset.vt; renderVistorias(); window.scrollTo({ top: 0 }); }));
 }
 
+// o menu "Controle de entregas" abre a tela de Vistorias já no modo controle; "Vistorias" volta ao modo Apartamentos
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest('.nav-btn[data-view="vistorias"]');
+  if (!b) return;
+  vtModo = b.dataset.modo || "aptos";
+  setTimeout(() => document.querySelectorAll(".nav-btn").forEach(x => x.classList.toggle("active", x === b)), 0);
+}, true);
+
 function renderVistorias() {
   const root = document.getElementById("view-vistorias");
   if (!root) return;
@@ -129,7 +137,6 @@ function renderVistorias() {
     <div class="vt-modos" role="group" aria-label="Forma de ver">
       <button type="button" class="vt-modo ${!plan && !controle ? "ativo" : ""}" data-vt-modo="aptos">Apartamentos</button>
       <button type="button" class="vt-modo ${plan ? "ativo" : ""}" data-vt-modo="planilha">Planilha</button>
-      <button type="button" class="vt-modo ${controle ? "ativo" : ""}" data-vt-modo="controle">Controle de entregas</button>
     </div>
     <div class="vt-barra">
       <label class="vt-campo">Obra<select id="vt-predio"><option value="">Todas as obras</option>${predios.map(b => `<option value="${b.id}" ${b.id === vtFiltroPredio ? "selected" : ""}>${escapeHtml(b.name)}</option>`).join("")}</select></label>

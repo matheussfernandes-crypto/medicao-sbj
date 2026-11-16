@@ -184,6 +184,22 @@ export const NAV_ITEMS: NavItem[] = [
     grupo: "Entrega",
   },
   {
+    label: "Empreendimentos",
+    href: "/posobra/empreendimentos",
+    icon: ClipboardList,
+    description: "Empreendimentos e unidades: cadastro de clientes, vaga de garagem e financiamento de cada apartamento.",
+    secao: "posobra",
+    grupo: "Cadastros",
+  },
+  {
+    label: "Clientes",
+    href: "/posobra/clientes",
+    icon: ClipboardList,
+    description: "Lista de clientes por unidade, para editar vaga, escritura e financiamento.",
+    secao: "posobra",
+    grupo: "Cadastros",
+  },
+  {
     label: "Agenda",
     href: "/posobra/agenda",
     icon: CalendarDays,

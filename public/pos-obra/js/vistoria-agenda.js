@@ -351,12 +351,37 @@ async function vaGerarImagem() {
   const dias = new Date(ano, mes, 0).getDate();
   const semanas = Math.ceil((desloc + dias) / 7);
   const larg = (W - PAD * 2) / 7;
+  // texto de cada visita quebrado em linhas (nada cortado com "..."): a célula cresce conforme o texto
+  const mg = document.createElement("canvas").getContext("2d");
+  mg.font = `700 25px ${FONTE}`;
+  const quebra = (txt, max) => {
+    const out = [];
+    let atual = "";
+    for (const palavra of txt.split(" ")) {
+      let p = palavra;
+      while (mg.measureText(p).width > max && p.length > 1) { // palavra sem espaço maior que a célula
+        let i = p.length - 1;
+        while (i > 1 && mg.measureText(p.slice(0, i)).width > max) i--;
+        if (atual) { out.push(atual); atual = ""; }
+        out.push(p.slice(0, i));
+        p = p.slice(i);
+      }
+      const t = atual ? atual + " " + p : p;
+      if (!atual || mg.measureText(t).width <= max) atual = t;
+      else { out.push(atual); atual = p; }
+    }
+    if (atual) out.push(atual);
+    return out;
+  };
+  const textoVisita = e => `${vaHoraTxt(e.hora) || "—"} - ${e.unit} ${vaPrimeiroNome(e.nome)}` + (mostrarObra ? ` · ${vaObraCurta(vaNomeObra(e))}` : "");
+  const linhasDia = {};
+  Object.keys(porDia).forEach(d => { linhasDia[d] = porDia[d].flatMap(e => quebra(textoVisita(e), larg - 26)); });
   const maxPorSemana = [];
   for (let s = 0; s < semanas; s++) {
     let m = 0;
     for (let c = 0; c < 7; c++) {
       const n = s * 7 + c - desloc + 1;
-      if (n >= 1 && n <= dias) m = Math.max(m, (porDia[va.mes + "-" + String(n).padStart(2, "0")] || []).length);
+      if (n >= 1 && n <= dias) m = Math.max(m, (linhasDia[va.mes + "-" + String(n).padStart(2, "0")] || []).length);
     }
     maxPorSemana.push(m);
   }
@@ -404,15 +429,13 @@ async function vaGerarImagem() {
       g.textAlign = "left"; g.fillStyle = dentro ? "#5b6775" : "#b4bcc6"; g.font = `600 24px ${FONTE}`;
       g.fillText(String(d.getDate()), x + 14, y + 34);
       if (!dentro) continue;
-      const evs = porDia[va.mes + "-" + String(n).padStart(2, "0")] || [];
-      evs.forEach((e, k) => {
-        const txt = `${vaHoraTxt(e.hora) || "—"} - ${e.unit} ${vaPrimeiroNome(e.nome)}` + (mostrarObra ? ` · ${vaObraCurta(vaNomeObra(e))}` : "");
+      const chave = va.mes + "-" + String(n).padStart(2, "0");
+      const evs = porDia[chave] || [];
+      let k = 0;
+      evs.forEach(e => {
         g.font = `700 25px ${FONTE}`;
         g.fillStyle = e.status === "realizada" ? "#1f8a4c" : "#094F58";
-        let t = txt;
-        while (t.length > 3 && g.measureText(t).width > larg - 26) t = t.slice(0, -2);
-        if (t !== txt) t = t.trimEnd() + "…";
-        g.fillText(t, x + 14, y + 66 + k * 34);
+        quebra(textoVisita(e), larg - 26).forEach(linha => { g.fillText(linha, x + 14, y + 66 + k * 34); k++; });
       });
     }
     y += alt;

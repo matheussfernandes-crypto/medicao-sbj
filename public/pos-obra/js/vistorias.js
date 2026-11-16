@@ -167,8 +167,34 @@ function renderVistorias() {
 
 /* ---------- Controle de entregas: quem já pode ser agendado, quem espera obra ou financiamento ---------- */
 const VTC_FIN = { "": "—", nao: "Não financia", analise: "Financiando", aprovado: "Aprovado" };
-// ligação com o Andamento de Obra (Pintura Final) ainda não feita: null = desconhecido
-function vtObraPronta(c) { return null; }
+// Andamento de Obra: % de cada empreendimento e Pintura Final de cada apartamento (vem de /api/posvenda/andamento)
+const vtChaveEmp = (nome) => String(nome || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+  .replace(/^residencial\s+/, "").replace(/^ilhas?\s+(de|do|da|dos|das)\s+/, "").replace(/^ilhas?\s+/, "").trim();
+let vtCtrl = { lista: null, carregando: false, erro: "", emp: "" };
+async function vtCtrlCarregar() {
+  vtCtrl.carregando = true;
+  try {
+    const r = await fetch("/api/posvenda/andamento", { credentials: "include", cache: "no-store" });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.erro || "Não foi possível ler o Andamento de Obra.");
+    vtCtrl.lista = j.empreendimentos || [];
+    vtCtrl.erro = "";
+    // abre sempre no empreendimento com maior % (a lista já vem ordenada assim)
+    if (!vtCtrl.lista.some(e => e.id === vtCtrl.emp)) vtCtrl.emp = vtCtrl.lista[0] ? vtCtrl.lista[0].id : "";
+  } catch (e) { vtCtrl.lista = []; vtCtrl.erro = String(e.message || e); }
+  finally { vtCtrl.carregando = false; }
+  renderVistorias();
+}
+function vtEmpSel() { return (vtCtrl.lista || []).find(e => e.id === vtCtrl.emp) || null; }
+// true = Pintura Final finalizada · false = não · null = ainda não ligado ao Andamento
+function vtObraPronta(c) {
+  const b = getBuilding(c.buildingId) || {};
+  const emp = (vtCtrl.lista || []).find(e => e.chave === vtChaveEmp(b.name));
+  if (!emp || !emp.temPintura) return null;
+  const ap = emp.aptos.find(a => String(a.unit) === String(c.unit));
+  if (!ap) return null;
+  return ap.pintura === 2;
+}
 function vtControleDados() {
   const ag = (typeof va !== "undefined" && va.lista) || [];
   return (state.clients || []).filter(c => c.unit).map(c => {
@@ -190,8 +216,12 @@ function vtControleDados() {
 }
 function vtRenderControle(root) {
   const grade = root.querySelector("#vt-grade");
-  let linhas = vtControleDados();
-  if (vtFiltroPredio) linhas = linhas.filter(l => l.c.buildingId === vtFiltroPredio);
+  if (!vtCtrl.lista && !vtCtrl.carregando) vtCtrlCarregar();
+  const emp = vtEmpSel();
+  const seletor = `<style>.vtc-emp{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0 4px}.vtc-emp select{min-width:280px;padding:8px 10px;border-radius:10px;border:1px solid var(--border,#e2e6ec);font:inherit;background:var(--surface,#fff)}.vtc-msg{font-size:13px;color:var(--text-muted,#64748b)}.vtc-erro{color:#b91c1c}</style>
+    <div class="vtc-emp"><label>Empreendimento <select id="vtc-emp">${(vtCtrl.lista || []).map(e => `<option value="${escapeHtml(e.id)}" ${emp && e.id === emp.id ? "selected" : ""}>${escapeHtml(e.nome)} · ${e.pct}%</option>`).join("")}</select></label>${vtCtrl.carregando ? `<span class="vtc-msg">Carregando do Andamento…</span>` : ""}${vtCtrl.erro ? `<span class="vtc-msg vtc-erro">${escapeHtml(vtCtrl.erro)}</span>` : ""}</div>`;
+  // cada empreendimento tem a sua tabela; um novo empreendimento aparece aqui sozinho quando entrar no Andamento
+  let linhas = vtControleDados().filter(l => emp && vtChaveEmp(l.b.name) === emp.chave);
   const cont = k => linhas.filter(l => l.cls === k).length;
   const cartoes = [["ok", "Liberado p/ agendar"], ["agendada", "Agendadas"], ["feita", "Realizadas"], ["fin", "Financiamento"], ["obra", "Aguardando obra"]]
     .map(([k, t]) => `<div class="vtc-card vtc-${k}"><strong>${cont(k)}</strong><span>${t}</span></div>`).join("");
@@ -220,9 +250,12 @@ function vtRenderControle(root) {
       .vtc-tag.vtc-ok { background: #dcfce7; color: #15803d; } .vtc-tag.vtc-agendada { background: #cffafe; color: #0e7490; }
       .vtc-tag.vtc-feita { background: #bbf7d0; color: #166534; } .vtc-tag.vtc-fin { background: #fee2e2; color: #b91c1c; } .vtc-tag.vtc-obra { background: #fef3c7; color: #b45309; }
     </style>
+    ${seletor}
     <div class="vtc-cards">${cartoes}</div>
     <div class="vtc-wrap"><table class="vtc-tab"><thead><tr><th>Obra</th><th>Apto</th><th>Cliente</th><th>Vaga</th><th>Financiamento</th><th>Pintura final</th><th>Situação</th><th>Data</th></tr></thead>
-    <tbody>${corpo || '<tr><td colspan="8">Nenhum apartamento cadastrado.</td></tr>'}</tbody></table></div>`;
+    <tbody>${corpo || '<tr><td colspan="8">Nenhum apartamento deste empreendimento.</td></tr>'}</tbody></table></div>`;
+  const sel = grade.querySelector("#vtc-emp");
+  if (sel) sel.onchange = e => { vtCtrl.emp = e.target.value; renderVistorias(); };
 }
 
 /* ---------- Visão em planilha: todas as pendências em linhas, como a planilha da obra, mas com filtros ---------- */

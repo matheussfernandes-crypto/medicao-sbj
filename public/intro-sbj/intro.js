@@ -18,7 +18,8 @@
   var KEY = 'sbjIntroVisto';
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   try {
-    if (sessionStorage.getItem(KEY) && location.search.indexOf('intro') < 0) { el.remove(); document.documentElement.classList.add('intro-done'); return; }
+    // as páginas /pdf/ são impressas pelo servidor (sem sessão): a animação não pode entrar no PDF
+    if ((sessionStorage.getItem(KEY) && location.search.indexOf('intro') < 0) || location.pathname.indexOf('/pdf/') === 0) { el.remove(); document.documentElement.classList.add('intro-done'); return; }
     sessionStorage.setItem(KEY, '1');
   } catch (e) {}
 

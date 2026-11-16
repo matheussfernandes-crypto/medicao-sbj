@@ -9,6 +9,7 @@ import CarregandoSBJ from "@/components/CarregandoSBJ";
 // de tela vem do menu do site (/posobra/<tela>). O módulo não é alterado: só recebe um estilo extra.
 const TELAS: Record<string, string> = {
   vistorias: "vistorias",
+  controle: "controle",
   agenda: "vtagenda",
   empreendimentos: "buildings",
   clientes: "clients",
@@ -44,6 +45,9 @@ export default function PosObraLayout({ children }: { children: React.ReactNode 
   const irPara = (view: string) => {
     const w = quadro.current?.contentWindow as JanelaModulo | null | undefined;
     if (!w || typeof w.showView !== "function") return;
+    // "Controle de entregas" é um modo da tela Vistorias do módulo; "Vistorias" volta ao modo Apartamentos
+    if (view === "controle" && typeof w.vtAbrirControle === "function") return w.vtAbrirControle();
+    if (view === "vistorias" && typeof w.vtAbrirVistorias === "function") return w.vtAbrirVistorias();
     const ativa = w.document.querySelector(".view.active");
     if (ativa && ativa.id === `view-${view}`) return;
     w.showView(view);

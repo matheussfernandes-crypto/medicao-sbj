@@ -176,6 +176,14 @@ export const NAV_ITEMS: NavItem[] = [
     grupo: "Entrega",
   },
   {
+    label: "Controle de entregas",
+    href: "/posobra/controle",
+    icon: ClipboardList,
+    description: "Situação de cada apartamento para a vistoria: pintura final, financiamento e agendamento.",
+    secao: "posobra",
+    grupo: "Entrega",
+  },
+  {
     label: "Agenda",
     href: "/posobra/agenda",
     icon: CalendarDays,

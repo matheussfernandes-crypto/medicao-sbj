@@ -115,6 +115,10 @@ document.addEventListener("click", e => {
   setTimeout(() => document.querySelectorAll(".nav-btn").forEach(x => x.classList.toggle("active", x === b)), 0);
 }, true);
 
+// chamados pelo menu do site (/posobra/controle e /posobra/vistorias)
+window.vtAbrirControle = () => { vtModo = "controle"; vtCtrl.lista = null; showView("vistorias"); };
+window.vtAbrirVistorias = () => { if (vtModo === "controle") vtModo = "aptos"; showView("vistorias"); };
+
 function renderVistorias() {
   const root = document.getElementById("view-vistorias");
   if (!root) return;

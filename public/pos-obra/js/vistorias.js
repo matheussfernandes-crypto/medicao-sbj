@@ -276,11 +276,88 @@ function vtRenderControle(root) {
   // no controle, as ações da tela Vistorias são trocadas por estas duas
   const acoes = root.querySelector(".vt-acoes");
   if (acoes) {
-    acoes.innerHTML = `<button type="button" class="btn ghost" id="vtc-imp">Importar financiamento</button><button type="button" class="btn primary" id="vtc-rel">Gerar relatório</button>`;
+    acoes.innerHTML = `<button type="button" class="btn ghost" id="vtc-imp">Importar financiamento</button><button type="button" class="btn primary" id="vtc-rel">Gerar relatório (PDF)</button>`;
     acoes.querySelector("#vtc-imp").onclick = vtControleImportarFin;
-    acoes.querySelector("#vtc-rel").onclick = vtControleRelatorio;
+    acoes.querySelector("#vtc-rel").onclick = vtControlePdf;
   }
 }
+
+/* relatório em PDF do controle de entregas (A4 paisagem), no mesmo padrão dos relatórios de vistoria */
+async function vtControlePdf() {
+  if (!window.jspdf) { toast("Biblioteca de PDF não carregada.", "error"); return; }
+  const emp = vtEmpSel();
+  if (!emp) return;
+  const linhas = vtControleFiltradas();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+  const M = 12, TEAL = [12, 107, 118], INK = [6, 27, 30], CINZA = [105, 115, 125];
+  const logo = await vtLogoDataUrl();
+  const emitido = new Date().toLocaleDateString("pt-BR");
+  const CORES = { ok: [22, 128, 61], agendada: [12, 107, 118], feita: [21, 128, 61], fin: [185, 28, 28], obra: [180, 83, 9] };
+
+  const topo = (primeira) => {
+    if (logo) doc.addImage(logo, "PNG", M, primeira ? 7 : 5, primeira ? 19 : 11, primeira ? 16.5 : 9.5);
+    const x = M + (logo ? (primeira ? 23 : 14) : 0);
+    doc.setFont("helvetica", "bold"); doc.setTextColor(...INK);
+    if (primeira) {
+      doc.setFontSize(16); doc.text("Controle de entregas", x, 14);
+      doc.setFontSize(11); doc.setTextColor(...TEAL); doc.text(emp.nome, x, 20);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.8); doc.setTextColor(...CINZA);
+      doc.text(`${linhas.length} apartamento(s) · pintura final conforme o Andamento de Obra`, x, 25.3);
+      doc.text(`Emitido em ${emitido}`, pw - M, 12, { align: "right" });
+      doc.setDrawColor(...TEAL); doc.setLineWidth(0.6); doc.line(M, 29, pw - M, 29);
+    } else {
+      doc.setFontSize(10.5); doc.text(`Controle de entregas · ${emp.nome}`, x, 11);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(...CINZA);
+      doc.text(`Emitido em ${emitido}`, pw - M, 11, { align: "right" });
+      doc.setDrawColor(...TEAL); doc.setLineWidth(0.4); doc.line(M, 15.5, pw - M, 15.5);
+    }
+  };
+
+  // resumo: quantos em cada situação
+  const cards = [["ok", "Liberado p/ agendar"], ["agendada", "Agendadas"], ["feita", "Realizadas"], ["fin", "Financiamento"], ["obra", "Aguardando obra"]];
+  const cw = (pw - 2 * M - 4 * 4) / 5;
+  cards.forEach(([k, t], i) => {
+    const x = M + i * (cw + 4), y = 33;
+    doc.setFillColor(246, 248, 250); doc.setDrawColor(...LINHA_CARD());
+    doc.roundedRect(x, y, cw, 16, 2, 2, "FD");
+    doc.setFillColor(...CORES[k]); doc.rect(x, y, 1.6, 16, "F");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(...INK);
+    doc.text(String(linhas.filter(l => l.cls === k).length), x + 6, y + 9.5);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(...CINZA);
+    doc.text(t, x + 6, y + 13.8);
+  });
+
+  const corpo = linhas.map(l => [
+    l.b.name || "", l.c.unit, l.c.name || "sem cliente", l.c.garage || "—", VTC_FIN[l.fin] || "—",
+    l.obra === null ? "a ligar" : l.obra ? "Pronta" : "Não pronta", l.st, l.data || "—",
+  ]);
+  doc.autoTable({
+    startY: 53,
+    margin: { left: M, right: M, top: 20, bottom: 16 },
+    head: [["Obra", "Apto", "Cliente", "Vaga", "Financiamento", "Pintura final", "Situação", "Data"]],
+    body: corpo,
+    theme: "striped",
+    styles: { font: "helvetica", fontSize: 8.8, cellPadding: { top: 1.8, bottom: 1.8, left: 2, right: 2 }, textColor: [30, 35, 40], valign: "middle", overflow: "linebreak" },
+    headStyles: { fillColor: TEAL, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.6 },
+    alternateRowStyles: { fillColor: [247, 249, 250] },
+    columnStyles: { 0: { cellWidth: 42 }, 1: { cellWidth: 14, fontStyle: "bold" }, 2: { cellWidth: 70 }, 3: { cellWidth: 22 }, 4: { cellWidth: 36 }, 5: { cellWidth: 26 }, 6: { cellWidth: 46, fontStyle: "bold" }, 7: { cellWidth: 17 } },
+    didParseCell: (d) => {
+      if (d.section === "body" && d.column.index === 6) { const l = linhas[d.row.index]; if (l) d.cell.styles.textColor = CORES[l.cls] || INK; }
+      if (d.section === "body" && d.column.index === 5) { const t = d.cell.raw; d.cell.styles.textColor = t === "Pronta" ? CORES.ok : t === "Não pronta" ? CORES.obra : CINZA; }
+    },
+    didDrawPage: (d) => topo(d.pageNumber === 1),
+  });
+  const paginas = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= paginas; i++) {
+    doc.setPage(i);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...CINZA);
+    doc.text(`SBJ Construtora e Incorporadora · Controle de entregas · Página ${i} de ${paginas}`, M, ph - 7);
+  }
+  doc.save(`controle-entregas-${emp.chave.replace(/\s+/g, "-")}.pdf`);
+}
+const LINHA_CARD = () => [214, 220, 226];
 
 /* situação escolhida no controle: fica salva no cadastro do cliente daquela obra.
    "Financiamento" marca o financiamento como "Financiando"; "Liberado" marca como "Aprovado" (se estava financiando). */

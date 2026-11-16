@@ -531,11 +531,20 @@ function toast(msg,acao){const t=document.createElement("div");t.className="toas
 
 /* ================= banco de dados ================= */
 function col(k){return S.db.collection(COLS[k])}
-async function dbAdd(k,data){if(!S.db)throw{code:"no_db"};const ref=col(k).doc();await ref.set(data);return ref.id}
-async function dbUpd(k,id,data){if(!S.db)throw{code:"no_db"};await col(k).doc(id).update(data)}
+async function dbAdd(k,data){if(k==="uni")return uniAdd(data);if(!S.db)throw{code:"no_db"};const ref=col(k).doc();await ref.set(data);return ref.id}
+async function dbUpd(k,id,data){if(k==="uni")return uniUpd(id,data);if(!S.db)throw{code:"no_db"};await col(k).doc(id).update(data)}
+/* ---- unidades: cadastro único, guardado no Supabase (tabela cadastro_unidades) ---- */
+const UNI_CAMPOS=[["prop","proprietario"],["tel","telefone"],["contatos","contatos"],["email","email"],["vaga","vaga"],["fin","financiamento"],["situacaoVistoria","situacao_vistoria"],["obs","obs"],["escritura","escritura"],["numero","numero"],["bloco","bloco"],["empId","empreendimento_id"]];
+function uniDeApi(r){const o={id:r.id,obraId:r.obra_id||"",criadoEm:r.criado_em||null};UNI_CAMPOS.forEach(([a,b])=>{o[a]=r[b]==null?"":r[b]});return o}
+function uniParaApi(u){const emp=S.emp.find(e=>e.id===u.empId);const o={id:u.id,obra_id:(emp&&emp.obraId)||u.obraId||"",criado_em:u.criadoEm||nowTs()};UNI_CAMPOS.forEach(([a,b])=>{o[b]=u[a]==null?"":String(u[a])});return o}
+async function uniPost(linhas){const r=await fetch("/api/cadastro-unidades",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({unidades:linhas})});const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw{code:"uni_api",msg:j.erro||("HTTP "+r.status)}}
+async function uniUpd(id,data){const atual=S.uni.find(x=>x.id===id)||{};const novo={...atual,...data,id};await uniPost([uniParaApi(novo)]);S.uni=S.uni.map(x=>x.id===id?novo:x);S.M.uni=new Map(S.uni.map(x=>[x.id,x]));scheduleRender()}
+async function uniAdd(data){const id="u"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);const novo={...data,id,criadoEm:data.criadoEm||nowTs()};await uniPost([uniParaApi(novo)]);S.uni=[...S.uni,novo];S.M.uni=new Map(S.uni.map(x=>[x.id,x]));scheduleRender();return id}
+async function uniCarregar(done){try{const r=await fetch("/api/cadastro-unidades",{credentials:"include",cache:"no-store"});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.erro||"erro");S.uni=j.unidades.map(uniDeApi);S.M.uni=new Map(S.uni.map(x=>[x.id,x]));S.loaded.uni=true;done();scheduleRender()}catch(e){S.dbState="erro";renderBanner()}}
 async function dbDel(k,id){if(!S.db)throw{code:"no_db"};await col(k).doc(id).delete()}
 function dbErr(e){
   const c=e&&e.code;
+  if(c==="uni_api")return toast("Não consegui salvar a unidade: "+(e.msg||"tente de novo"));
   if(c==="no_db")return toast("Sem conexão com o banco de dados. Abra o sistema pelo site, com login.");
   if(c==="invalid_argument")return toast("Você não tem permissão para alterar os dados deste sistema.");
   if(c==="quota_exceeded")return toast("O banco de dados está cheio. Fale com a administradora do sistema.");
@@ -545,6 +554,7 @@ function subscribe(){
   let timer=setTimeout(()=>{if(Object.keys(S.loaded).length<6){S.dbState="lento";renderBanner()}},10000);
   const done=()=>{if(Object.keys(S.loaded).length>=6){clearTimeout(timer);if(S.dbState!=="ok"){S.dbState="ok";renderBanner()}}};
   for(const [k,path] of Object.entries(COLS)){
+    if(k==="uni"){uniCarregar(done);continue}
     S.db.collection(path).onSnapshot(snap=>{
       S[k]=snap.docs.map(d=>Object.assign({id:d.id},d.data()));
       S.M[k]=new Map(S[k].map(x=>[x.id,x]));

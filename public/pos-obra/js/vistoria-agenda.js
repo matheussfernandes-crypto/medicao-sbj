@@ -58,6 +58,12 @@ const vaHoraTxt = (h) => { const m = /^(\d{2}):(\d{2})$/.exec(h || ""); if (!m) 
 const vaPrimeiroNome = (n) => String(n || "").trim().split(/\s+/)[0] || "";
 const vaNomeObra = (it) => { const b = getBuilding(it.buildingId); return b ? b.name : (it.buildingNome || ""); };
 const vaObraCurta = (nome) => (typeof vtObraCurta === "function" ? vtObraCurta(nome) : nome);
+// horários fixos: 07:30 às 18:00, de 30 em 30 min (se a visita já tiver outro horário, ele continua aparecendo)
+const VA_HORARIOS = (() => { const l = []; for (let m = 7 * 60 + 30; m <= 18 * 60; m += 30) l.push(String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0")); return l; })();
+const vaOpcoesHora = (atual) => {
+  const lista = atual && !VA_HORARIOS.includes(atual) ? [...VA_HORARIOS, atual].sort() : VA_HORARIOS;
+  return `<option value="">— escolha —</option>` + lista.map(h => `<option value="${h}"${h === atual ? " selected" : ""}>${h.replace(":", "h").replace(/h00$/, "h")}</option>`).join("");
+};
 const vaOrdem = (a, b) => (a.date + (a.hora || "99:99")).localeCompare(b.date + (b.hora || "99:99")) || String(a.unit).localeCompare(String(b.unit), "pt-BR", { numeric: true });
 
 function vaDoMes() {
@@ -230,7 +236,7 @@ function vaAbrirModal(item, dataPref, pref) {
       </div>
       <div class="vt-linha2">
         <label>Data<input type="date" id="va-m-data" value="${it.date}"></label>
-        <label>Horário<input type="time" id="va-m-hora" value="${escapeHtml(it.hora || "")}"></label>
+        <label>Horário<select id="va-m-hora">${vaOpcoesHora(it.hora || "")}</select></label>
       </div>
       <div class="vt-linha2">
         <label>Responsável pela vistoria<input type="text" id="va-m-resp" placeholder="ex: Carlucia" value="${escapeHtml(it.resp || "")}" autocomplete="off"></label>

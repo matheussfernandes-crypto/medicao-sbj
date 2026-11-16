@@ -316,7 +316,7 @@ function vaAgendadasParaFazer() {
   const hoje = todayISODate();
   const limite = new Date(); limite.setDate(limite.getDate() + 21);
   const ate = limite.getFullYear() + "-" + String(limite.getMonth() + 1).padStart(2, "0") + "-" + String(limite.getDate()).padStart(2, "0");
-  return va.lista.filter(x => x.status === "agendada" && x.date <= ate && x.date >= vaAddDias(hoje, -30)).sort(vaOrdem);
+  return va.lista.filter(x => x.status === "agendada" && !x.vistoriaId && x.date <= ate && x.date >= vaAddDias(hoje, -30)).sort(vaOrdem);
 }
 function vaAddDias(iso, n) { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 
@@ -324,8 +324,11 @@ function vaAddDias(iso, n) { const d = new Date(iso + "T12:00:00"); d.setDate(d.
 async function vaMarcarRealizada(agendaId, vistoriaId) {
   const it = va.lista.find(x => x.id === agendaId);
   if (!it || it.status === "realizada") return;
-  try { await vaGravar({ ...it, status: "realizada", vistoriaId: vistoriaId || "", realizadaEm: new Date().toISOString() }); } catch (e) { /* a agenda se acerta na próxima vez */ }
+  // some da lista e fica verde na agenda já, mesmo que a gravação demore
+  Object.assign(it, { status: "realizada", vistoriaId: vistoriaId || "", realizadaEm: new Date().toISOString() });
   if (typeof renderVtAgenda === "function") renderVtAgenda();
+  try { await vaGravar({ ...it }); }
+  catch (e) { if (typeof toast === "function") toast("A vistoria foi salva, mas a agenda não foi atualizada. Confira a agenda.", "error"); }
 }
 function vaAutoRealizada(v) {
   const it = va.lista.find(x => x.status === "agendada" && x.buildingId === v.buildingId && String(x.unit).toLowerCase() === String(v.unit).toLowerCase() && x.date === v.date);

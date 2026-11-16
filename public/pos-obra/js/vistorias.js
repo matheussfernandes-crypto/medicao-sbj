@@ -331,11 +331,12 @@ async function vtControlePdf() {
   });
 
   const corpo = linhas.map(l => [
-    l.b.name || "", l.c.unit, l.c.name || "sem cliente", l.c.garage || "—", VTC_FIN[l.fin] || "—",
+    vtObraCurta(l.b.name || ""), l.c.unit, l.c.name || "sem cliente", l.c.garage || "—", VTC_FIN[l.fin] || "—",
     l.obra === null ? "a ligar" : l.obra ? "Pronta" : "Não pronta", l.st, l.data || "—",
   ]);
   doc.autoTable({
     startY: 53,
+    tableWidth: pw - 2 * M, // a tabela ocupa a largura da folha (deitada), sem cortar colunas
     margin: { left: M, right: M, top: 20, bottom: 16 },
     head: [["Obra", "Apto", "Cliente", "Vaga", "Financiamento", "Pintura final", "Situação", "Data"]],
     body: corpo,
@@ -343,7 +344,7 @@ async function vtControlePdf() {
     styles: { font: "helvetica", fontSize: 8.8, cellPadding: { top: 1.8, bottom: 1.8, left: 2, right: 2 }, textColor: [30, 35, 40], valign: "middle", overflow: "linebreak" },
     headStyles: { fillColor: TEAL, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.6 },
     alternateRowStyles: { fillColor: [247, 249, 250] },
-    columnStyles: { 0: { cellWidth: 42 }, 1: { cellWidth: 14, fontStyle: "bold" }, 2: { cellWidth: 70 }, 3: { cellWidth: 22 }, 4: { cellWidth: 36 }, 5: { cellWidth: 26 }, 6: { cellWidth: 46, fontStyle: "bold" }, 7: { cellWidth: 17 } },
+    columnStyles: { 0: { cellWidth: 34 }, 1: { cellWidth: 14, fontStyle: "bold" }, 2: { cellWidth: 70 }, 3: { cellWidth: 22 }, 4: { cellWidth: 36 }, 5: { cellWidth: 26 }, 6: { cellWidth: 46, fontStyle: "bold" }, 7: { cellWidth: 17 } },
     didParseCell: (d) => {
       if (d.section === "body" && d.column.index === 6) { const l = linhas[d.row.index]; if (l) d.cell.styles.textColor = CORES[l.cls] || INK; }
       if (d.section === "body" && d.column.index === 5) { const t = d.cell.raw; d.cell.styles.textColor = t === "Pronta" ? CORES.ok : t === "Não pronta" ? CORES.obra : CINZA; }

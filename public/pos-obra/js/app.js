@@ -729,6 +729,12 @@ function openClientForm(id, presetBuildingId) {
             <label>Situação da escritura</label>
             <input type="text" name="escritura" value="${editing ? escapeHtml(editing.escritura || "") : ""}">
           </div>
+          <div class="field">
+            <label>Financiamento</label>
+            <select name="financiamento">
+              ${[["", "Não informado"], ["nao", "Não financia"], ["analise", "Financiando (aguardando aprovação)"], ["aprovado", "Aprovado"]].map(([v, t]) => `<option value="${v}" ${(editing && editing.financiamento || "") === v ? "selected" : ""}>${t}</option>`).join("")}
+            </select>
+          </div>
           <div class="field full">
             <label>Observações</label>
             <textarea name="notes">${editing ? escapeHtml(editing.notes || "") : ""}</textarea>
@@ -789,6 +795,7 @@ function openClientForm(id, presetBuildingId) {
       phone: fd.get("phone").trim(),
       email: fd.get("email").trim(),
       escritura: fd.get("escritura").trim(),
+      financiamento: fd.get("financiamento") || "",
       notes: fd.get("notes").trim(),
     };
     if (editing) {

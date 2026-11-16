@@ -363,7 +363,7 @@ html, body { margin: 0; padding: 0; background: #fff; }
 .rel-folha { break-after: page; page-break-after: always; margin: 0 !important; box-shadow: none !important; }
 .rel-folha:last-child { break-after: auto; page-break-after: auto; }
 /* na impressão, some com qualquer bloco do site que não seja o relatório (ex.: a caixa da animação de entrada), para não sair folha em branco */
-@media print { body > div:not(:has(.rel-pilha)) { display: none !important; } }`;
+@media print { body > div:not(.rel-pilha):not(:has(.rel-pilha)) { display: none !important; } }`;
   };
   function imprimir() {
     const pilha = pilhaRef.current;

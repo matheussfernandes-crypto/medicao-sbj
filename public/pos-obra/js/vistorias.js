@@ -210,7 +210,8 @@ function vtObraPronta(c) {
 }
 function vtControleDados() {
   const ag = (typeof va !== "undefined" && va.lista) || [];
-  return (state.clients || []).filter(c => c.unit).map(c => {
+  // só apartamentos (número): salas comerciais e outras unidades com nome não entram no controle
+  return (state.clients || []).filter(c => c.unit && /^\d/.test(String(c.unit).trim())).map(c => {
     const b = getBuilding(c.buildingId) || {};
     const itens = ag.filter(x => x.buildingId === c.buildingId && String(x.unit).toLowerCase() === String(c.unit).toLowerCase() && x.status !== "cancelada");
     const feita = itens.find(x => x.status === "realizada");

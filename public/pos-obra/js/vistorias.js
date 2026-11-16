@@ -190,6 +190,7 @@ async function vtCtrlCarregar() {
     const r = await fetch("/api/posvenda/andamento", { credentials: "include", cache: "no-store" });
     const j = await r.json().catch(() => ({}));
     if (!r.ok || !j.ok) throw new Error(j.erro || "Não foi possível ler o Andamento de Obra.");
+    await vtCadCarregar();
     vtCtrl.lista = j.empreendimentos || [];
     vtCtrl.erro = "";
     // abre sempre no empreendimento com maior % (a lista já vem ordenada assim)
@@ -211,7 +212,7 @@ function vtObraPronta(c) {
 function vtControleDados() {
   const ag = (typeof va !== "undefined" && va.lista) || [];
   // só apartamentos (número): salas comerciais e outras unidades com nome não entram no controle
-  return (state.clients || []).filter(c => c.unit && /^\d/.test(String(c.unit).trim())).map(c => {
+  return vtCadBase().filter(c => c.unit && /^\d/.test(String(c.unit).trim())).map(c => {
     const b = getBuilding(c.buildingId) || {};
     const itens = ag.filter(x => x.buildingId === c.buildingId && String(x.unit).toLowerCase() === String(c.unit).toLowerCase() && x.status !== "cancelada");
     const feita = itens.find(x => x.status === "realizada");
@@ -364,14 +365,38 @@ const LINHA_CARD = () => [214, 220, 226];
 /* situação escolhida no controle: fica salva no cadastro do cliente daquela obra.
    "Financiamento" marca o financiamento como "Financiando"; "Liberado" marca como "Aprovado" (se estava financiando). */
 function vtSituacaoSalvar(id, v) {
-  const c = (state.clients || []).find(x => x.id === id);
-  if (!c) return;
-  c.situacaoVistoria = v;
-  if (v === "financiamento") c.financiamento = "analise";
-  if (v === "liberado" && c.financiamento === "analise") c.financiamento = "aprovado";
-  persist();
-  if (typeof toast === "function") toast("Situação salva no cadastro do cliente.", "success");
-  renderVistorias();
+  const r = (vtCad || []).find(x => x.id === id);
+  if (!r) { if (typeof toast === "function") toast("Cadastro indisponível agora. Recarregue a página.", "error"); return; }
+  r.situacao_vistoria = v;
+  if (v === "financiamento") r.financiamento = "analise";
+  if (v === "liberado" && r.financiamento === "analise") r.financiamento = "aprovado";
+  vtCadSalvar([r]).then(() => { if (typeof toast === "function") toast("Situação salva no Cadastro de unidades.", "success"); renderVistorias(); })
+    .catch(e => { if (typeof toast === "function") toast("Não consegui salvar: " + e.message, "error"); renderVistorias(); });
+}
+
+/* ---- cadastro único de unidades (Cadastros do pós-venda, no Supabase) ---- */
+let vtCad = null; // linhas do cadastro; null = não carregou
+async function vtCadCarregar() {
+  try {
+    const r = await fetch("/api/cadastro-unidades", { credentials: "include", cache: "no-store" });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.erro || "erro");
+    vtCad = j.unidades || [];
+  } catch (e) {
+    vtCad = null; // mostra a cópia antiga do módulo enquanto o cadastro não responde
+    vtCtrl.erro = "Cadastro de unidades indisponível: mostrando a cópia antiga.";
+  }
+}
+function vtCadBase() {
+  if (!vtCad) return state.clients || [];
+  return vtCad.map(r => ({ id: r.id, buildingId: r.obra_id, unit: r.numero, name: r.proprietario, phone: r.telefone, garage: r.vaga, email: r.email, financiamento: r.financiamento, situacaoVistoria: r.situacao_vistoria }));
+}
+async function vtCadSalvar(linhas) {
+  for (let i = 0; i < linhas.length; i += 200) {
+    const r = await fetch("/api/cadastro-unidades", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ unidades: linhas.slice(i, i + 200) }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.erro || ("HTTP " + r.status));
+  }
 }
 
 /* linhas do controle do empreendimento escolhido */
@@ -409,7 +434,7 @@ function vtControleImportarFin() {
   document.body.appendChild(ov);
   ov.querySelector("#vtc-cancela").onclick = () => ov.remove();
   ov.querySelector("#vtc-aplica").onclick = () => {
-    let ok = 0; const naoAchou = [];
+    let ok = 0; const naoAchou = []; const alterados = [];
     document.getElementById("vtc-cola").value.split(/\r?\n/).forEach(ln => {
       const cols = ln.split(/\t|;/).map(c => c.trim());
       if (cols.length < 2 || !cols[0]) return;
@@ -421,11 +446,11 @@ function vtControleImportarFin() {
       else if (/^sim|financ|analis|aguard/.test(v)) fin = "analise";
       else if (/^(n[aã]o|-+|—)$/.test(v)) fin = "nao";
       if (!fin) return;
-      const c = (state.clients || []).find(x => vtChaveEmp((getBuilding(x.buildingId) || {}).name) === emp.chave && String(x.unit).trim().toLowerCase() === apto.toLowerCase());
+      const c = (vtCad || []).find(x => vtChaveEmp((getBuilding(x.obra_id) || {}).name) === emp.chave && String(x.numero).trim().toLowerCase() === apto.toLowerCase());
       if (!c) { naoAchou.push(apto); return; }
-      c.financiamento = fin; ok++;
+      c.financiamento = fin; alterados.push(c); ok++;
     });
-    persist();
+    vtCadSalvar(alterados).catch(e => { if (typeof toast === "function") toast("Não consegui salvar: " + e.message, "error"); });
     document.getElementById("vtc-res").textContent = `${ok} apartamento(s) atualizado(s).` + (naoAchou.length ? ` Não encontrados neste empreendimento: ${naoAchou.join(", ")}.` : "");
     renderVistorias();
   };

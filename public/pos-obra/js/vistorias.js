@@ -231,7 +231,7 @@ function vtRenderControle(root) {
   const grade = root.querySelector("#vt-grade");
   if (!vtCtrl.lista && !vtCtrl.carregando) vtCtrlCarregar();
   const emp = vtEmpSel();
-  const seletor = `<style>.vtc-emp{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0 4px}.vtc-emp select{min-width:280px;padding:8px 10px;border-radius:10px;border:1px solid var(--border,#e2e6ec);font:inherit;background:var(--surface,#fff)}.vtc-msg{font-size:13px;color:var(--text-muted,#64748b)}.vtc-erro{color:#b91c1c}</style>
+  const seletor = `<style>.vtc-emp{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0 4px}.vtc-emp select{min-width:280px;padding:8px 10px;border-radius:10px;border:1px solid var(--border,#e2e6ec);font:inherit;background:var(--surface,#fff)}.vtc-msg{font-size:13px;color:var(--text-muted,#64748b)}.vtc-erro{color:#b91c1c}.vtc-ov{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:9000;padding:16px}.vtc-box{background:#fff;border-radius:14px;padding:18px;max-width:520px;width:100%}.vtc-box textarea{width:100%;font:13px monospace;margin:8px 0;padding:8px;border:1px solid #e2e6ec;border-radius:8px}.vtc-acoes2{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}</style>
     <div class="vtc-emp"><label>Empreendimento <select id="vtc-emp">${(vtCtrl.lista || []).map(e => `<option value="${escapeHtml(e.id)}" ${emp && e.id === emp.id ? "selected" : ""}>${escapeHtml(e.nome)} · ${e.pct}%</option>`).join("")}</select></label>${vtCtrl.carregando ? `<span class="vtc-msg">Carregando do Andamento…</span>` : ""}${vtCtrl.erro ? `<span class="vtc-msg vtc-erro">${escapeHtml(vtCtrl.erro)}</span>` : ""}</div>`;
   // cada empreendimento tem a sua tabela; um novo empreendimento aparece aqui sozinho quando entrar no Andamento
   let linhas = vtControleDados().filter(l => emp && vtChaveEmp(l.b.name) === emp.chave);
@@ -269,6 +269,70 @@ function vtRenderControle(root) {
     <tbody>${corpo || '<tr><td colspan="8">Nenhum apartamento deste empreendimento.</td></tr>'}</tbody></table></div>`;
   const sel = grade.querySelector("#vtc-emp");
   if (sel) sel.onchange = e => { vtCtrl.emp = e.target.value; renderVistorias(); };
+  // no controle, as ações da tela Vistorias são trocadas por estas duas
+  const acoes = root.querySelector(".vt-acoes");
+  if (acoes) {
+    acoes.innerHTML = `<button type="button" class="btn ghost" id="vtc-imp">Importar financiamento</button><button type="button" class="btn primary" id="vtc-rel">Gerar relatório</button>`;
+    acoes.querySelector("#vtc-imp").onclick = vtControleImportarFin;
+    acoes.querySelector("#vtc-rel").onclick = vtControleRelatorio;
+  }
+}
+
+/* linhas do controle do empreendimento escolhido */
+function vtControleFiltradas() {
+  const emp = vtEmpSel();
+  return vtControleDados().filter(l => emp && vtChaveEmp(l.b.name) === emp.chave);
+}
+/* gera a planilha do controle (CSV separado por ponto e vírgula, abre direto no Excel) */
+function vtControleRelatorio() {
+  const emp = vtEmpSel();
+  const cab = ["Obra", "Apto", "Cliente", "Vaga", "Financiamento", "Pintura final", "Situação", "Data"];
+  const esc = v => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+  const corpo = vtControleFiltradas().map(l => [l.b.name || "", l.c.unit, l.c.name || "", l.c.garage || "", VTC_FIN[l.fin] || "", l.obra === null ? "a ligar" : l.obra ? "Pronta" : "Não pronta", l.st, l.data || ""].map(esc).join(";"));
+  const csv = "﻿" + [cab.map(esc).join(";"), ...corpo].join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `controle-entregas-${(emp ? emp.chave : "obra").replace(/\s+/g, "-")}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+/* importa a planilha de financiamento: colunas Apto e Financiamento (colar do Excel) */
+function vtControleImportarFin() {
+  const emp = vtEmpSel();
+  if (!emp) return;
+  const ov = document.createElement("div");
+  ov.className = "vtc-ov";
+  ov.innerHTML = `<div class="vtc-box">
+    <h3>Importar financiamento · ${escapeHtml(emp.nome)}</h3>
+    <p>No Excel, copie as colunas <b>Apto</b> e <b>Financiamento</b> (com ou sem cabeçalho) e cole abaixo.<br>
+    Valores aceitos: <b>Sim</b> (financiando, aguardando aprovação) · <b>Aprovado</b> · <b>Não</b> ou <b>—</b> (não financia).</p>
+    <textarea id="vtc-cola" rows="10" placeholder="804&#9;Sim&#10;901&#9;Aprovado"></textarea>
+    <div id="vtc-res" class="vtc-msg"></div>
+    <div class="vtc-acoes2"><button type="button" class="btn ghost" id="vtc-cancela">Fechar</button><button type="button" class="btn primary" id="vtc-aplica">Aplicar</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector("#vtc-cancela").onclick = () => ov.remove();
+  ov.querySelector("#vtc-aplica").onclick = () => {
+    let ok = 0; const naoAchou = [];
+    document.getElementById("vtc-cola").value.split(/\r?\n/).forEach(ln => {
+      const cols = ln.split(/\t|;/).map(c => c.trim());
+      if (cols.length < 2 || !cols[0]) return;
+      const apto = cols[0].replace(/^(apto|apartamento)\.?\s*/i, "").trim();
+      const v = cols[1].toLowerCase();
+      if (/apto|apartamento/i.test(cols[0]) && /financ/i.test(cols[1])) return; // cabeçalho
+      let fin = null;
+      if (/aprov/.test(v)) fin = "aprovado";
+      else if (/^sim|financ|analis|aguard/.test(v)) fin = "analise";
+      else if (/^(n[aã]o|-+|—)$/.test(v)) fin = "nao";
+      if (!fin) return;
+      const c = (state.clients || []).find(x => vtChaveEmp((getBuilding(x.buildingId) || {}).name) === emp.chave && String(x.unit).trim().toLowerCase() === apto.toLowerCase());
+      if (!c) { naoAchou.push(apto); return; }
+      c.financiamento = fin; ok++;
+    });
+    persist();
+    document.getElementById("vtc-res").textContent = `${ok} apartamento(s) atualizado(s).` + (naoAchou.length ? ` Não encontrados neste empreendimento: ${naoAchou.join(", ")}.` : "");
+    renderVistorias();
+  };
 }
 
 /* ---------- Visão em planilha: todas as pendências em linhas, como a planilha da obra, mas com filtros ---------- */

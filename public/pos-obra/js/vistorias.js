@@ -154,12 +154,10 @@ function renderVistorias() {
       `}
       <div class="vt-acoes">
         <button type="button" class="btn ghost" id="vt-agenda">Agenda</button>
+        <button type="button" class="btn ghost" id="vt-relatorio">Gerar relatório</button>
+        <button type="button" class="btn ghost" id="vt-importar" title="Importar planilha">Importar</button>
+        <button type="button" class="btn ghost" id="vt-nova">Cadastrar pendências</button>
         <button type="button" class="btn primary" id="vt-folha">Realizar vistoria</button>
-        <details class="vt-mais"><summary class="btn ghost">Mais <span aria-hidden="true">▾</span></summary><div class="vt-mais-p">
-          <button type="button" id="vt-relatorio">Gerar relatório</button>
-          <button type="button" id="vt-importar">Importar planilha</button>
-          <button type="button" id="vt-nova">Cadastrar pendências</button>
-        </div></details>
       </div>
     </div>
     <div class="vt-total"><strong>${totalAbertas}</strong> pendência${totalAbertas === 1 ? "" : "s"} a resolver${vtFiltroPredio ? " nesta obra" : " no total"} <span id="vt-sync-estado" class="vt-sync-estado"></span></div>

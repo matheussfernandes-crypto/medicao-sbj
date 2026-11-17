@@ -115,6 +115,8 @@ document.addEventListener("click", e => {
   setTimeout(() => document.querySelectorAll(".nav-btn").forEach(x => x.classList.toggle("active", x === b)), 0);
 }, true);
 
+document.addEventListener("click", e => { document.querySelectorAll("details.vt-mais[open]").forEach(d => { if (!d.contains(e.target) || e.target.closest(".vt-mais-p button")) d.open = false; }); });
+
 // chamados pelo menu do site (/posobra/controle e /posobra/vistorias)
 window.vtAbrirControle = () => { vtModo = "controle"; vtCtrl.lista = null; showView("vistorias"); };
 window.vtAbrirVistorias = () => { if (vtModo === "controle") vtModo = "aptos"; showView("vistorias"); };
@@ -148,18 +150,16 @@ function renderVistorias() {
       <label class="vt-campo">Obra<select id="vt-predio"><option value="">Todas as obras</option>${predios.map(b => `<option value="${b.id}" ${b.id === vtFiltroPredio ? "selected" : ""}>${escapeHtml(b.name)}</option>`).join("")}</select></label>
       ${plan || controle ? "" : `
       <label class="vt-campo">Apartamento<input type="search" id="vt-busca" placeholder="ex: 404" value="${escapeHtml(vtBusca)}" autocomplete="off"></label>
-      <div class="vt-chipbar" role="group" aria-label="Situação">
-        <button type="button" class="chip ${vtStatus === "pendentes" ? "active" : ""}" data-vt-st="pendentes">${plan ? "A resolver" : "Com pendência"} (${nPend})</button>
-        <button type="button" class="chip ${vtStatus === "resolvidos" ? "active" : ""}" data-vt-st="resolvidos">${plan ? "Resolvidas" : "Tudo resolvido"} (${nRes})</button>
-        <button type="button" class="chip ${vtStatus === "todos" ? "active" : ""}" data-vt-st="todos">Todos (${nTodos})</button>
-      </div>
+      <label class="vt-campo">Situação<select id="vt-status"><option value="pendentes" ${vtStatus === "pendentes" ? "selected" : ""}>${plan ? "A resolver" : "Com pendência"} (${nPend})</option><option value="resolvidos" ${vtStatus === "resolvidos" ? "selected" : ""}>${plan ? "Resolvidas" : "Tudo resolvido"} (${nRes})</option><option value="todos" ${vtStatus === "todos" ? "selected" : ""}>Todos (${nTodos})</option></select></label>
       `}
       <div class="vt-acoes">
-        <button type="button" class="btn primary" id="vt-folha">Realizar vistoria</button>
         <button type="button" class="btn ghost" id="vt-agenda">Agenda</button>
-        <button type="button" class="btn ghost" id="vt-relatorio">Gerar relatório</button>
-        <button type="button" class="btn ghost" id="vt-importar">Importar planilha</button>
-        <button type="button" class="btn ghost" id="vt-nova">Cadastrar pendências</button>
+        <button type="button" class="btn primary" id="vt-folha">Realizar vistoria</button>
+        <details class="vt-mais"><summary class="btn ghost">Mais <span aria-hidden="true">▾</span></summary><div class="vt-mais-p">
+          <button type="button" id="vt-relatorio">Gerar relatório</button>
+          <button type="button" id="vt-importar">Importar planilha</button>
+          <button type="button" id="vt-nova">Cadastrar pendências</button>
+        </div></details>
       </div>
     </div>
     <div class="vt-total"><strong>${totalAbertas}</strong> pendência${totalAbertas === 1 ? "" : "s"} a resolver${vtFiltroPredio ? " nesta obra" : " no total"} <span id="vt-sync-estado" class="vt-sync-estado"></span></div>
@@ -168,6 +168,7 @@ function renderVistorias() {
   if (controle) { const m = root.querySelector(".vt-modos"); if (m) m.remove(); }
   root.querySelector("#vt-predio").addEventListener("change", e => { vtFiltroPredio = e.target.value; renderVistorias(); });
   const campoBusca = root.querySelector("#vt-busca"); if (campoBusca) campoBusca.addEventListener("input", e => { vtBusca = e.target.value; root.classList.add("vt-sem-anim"); vtRenderGrade(root); });
+  const selStatus = root.querySelector("#vt-status"); if (selStatus) selStatus.addEventListener("change", e => { vtStatus = e.target.value; renderVistorias(); });
   root.querySelectorAll("[data-vt-st]").forEach(b => b.addEventListener("click", () => { vtStatus = b.dataset.vtSt; renderVistorias(); }));
   root.querySelector("#vt-nova").addEventListener("click", vtAbrirNova);
   root.querySelector("#vt-importar").addEventListener("click", vtEscolherPlanilha);

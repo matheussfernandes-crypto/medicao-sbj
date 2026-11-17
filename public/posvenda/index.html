@@ -84,6 +84,31 @@ main{min-width:0;padding-block:24px 48px;padding-left:max(16px,env(safe-area-ins
 .btn[disabled]{opacity:.5;cursor:not-allowed}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .chf-row{display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
+/* filtro e ordenação no título da coluna */
+.tf-h{display:inline-flex;align-items:center;gap:6px;margin:-5px -8px;padding:5px 8px;border:0;border-radius:8px;background:none;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.tf-h:hover{background:var(--accent-soft);color:var(--fg)}.tf-h .tf-i{display:inline-flex;opacity:.45;transition:opacity .15s}.tf-h:hover .tf-i{opacity:1}
+.tf-h.on{color:var(--accent)}.tf-h.aberto{background:var(--accent-soft);color:var(--fg)}
+.tf-h .tf-c{background:var(--accent);color:var(--accent-fg,#fff);border-radius:999px;font-size:10.5px;padding:0 6px;letter-spacing:0;line-height:16px}
+.tf-h .tf-s{font-size:12px;letter-spacing:0}
+th.n .tf-h{flex-direction:row-reverse}
+.tf-pop{position:absolute;z-index:70;width:270px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(11,70,82,.18);padding:6px;font-size:13px;animation:tf-in .16s ease}
+@keyframes tf-in{from{opacity:0;transform:translateY(-4px)}}
+.tf-ord{display:flex;gap:6px;padding:4px 4px 8px}.tf-ord+.tf-busca,.tf-ord+.tf-lista{border-top:1px solid var(--line);margin-top:0}
+.tf-ord button{flex:1;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:6px 4px;font:inherit;font-size:12.5px;font-weight:600;color:var(--fg);cursor:pointer;white-space:nowrap}
+.tf-ord button:hover{border-color:var(--accent)}.tf-ord button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.tf-busca{display:block;width:calc(100% - 4px);margin:8px 2px 6px;height:32px;border:1px solid var(--line);border-radius:9px;padding:0 10px;font:inherit;font-size:13px;background:var(--surface);color:var(--fg)}
+.tf-busca:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.tf-lista{max-height:260px;overflow:auto;padding-top:4px}
+.tf-op{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;cursor:pointer;color:var(--fg)}.tf-op:hover{background:var(--surface-2)}
+.tf-op input{width:16px;height:16px;accent-color:var(--accent);margin:0;flex:none}.tf-op span:first-of-type{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tf-op .tf-n{margin-left:auto;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.tf-ft{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);margin-top:4px;padding:8px 8px 4px;color:var(--muted)}
+.tf-ft button{border:0;background:none;font:inherit;font-weight:600;color:var(--accent);cursor:pointer;padding:0}
+.ch-tab td{vertical-align:top;padding:11px 12px}.ch-tab tbody tr{cursor:pointer;transition:background .15s}.ch-tab tbody tr:hover{background:var(--surface-2)}
+.ch-tab .d{color:var(--muted);font-size:12px;margin-top:2px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-tab tbody tr:last-child td{border-bottom:0}
+.chf-info{font-size:13px;color:var(--muted);white-space:nowrap}.chf-info button{border:0;background:none;font:inherit;font-weight:600;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline}
+@media print{.tf-h .tf-i,.tf-h .tf-c,.tf-h .tf-s{display:none!important}}
 .chf-row>*{flex:0 1 auto;min-width:0}
 .chf-row>.chf-busca{flex:1 1 220px;min-width:160px}
 @media (max-width:1000px){.chf-row{flex-wrap:wrap}.chf-row>.chf-busca{flex-basis:100%;order:-1}}
@@ -444,7 +469,7 @@ const I_X=ICON('<path d="M6 6l12 12M18 6L6 18"/>');
 const S={emp:[],uni:[],resp:[],ch:[],ag:[],cfg:{},M:{emp:new Map,uni:new Map,resp:new Map,ch:new Map,ag:new Map},
   loaded:{},view:"inicio",db:null,dict:null,assets:null,dl:null,user:null,uid:null,
   dbState:"conectando",qFiles:[],qBusy:false,qCtl:null,draft:null,drawer:null,drawerMode:null,edit:null,
-  chF:{st:"abertos",emp:"",cat:"",q:""},agSem:0,painelPer:"90",cadTab:"emp",cadEmp:"",rep:{mes:"",emp:""},repResumo:{},names:{},pending:false};
+  chF:{q:"",col:{st:["aberto","agendado","aguardando"]},sort:null},agSem:0,painelPer:"90",cadTab:"emp",cadEmp:"",rep:{mes:"",emp:""},repResumo:{},names:{},pending:false};
 
 /* ================= utilidades ================= */
 const $=s=>document.querySelector(s);
@@ -1226,37 +1251,156 @@ function vChamados(){
   return `<div class="top"><div><h1>Chamados</h1><div class="sub">${S.ch.length} no total · ${S.ch.filter(c=>c.status!=="resolvido").length} em aberto</div></div>
    <div class="row"><button class="btn" data-a="go" data-v="preencher">Preencher rápido</button><button class="btn pri" data-a="go" data-v="inicio">${I_SPARK}<span>Registrar</span></button></div></div>
   <div class="chf-row">
-   <input class="in chf-busca" id="chf-q" type="search" placeholder="Buscar unidade, cliente, problema…" value="${esc(f.q)}">
-   <select class="in" id="chf-st" data-c="chf" aria-label="Situação" style="width:auto;max-width:190px">${[...(S.ch.some(incompleto)?[["completar",`A completar (${S.ch.filter(incompleto).length})`]]:[]),["abertos","Em aberto"],["agendado","Agendados"],["aguardando","Aguardando"],["resolvido","Resolvidos"],["todos","Todos"]].map(([k,l])=>`<option value="${k}" ${f.st===k?"selected":""}>${l}</option>`).join("")}</select>
-   <select class="in" id="chf-emp" data-c="chf" style="width:auto;max-width:200px"><option value="">Todos os empreendimentos</option>${[...S.emp].sort((a,b)=>a.nome.localeCompare(b.nome)).map(e=>`<option value="${esc(e.id)}" ${f.emp===e.id?"selected":""}>${esc(e.nome)}</option>`).join("")}</select>
-   <details class="msel" id="chf-cat-d"><summary class="in" id="chf-cat-t">${esc(chCatsTxt(f))}</summary><div class="msel-p">${CATS.map(c=>`<label><input type="checkbox" class="chf-catcb" data-c="chf" value="${esc(c)}" ${chCats(f).includes(c)?"checked":""}><span>${esc(c)}</span></label>`).join("")}<button type="button" class="msel-x" id="chf-cat-x">Limpar seleção</button></div></details>
-   <select class="in" id="chf-ri" data-c="chf" style="width:auto;max-width:180px"><option value="">Todos da equipe</option>${eu()?`<option value="__meus" ${f.ri==="__meus"?"selected":""}>Meus (${esc(eu())})</option>`:""}${equipe().map(n=>`<option ${f.ri===n?"selected":""}>${esc(n)}</option>`).join("")}<option value="__sem" ${f.ri==="__sem"?"selected":""}>Sem responsável</option></select>
-   <select class="in" id="chf-ord" data-c="chf" style="width:auto;max-width:190px" aria-label="Ordenar">${[["prio","Urgentes primeiro"],["recentes","Mais recentes"],["antigos","Mais antigos"],["parados","Parados há mais tempo"],["unidade","Por unidade"]].map(([k,l])=>`<option value="${k}" ${(f.ord||"prio")===k?"selected":""}>${l}</option>`).join("")}</select>
+   <input class="in chf-busca" id="chf-q" type="search" placeholder="Buscar unidade, cliente, problema…" value="${esc(f.q)}" style="max-width:380px">
+   <span class="chf-info" id="chf-info"></span>
   </div>
-  <div class="card" style="padding:6px 14px" id="ch-list"></div>`;
+  <div class="tbl-wrap" style="margin-top:10px" id="ch-list"></div>`;
+}
+/* Chamados: cada coluna tem seu filtro (valores marcados) e a ordenação escolhida no título */
+const CH_ST_PADRAO=["aberto","agendado","aguardando"];
+function chColF(){const f=S.chF;if(!f.col)f.col={st:[...CH_ST_PADRAO]};return f.col}
+const CH_COLS={
+  num:{rot:"Nº",ord:[["asc","Menor → maior"],["desc","Maior → menor"]],ordv:c=>c.num||0},
+  emp:{rot:"Empreendimento",val:c=>c.empId||"",lab:v=>v?((emp(v)||{}).nome||"—"):"Sem empreendimento",ord:[["asc","A → Z"],["desc","Z → A"]],ordv:c=>(emp(c.empId)||{}).nome||""},
+  uni:{rot:"Unidade",val:c=>uniLabel(uni(c.uniId)),lab:v=>v,ord:[["asc","Menor → maior"],["desc","Maior → menor"]],ordv:c=>uniLabel(uni(c.uniId))},
+  cat:{rot:"Categoria",val:c=>c.cat||"",lab:v=>v||"Sem categoria",ord:[["asc","A → Z"],["desc","Z → A"]],ordv:c=>c.cat||""},
+  ri:{rot:"Responsável",val:c=>c.respInt||"",lab:v=>v||"Sem responsável",ord:[["asc","A → Z"],["desc","Z → A"]],ordv:c=>c.respInt||"~"},
+  st:{rot:"Situação",val:c=>c.status||"aberto",lab:v=>v==="__completar"?"A completar":(STATUS[v]||{}).l||v,ord:null},
+  dias:{rot:"Dias",ord:[["desc","Mais dias"],["asc","Menos dias"]],ordv:c=>idadeCh(c),n:true}
+};
+function chPassa(c,k,sel){
+  if(!sel||!sel.length)return true;
+  if(k==="st"){const st=c.status||"aberto";return sel.includes(st)||(sel.includes("__completar")&&incompleto(c))}
+  return sel.includes(CH_COLS[k].val(c));
+}
+function chFiltrarSem(excluir){
+  const f=S.chF,col=chColF(),q=norm(f.q||"");
+  return S.ch.filter(c=>{
+    for(const k in col){if(k!==excluir&&!chPassa(c,k,col[k]))return false}
+    if(q){const u=uni(c.uniId)||{};const hay=norm([c.num,chTitulo(c),c.cli,u.prop,c.desc,c.amb,c.cat,c.sol,c.origemUni].join(" "));if(!q.split(" ").every(w=>hay.includes(w)))return false}
+    return true});
 }
 function filtrarCh(){
-  const f=S.chF,q=norm(f.q);
-  return S.ch.filter(c=>{
-    if(f.st==="abertos"&&c.status==="resolvido")return false;
-    if(f.st==="completar"&&!incompleto(c))return false;
-    if(!["abertos","todos","completar"].includes(f.st)&&c.status!==f.st)return false;
-    if(f.emp&&c.empId!==f.emp)return false;{const cs=chCats(f);if(cs.length&&!cs.includes(c.cat))return false}
-    if(f.ri){const ri=c.respInt||"";if(f.ri==="__meus"?ri!==eu():f.ri==="__sem"?!!ri:ri!==f.ri)return false}
-    if(q){const u=uni(c.uniId)||{};const hay=norm([c.num,chTitulo(c),c.cli,u.prop,c.desc,c.amb,c.cat,c.sol,c.origemUni].join(" "));if(!q.split(" ").every(w=>hay.includes(w)))return false}
-    return true}).sort((a,b)=>{const o=f.ord||"prio";const rec=(b.abertoEm||"").localeCompare(a.abertoEm||"")||(b.num||0)-(a.num||0);
-    if(o==="recentes")return rec;if(o==="antigos")return -rec;
-    if(o==="parados")return (a.atualizadoEm||a.abertoEm||"").localeCompare(b.atualizadoEm||b.abertoEm||"");
-    if(o==="unidade")return chTitulo(a).localeCompare(chTitulo(b),"pt-BR",{numeric:true});
-    const pr={urgente:0,alta:1,normal:2,baixa:3};if(f.st!=="resolvido"&&f.st!=="todos"&&pr[a.prio]!==pr[b.prio])return (pr[a.prio]??2)-(pr[b.prio]??2);return (b.num||0)-(a.num||0)});
+  const f=S.chF,col=chColF(),lista=chFiltrarSem(null);
+  if(f.sort&&CH_COLS[f.sort.k]){const def=CH_COLS[f.sort.k],m=f.sort.d==="desc"?-1:1;
+    return lista.sort((a,b)=>{const x=def.ordv(a),y=def.ordv(b);const r=typeof x==="number"?x-y:String(x).localeCompare(String(y),"pt-BR",{numeric:true});return r*m||(b.num||0)-(a.num||0)})}
+  // sem ordem escolhida: urgentes primeiro (enquanto não estiver olhando os resolvidos) e depois os mais novos
+  const st=col.st||[];const prio=st.length&&!st.includes("resolvido");const pr={urgente:0,alta:1,normal:2,baixa:3};
+  return lista.sort((a,b)=>(prio&&pr[a.prio]!==pr[b.prio]?(pr[a.prio]??2)-(pr[b.prio]??2):0)||(b.num||0)-(a.num||0));
+}
+function chValores(k){
+  const def=CH_COLS[k];if(!def.val)return null;
+  const base=chFiltrarSem(k),cont=new Map();
+  base.forEach(c=>{const v=def.val(c);cont.set(v,(cont.get(v)||0)+1)});
+  if(k==="st"){const vs=["aberto","agendado","aguardando","resolvido"];const n=base.filter(incompleto).length;
+    return [...vs.map(v=>({v,l:def.lab(v),n:cont.get(v)||0})),...(S.ch.some(incompleto)?[{v:"__completar",l:"A completar",n}]:[])]}
+  (chColF()[k]||[]).forEach(v=>{if(!cont.has(v))cont.set(v,0)});
+  return [...cont.entries()].map(([v,n])=>({v,l:def.lab(v),n})).sort((a,b)=>k==="uni"?a.l.localeCompare(b.l,"pt-BR",{numeric:true}):a.l.localeCompare(b.l,"pt-BR"));
+}
+function chTh(k){
+  const def=CH_COLS[k],sel=chColF()[k]||[],so=S.chF.sort&&S.chF.sort.k===k?S.chF.sort.d:null;
+  return `<th${def.n?' class="n"':""}>${tfBotao("ch:"+k,def.rot,sel.length,so)}</th>`;
+}
+function chTr(c){
+  const u=uni(c.uniId)||{},e=emp(c.empId),ida=idadeCh(c),g=garantia(c);
+  const cli=c.cli||u.prop||"";
+  return `<tr data-a="open-ch" data-id="${esc(c.id)}"><td class="mono muted">#${esc(c.num||"")}</td><td>${esc(e?e.nome:"Sem empreendimento")}</td>
+  <td><b>${esc(uniLabel(uni(c.uniId)))}</b>${cli?`<div class="d">${esc(cli)}</div>`:""}</td>
+  <td>${esc(c.cat||"—")}<div class="d" title="${esc((c.amb?c.amb+" — ":"")+(c.desc||""))}">${c.amb?esc(c.amb)+" — ":""}${esc(c.desc||"")}</div></td>
+  <td>${c.respInt?`<span class="tag">${esc(c.respInt)}</span>`:'<span class="muted">—</span>'}</td>
+  <td><span class="row" style="gap:4px;flex-wrap:wrap">${c.prio==="urgente"?'<span class="prio-urgente small">Urgente</span>':""}${statusPill(c.status)}${c.status!=="resolvido"&&g.k==="bad"?`<span class="pill c-bad" title="${esc(g.l)}">Fora da garantia</span>`:""}</span>${parado(c)?`<div class="d" style="color:var(--warn)">${diffDias(localDay(c.atualizadoEm||c.abertoEm),hojeISO())} dias sem movimento</div>`:""}</td>
+  <td class="n mono">${ida}</td></tr>`;
+}
+function chInfo(total){
+  const el=$("#chf-info");if(!el)return;
+  const col=chColF(),n=Object.keys(col).filter(k=>(col[k]||[]).length).length;
+  el.innerHTML=`${total} ${total===1?"chamado":"chamados"}${n?` · <b style="color:var(--accent)">${n} ${n===1?"filtro":"filtros"} nas colunas</b> · <button type="button" data-chf-limpar>limpar</button>`:""}`;
 }
 function renderChList(dir){
   const el=$("#ch-list");if(!el)return;const tudo=filtrarCh();
   const POR=15,chave=JSON.stringify(S.chF);if(S.chPagChave!==chave){S.chPagChave=chave;S.chPag=0}
   const pags=Math.max(1,Math.ceil(tudo.length/POR));S.chPag=Math.min(S.chPag||0,pags-1);
   const l=tudo.slice(S.chPag*POR,S.chPag*POR+POR);
-  const dica=S.chF.st==="completar"&&l.length?`<div class="banner c-info" style="margin:8px 0">Jeito rápido: no <a href="#" data-a="go" data-v="inicio" style="color:inherit;font-weight:600">Registro rápido</a>, dite ou escreva vários de uma vez. Ex.: "1104 Malta: pintura do teto do banheiro por infiltração do 1204. 403 San Andrés: fissuras na sala, cliente Marcos." A IA completa todos juntos.</div>`:"";
-  el.innerHTML=dica+(l.length?`<div class="list${dir===1?" pg-dir":dir===-1?" pg-esq":""}">${l.map(c=>chRow(c,true)).join("")}</div>${chPager(S.chPag,pags,tudo.length,POR)}`:(S.ch.length?`<div class="empty" style="margin:10px 0">Nenhum chamado com esses filtros.</div>`:`<div class="empty" style="margin:10px 0"><b>Nenhum chamado ainda</b>Use o Registro rápido na tela inicial: cole a conversa do WhatsApp e a IA cria o primeiro chamado.</div>`));
+  const dica=(chColF().st||[]).includes("__completar")&&l.length?`<div class="banner c-info" style="margin:8px 0">Jeito rápido: no <a href="#" data-a="go" data-v="inicio" style="color:inherit;font-weight:600">Registro rápido</a>, dite ou escreva vários de uma vez. Ex.: "1104 Malta: pintura do teto do banheiro por infiltração do 1204. 403 San Andrés: fissuras na sala, cliente Marcos." A IA completa todos juntos.</div>`:"";
+  chInfo(tudo.length);
+  const cab=`<thead><tr>${["num","emp","uni","cat","ri","st","dias"].map(chTh).join("")}</tr></thead>`;
+  el.innerHTML=dica+(l.length||S.ch.length?`<table class="ch-tab">${cab}<tbody class="${dir===1?"pg-dir":dir===-1?"pg-esq":""}">${l.length?l.map(chTr).join(""):`<tr><td colspan="7" class="muted" style="text-align:center;padding:26px">Nenhum chamado com esses filtros.</td></tr>`}</tbody></table>${chPager(S.chPag,pags,tudo.length,POR)}`:(S.ch.length?"":`<div class="empty" style="margin:10px 0"><b>Nenhum chamado ainda</b>Use o Registro rápido na tela inicial: cole a conversa do WhatsApp e a IA cria o primeiro chamado.</div>`));
+}
+
+/* ===== Filtro e ordenação no título da coluna (componente) ===== */
+const TF_ICO='<span class="tf-i"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg></span>';
+function tfBotao(chave,rot,n,ord){
+  return `<button type="button" class="tf-h${n||ord?" on":""}" data-tfh="${esc(chave)}" data-rot="${esc(rot)}" aria-haspopup="true">${esc(rot)}${n?`<span class="tf-c">${n}</span>`:""}${ord?`<span class="tf-s">${ord==="asc"?"↑":"↓"}</span>`:""}${!n&&!ord?TF_ICO:""}</button>`;
+}
+let TF=null;
+function tfFechar(){if(!TF)return;TF.el.remove();if(TF.anc)TF.anc.classList.remove("aberto");document.removeEventListener("mousedown",TF.fora,true);document.removeEventListener("keydown",TF.tecla);window.removeEventListener("resize",tfFechar);TF=null}
+// cfg: {chave, ord:[[dir,rótulo]]|null, ordAtual, valores:[{v,l,n}]|null, marcados:[], onOrdem(dir|null), onMarcar([...])}
+function tfAbrir(anc,cfg){
+  const mesma=TF&&TF.chave===cfg.chave;tfFechar();if(mesma)return;
+  const el=document.createElement("div");el.className="tf-pop";el.setAttribute("role","dialog");
+  const sel=new Set(cfg.marcados||[]);
+  const rodape=()=>sel.size?`${sel.size} ${sel.size===1?"marcado":"marcados"}`:"Mostrando todos";
+  el.innerHTML=(cfg.ord?`<div class="tf-ord">${cfg.ord.map(([d,l])=>`<button type="button" data-tfo="${d}" class="${cfg.ordAtual===d?"on":""}">${esc(l)}</button>`).join("")}</div>`:"")+
+    (cfg.valores?(cfg.valores.length>7?'<input class="tf-busca" type="search" placeholder="Buscar…">':(cfg.ord?'<div style="border-top:1px solid var(--line);margin:0 2px"></div>':""))+
+    `<div class="tf-lista">${cfg.valores.map(x=>`<label class="tf-op" data-l="${esc(norm(x.l))}"><input type="checkbox" value="${esc(x.v)}" ${sel.has(x.v)?"checked":""}><span>${esc(x.l)}</span><span class="tf-n">${x.n}</span></label>`).join("")||'<div class="muted" style="padding:8px">Nada para filtrar.</div>'}</div>
+    <div class="tf-ft"><span class="tf-rod">${rodape()}</span><button type="button" data-tfl>Limpar</button></div>`:"");
+  document.body.appendChild(el);
+  const r=anc.getBoundingClientRect();
+  el.style.top=(r.bottom+window.scrollY+6)+"px";
+  el.style.left=Math.max(8,Math.min(r.left+window.scrollX,window.scrollX+document.documentElement.clientWidth-el.offsetWidth-8))+"px";
+  anc.classList.add("aberto");
+  const marcar=()=>{el.querySelector(".tf-rod")&&(el.querySelector(".tf-rod").textContent=rodape());cfg.onMarcar&&cfg.onMarcar([...sel])};
+  el.addEventListener("change",e=>{const i=e.target;if(i.type!=="checkbox")return;i.checked?sel.add(i.value):sel.delete(i.value);marcar()});
+  el.addEventListener("input",e=>{if(!e.target.classList.contains("tf-busca"))return;const q=norm(e.target.value);el.querySelectorAll(".tf-op").forEach(o=>o.hidden=!!q&&!o.dataset.l.includes(q))});
+  el.addEventListener("click",e=>{
+    const o=e.target.closest("[data-tfo]");
+    if(o){const d=o.classList.contains("on")?null:o.dataset.tfo;el.querySelectorAll("[data-tfo]").forEach(b=>b.classList.toggle("on",b.dataset.tfo===d));cfg.onOrdem&&cfg.onOrdem(d);return}
+    if(e.target.closest("[data-tfl]")){sel.clear();el.querySelectorAll(".tf-op input").forEach(i=>i.checked=false);marcar()}
+  });
+  TF={el,anc,chave:cfg.chave,
+    fora:e=>{if(!el.contains(e.target)&&!(e.target.closest&&e.target.closest("[data-tfh]")===anc))tfFechar()},
+    tecla:e=>{if(e.key==="Escape")tfFechar()}};
+  document.addEventListener("mousedown",TF.fora,true);document.addEventListener("keydown",TF.tecla);window.addEventListener("resize",tfFechar);
+  const b=el.querySelector(".tf-busca");if(b)b.focus();
+}
+// depois de redesenhar a tabela, o menu continua preso ao novo botão do título
+function tfReancorar(){if(!TF)return;const n=document.querySelector(`[data-tfh="${CSS.escape(TF.chave)}"]`);if(n){TF.anc=n;n.classList.add("aberto")}}
+document.addEventListener("click",e=>{
+  const lp=e.target.closest&&e.target.closest("[data-chf-limpar]");
+  if(lp){tfFechar();S.chF.col={};S.chF.sort=null;renderChList();return}
+  const h=e.target.closest&&e.target.closest("[data-tfh]");if(!h)return;
+  e.preventDefault();e.stopPropagation();
+  const chave=h.dataset.tfh;
+  if(chave.startsWith("ch:")){
+    const k=chave.slice(3),def=CH_COLS[k];
+    tfAbrir(h,{chave,ord:def.ord,ordAtual:S.chF.sort&&S.chF.sort.k===k?S.chF.sort.d:null,valores:chValores(k),marcados:chColF()[k]||[],
+      onOrdem:d=>{S.chF.sort=d?{k,d}:null;renderChList();tfReancorar()},
+      onMarcar:arr=>{chColF()[k]=arr;renderChList();tfReancorar()}});
+    return;
+  }
+  const sec=h.closest("[data-tf-tabela]");if(sec)relTfAbrir(h,sec);
+},true);
+
+/* Relatórios: a tabela já está na tela; filtra e ordena as linhas sem redesenhar */
+function relTfEstado(t){if(!t._tf)t._tf={sel:{},sort:null};return t._tf}
+function relTfCols(t){return [...t.querySelectorAll("thead [data-tfh]")].map(b=>({k:b.dataset.tfh.split(":")[1],b,th:b.closest("th")}))}
+function relTfAplicar(t){
+  const st=relTfEstado(t),linhas=[...t.tBodies[0].rows];
+  linhas.forEach(tr=>{let ok=true;for(const k in st.sel){const v=st.sel[k];if(v.length&&!v.includes(tr.dataset[k]||""))ok=false}tr.classList.toggle("rel-oculta",!ok)});
+  if(st.sort){const {k,d}=st.sort,m=d==="desc"?-1:1;const val=tr=>tr.dataset["o"+k]??tr.dataset[k]??"";
+    linhas.sort((a,b)=>{const x=val(a),y=val(b);const nx=Number(x),ny=Number(y);const r=x!==""&&y!==""&&!isNaN(nx)&&!isNaN(ny)?nx-ny:String(x).localeCompare(String(y),"pt-BR",{numeric:true});return r*m}).forEach(tr=>t.tBodies[0].appendChild(tr))}
+  relTfCols(t).forEach(({k,b})=>{const n=(st.sel[k]||[]).length,o=st.sort&&st.sort.k===k?st.sort.d:null;b.outerHTML=tfBotao("rel:"+k,b.dataset.rot,n,o)});
+  const cont=t.closest(".rel-sec")&&t.closest(".rel-sec").querySelector("[data-rel-cont]");if(cont)cont.textContent=linhas.filter(tr=>!tr.classList.contains("rel-oculta")).length;
+}
+function relTfAbrir(h,t){
+  const k=h.dataset.tfh.split(":")[1],st=relTfEstado(t),th=h.closest("th");
+  const filtra=th.hasAttribute("data-tf-filtro"),ord=th.dataset.tfOrd==="num"?[["asc","Menor → maior"],["desc","Maior → menor"]]:th.dataset.tfOrd==="data"?[["asc","Mais antigos"],["desc","Mais recentes"]]:[["asc","A → Z"],["desc","Z → A"]];
+  let valores=null;
+  if(filtra){const cont=new Map(),rot=new Map();[...t.tBodies[0].rows].forEach(tr=>{const v=tr.dataset[k]||"";cont.set(v,(cont.get(v)||0)+1);rot.set(v,tr.dataset[k+"L"]||v||"—")});
+    valores=[...cont.entries()].map(([v,n])=>({v,l:rot.get(v),n})).sort((a,b)=>a.l.localeCompare(b.l,"pt-BR",{numeric:true}))}
+  tfAbrir(h,{chave:h.dataset.tfh,ord,ordAtual:st.sort&&st.sort.k===k?st.sort.d:null,valores,marcados:st.sel[k]||[],
+    onOrdem:d=>{st.sort=d?{k,d}:null;relTfAplicar(t);tfReancorar()},
+    onMarcar:arr=>{st.sel[k]=arr;relTfAplicar(t);tfReancorar()}});
 }
 
 function chPager(p,pags,total,por,at="data-pag"){
@@ -1659,7 +1803,7 @@ function repHTML(D,resumo){
   <div class="rk"><div><b>${D.novos.length}</b>novos chamados</div><div><b>${D.resolv.length}</b>resolvidos</div><div><b>${D.abertosFim.length}</b>em aberto no fim do mês</div><div><b>${D.tm?D.tm.toFixed(1).replace(".",","):"–"}</b>dias em média até resolver</div></div>
   ${resumo?`<div class="resumo">${esc(resumo)}</div>`:""}
   <div class="grid2"><div><h3>Por empreendimento</h3>${tb(D.porEmp)}</div><div><h3>Por tipo de problema</h3>${tb(D.porCat)}</div></div>
-  <div class="rel-sec"><div class="rel-sec-h"><h3>Chamados do mês</h3><button type="button" class="rel-toggle rel-ctrl" data-rel-toggle aria-expanded="true"><span class="rel-toggle-t">Recolher</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div><div class="rel-corpo"><div class="rel-corpo-in">${lista.length?`<div class="tbl-wrap rel-tbl"><table><thead><tr><th>Nº</th><th>Abertura</th><th>Unidade</th><th>Problema</th><th>Situação</th><th class="n">Dias</th></tr><tr class="rel-filtros rel-ctrl"><th></th><th></th><th><input class="in rel-f" data-col="un" placeholder="Buscar unidade" aria-label="Filtrar por unidade"></th><th><input class="in rel-f" data-col="pb" placeholder="Buscar problema" aria-label="Filtrar por problema"></th><th><select class="in rel-f" data-col="st" aria-label="Filtrar por situação"><option value="">Todas</option><option>Aberto</option><option>Agendado</option><option>Aguardando</option><option>Resolvido</option></select></th><th></th></tr></thead><tbody>${lista.map(c=>`<tr data-un="${esc(chTitulo(c)).toLowerCase()}" data-pb="${esc((c.cat||"")+" "+(c.amb||"")+" "+(c.desc||"")).toLowerCase()}" data-st="${esc((STATUS[c.status]||{}).l||"")}"><td class="mono">#${esc(c.num)}</td><td>${esc(fmtD(localDay(c.abertoEm)))}</td><td>${esc(chTitulo(c))}</td><td>${esc(c.cat)}${c.amb?" · "+esc(c.amb):""}<br><span class="muted">${esc(c.desc)}</span>${c.sol?`<br><b>Solução:</b> ${esc(c.sol)}`:""}</td><td>${esc((STATUS[c.status]||{}).l||"")}</td><td class="n">${idadeCh(c)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">Nenhum chamado no mês.</p>`}</div></div></div>
+  <div class="rel-sec"><div class="rel-sec-h"><h3>Chamados do mês</h3><button type="button" class="rel-toggle rel-ctrl" data-rel-toggle aria-expanded="true"><span class="rel-toggle-t">Recolher</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div><div class="rel-corpo"><div class="rel-corpo-in">${lista.length?`<div class="tbl-wrap rel-tbl"><table data-tf-tabela><thead><tr><th data-tf-ord="num">${tfBotao("rel:num","Nº")}</th><th data-tf-ord="data">${tfBotao("rel:ab","Abertura")}</th><th data-tf-filtro>${tfBotao("rel:un","Unidade")}</th><th data-tf-filtro>${tfBotao("rel:pb","Problema")}</th><th data-tf-filtro>${tfBotao("rel:st","Situação")}</th><th class="n" data-tf-ord="num">${tfBotao("rel:dias","Dias")}</th></tr></thead><tbody>${lista.map(c=>`<tr data-num="${c.num||0}" data-ab="${esc(localDay(c.abertoEm)||"")}" data-un="${esc(chTitulo(c))}" data-pb="${esc(c.cat||"")}" data-pb-l="${esc(c.cat||"Sem categoria")}" data-st="${esc((STATUS[c.status]||{}).l||"")}" data-dias="${idadeCh(c)}"><td class="mono">#${esc(c.num)}</td><td>${esc(fmtD(localDay(c.abertoEm)))}</td><td>${esc(chTitulo(c))}</td><td>${esc(c.cat)}${c.amb?" · "+esc(c.amb):""}<br><span class="muted">${esc(c.desc)}</span>${c.sol?`<br><b>Solução:</b> ${esc(c.sol)}`:""}</td><td>${esc((STATUS[c.status]||{}).l||"")}</td><td class="n">${idadeCh(c)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">Nenhum chamado no mês.</p>`}</div></div></div>
   <div class="muted small">Gerado em ${esc(new Date().toLocaleString("pt-BR"))} · ${D.visitas} ${plural(D.visitas,"visita concluída","visitas concluídas")} no mês</div>`;
 }
 function vRelatorios(){

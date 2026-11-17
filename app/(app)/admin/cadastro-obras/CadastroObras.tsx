@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Copy, ImagePlus, Plus, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import FiltroColuna, { contarValores, type Direcao } from "@/components/ui/FiltroColuna";
-import { BotaoSeta, DataCampo, Paginador, Recolher, useAberto, usePaginas } from "@/components/ui/anima";
+import { DataCampo, Paginador, Recolher, Seta, useAberto, usePaginas } from "@/components/ui/anima";
 import { criarObra, marcarEntregue, mudarFase, salvarAparece, salvarLogo, salvarObra, voltarParaObra, type CampoAparece, type DadosObra } from "./actions";
 
 export type ObraCadastro = {
@@ -372,10 +372,12 @@ function Bloco({ id, titulo, children, extra }: { id: string; titulo: string; ch
     <div className="card">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <button type="button" onClick={alternar} className="text-left font-semibold text-ink-900">
+          <button type="button" onClick={alternar} aria-expanded={aberto} title={aberto ? "Recolher" : "Mostrar"} className="sbj-ts text-left font-semibold text-ink-900">
             {titulo}
+            <span className="sbj-seta-btn">
+              <Seta aberto={aberto} />
+            </span>
           </button>
-          <BotaoSeta aberto={aberto} onClick={alternar} />
         </div>
         {extra && <div className="flex items-center gap-2">{extra}</div>}
       </div>

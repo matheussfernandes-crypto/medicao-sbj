@@ -8,6 +8,13 @@
 .sbj-recolhe.solto > .sbj-recolhe-in { overflow: visible; }
 
 .sbj-seta-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; color: #7b8a8f; transition: background-color .2s, color .2s; flex-shrink: 0; }
+/* título + seta no mesmo botão: o fundo do hover cobre o texto e a seta juntos */
+.sbj-ts { display: inline-flex; align-items: center; gap: 6px; padding: 3px 7px 3px 9px; margin-left: -9px; border-radius: 8px; cursor: pointer; transition: background-color .2s; }
+.sbj-ts:hover, .group:hover > .sbj-ts { background: rgba(0,104,122,.1); }
+.sbj-ts .sbj-seta-btn { width: auto; height: auto; background: transparent !important; }
+.sbj-ts:hover .sbj-seta-btn, .group:hover > .sbj-ts .sbj-seta-btn { color: #00687a; }
+html.dark .sbj-ts:hover, html.dark .group:hover > .sbj-ts { background: rgba(92,195,210,.12); }
+html.dark .sbj-ts:hover .sbj-seta-btn, html.dark .group:hover > .sbj-ts .sbj-seta-btn { color: #7fd0dc; }
 .sbj-seta-btn:hover { background: rgba(0,104,122,.1); color: #00687a; }
 
 /* páginas deslizando para o lado da troca */

@@ -154,9 +154,11 @@ export default function FachadaView(p: Props) {
         <div className="space-y-3 min-w-0">
           <div className="card">
             <button className="group flex items-center gap-2 w-full text-left" onClick={() => setAbre3d((v) => !v)} aria-expanded={abre3d}>
-              <h2 className="font-semibold text-primaryDark">Prédio em 3D</h2>
-              <span className="sbj-seta-btn group-hover:bg-primary/10 group-hover:text-primary">
-                <Seta aberto={abre3d} />
+              <span className="sbj-ts">
+                <h2 className="font-semibold text-primaryDark">Prédio em 3D</h2>
+                <span className="sbj-seta-btn">
+                  <Seta aberto={abre3d} />
+                </span>
               </span>
               <span className="text-xs text-ink-500">{fmtPct(pct(p.soma))}% da fachada</span>
             </button>
@@ -245,9 +247,11 @@ export default function FachadaView(p: Props) {
 
           <div className="card">
             <button className="group flex items-center gap-2 w-full text-left" onClick={() => setAbreFluxo((v) => !v)} aria-expanded={abreFluxo}>
-              <h2 className="font-semibold text-primaryDark">Fluxograma das descidas</h2>
-              <span className="sbj-seta-btn group-hover:bg-primary/10 group-hover:text-primary">
-                <Seta aberto={abreFluxo} />
+              <span className="sbj-ts">
+                <h2 className="font-semibold text-primaryDark">Fluxograma das descidas</h2>
+                <span className="sbj-seta-btn">
+                  <Seta aberto={abreFluxo} />
+                </span>
               </span>
               <span className="text-xs text-ink-500">{itensServ.length} trechos de {serv?.nome}</span>
             </button>

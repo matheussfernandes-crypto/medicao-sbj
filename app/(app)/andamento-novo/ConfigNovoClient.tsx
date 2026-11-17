@@ -74,9 +74,11 @@ function Secao({
     <div className="card">
       <div className="flex items-center gap-2">
         <button type="button" onClick={onAlternar} aria-expanded={aberta} className="group flex items-center gap-2 flex-1 text-left min-w-0">
-          <h2 className="font-semibold text-primaryDark">{titulo}</h2>
-          <span className="sbj-seta-btn group-hover:bg-primary/10 group-hover:text-primary">
-            <Seta aberto={aberta} />
+          <span className="sbj-ts">
+            <h2 className="font-semibold text-primaryDark">{titulo}</h2>
+            <span className="sbj-seta-btn">
+              <Seta aberto={aberta} />
+            </span>
           </span>
           <span className={`text-xs text-ink-500 truncate transition-opacity duration-300 ${!aberta && resumo ? "opacity-100" : "opacity-0"}`}>{resumo}</span>
         </button>
@@ -114,9 +116,11 @@ function GrupoFatia({
       <div className={`flex items-center gap-2 px-2.5 py-2 ${leve ? "" : "bg-surface-subtle"}`}>
         <button type="button" onClick={onAlternar} aria-expanded={aberto} className="group flex items-center gap-1.5 flex-1 min-w-0 text-left">
           {cor && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cor }} />}
-          <span className={`font-semibold truncate ${leve ? "text-xs text-ink-700" : "text-sm text-primaryDark"}`}>{titulo}</span>
-          <span className="sbj-seta-btn w-7 h-7 group-hover:bg-primary/10 group-hover:text-primary">
-            <Seta aberto={aberto} />
+          <span className="sbj-ts min-w-0">
+            <span className={`font-semibold truncate ${leve ? "text-xs text-ink-700" : "text-sm text-primaryDark"}`}>{titulo}</span>
+            <span className="sbj-seta-btn">
+              <Seta aberto={aberto} />
+            </span>
           </span>
           {detalhe && <span className="text-[11px] text-ink-500 whitespace-nowrap">{detalhe}</span>}
         </button>
@@ -1161,19 +1165,24 @@ function EstruturaCard(props: {
                     className="font-semibold text-sm w-44"
                   />
                 ) : (
-                  <button type="button" onClick={() => setAbertos((m) => new Map(m).set(g.id, !filhosAbertos))} className="font-semibold text-sm text-left">
+                  <button type="button" onClick={() => setAbertos((m) => new Map(m).set(g.id, !filhosAbertos))} aria-expanded={filhosAbertos} className="sbj-ts font-semibold text-sm text-left">
                     {g.nome}
+                    <span className="sbj-seta-btn">
+                      <Seta aberto={filhosAbertos} />
+                    </span>
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setAbertos((m) => new Map(m).set(g.id, !filhosAbertos))}
-                  aria-expanded={filhosAbertos}
-                  title={filhosAbertos ? `Recolher ${pav ? "os locais" : "os itens"}` : `Mostrar ${pav ? "os locais" : "os itens"}`}
-                  className="sbj-seta-btn w-7 h-7"
-                >
-                  <Seta aberto={filhosAbertos} />
-                </button>
+                {editando && (
+                  <button
+                    type="button"
+                    onClick={() => setAbertos((m) => new Map(m).set(g.id, !filhosAbertos))}
+                    aria-expanded={filhosAbertos}
+                    title={filhosAbertos ? `Recolher ${pav ? "os locais" : "os itens"}` : `Mostrar ${pav ? "os locais" : "os itens"}`}
+                    className="sbj-seta-btn w-7 h-7"
+                  >
+                    <Seta aberto={filhosAbertos} />
+                  </button>
+                )}
                 {g.pct != null && <span className="text-xs tabular-nums text-primaryDark bg-primary/10 rounded-full px-2 py-0.5">{fmt(g.pct)}%</span>}
                 <span className="text-[11px] text-ink-500">
                   {g.filhos.length} {pav ? (g.filhos.length === 1 ? "local" : "locais") : g.fachada ? (g.filhos.length === 1 ? "item gerado pelas descidas" : "itens gerados pelas descidas") : g.filhos.length === 1 ? "item" : "itens"}

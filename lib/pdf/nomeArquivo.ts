@@ -59,12 +59,11 @@ export function nomeObra(o: { tipo: "MED" | "VALE"; obra: string; mes: string; p
 }
 
 /**
- * Content-Disposition mantendo Ç e acentos. Leitores de PDF (ex.: extensão do Adobe no Chrome) usam só o
- * `filename=` e ignoram o `filename*`, então o `filename=` leva o nome em UTF-8 bruto (o Chrome decodifica).
- * Cabeçalho HTTP só aceita bytes 0–255: por isso os bytes UTF-8 vão "embrulhados" numa string latin1.
+ * Content-Disposition mantendo Ç e acentos. O leitor de PDF do Chrome usa o `filename=` e decodifica %XX como
+ * UTF-8; a Vercel recodifica bytes não-ASCII no cabeçalho, então o nome vai já em %XX (ASCII puro).
+ * `filename*` (RFC 5987) fica junto para quem segue o padrão.
  */
 export function disposicao(nome: string, tipo: "inline" | "attachment" = "inline") {
-  const n = nome.normalize("NFC").replace(/"/g, "");
-  const utf8Bruto = Buffer.from(n, "utf8").toString("latin1");
-  return `${tipo}; filename="${utf8Bruto}"; filename*=UTF-8''${encodeURIComponent(n)}`;
+  const n = encodeURIComponent(nome.normalize("NFC").replace(/"/g, ""));
+  return `${tipo}; filename="${n}"; filename*=UTF-8''${n}`;
 }

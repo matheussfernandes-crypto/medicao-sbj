@@ -263,7 +263,7 @@ export default async function FechamentoPage({
           </>
         )}
 
-        <SecaoRecolhivel chave="fech-historico" titulo="Histórico de fechamentos">
+        <SecaoRecolhivel chave="fech-historico" titulo="Histórico de fechamentos" subtitulo={<>Mostra os últimos 30. <a href="/admin/fechamento/historico" className="text-primary underline">Ver histórico completo, com todas as obras (inclusive concluídas) →</a></>}>
           {historico && historico.length > 0 ? (
             <TabelaFiltravel
               por={15}

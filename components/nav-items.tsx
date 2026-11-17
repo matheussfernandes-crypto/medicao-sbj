@@ -254,6 +254,15 @@ export const NAV_ITEMS: NavItem[] = [
 
   // ---- Administração ----
   {
+    label: "Cadastro de obras",
+    href: "/admin/cadastro-obras",
+    icon: HardHat,
+    description: "Cadastro único de cada obra: endereço, CNPJ, CNO, datas, fase e estrutura.",
+    allowedSetores: ["ADMIN"],
+    secao: "admin",
+    grupo: "Cadastros",
+  },
+  {
     label: "Cadastros do pós-venda",
     href: "/posvenda/cadastros",
     icon: Database,

@@ -1,0 +1,576 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Copy, Search, X } from "lucide-react";
+import Selecao from "@/components/ui/Selecao";
+import { BotaoSeta, DataCampo, Paginador, Recolher, useAberto, usePaginas } from "@/components/ui/anima";
+import { marcarEntregue, salvarObra, voltarParaObra, type DadosObra } from "./actions";
+
+export type ObraCadastro = {
+  id: string;
+  nome: string;
+  nome_completo: string | null;
+  nomes_alternativos: string[] | null;
+  fase: "obra" | "entregue" | null;
+  cnpj: string | null;
+  cno: string | null;
+  razao_social: string | null;
+  endereco: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  cep: string | null;
+  data_inicio: string | null;
+  data_entrega_prevista: string | null;
+  data_entrega_real: string | null;
+  torres: number | null;
+  pavimentos: number | null;
+  unidades: number | null;
+  responsavel_tecnico: string | null;
+  aparece_medicao: boolean;
+  aparece_andamento: boolean;
+  aparece_vistorias: boolean;
+  aparece_posvenda: boolean;
+  obra_id: string | null;
+  andamento_obra_id: string | null;
+  posobra_id: string | null;
+  posvenda_emp_id: string | null;
+  observacoes: string | null;
+  atualizado_em: string | null;
+};
+
+const inp =
+  "w-full rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
+const btnPri = "inline-flex items-center gap-1.5 rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primaryDark disabled:opacity-60";
+const btnSec =
+  "inline-flex items-center gap-1.5 rounded-[10px] border border-border bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-primary hover:text-primary disabled:opacity-60";
+
+const fmtData = (s: string | null) => (s ? s.split("-").reverse().join("/") : "—");
+const dig = (s: string) => s.replace(/\D/g, "");
+function mascaraCnpj(s: string) {
+  const d = dig(s).slice(0, 14);
+  if (d.length !== 14) return s.trim();
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+}
+function mascaraCno(s: string) {
+  const d = dig(s).slice(0, 12);
+  if (d.length !== 12) return s.trim();
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 10)}/${d.slice(10)}`;
+}
+function mascaraCep(s: string) {
+  const d = dig(s).slice(0, 8);
+  if (d.length !== 8) return s.trim();
+  return `${d.slice(0, 5)}-${d.slice(5)}`;
+}
+const norm = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+
+function Fase({ fase }: { fase: ObraCadastro["fase"] }) {
+  if (fase === "entregue") return <span className="rounded-full bg-[#E3F1E8] px-2.5 py-0.5 text-xs font-semibold text-[#1D6B3D]">Entregue</span>;
+  if (fase === "obra") return <span className="rounded-full bg-[#FDF0DC] px-2.5 py-0.5 text-xs font-semibold text-[#9A5B00]">Em construção</span>;
+  return <span className="rounded-full bg-[#E1E9EB] px-2.5 py-0.5 text-xs font-semibold text-ink-500">Sem fase</span>;
+}
+
+// ---------------------------------------------------------------------------
+// Lista
+
+export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; erro: string | null }) {
+  const [abertaId, setAbertaId] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+  const [fase, setFase] = useState("");
+  const aberta = obras.find((o) => o.id === abertaId) ?? null;
+
+  const lista = useMemo(() => {
+    const q = norm(busca.trim());
+    return obras.filter(
+      (o) =>
+        (!fase || (fase === "sem" ? !o.fase : o.fase === fase)) &&
+        (!q || norm([o.nome, o.nome_completo, ...(o.nomes_alternativos ?? []), o.endereco, o.cidade, o.cnpj, o.cno].join(" ")).includes(q))
+    );
+  }, [obras, busca, fase]);
+  const pg = usePaginas(lista, 15, busca + "|" + fase);
+
+  if (aberta) return <EditorObra key={aberta.id + (aberta.atualizado_em ?? "")} obra={aberta} voltar={() => setAbertaId(null)} />;
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl font-semibold text-primaryDark">Cadastro de obras</h1>
+        <p className="text-sm text-ink-500">Um cadastro só para todas as obras. Nesta etapa os módulos ainda não leem daqui: nada muda na Medição, no Andamento ou no Pós-venda.</p>
+      </div>
+      {erro && <div className="rounded-[10px] border border-[#F1C4BF] bg-[#FDECEA] px-3 py-2 text-sm text-[#B3261E]">Não consegui carregar as obras: {erro}</div>}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[260px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+          <input className={inp + " pl-9"} placeholder="Buscar por nome, endereço, CNPJ ou CNO…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        </div>
+        <Selecao value={fase} onChange={(e) => setFase(e.target.value)} className="min-w-[200px]">
+          <option value="">Todas as fases</option>
+          <option value="obra">Em construção</option>
+          <option value="entregue">Entregues</option>
+          <option value="sem">Sem fase</option>
+        </Selecao>
+        <span className="text-sm text-ink-500">{lista.length === obras.length ? `${obras.length} obras` : `${lista.length} de ${obras.length} obras`}</span>
+      </div>
+
+      <div ref={pg.topo} className="card-flush overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-500">
+              <th className="px-4 py-3">Obra</th>
+              <th className="px-3 py-3">Fase</th>
+              <th className="px-3 py-3">Endereço</th>
+              <th className="px-3 py-3">CNPJ</th>
+              <th className="px-3 py-3">CNO</th>
+              <th className="px-3 py-3 text-right">Unidades</th>
+              <th className="px-3 py-3">Entrega</th>
+              <th className="px-3 py-3" />
+            </tr>
+          </thead>
+          <tbody key={pg.giro} className={pg.classe}>
+            {pg.itens.map((o) => (
+              <tr key={o.id} onClick={() => setAbertaId(o.id)} className="cursor-pointer border-b border-[#E8EEF0] last:border-0 hover:bg-[#F4F8F9]">
+                <td className="px-4 py-3">
+                  <div className="font-semibold text-ink-900">{o.nome}</div>
+                  {o.nome_completo && <div className="text-xs text-ink-500">{o.nome_completo}</div>}
+                </td>
+                <td className="px-3 py-3">
+                  <Fase fase={o.fase} />
+                </td>
+                <td className="px-3 py-3 text-ink-700">{[o.endereco, o.cidade].filter(Boolean).join(" · ") || <span className="text-ink-400">—</span>}</td>
+                <td className="px-3 py-3 tabular-nums text-ink-700">{o.cnpj || <span className="text-ink-400">—</span>}</td>
+                <td className="px-3 py-3 tabular-nums text-ink-700">{o.cno || <span className="text-ink-400">—</span>}</td>
+                <td className="px-3 py-3 text-right tabular-nums">{o.unidades ?? "—"}</td>
+                <td className="px-3 py-3 tabular-nums text-ink-700">{fmtData(o.fase === "entregue" ? o.data_entrega_real : o.data_entrega_prevista)}</td>
+                <td className="px-3 py-3 text-right">
+                  <span className="text-sm font-semibold text-primary">Abrir</span>
+                </td>
+              </tr>
+            ))}
+            {!pg.itens.length && (
+              <tr>
+                <td colSpan={8} className="px-4 py-8 text-center text-ink-500">
+                  Nenhuma obra com esses filtros.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        <div className="px-4 pb-3">
+          <Paginador pag={pg.pag} pags={pg.pags} total={pg.total} por={pg.por} ir={pg.ir} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Editor de uma obra
+
+const ABAS = [
+  ["gerais", "Dados gerais"],
+  ["datas", "Datas e garantia"],
+  ["estrutura", "Estrutura"],
+  ["vinculos", "Vínculos e nomes"],
+] as const;
+type Aba = (typeof ABAS)[number][0];
+
+function Bloco({ id, titulo, children, extra }: { id: string; titulo: string; children: React.ReactNode; extra?: React.ReactNode }) {
+  const [aberto, alternar] = useAberto("cad-obra-" + id, true);
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between gap-3">
+        <button type="button" onClick={alternar} className="text-left font-semibold text-ink-900">
+          {titulo}
+        </button>
+        <div className="flex items-center gap-2">
+          {extra}
+          <BotaoSeta aberto={aberto} onClick={alternar} />
+        </div>
+      </div>
+      <Recolher aberto={aberto}>
+        <div className="pt-4">{children}</div>
+      </Recolher>
+    </div>
+  );
+}
+
+function Campo({ rotulo, children, className = "" }: { rotulo: string; children: React.ReactNode; className?: string }) {
+  return (
+    <label className={"block " + className}>
+      <span className="mb-1 block text-xs font-semibold text-ink-500">{rotulo}</span>
+      {children}
+    </label>
+  );
+}
+
+const CAMPOS_ZAP = [
+  ["nome", "Nome"],
+  ["endereco", "Endereço"],
+  ["cnpj", "CNPJ"],
+  ["cno", "CNO"],
+  ["razao", "Razão social"],
+] as const;
+type CampoZap = (typeof CAMPOS_ZAP)[number][0];
+
+function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }) {
+  const router = useRouter();
+  const [aba, setAba] = useState<Aba>("gerais");
+  const [d, setD] = useState<DadosObra>({
+    nome: obra.nome,
+    nome_completo: obra.nome_completo,
+    razao_social: obra.razao_social,
+    cnpj: obra.cnpj,
+    cno: obra.cno,
+    endereco: obra.endereco,
+    bairro: obra.bairro,
+    cidade: obra.cidade,
+    uf: obra.uf,
+    cep: obra.cep,
+    data_inicio: obra.data_inicio,
+    data_entrega_prevista: obra.data_entrega_prevista,
+    torres: obra.torres,
+    pavimentos: obra.pavimentos,
+    unidades: obra.unidades,
+    responsavel_tecnico: obra.responsavel_tecnico,
+    nomes_alternativos: obra.nomes_alternativos ?? [],
+    observacoes: obra.observacoes,
+  });
+  const [mudou, setMudou] = useState(false);
+  const [msg, setMsg] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
+  const [salvando, iniciar] = useTransition();
+  const [novoNome, setNovoNome] = useState("");
+  const [zapAberto, setZapAberto] = useState(false);
+  const [zapCampos, setZapCampos] = useState<Set<CampoZap>>(new Set(["nome", "endereco", "cnpj", "cno"]));
+  const [entregaAberta, setEntregaAberta] = useState(false);
+  const [dataReal, setDataReal] = useState(obra.data_entrega_real ?? "");
+
+  const set = <K extends keyof DadosObra>(k: K, v: DadosObra[K]) => {
+    setD((x) => ({ ...x, [k]: v }));
+    setMudou(true);
+    setMsg(null);
+  };
+  const t = (k: keyof DadosObra) => ({
+    value: (d[k] as string | number | null) ?? "",
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => set(k, e.target.value as never),
+  });
+
+  function salvar() {
+    iniciar(async () => {
+      const r = await salvarObra(obra.id, d);
+      if (r.ok) {
+        setMudou(false);
+        setMsg({ tipo: "ok", texto: "Obra salva." });
+        router.refresh();
+      } else setMsg({ tipo: "erro", texto: r.erro });
+    });
+  }
+  function entregar() {
+    iniciar(async () => {
+      const r = await marcarEntregue(obra.id, dataReal);
+      if (r.ok) {
+        setEntregaAberta(false);
+        setMsg({ tipo: "ok", texto: "Obra marcada como entregue." });
+        router.refresh();
+      } else setMsg({ tipo: "erro", texto: r.erro });
+    });
+  }
+  function voltarObra() {
+    if (!confirm("Voltar esta obra para \"Em construção\"? A data de entrega real fica guardada, mas deixa de valer para a garantia.")) return;
+    iniciar(async () => {
+      const r = await voltarParaObra(obra.id);
+      if (r.ok) {
+        setMsg({ tipo: "ok", texto: "Obra voltou para Em construção." });
+        router.refresh();
+      } else setMsg({ tipo: "erro", texto: r.erro });
+    });
+  }
+
+  const enderecoCompleto = [d.endereco, d.bairro, [d.cidade, d.uf].filter(Boolean).join("/"), d.cep ? "CEP " + d.cep : ""].filter(Boolean).join(" - ");
+  const textoZap = [
+    zapCampos.has("nome") && `*OBRA:* ${d.nome}`,
+    zapCampos.has("endereco") && `*ENDEREÇO:* ${enderecoCompleto || "—"}`,
+    zapCampos.has("cnpj") && `*CNPJ:* ${d.cnpj || "—"}`,
+    zapCampos.has("cno") && `*CNO:* ${d.cno || "—"}`,
+    zapCampos.has("razao") && `*RAZÃO SOCIAL:* ${d.razao_social || "—"}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  async function copiarZap() {
+    try {
+      await navigator.clipboard.writeText(textoZap);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = textoZap;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+    setMsg({ tipo: "ok", texto: "Texto copiado. É só colar no WhatsApp." });
+  }
+
+  return (
+    <div className="space-y-5">
+      <button type="button" onClick={() => (!mudou || confirm("Sair sem salvar as alterações?")) && voltar()} className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+        <ArrowLeft className="h-4 w-4" /> Todas as obras
+      </button>
+
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-semibold text-primaryDark">{d.nome || "Obra sem nome"}</h1>
+            <Fase fase={obra.fase} />
+          </div>
+          {d.nome_completo && <p className="text-sm text-ink-500">{d.nome_completo}</p>}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className={btnSec} onClick={() => setZapAberto((a) => !a)}>
+            <Copy className="h-4 w-4" /> Copiar para WhatsApp
+          </button>
+          <button type="button" className={btnPri} onClick={salvar} disabled={salvando || !mudou}>
+            {salvando ? "Salvando…" : mudou ? "Salvar obra" : "Salvo"}
+          </button>
+        </div>
+      </div>
+
+      {msg && (
+        <div className={`rounded-[10px] px-3 py-2 text-sm ${msg.tipo === "ok" ? "bg-[#E3F1E8] text-[#1D6B3D]" : "border border-[#F1C4BF] bg-[#FDECEA] text-[#B3261E]"}`}>{msg.texto}</div>
+      )}
+
+      <Recolher aberto={zapAberto}>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-ink-900">Copiar para WhatsApp</span>
+            <button type="button" onClick={() => setZapAberto(false)} className="sbj-seta-btn" aria-label="Fechar">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-4 text-sm">
+            {CAMPOS_ZAP.map(([k, l]) => (
+              <label key={k} className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={zapCampos.has(k)}
+                  onChange={(e) =>
+                    setZapCampos((s) => {
+                      const n = new Set(s);
+                      if (e.target.checked) n.add(k);
+                      else n.delete(k);
+                      return n;
+                    })
+                  }
+                  className="h-4 w-4 accent-[#00687A]"
+                />
+                {l}
+              </label>
+            ))}
+          </div>
+          <pre className="mt-3 whitespace-pre-wrap rounded-[10px] border border-[#E8EEF0] bg-[#F4F8F9] px-3 py-2 font-mono text-[13px] leading-relaxed text-ink-900">{textoZap || "Marque o que entra no texto."}</pre>
+          <div className="mt-3">
+            <button type="button" className={btnPri} onClick={copiarZap} disabled={!textoZap}>
+              Copiar texto
+            </button>
+          </div>
+        </div>
+      </Recolher>
+
+      <div className="sbj-abas sem-marca">
+        {ABAS.map(([k, l]) => (
+          <button key={k} type="button" className={`sbj-aba ${aba === k ? "ativa" : ""}`} onClick={() => setAba(k)}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      <div key={aba} className="sbj-conteudo space-y-4">
+        {aba === "gerais" && (
+          <>
+            <Bloco id="identificacao" titulo="Identificação">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Campo rotulo="Nome da obra *">
+                  <input className={inp} {...t("nome")} />
+                </Campo>
+                <Campo rotulo="Nome completo (documentos e relatórios)">
+                  <input className={inp} {...t("nome_completo")} placeholder="Residencial Ilha de …" />
+                </Campo>
+              </div>
+            </Bloco>
+            <Bloco id="fiscais" titulo="Dados fiscais">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Campo rotulo="CNPJ da obra">
+                  <input className={inp} {...t("cnpj")} onBlur={(e) => e.target.value && set("cnpj", mascaraCnpj(e.target.value))} placeholder="00.000.000/0000-00" inputMode="numeric" />
+                </Campo>
+                <Campo rotulo="CNO">
+                  <input className={inp} {...t("cno")} onBlur={(e) => e.target.value && set("cno", mascaraCno(e.target.value))} placeholder="00.000.00000/00" inputMode="numeric" />
+                </Campo>
+                <Campo rotulo="Razão social / incorporadora">
+                  <input className={inp} {...t("razao_social")} />
+                </Campo>
+              </div>
+            </Bloco>
+            <Bloco id="localizacao" titulo="Localização">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-6">
+                <Campo rotulo="Endereço (rua e número)" className="sm:col-span-4">
+                  <input className={inp} {...t("endereco")} />
+                </Campo>
+                <Campo rotulo="CEP" className="sm:col-span-2">
+                  <input className={inp} {...t("cep")} onBlur={(e) => e.target.value && set("cep", mascaraCep(e.target.value))} placeholder="00000-000" inputMode="numeric" />
+                </Campo>
+                <Campo rotulo="Bairro" className="sm:col-span-2">
+                  <input className={inp} {...t("bairro")} />
+                </Campo>
+                <Campo rotulo="Cidade" className="sm:col-span-3">
+                  <input className={inp} {...t("cidade")} />
+                </Campo>
+                <Campo rotulo="UF" className="sm:col-span-1">
+                  <input className={inp} {...t("uf")} maxLength={2} />
+                </Campo>
+              </div>
+            </Bloco>
+            <Bloco id="observacoes" titulo="Observações">
+              <textarea className={inp + " min-h-[80px]"} {...t("observacoes")} />
+            </Bloco>
+          </>
+        )}
+
+        {aba === "datas" && (
+          <>
+            <Bloco id="datas" titulo="Datas">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Campo rotulo="Início da obra">
+                  <DataCampo value={d.data_inicio ?? ""} onChange={(v) => set("data_inicio", v || null)} className="w-full" btnClassName="w-full" />
+                </Campo>
+                <Campo rotulo="Entrega prevista">
+                  <DataCampo value={d.data_entrega_prevista ?? ""} onChange={(v) => set("data_entrega_prevista", v || null)} className="w-full" btnClassName="w-full" />
+                </Campo>
+                <Campo rotulo="Entrega real (habite-se / chaves)">
+                  <div className={inp + " bg-[#F4F8F9] text-ink-700"}>{fmtData(obra.data_entrega_real)}</div>
+                </Campo>
+              </div>
+            </Bloco>
+            <Bloco id="fase" titulo="Fase da obra">
+              <div className="space-y-3 text-sm">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Fase fase={obra.fase} />
+                  {obra.fase === "entregue" ? (
+                    <button type="button" className={btnSec} onClick={voltarObra} disabled={salvando}>
+                      Voltar para Em construção
+                    </button>
+                  ) : (
+                    <button type="button" className={btnPri} onClick={() => setEntregaAberta((a) => !a)} disabled={salvando}>
+                      Marcar como entregue
+                    </button>
+                  )}
+                </div>
+                <Recolher aberto={entregaAberta}>
+                  <div className="flex flex-wrap items-end gap-3 rounded-[12px] bg-[#E3EEF1] p-3">
+                    <Campo rotulo="Data de entrega real">
+                      <DataCampo value={dataReal} onChange={setDataReal} />
+                    </Campo>
+                    <button type="button" className={btnPri} onClick={entregar} disabled={salvando || !dataReal}>
+                      Confirmar entrega
+                    </button>
+                    <span className="text-xs text-[#1D5560]">A data de entrega real é a base da garantia no Pós-venda.</span>
+                  </div>
+                </Recolher>
+                <p className="text-xs text-ink-500">A fase só muda por aqui. Quando os módulos forem ligados ao cadastro, obra entregue sai do Andamento (fica no arquivo) e a Medição continua como está.</p>
+              </div>
+            </Bloco>
+          </>
+        )}
+
+        {aba === "estrutura" && (
+          <>
+            <Bloco id="estrutura" titulo="Resumo da estrutura">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                <Campo rotulo="Torres / blocos">
+                  <input className={inp} type="number" min={0} {...t("torres")} />
+                </Campo>
+                <Campo rotulo="Pavimentos">
+                  <input className={inp} type="number" min={0} {...t("pavimentos")} />
+                </Campo>
+                <Campo rotulo="Nº de unidades">
+                  <input className={inp} type="number" min={0} {...t("unidades")} />
+                </Campo>
+                <Campo rotulo="Responsável técnico">
+                  <input className={inp} {...t("responsavel_tecnico")} />
+                </Campo>
+              </div>
+            </Bloco>
+            <Bloco id="pavimentos" titulo="Pavimentos e unidades">
+              <p className="text-sm text-ink-500">Na próxima etapa: cadastro de cada pavimento com suas unidades (e o gerador em série para obras novas). Para as obras que já existem, a lista virá do que já está cadastrado.</p>
+            </Bloco>
+          </>
+        )}
+
+        {aba === "vinculos" && (
+          <>
+            <Bloco id="nomes" titulo="Nomes que já existiam">
+              <p className="mb-3 text-sm text-ink-500">Outros nomes desta obra nos dados antigos, para o sistema reconhecer a mesma obra.</p>
+              <div className="flex flex-wrap gap-2">
+                {d.nomes_alternativos.map((n) => (
+                  <span key={n} className="inline-flex items-center gap-1 rounded-[8px] bg-[#E1E9EB] px-2.5 py-1 text-sm">
+                    {n}
+                    <button
+                      type="button"
+                      aria-label={"Tirar " + n}
+                      onClick={() =>
+                        set(
+                          "nomes_alternativos",
+                          d.nomes_alternativos.filter((x) => x !== n)
+                        )
+                      }
+                      className="text-ink-500 hover:text-[#B3261E]"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="mt-3 flex gap-2">
+                <input className={inp + " max-w-sm"} value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="Acrescentar outro nome" />
+                <button
+                  type="button"
+                  className={btnSec}
+                  disabled={!novoNome.trim()}
+                  onClick={() => {
+                    set("nomes_alternativos", Array.from(new Set([...d.nomes_alternativos, novoNome.trim()])));
+                    setNovoNome("");
+                  }}
+                >
+                  Acrescentar
+                </button>
+              </div>
+            </Bloco>
+            <Bloco id="ligacoes" titulo="Ligações com os módulos">
+              <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                {[
+                  ["Medição, Fechamento, Contratos e RH", obra.obra_id, obra.aparece_medicao],
+                  ["Andamento de obra", obra.andamento_obra_id, obra.aparece_andamento],
+                  ["Vistorias e Controle de entregas", obra.posobra_id, obra.aparece_vistorias],
+                  ["Pós-venda (chamados e clientes)", obra.posvenda_emp_id, obra.aparece_posvenda],
+                ].map(([rot, lig, ap]) => (
+                  <div key={rot as string} className="flex items-center justify-between rounded-[10px] border border-[#E8EEF0] px-3 py-2">
+                    <span>{rot as string}</span>
+                    {lig ? (
+                      <span className={`text-xs font-semibold ${ap ? "text-[#1D6B3D]" : "text-ink-500"}`}>{ap ? "Ligada" : "Ligada (arquivada)"}</span>
+                    ) : (
+                      <span className="text-xs text-ink-400">Não existe lá</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-ink-500">Só para consulta nesta etapa. Os módulos passam a ler o cadastro um de cada vez, com sua aprovação.</p>
+            </Bloco>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

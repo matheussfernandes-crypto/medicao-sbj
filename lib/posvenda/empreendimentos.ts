@@ -2,6 +2,8 @@
 // vale no outro. O Pós-venda continua usando os mesmos ids que já tem para as unidades, os chamados e a agenda;
 // eles ficam ligados à obra por um documento de ligação (coleção "empreendimentos", campo obraId).
 
+import { cadastrosDoPosobra, camposDoCadastro } from "@/lib/cadastro/obrasPosobra";
+
 export const nomeKit = (n: unknown) => String(n ?? "").replace(/^\s*residencial\s+/i, "").trim();
 export const nomeObra = (n: unknown) => {
   const s = String(n ?? "").trim();
@@ -62,17 +64,24 @@ export async function listarEmpreendimentos(supabase: any) {
   await completarLigacoes(supabase, lista, lo);
   const idDaObra = new Map<string, string>();
   for (const l of lista) if (l.dados?.obraId) idDaObra.set(l.dados.obraId, l.id);
-  return lo.map((o) => ({
-    id: idDaObra.get(o.id) ?? o.id,
-    dados: {
-      nome: nomeKit(o.nome),
-      status: situacaoKit(o.status),
-      endereco: o.endereco ?? "",
-      dataEntrega: o.data_entrega ?? "",
-      criadoEm: o.criado_em ?? "",
-      obraId: o.id,
-    },
-  }));
+  // o que está preenchido no Cadastro único vale por cima (campo vazio lá mantém o dado de antes)
+  const cad = await cadastrosDoPosobra(supabase);
+  return lo.map((o) => {
+    const c = cad.get(o.id);
+    const k = c ? camposDoCadastro(c) : {};
+    return {
+      id: idDaObra.get(o.id) ?? o.id,
+      dados: {
+        nome: nomeKit(k.name ?? o.nome),
+        status: situacaoKit(k.status ?? o.status),
+        endereco: k.address ?? o.endereco ?? "",
+        dataEntrega: k.deliveryDate ?? o.data_entrega ?? "",
+        criadoEm: o.criado_em ?? "",
+        obraId: o.id,
+        ...(c ? { cadastroId: c.id } : {}),
+      },
+    };
+  });
 }
 
 // grava um empreendimento do Pós-venda na obra correspondente (cria a obra se for novo)

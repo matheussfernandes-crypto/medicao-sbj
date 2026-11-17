@@ -509,6 +509,9 @@ function openSindicoAdminForm(buildingId) {
 
 function openBuildingForm(id) {
   const editing = id ? getBuilding(id) : null;
+  /* obra ligada ao Cadastro único: nome, endereço, status, unidades e entrega são editados lá */
+  const trav = !!(editing && editing.cadastroId);
+  const ro = trav ? ` readonly title="Editar no Cadastro de obras" style="background:var(--bg-soft,#f1f5f7);cursor:not-allowed;"` : "";
   openModal(`
     <div class="modal-header">
       <h2>${editing ? "Editar empreendimento" : "Novo empreendimento"}</h2>
@@ -516,29 +519,30 @@ function openBuildingForm(id) {
     </div>
     <div class="modal-body">
       <form id="building-form">
+        ${trav ? `<div style="margin-bottom:14px;padding:10px 12px;border:1px solid rgba(0,104,122,.3);background:rgba(0,104,122,.06);border-radius:8px;font-size:13px;">Nome, endereço, status, unidades e data de entrega vêm do <strong>Cadastro de obras</strong>. Para alterar, <a href="/admin/cadastro-obras" target="_top">edite no Cadastro de obras</a>.</div>` : ""}
         <div class="form-grid">
           <div class="field full">
             <label>Nome do empreendimento</label>
-            <input type="text" name="name" required value="${editing ? escapeHtml(editing.name) : ""}">
+            <input type="text" name="name" required${ro} value="${editing ? escapeHtml(editing.name) : ""}">
           </div>
           <div class="field full">
             <label>Endereço</label>
-            <input type="text" name="address" value="${editing ? escapeHtml(editing.address || "") : ""}">
+            <input type="text" name="address"${ro} value="${editing ? escapeHtml(editing.address || "") : ""}">
           </div>
           <div class="field">
             <label>Status</label>
-            <select name="status">
+            <select name="status"${trav ? ` disabled title="Editar no Cadastro de obras"` : ""}>
               <option value="concluido" ${editing?.status === "concluido" ? "selected" : ""}>Concluído</option>
               <option value="andamento" ${editing?.status === "andamento" ? "selected" : ""}>Em andamento</option>
             </select>
           </div>
           <div class="field">
             <label>Unidades</label>
-            <input type="number" min="1" name="units" value="${editing ? editing.units || "" : ""}">
+            <input type="number" min="1" name="units"${ro} value="${editing ? editing.units || "" : ""}">
           </div>
           <div class="field">
             <label>Data de entrega</label>
-            <input type="date" name="deliveryDate" value="${editing ? editing.deliveryDate || "" : ""}">
+            <input type="date" name="deliveryDate"${ro} value="${editing ? editing.deliveryDate || "" : ""}">
           </div>
           <div class="field">
             <label>Progresso da obra (%) — se em andamento</label>
@@ -576,6 +580,7 @@ function openBuildingForm(id) {
       progress: Math.max(0, Math.min(100, Number(fd.get("progress")) || 0)),
       possuiManual: fd.get("possuiManual") === "sim" ? true : fd.get("possuiManual") === "nao" ? false : null,
     };
+    if (trav) { ["name", "address", "status", "units", "deliveryDate"].forEach(k => { payload[k] = editing[k]; }); }
     const wasAndamento = editing && editing.status === "andamento";
     if (editing) {
       Object.assign(editing, payload);

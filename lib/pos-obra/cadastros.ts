@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { agoraComFolga, desdeValido, erro, exigirUsuario } from "./server";
+import { cadastrosDoPosobra, sobreporObra } from "@/lib/cadastro/obrasPosobra";
 
 // Obras, clientes e fornecedores do módulo Pós-obra. O registro inteiro do módulo vai em "dados";
 // as colunas soltas são só para consulta. "id" é o mesmo id do módulo (b1, c12, sup3...).
@@ -75,6 +76,22 @@ export function rotaListar(tipo: Tipo) {
         else registros.push({ ...(l.dados || {}), id: l.id });
       });
       if (!data || data.length < 1000) break;
+    }
+    // obras: o que está no Cadastro único vale por cima (e uma mudança no Cadastro também conta como mudança da obra)
+    if (tipo.tabela === "posobra_obras") {
+      const cad = await cadastrosDoPosobra(u.supabase);
+      if (desde) {
+        const ja = new Set([...registros.map((r) => String(r.id)), ...excluidos]);
+        const faltam = Array.from(cad.values())
+          .filter((c) => c.atualizado_em && new Date(c.atualizado_em).getTime() > new Date(desde).getTime() && !ja.has(c.posobra_id))
+          .map((c) => c.posobra_id);
+        if (faltam.length) {
+          const { data, error } = await u.supabase.from("posobra_obras").select("id, dados").in("id", faltam).is("excluido_em", null);
+          if (error) return erro(error.message);
+          (data ?? []).forEach((l: any) => registros.push({ ...(l.dados || {}), id: l.id }));
+        }
+      }
+      return NextResponse.json({ agora, registros: registros.map((r) => sobreporObra(r, cad.get(String(r.id)))), excluidos });
     }
     return NextResponse.json({ agora, registros, excluidos });
   };

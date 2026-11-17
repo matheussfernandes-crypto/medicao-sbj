@@ -46,6 +46,8 @@ const SBJSync = (() => {
   /* um tipo de cadastro: recebe, aplica, envia. Devolve true se mudou algo na tela. */
   async function syncCadastro(ad, c, mem) {
     const m = mem[c.tipo] || (mem[c.tipo] = { desde: null, conhecidos: {} });
+    /* obras agora vêm com os dados do Cadastro único: uma recepção completa, uma vez, para pegar tudo */
+    if (c.tipo === "obras" && m.cad !== 1) { m.desde = null; m.cad = 1; }
     const locais = state[c.chave] || (state[c.chave] = []);
     const primeira = !m.desde;
 

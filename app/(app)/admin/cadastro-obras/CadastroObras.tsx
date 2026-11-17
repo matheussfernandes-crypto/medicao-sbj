@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Copy, Search, X } from "lucide-react";
-import Selecao from "@/components/ui/Selecao";
+import BotaoOrdenar from "@/components/ui/BotaoOrdenar";
 import { BotaoSeta, DataCampo, Paginador, Recolher, useAberto, usePaginas } from "@/components/ui/anima";
 import { marcarEntregue, salvarObra, voltarParaObra, type DadosObra } from "./actions";
 
@@ -63,6 +63,7 @@ function mascaraCep(s: string) {
   if (d.length !== 8) return s.trim();
   return `${d.slice(0, 5)}-${d.slice(5)}`;
 }
+const entregaDe = (o: ObraCadastro) => (o.fase === "entregue" ? o.data_entrega_real : o.data_entrega_prevista) ?? o.data_entrega_real ?? o.data_entrega_prevista;
 const norm = (s: string) =>
   s
     .normalize("NFD")
@@ -81,18 +82,27 @@ function Fase({ fase }: { fase: ObraCadastro["fase"] }) {
 export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; erro: string | null }) {
   const [abertaId, setAbertaId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
-  const [fase, setFase] = useState("");
+  const [ordem, setOrdem] = useState<"nome" | "entrega">("nome");
   const aberta = obras.find((o) => o.id === abertaId) ?? null;
 
   const lista = useMemo(() => {
     const q = norm(busca.trim());
-    return obras.filter(
-      (o) =>
-        (!fase || (fase === "sem" ? !o.fase : o.fase === fase)) &&
-        (!q || norm([o.nome, o.nome_completo, ...(o.nomes_alternativos ?? []), o.endereco, o.cidade, o.cnpj, o.cno].join(" ")).includes(q))
+    const achadas = obras.filter(
+      (o) => !q || norm([o.nome, o.nome_completo, ...(o.nomes_alternativos ?? []), o.endereco, o.cidade, o.cnpj, o.cno].join(" ")).includes(q)
     );
-  }, [obras, busca, fase]);
-  const pg = usePaginas(lista, 15, busca + "|" + fase);
+    const porNome = (a: ObraCadastro, b: ObraCadastro) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
+    if (ordem === "nome") return achadas.sort(porNome);
+    // ordem de entrega: entregues pela data real, em construção pela prevista; sem data vão para o fim
+    return achadas.sort((a, b) => {
+      const da = entregaDe(a);
+      const db = entregaDe(b);
+      if (da && db) return da < db ? -1 : da > db ? 1 : porNome(a, b);
+      if (da) return -1;
+      if (db) return 1;
+      return porNome(a, b);
+    });
+  }, [obras, busca, ordem]);
+  const pg = usePaginas(lista, 15, busca + "|" + ordem);
 
   if (aberta) return <EditorObra key={aberta.id + (aberta.atualizado_em ?? "")} obra={aberta} voltar={() => setAbertaId(null)} />;
 
@@ -109,12 +119,14 @@ export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; 
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
           <input className={inp + " pl-9"} placeholder="Buscar por nome, endereço, CNPJ ou CNO…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
-        <Selecao value={fase} onChange={(e) => setFase(e.target.value)} className="min-w-[200px]">
-          <option value="">Todas as fases</option>
-          <option value="obra">Em construção</option>
-          <option value="entregue">Entregues</option>
-          <option value="sem">Sem fase</option>
-        </Selecao>
+        <BotaoOrdenar
+          valor={ordem}
+          onChange={setOrdem}
+          opcoes={[
+            { valor: "nome", rotulo: "Ordem alfabética" },
+            { valor: "entrega", rotulo: "Ordem de entrega" },
+          ]}
+        />
         <span className="text-sm text-ink-500">{lista.length === obras.length ? `${obras.length} obras` : `${lista.length} de ${obras.length} obras`}</span>
       </div>
 
@@ -146,7 +158,7 @@ export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; 
                 <td className="px-3 py-3 tabular-nums text-ink-700">{o.cnpj || <span className="text-ink-400">—</span>}</td>
                 <td className="px-3 py-3 tabular-nums text-ink-700">{o.cno || <span className="text-ink-400">—</span>}</td>
                 <td className="px-3 py-3 text-right tabular-nums">{o.unidades ?? "—"}</td>
-                <td className="px-3 py-3 tabular-nums text-ink-700">{fmtData(o.fase === "entregue" ? o.data_entrega_real : o.data_entrega_prevista)}</td>
+                <td className="px-3 py-3 tabular-nums text-ink-700">{fmtData(entregaDe(o))}</td>
                 <td className="px-3 py-3 text-right">
                   <span className="text-sm font-semibold text-primary">Abrir</span>
                 </td>
@@ -185,13 +197,13 @@ function Bloco({ id, titulo, children, extra }: { id: string; titulo: string; ch
   return (
     <div className="card">
       <div className="flex items-center justify-between gap-3">
-        <button type="button" onClick={alternar} className="text-left font-semibold text-ink-900">
-          {titulo}
-        </button>
         <div className="flex items-center gap-2">
-          {extra}
+          <button type="button" onClick={alternar} className="text-left font-semibold text-ink-900">
+            {titulo}
+          </button>
           <BotaoSeta aberto={aberto} onClick={alternar} />
         </div>
+        {extra && <div className="flex items-center gap-2">{extra}</div>}
       </div>
       <Recolher aberto={aberto}>
         <div className="pt-4">{children}</div>
@@ -211,9 +223,9 @@ function Campo({ rotulo, children, className = "" }: { rotulo: string; children:
 
 const CAMPOS_ZAP = [
   ["nome", "Nome"],
-  ["endereco", "Endereço"],
-  ["cnpj", "CNPJ"],
   ["cno", "CNO"],
+  ["cnpj", "CNPJ"],
+  ["endereco", "Endereço e CEP"],
   ["razao", "Razão social"],
 ] as const;
 type CampoZap = (typeof CAMPOS_ZAP)[number][0];
@@ -291,13 +303,15 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
     });
   }
 
-  const enderecoCompleto = [d.endereco, d.bairro, [d.cidade, d.uf].filter(Boolean).join("/"), d.cep ? "CEP " + d.cep : ""].filter(Boolean).join(" - ");
+  // modelo usado no WhatsApp: nome, CNO, CNPJ, endereço (rua; bairro - cidade/UF) e CEP, com a indicação em negrito
+  const local = [d.bairro, [d.cidade, d.uf].filter(Boolean).join("/")].filter(Boolean).join(" - ");
   const textoZap = [
-    zapCampos.has("nome") && `*OBRA:* ${d.nome}`,
-    zapCampos.has("endereco") && `*ENDEREÇO:* ${enderecoCompleto || "—"}`,
-    zapCampos.has("cnpj") && `*CNPJ:* ${d.cnpj || "—"}`,
+    zapCampos.has("nome") && `*${d.nome}*`,
+    zapCampos.has("razao") && `*Razão social:* ${d.razao_social || "—"}`,
     zapCampos.has("cno") && `*CNO:* ${d.cno || "—"}`,
-    zapCampos.has("razao") && `*RAZÃO SOCIAL:* ${d.razao_social || "—"}`,
+    zapCampos.has("cnpj") && `*CNPJ:* ${d.cnpj || "—"}`,
+    zapCampos.has("endereco") && [`*Endereço:* ${d.endereco || "—"}`, local].filter(Boolean).join("\n"),
+    zapCampos.has("endereco") && d.cep && `*CEP:* ${d.cep}`,
   ]
     .filter(Boolean)
     .join("\n");

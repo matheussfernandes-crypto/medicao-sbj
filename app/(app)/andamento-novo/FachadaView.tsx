@@ -3,7 +3,8 @@
 import Selecao from "@/components/ui/Selecao";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, Minus, Plus, X } from "lucide-react";
+import { Minus, Plus, X } from "lucide-react";
+import { Seta } from "@/components/ui/anima";
 import * as acoes from "./acoesAndamento";
 import Grade, { type LinhaGrade } from "./Grade";
 import Predio3D, { NOME_FACE, NOME_PARTE, type Destaque, type Face, type Parte } from "./Predio3D";
@@ -152,9 +153,11 @@ export default function FachadaView(p: Props) {
       <div className="grid xl:grid-cols-[1fr_340px] gap-4 items-start">
         <div className="space-y-3 min-w-0">
           <div className="card">
-            <button className="flex items-center gap-2 w-full text-left" onClick={() => setAbre3d((v) => !v)}>
-              {abre3d ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            <button className="group flex items-center gap-2 w-full text-left" onClick={() => setAbre3d((v) => !v)} aria-expanded={abre3d}>
               <h2 className="font-semibold text-primaryDark">Prédio em 3D</h2>
+              <span className="sbj-seta-btn group-hover:bg-primary/10 group-hover:text-primary">
+                <Seta aberto={abre3d} />
+              </span>
               <span className="text-xs text-ink-500">{fmtPct(pct(p.soma))}% da fachada</span>
             </button>
             {abre3d && modoLista && (
@@ -241,9 +244,11 @@ export default function FachadaView(p: Props) {
           </div>
 
           <div className="card">
-            <button className="flex items-center gap-2 w-full text-left" onClick={() => setAbreFluxo((v) => !v)}>
-              {abreFluxo ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            <button className="group flex items-center gap-2 w-full text-left" onClick={() => setAbreFluxo((v) => !v)} aria-expanded={abreFluxo}>
               <h2 className="font-semibold text-primaryDark">Fluxograma das descidas</h2>
+              <span className="sbj-seta-btn group-hover:bg-primary/10 group-hover:text-primary">
+                <Seta aberto={abreFluxo} />
+              </span>
               <span className="text-xs text-ink-500">{itensServ.length} trechos de {serv?.nome}</span>
             </button>
             {abreFluxo && (

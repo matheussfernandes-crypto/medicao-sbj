@@ -13,7 +13,7 @@ export default async function CadastroObrasPage() {
   const { data, error } = await supabase
     .from("cadastro_obras")
     .select(
-      "id, nome, nome_completo, nomes_alternativos, fase, cnpj, cno, razao_social, endereco, bairro, cidade, uf, cep, data_inicio, data_entrega_prevista, data_entrega_real, torres, pavimentos, unidades, responsavel_tecnico, aparece_medicao, aparece_andamento, aparece_vistorias, aparece_posvenda, obra_id, andamento_obra_id, posobra_id, posvenda_emp_id, observacoes, atualizado_em"
+      "id, nome, nome_completo, nomes_alternativos, fase, cnpj, cno, razao_social, endereco, bairro, cidade, uf, cep, data_inicio, data_entrega_prevista, data_entrega_real, torres, pavimentos, unidades, responsavel_tecnico, logo_url, aparece_medicao, aparece_andamento, aparece_vistorias, aparece_posvenda, obra_id, andamento_obra_id, posobra_id, posvenda_emp_id, observacoes, atualizado_em"
     )
     .order("nome");
 

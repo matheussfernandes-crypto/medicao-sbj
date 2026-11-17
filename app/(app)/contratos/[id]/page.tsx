@@ -438,7 +438,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
       {/* Editar dados (ADM) */}
       {ehAdmin && (
         <details className="card">
-          <summary className="font-semibold text-primaryDark cursor-pointer">Editar dados do contrato</summary>
+          <summary className="sbj-sum font-semibold text-primaryDark">Editar dados do contrato</summary>
           <FormAcao action={editarContrato} reset={false} className="grid sm:grid-cols-2 gap-3 mt-4 text-xs">
             <input type="hidden" name="id" value={c.id} />
             <label className="flex flex-col gap-1">Número<input name="numero" defaultValue={c.numero} required className="border rounded px-3 py-2 text-sm" /></label>

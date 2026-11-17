@@ -3,7 +3,7 @@
 import Selecao from "@/components/ui/Selecao";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, ChevronUp, Copy, GripVertical, Lock, LockOpen, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, GripVertical, Lock, LockOpen, Pencil, Plus, Trash2, X } from "lucide-react";
 import * as acoes from "./actions";
 import { DataCampo, Recolher, Seta } from "@/components/ui/anima";
 import PainelModelo from "./PainelModelo";
@@ -74,10 +74,10 @@ function Secao({
     <div className="card">
       <div className="flex items-center gap-2">
         <button type="button" onClick={onAlternar} aria-expanded={aberta} className="group flex items-center gap-2 flex-1 text-left min-w-0">
-          <span className="sbj-seta-btn -ml-1.5 group-hover:bg-primary/10 group-hover:text-primary">
+          <h2 className="font-semibold text-primaryDark">{titulo}</h2>
+          <span className="sbj-seta-btn group-hover:bg-primary/10 group-hover:text-primary">
             <Seta aberto={aberta} />
           </span>
-          <h2 className="font-semibold text-primaryDark">{titulo}</h2>
           <span className={`text-xs text-ink-500 truncate transition-opacity duration-300 ${!aberta && resumo ? "opacity-100" : "opacity-0"}`}>{resumo}</span>
         </button>
         {aberta && acoes && <span className="sbj-entra">{acoes}</span>}
@@ -113,11 +113,11 @@ function GrupoFatia({
     <div className={`rounded-xl border border-border overflow-hidden transition-shadow ${aberto ? "shadow-sm" : ""} ${leve ? "" : "bg-white"}`}>
       <div className={`flex items-center gap-2 px-2.5 py-2 ${leve ? "" : "bg-surface-subtle"}`}>
         <button type="button" onClick={onAlternar} aria-expanded={aberto} className="group flex items-center gap-1.5 flex-1 min-w-0 text-left">
+          {cor && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cor }} />}
+          <span className={`font-semibold truncate ${leve ? "text-xs text-ink-700" : "text-sm text-primaryDark"}`}>{titulo}</span>
           <span className="sbj-seta-btn w-7 h-7 group-hover:bg-primary/10 group-hover:text-primary">
             <Seta aberto={aberto} />
           </span>
-          {cor && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cor }} />}
-          <span className={`font-semibold truncate ${leve ? "text-xs text-ink-700" : "text-sm text-primaryDark"}`}>{titulo}</span>
           {detalhe && <span className="text-[11px] text-ink-500 whitespace-nowrap">{detalhe}</span>}
         </button>
         {parte != null && (
@@ -567,8 +567,8 @@ function MatrizCard(props: {
                       className={`sticky left-0 px-3 py-1.5 border-b border-border font-semibold text-primaryDark cursor-pointer ${sobre === "g:" + grupo ? "bg-accent/50" : "bg-surface-subtle"}`}
                       onClick={() => setFechados((f) => { const n = new Set(f); n.has(grupo) ? n.delete(grupo) : n.add(grupo); return n; })}
                     >
-                      {fechado ? <ChevronRight className="w-3.5 h-3.5 inline mr-1" /> : <ChevronDown className="w-3.5 h-3.5 inline mr-1" />}
                       {grupo} <span className="text-ink-400 font-normal">({lista.length})</span>
+                      <Seta aberto={!fechado} className="inline ml-1 align-[-3px] text-ink-500" />
                     </td>
                   </tr>
                   {!fechado &&
@@ -722,8 +722,8 @@ function MatrizCard(props: {
 
       {editando && (
         <div className="mt-3 border border-border rounded-lg p-3">
-          <button className="text-sm font-medium text-primaryDark flex items-center gap-1" onClick={() => setFasesAbertas((v) => !v)}>
-            {fasesAbertas ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />} Fases do relatório
+          <button className="text-sm font-medium text-primaryDark flex items-center gap-1.5" onClick={() => setFasesAbertas((v) => !v)} aria-expanded={fasesAbertas}>
+            Fases do relatório <Seta aberto={fasesAbertas} className="text-ink-500" />
           </button>
           {fasesAbertas && (
             <div className="mt-2 flex flex-wrap gap-2 items-center">
@@ -1144,15 +1144,6 @@ function EstruturaCard(props: {
           return (
             <div key={g.id} className="py-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setAbertos((m) => new Map(m).set(g.id, !filhosAbertos))}
-                  aria-expanded={filhosAbertos}
-                  title={filhosAbertos ? `Recolher ${pav ? "os locais" : "os itens"}` : `Mostrar ${pav ? "os locais" : "os itens"}`}
-                  className="sbj-seta-btn w-7 h-7 -ml-1"
-                >
-                  <Seta aberto={filhosAbertos} />
-                </button>
                 {editando && pav && (
                   <span className="flex">
                     <button disabled={i === 0 || ocupado} onClick={() => exec(() => acoes.moverPavimento(g.id, -1))} title="Subir">
@@ -1170,8 +1161,19 @@ function EstruturaCard(props: {
                     className="font-semibold text-sm w-44"
                   />
                 ) : (
-                  <span className="font-semibold text-sm w-44">{g.nome}</span>
+                  <button type="button" onClick={() => setAbertos((m) => new Map(m).set(g.id, !filhosAbertos))} className="font-semibold text-sm text-left">
+                    {g.nome}
+                  </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setAbertos((m) => new Map(m).set(g.id, !filhosAbertos))}
+                  aria-expanded={filhosAbertos}
+                  title={filhosAbertos ? `Recolher ${pav ? "os locais" : "os itens"}` : `Mostrar ${pav ? "os locais" : "os itens"}`}
+                  className="sbj-seta-btn w-7 h-7"
+                >
+                  <Seta aberto={filhosAbertos} />
+                </button>
                 {g.pct != null && <span className="text-xs tabular-nums text-primaryDark bg-primary/10 rounded-full px-2 py-0.5">{fmt(g.pct)}%</span>}
                 <span className="text-[11px] text-ink-500">
                   {g.filhos.length} {pav ? (g.filhos.length === 1 ? "local" : "locais") : g.fachada ? (g.filhos.length === 1 ? "item gerado pelas descidas" : "itens gerados pelas descidas") : g.filhos.length === 1 ? "item" : "itens"}

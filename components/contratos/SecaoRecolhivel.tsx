@@ -41,11 +41,17 @@ export default function SecaoRecolhivel({
   return (
     <section className="card">
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={alternar} aria-expanded={!fechado} aria-label={fechado ? "Mostrar" : "Recolher"} title={fechado ? "Mostrar" : "Recolher"} className="sbj-seta-btn -ml-1.5">
-          <Seta aberto={!fechado} />
-        </button>
         <div className="min-w-0">
-          <h2 className="font-semibold text-primaryDark">{titulo}</h2>
+          <div className="flex items-center gap-1.5">
+            <h2 className="font-semibold text-primaryDark">
+              <button type="button" onClick={alternar} className="text-left">
+                {titulo}
+              </button>
+            </h2>
+            <button type="button" onClick={alternar} aria-expanded={!fechado} aria-label={fechado ? "Mostrar" : "Recolher"} title={fechado ? "Mostrar" : "Recolher"} className="sbj-seta-btn">
+              <Seta aberto={!fechado} />
+            </button>
+          </div>
           {subtitulo && <p className="text-xs text-ink-500">{subtitulo}</p>}
         </div>
         {!fechado && acoes && <div className="flex flex-wrap items-center gap-3 ml-auto sbj-entra">{acoes}</div>}

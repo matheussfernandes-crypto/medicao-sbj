@@ -125,3 +125,40 @@ export async function voltarParaObra(id: string): Promise<Resultado> {
     return { ok: false, erro: e instanceof Error ? e.message : "Erro ao salvar." };
   }
 }
+
+// Logo da obra: o arquivo vai para o espaço "obras-logos" (enviado pela tela); aqui só se guarda o endereço.
+// Trocar ou tirar a logo não apaga o arquivo antigo (nada se perde).
+export async function salvarLogo(id: string, url: string | null): Promise<Resultado> {
+  try {
+    const { supabase, userId } = await exigirAdmin();
+    if (url && !/^https:\/\/[^\s]+\/storage\/v1\/object\/public\/obras-logos\//.test(url)) return { ok: false, erro: "Endereço da logo inválido." };
+    const { error } = await supabase
+      .from("cadastro_obras")
+      .update({ logo_url: url, atualizado_em: new Date().toISOString(), atualizado_por: userId })
+      .eq("id", id);
+    if (error) return { ok: false, erro: "Não consegui salvar a logo: " + error.message };
+    revalidatePath("/admin/cadastro-obras");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, erro: e instanceof Error ? e.message : "Erro ao salvar." };
+  }
+}
+
+// "Aparece em": por enquanto só fica guardado; cada módulo passa a respeitar quando for ligado ao cadastro.
+const CAMPOS_APARECE = ["aparece_medicao", "aparece_andamento", "aparece_vistorias", "aparece_posvenda"] as const;
+export type CampoAparece = (typeof CAMPOS_APARECE)[number];
+export async function salvarAparece(id: string, campo: CampoAparece, valor: boolean): Promise<Resultado> {
+  try {
+    const { supabase, userId } = await exigirAdmin();
+    if (!CAMPOS_APARECE.includes(campo)) return { ok: false, erro: "Campo inválido." };
+    const { error } = await supabase
+      .from("cadastro_obras")
+      .update({ [campo]: !!valor, atualizado_em: new Date().toISOString(), atualizado_por: userId })
+      .eq("id", id);
+    if (error) return { ok: false, erro: "Não consegui salvar: " + error.message };
+    revalidatePath("/admin/cadastro-obras");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, erro: e instanceof Error ? e.message : "Erro ao salvar." };
+  }
+}

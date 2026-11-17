@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { Seta } from "@/components/ui/anima";
 import { ITENS, MODULOS, ehGestorAcessos, itensLiberados } from "@/lib/acessos/modulos";
 import { salvarAcessos } from "./actions";
 
@@ -66,13 +67,15 @@ export default function ListaAcessos({ pessoas }: { pessoas: Pessoa[] }) {
               className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left"
             >
               <div className="min-w-0">
-                <p className="font-semibold text-ink-900 truncate">{p.nome_completo ?? p.email}</p>
+                <p className="flex items-center gap-1.5 font-semibold text-ink-900">
+                  <span className="truncate">{p.nome_completo ?? p.email}</span>
+                  <Seta aberto={aberta} className="text-ink-500" />
+                </p>
                 <p className="text-xs text-ink-500">
                   {SETOR_LABEL[p.setor ?? ""] ?? p.setor}
                   {protegido ? " · conta protegida" : ""}
                 </p>
               </div>
-              <ChevronDown className={"w-5 h-5 text-ink-500 shrink-0 transition-transform duration-300 " + (aberta ? "rotate-180" : "")} />
             </button>
 
             <div className={"grid transition-[grid-template-rows,opacity] duration-300 ease-out " + (aberta ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>

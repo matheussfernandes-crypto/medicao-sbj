@@ -112,3 +112,9 @@ html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):
 html.dark input::placeholder, html.dark textarea::placeholder { color: #6f8488; }
 /* espaço entre o título da página e o texto de apoio */
 .sbj-sub { margin-top: -0.5rem; }
+
+/* <details> no padrão do site: texto e, logo depois, a seta que gira (para baixo aberta, para a direita fechada) */
+summary.sbj-sum { list-style: none; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+summary.sbj-sum::-webkit-details-marker { display: none; }
+summary.sbj-sum::after { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; opacity: .7; transform: rotate(-45deg); transition: transform .3s cubic-bezier(.22,1,.36,1); }
+details[open] > summary.sbj-sum::after { transform: rotate(45deg) translate(-2px, -2px); }

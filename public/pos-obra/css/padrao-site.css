@@ -141,3 +141,14 @@ html[data-tema="dark"] .vt-trilho { background: #22313A; }
   .vt-resolver { min-height: 34px; font-size: 13px; padding: 0 12px; }
   .vt-row .vt-cam, .vt-row .vt-rem { width: 34px; height: 34px; }
 }
+
+/* Recolhimentos no padrão do site: o texto e, logo depois, a seta que gira (para baixo aberta, para a direita fechada).
+   Blocos dos chamados (mod-summary): a seta sai do canto e vai para junto do título; o resumo fica à direita. */
+.mod-summary .mod-summary-title { order: 1; margin-right: 0; }
+.mod-summary::after { order: 2; margin-right: auto; transform: rotate(-45deg); transition: transform .3s cubic-bezier(.22,1,.36,1); }
+details.mod-details[open] > .mod-summary::after { transform: rotate(45deg) translate(-2px, -2px); }
+.mod-summary .mod-summary-resumo { order: 3; }
+details:not(.mod-details):not(.vt-mais) > summary { list-style: none; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+details:not(.mod-details):not(.vt-mais) > summary::-webkit-details-marker { display: none; }
+details:not(.mod-details):not(.vt-mais) > summary::after { content: ""; width: 6px; height: 6px; flex-shrink: 0; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; opacity: .7; transform: rotate(-45deg); transition: transform .3s cubic-bezier(.22,1,.36,1); }
+details:not(.mod-details):not(.vt-mais)[open] > summary::after { transform: rotate(45deg) translate(-2px, -2px); }

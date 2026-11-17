@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Copy, Search, X } from "lucide-react";
+import { ArrowLeft, Copy, ImagePlus, Search, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import BotaoOrdenar from "@/components/ui/BotaoOrdenar";
 import { BotaoSeta, DataCampo, Paginador, Recolher, useAberto, usePaginas } from "@/components/ui/anima";
-import { marcarEntregue, salvarObra, voltarParaObra, type DadosObra } from "./actions";
+import { marcarEntregue, salvarAparece, salvarLogo, salvarObra, voltarParaObra, type CampoAparece, type DadosObra } from "./actions";
 
 export type ObraCadastro = {
   id: string;
@@ -28,6 +29,7 @@ export type ObraCadastro = {
   pavimentos: number | null;
   unidades: number | null;
   responsavel_tecnico: string | null;
+  logo_url: string | null;
   aparece_medicao: boolean;
   aparece_andamento: boolean;
   aparece_vistorias: boolean;
@@ -148,8 +150,18 @@ export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; 
             {pg.itens.map((o) => (
               <tr key={o.id} onClick={() => setAbertaId(o.id)} className="cursor-pointer border-b border-[#E8EEF0] last:border-0 hover:bg-[#F4F8F9]">
                 <td className="px-4 py-3">
-                  <div className="font-semibold text-ink-900">{o.nome}</div>
-                  {o.nome_completo && <div className="text-xs text-ink-500">{o.nome_completo}</div>}
+                  <div className="flex items-center gap-3">
+                    {o.logo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={o.logo_url} alt="" className="h-8 w-8 shrink-0 rounded-[8px] border border-[#E8EEF0] bg-white object-contain" />
+                    ) : (
+                      <span className="h-8 w-8 shrink-0 rounded-[8px] border border-dashed border-border" />
+                    )}
+                    <div className="min-w-0">
+                      <div className="font-semibold text-ink-900">{o.nome}</div>
+                      {o.nome_completo && <div className="text-xs text-ink-500">{o.nome_completo}</div>}
+                    </div>
+                  </div>
                 </td>
                 <td className="px-3 py-3">
                   <Fase fase={o.fase} />
@@ -218,6 +230,85 @@ function Campo({ rotulo, children, className = "" }: { rotulo: string; children:
       <span className="mb-1 block text-xs font-semibold text-ink-500">{rotulo}</span>
       {children}
     </label>
+  );
+}
+
+// chave liga/desliga
+function Chave({ ligada, onChange, disabled, rotulo }: { ligada: boolean; onChange: (v: boolean) => void; disabled?: boolean; rotulo: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={ligada}
+      aria-label={rotulo}
+      title={ligada ? "Aparece" : "Não aparece"}
+      disabled={disabled}
+      onClick={() => onChange(!ligada)}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 disabled:opacity-60 ${ligada ? "bg-primary" : "bg-[#C9D6DA]"}`}
+    >
+      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] duration-200 ${ligada ? "left-[22px]" : "left-0.5"}`} />
+    </button>
+  );
+}
+
+// logo da obra: envia a imagem para o espaço "obras-logos" e guarda o endereço no cadastro
+function LogoObra({ obra, aviso }: { obra: ObraCadastro; aviso: (m: { tipo: "ok" | "erro"; texto: string } | null) => void }) {
+  const router = useRouter();
+  const arq = useRef<HTMLInputElement>(null);
+  const [enviando, setEnviando] = useState(false);
+  async function enviar(f: File) {
+    if (!/^image\/(png|jpeg|webp|svg\+xml)$/.test(f.type)) return aviso({ tipo: "erro", texto: "A logo precisa ser PNG, JPG, WEBP ou SVG." });
+    if (f.size > 2 * 1024 * 1024) return aviso({ tipo: "erro", texto: "A logo pode ter no máximo 2 MB." });
+    setEnviando(true);
+    try {
+      const ext = (f.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const caminho = `${obra.id}/${Date.now()}.${ext}`;
+      const sb = createClient();
+      const { error } = await sb.storage.from("obras-logos").upload(caminho, f, { contentType: f.type, upsert: false });
+      if (error) return aviso({ tipo: "erro", texto: "Não consegui enviar a logo: " + error.message });
+      const url = sb.storage.from("obras-logos").getPublicUrl(caminho).data.publicUrl;
+      const r = await salvarLogo(obra.id, url);
+      if (!r.ok) return aviso({ tipo: "erro", texto: r.erro });
+      aviso({ tipo: "ok", texto: "Logo salva." });
+      router.refresh();
+    } finally {
+      setEnviando(false);
+      if (arq.current) arq.current.value = "";
+    }
+  }
+  async function tirar() {
+    if (!confirm("Tirar a logo desta obra? (o arquivo continua guardado)")) return;
+    const r = await salvarLogo(obra.id, null);
+    if (!r.ok) return aviso({ tipo: "erro", texto: r.erro });
+    router.refresh();
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => arq.current?.click()}
+        disabled={enviando}
+        title={obra.logo_url ? "Trocar logo" : "Enviar logo"}
+        className="flex h-[74px] w-[74px] items-center justify-center overflow-hidden rounded-[12px] border border-dashed border-border bg-white text-ink-400 transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+      >
+        {enviando ? (
+          <span className="text-xs">Enviando…</span>
+        ) : obra.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={obra.logo_url} alt={"Logo " + obra.nome} className="h-full w-full object-contain p-1.5" />
+        ) : (
+          <span className="flex flex-col items-center gap-1 text-[11px]">
+            <ImagePlus className="h-5 w-5" /> enviar logo
+          </span>
+        )}
+      </button>
+      {obra.logo_url && !enviando && (
+        <button type="button" onClick={tirar} className="text-xs font-semibold text-ink-500 hover:text-[#B3261E]">
+          Tirar
+        </button>
+      )}
+      <input ref={arq} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="hidden" onChange={(e) => e.target.files?.[0] && enviar(e.target.files[0])} />
+    </div>
   );
 }
 
@@ -290,6 +381,13 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
         setMsg({ tipo: "ok", texto: "Obra marcada como entregue." });
         router.refresh();
       } else setMsg({ tipo: "erro", texto: r.erro });
+    });
+  }
+  function aparece(campo: CampoAparece, valor: boolean) {
+    iniciar(async () => {
+      const r = await salvarAparece(obra.id, campo, valor);
+      if (r.ok) router.refresh();
+      else setMsg({ tipo: "erro", texto: r.erro });
     });
   }
   function voltarObra() {
@@ -406,12 +504,15 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
         {aba === "gerais" && (
           <>
             <Bloco id="identificacao" titulo="Identificação">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto]">
                 <Campo rotulo="Nome da obra *">
                   <input className={inp} {...t("nome")} />
                 </Campo>
                 <Campo rotulo="Nome completo (documentos e relatórios)">
                   <input className={inp} {...t("nome_completo")} placeholder="Residencial Ilha de …" />
+                </Campo>
+                <Campo rotulo="Logo da obra">
+                  <LogoObra obra={obra} aviso={setMsg} />
                 </Campo>
               </div>
             </Bloco>
@@ -565,22 +666,21 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
             <Bloco id="ligacoes" titulo="Ligações com os módulos">
               <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                 {[
-                  ["Medição, Fechamento, Contratos e RH", obra.obra_id, obra.aparece_medicao],
-                  ["Andamento de obra", obra.andamento_obra_id, obra.aparece_andamento],
-                  ["Vistorias e Controle de entregas", obra.posobra_id, obra.aparece_vistorias],
-                  ["Pós-venda (chamados e clientes)", obra.posvenda_emp_id, obra.aparece_posvenda],
-                ].map(([rot, lig, ap]) => (
-                  <div key={rot as string} className="flex items-center justify-between rounded-[10px] border border-[#E8EEF0] px-3 py-2">
-                    <span>{rot as string}</span>
-                    {lig ? (
-                      <span className={`text-xs font-semibold ${ap ? "text-[#1D6B3D]" : "text-ink-500"}`}>{ap ? "Ligada" : "Ligada (arquivada)"}</span>
-                    ) : (
-                      <span className="text-xs text-ink-400">Não existe lá</span>
-                    )}
+                  ["Medição, Fechamento, Contratos e RH", obra.obra_id, obra.aparece_medicao, "aparece_medicao"],
+                  ["Andamento de obra", obra.andamento_obra_id, obra.aparece_andamento, "aparece_andamento"],
+                  ["Vistorias e Controle de entregas", obra.posobra_id, obra.aparece_vistorias, "aparece_vistorias"],
+                  ["Pós-venda (chamados e clientes)", obra.posvenda_emp_id, obra.aparece_posvenda, "aparece_posvenda"],
+                ].map(([rot, lig, ap, campo]) => (
+                  <div key={rot as string} className="flex items-center justify-between gap-3 rounded-[10px] border border-[#E8EEF0] px-3 py-2">
+                    <div className="min-w-0">
+                      <div>{rot as string}</div>
+                      <div className={`text-xs ${lig ? "text-[#1D6B3D]" : "text-ink-400"}`}>{lig ? "Ligada a esta obra" : "Não existe lá"}</div>
+                    </div>
+                    <Chave ligada={!!ap} onChange={(v) => aparece(campo as CampoAparece, v)} disabled={salvando} rotulo={"Aparece em " + rot} />
                   </div>
                 ))}
               </div>
-              <p className="mt-3 text-xs text-ink-500">Só para consulta nesta etapa. Os módulos passam a ler o cadastro um de cada vez, com sua aprovação.</p>
+              <p className="mt-3 text-xs text-ink-500">“Aparece em” fica guardado aqui; cada módulo passa a respeitar quando for ligado ao cadastro, um de cada vez, com sua aprovação.</p>
             </Bloco>
           </>
         )}

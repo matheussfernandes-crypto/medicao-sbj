@@ -146,7 +146,7 @@ export default async function ObrasPage({
 
             {log && log.length > 0 && (
               <details className="mt-4">
-                <summary className="text-sm font-semibold text-primaryDark cursor-pointer">
+                <summary className="sbj-sum text-sm font-semibold text-primaryDark">
                   ▶ Histórico de alterações de % de retenção ({log.length})
                 </summary>
                 <TabelaPaginada por={15} className="w-full text-xs mt-2" cabecalho={
@@ -274,7 +274,7 @@ export default async function ObrasPage({
 
             {/* Formulário vincular / editar */}
             <details open={!!vinculoEditando}>
-              <summary className="text-sm font-semibold text-primaryDark cursor-pointer mb-3">
+              <summary className="sbj-sum text-sm font-semibold text-primaryDark mb-3">
                 {vinculoEditando ? `Editar vínculo` : "Vincular empresa à obra"}
               </summary>
               <form

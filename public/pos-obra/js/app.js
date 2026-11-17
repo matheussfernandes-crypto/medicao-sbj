@@ -509,6 +509,10 @@ function openSindicoAdminForm(buildingId) {
 
 function openBuildingForm(id) {
   const editing = id ? getBuilding(id) : null;
+  /* obra nova: o cadastro é no Cadastro de obras do site (dentro do site; fora dele, offline, continua o formulário antigo) */
+  if (!editing && window.top !== window.self) {
+    try { window.top.location.href = "/admin/cadastro-obras"; return; } catch (e) { /* segue com o formulário */ }
+  }
   /* obra ligada ao Cadastro único: nome, endereço, status, unidades e entrega são editados lá */
   const trav = !!(editing && editing.cadastroId);
   const ro = trav ? ` readonly title="Editar no Cadastro de obras" style="background:var(--bg-soft,#f1f5f7);cursor:not-allowed;"` : "";
@@ -560,7 +564,7 @@ function openBuildingForm(id) {
       </form>
     </div>
     <div class="modal-footer">
-      ${editing ? `<button class="btn danger" id="btn-delete-building" style="margin-right:auto;">Excluir</button>` : ""}
+      ${editing && !trav ? `<button class="btn danger" id="btn-delete-building" style="margin-right:auto;">Excluir</button>` : ""}
       <button class="btn ghost" data-close>Cancelar</button>
       <button class="btn primary" id="btn-save-building">Salvar</button>
     </div>

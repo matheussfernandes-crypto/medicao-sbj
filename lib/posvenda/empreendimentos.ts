@@ -66,7 +66,7 @@ export async function listarEmpreendimentos(supabase: any) {
   for (const l of lista) if (l.dados?.obraId) idDaObra.set(l.dados.obraId, l.id);
   // o que está preenchido no Cadastro único vale por cima (campo vazio lá mantém o dado de antes)
   const cad = await cadastrosDoPosobra(supabase);
-  return lo.map((o) => {
+  return lo.filter((o) => cad.get(o.id)?.aparece_posvenda !== false).map((o) => {
     const c = cad.get(o.id);
     const k = c ? camposDoCadastro(c) : {};
     return {

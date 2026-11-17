@@ -2,11 +2,11 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Copy, ImagePlus, Search, X } from "lucide-react";
+import { ArrowLeft, Copy, ImagePlus, Plus, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import FiltroColuna, { contarValores, type Direcao } from "@/components/ui/FiltroColuna";
 import { BotaoSeta, DataCampo, Paginador, Recolher, useAberto, usePaginas } from "@/components/ui/anima";
-import { marcarEntregue, salvarAparece, salvarLogo, salvarObra, voltarParaObra, type CampoAparece, type DadosObra } from "./actions";
+import { criarObra, marcarEntregue, salvarAparece, salvarLogo, salvarObra, voltarParaObra, type CampoAparece, type DadosObra } from "./actions";
 
 export type ObraCadastro = {
   id: string;
@@ -105,6 +105,7 @@ function Fase({ fase }: { fase: ObraCadastro["fase"] }) {
 
 export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; erro: string | null }) {
   const [abertaId, setAbertaId] = useState<string | null>(null);
+  const [nova, setNova] = useState(false);
   const [busca, setBusca] = useState("");
   const [filtros, setFiltros] = useState<Partial<Record<ColunaObra, string[]>>>({});
   const [ordem, setOrdem] = useState<{ k: ColunaObra; d: Direcao } | null>(null);
@@ -166,7 +167,7 @@ export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; 
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-semibold text-primaryDark">Cadastro de obras</h1>
-        <p className="text-sm text-ink-500">Um cadastro só para todas as obras. Nesta etapa os módulos ainda não leem daqui: nada muda na Medição, no Andamento ou no Pós-venda.</p>
+        <p className="text-sm text-ink-500">Um cadastro só para todas as obras. Vistorias e Pós-venda já leem daqui; cadastre as obras novas por aqui.</p>
       </div>
       {erro && <div className="rounded-[10px] border border-[#F1C4BF] bg-[#FDECEA] px-3 py-2 text-sm text-[#B3261E]">Não consegui carregar as obras: {erro}</div>}
 
@@ -175,6 +176,9 @@ export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; 
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
           <input className={inp + " pl-9"} placeholder="Buscar por nome, endereço, CNPJ ou CNO…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
+        <button type="button" className={btnPri} onClick={() => setNova((v) => !v)}>
+          <Plus className="h-4 w-4" /> Cadastrar obra
+        </button>
         <span className="text-sm text-ink-500">
           {lista.length === obras.length ? `${obras.length} obras` : `${lista.length} de ${obras.length} obras`}
           {(nFiltros > 0 || ordem) && (
@@ -200,6 +204,16 @@ export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; 
           )}
         </span>
       </div>
+
+      {nova && (
+        <NovaObra
+          cancelar={() => setNova(false)}
+          criada={(id) => {
+            setNova(false);
+            setAbertaId(id);
+          }}
+        />
+      )}
 
       <div ref={pg.topo} className="card-flush overflow-x-auto">
         <table className="w-full text-sm">
@@ -257,6 +271,83 @@ export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; 
         <div className="px-4 pb-3">
           <Paginador pag={pg.pag} pags={pg.pags} total={pg.total} por={pg.por} ir={pg.ir} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Formulário curto para obra nova; o resto (CNPJ, CNO, datas, estrutura…) se preenche no editor que abre em seguida.
+function NovaObra({ cancelar, criada }: { cancelar: () => void; criada: (id: string) => void }) {
+  const router = useRouter();
+  const [pendente, iniciar] = useTransition();
+  const [f, setF] = useState({ nome: "", nome_completo: "", fase: "obra" as "obra" | "entregue", unidades: "", endereco: "", cidade: "", uf: "SC" });
+  const [erro, setErro] = useState<string | null>(null);
+  const set = (k: keyof typeof f, v: string) => setF((x) => ({ ...x, [k]: v }));
+
+  function criar() {
+    setErro(null);
+    iniciar(async () => {
+      const r = await criarObra({
+        nome: f.nome,
+        nome_completo: f.nome_completo || null,
+        fase: f.fase,
+        unidades: f.unidades ? Number(f.unidades) : null,
+        endereco: f.endereco || null,
+        cidade: f.cidade || null,
+        uf: f.uf || null,
+      });
+      if (!r.ok) return setErro(r.erro);
+      router.refresh();
+      criada(r.id);
+    });
+  }
+
+  return (
+    <div className="card space-y-4 p-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold text-primaryDark">Cadastrar obra</h2>
+        <button type="button" onClick={cancelar} className="text-ink-500 hover:text-ink-900" aria-label="Fechar">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <Campo rotulo="Nome da obra *">
+          <input className={inp} placeholder="Ex.: ILHA DE FOO" value={f.nome} onChange={(e) => set("nome", e.target.value)} autoFocus />
+        </Campo>
+        <Campo rotulo="Nome completo" className="md:col-span-2">
+          <input className={inp} placeholder="Ex.: Residencial Ilha de Foo (se vazio, o sistema monta)" value={f.nome_completo} onChange={(e) => set("nome_completo", e.target.value)} />
+        </Campo>
+        <Campo rotulo="Fase">
+          <select className={inp} value={f.fase} onChange={(e) => set("fase", e.target.value)}>
+            <option value="obra">Em construção</option>
+            <option value="entregue">Entregue</option>
+          </select>
+        </Campo>
+        <Campo rotulo="Unidades">
+          <input className={inp} type="number" min={0} value={f.unidades} onChange={(e) => set("unidades", e.target.value)} />
+        </Campo>
+        <span className="hidden md:block" />
+        <Campo rotulo="Endereço (rua e número)" className="md:col-span-2">
+          <input className={inp} value={f.endereco} onChange={(e) => set("endereco", e.target.value)} />
+        </Campo>
+        <div className="grid grid-cols-[1fr_72px] gap-3">
+          <Campo rotulo="Cidade">
+            <input className={inp} value={f.cidade} onChange={(e) => set("cidade", e.target.value)} />
+          </Campo>
+          <Campo rotulo="UF">
+            <input className={inp} maxLength={2} value={f.uf} onChange={(e) => set("uf", e.target.value.toUpperCase())} />
+          </Campo>
+        </div>
+      </div>
+      <p className="text-xs text-ink-500">A obra já nasce disponível nas Vistorias e no Pós-venda. Depois de criar, o editor abre para você completar CNPJ, CNO, datas, estrutura e logo.</p>
+      {erro && <div className="rounded-[10px] border border-[#F1C4BF] bg-[#FDECEA] px-3 py-2 text-sm text-[#B3261E]">{erro}</div>}
+      <div className="flex gap-2">
+        <button type="button" className={btnPri} disabled={pendente || !f.nome.trim()} onClick={criar}>
+          {pendente ? "Criando…" : "Criar obra"}
+        </button>
+        <button type="button" className={btnSec} onClick={cancelar}>
+          Cancelar
+        </button>
       </div>
     </div>
   );

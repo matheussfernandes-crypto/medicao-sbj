@@ -91,7 +91,10 @@ export function rotaListar(tipo: Tipo) {
           (data ?? []).forEach((l: any) => registros.push({ ...(l.dados || {}), id: l.id }));
         }
       }
-      return NextResponse.json({ agora, registros: registros.map((r) => sobreporObra(r, cad.get(String(r.id)))), excluidos });
+      // "Aparece em Vistorias" desligado no Cadastro: a obra sai das listas (nada é apagado; ligando de novo ela volta)
+      const visiveis = registros.filter((r) => cad.get(String(r.id))?.aparece_vistorias !== false);
+      const ocultas = registros.filter((r) => cad.get(String(r.id))?.aparece_vistorias === false).map((r) => String(r.id));
+      return NextResponse.json({ agora, registros: visiveis.map((r) => sobreporObra(r, cad.get(String(r.id)))), excluidos: [...excluidos, ...ocultas] });
     }
     return NextResponse.json({ agora, registros, excluidos });
   };

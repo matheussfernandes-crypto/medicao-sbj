@@ -17,12 +17,14 @@ export type CadastroPosobra = {
   data_entrega_real: string | null;
   unidades: number | null;
   atualizado_em: string | null;
+  aparece_vistorias: boolean;
+  aparece_posvenda: boolean;
 };
 
 export async function cadastrosDoPosobra(supabase: any): Promise<Map<string, CadastroPosobra>> {
   const { data, error } = await supabase
     .from("cadastro_obras")
-    .select("id, posobra_id, nome, nome_completo, fase, endereco, bairro, cidade, uf, data_entrega_prevista, data_entrega_real, unidades, atualizado_em")
+    .select("id, posobra_id, nome, nome_completo, fase, endereco, bairro, cidade, uf, data_entrega_prevista, data_entrega_real, unidades, atualizado_em, aparece_vistorias, aparece_posvenda")
     .not("posobra_id", "is", null);
   // se o Cadastro não puder ser lido, os módulos seguem com os dados de sempre
   if (error) return new Map();

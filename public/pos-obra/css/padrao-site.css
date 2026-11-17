@@ -110,7 +110,7 @@ html[data-tema="dark"] .vt-trilho { background: #22313A; }
 .vt-cam { border-radius: 9px; border-color: var(--border); background: var(--panel); color: var(--text-muted); }
 
 /* ---------- barra de filtros: um cartão só, tudo numa linha (Obra, Apartamento, Situação) e as ações à direita ---------- */
-.vt-barra { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; align-items: flex-end; gap: 12px; }
+.vt-barra { background: none; border: 0; border-radius: 0; padding: 0; align-items: flex-end; gap: 12px; }
 .vt-barra .vt-acoes { margin-left: auto; align-items: center; }
 .vt-barra .vt-acoes .btn { min-height: 40px; }
 .vt-mais { position: relative; }

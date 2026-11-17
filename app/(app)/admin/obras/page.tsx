@@ -2,7 +2,7 @@ import MesCampo from "@/components/MesCampo";
 import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { criarObra, criarServico, editarValorServico } from "./actions";
+import { criarServico, editarValorServico } from "./actions";
 import RetencaoForm from "./RetencaoForm";
 import { vincularEmpresaObra, editarVinculoEmpresaObra, removerVinculoEmpresaObra } from "./empresa-obra-actions";
 import Selecao from "@/components/ui/Selecao";
@@ -100,10 +100,8 @@ export default async function ObrasPage({
 
       <div className="card">
         <h2 className="font-semibold text-primaryDark mb-2">Cadastrar nova obra</h2>
-        <form action={criarObra} className="flex gap-2">
-          <input name="nome" placeholder="Nome da obra (ex: Residencial Aurora)" className="border rounded px-3 py-2 flex-1" required />
-          <button className="bg-primary text-white rounded px-4 py-2">Criar obra</button>
-        </form>
+        <p className="text-sm text-ink-500 mb-2">As obras agora são cadastradas no Cadastro de obras: ao criar lá em desenvolvimento ou em execução, ela já nasce aqui na Medição com os serviços padrão.</p>
+        <a href="/admin/cadastro-obras" className="inline-block bg-primary text-white rounded px-4 py-2">Ir para o Cadastro de obras</a>
       </div>
 
       <div className="card">

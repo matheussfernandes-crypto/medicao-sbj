@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { exigirPerfil } from "@/lib/contratos/server";
 import NovoContratoForm from "./NovoContratoForm";
+import { fasesDasObras, paraMedicao } from "@/lib/cadastro/fases";
 import { proximoNumeroContrato } from "@/lib/contratos/util";
 
 export default async function NovoContratoPage() {
@@ -28,7 +29,7 @@ export default async function NovoContratoPage() {
       ) : (
         <NovoContratoForm
           empresas={empresas ?? []}
-          obras={obras ?? []}
+          obras={paraMedicao(obras ?? [], await fasesDasObras(supabase))}
           contratos={(contratos ?? []).map((c: any) => ({ id: c.id, numero: c.numero, objeto: c.objeto, status: c.status, empresa_id: c.empresa_id, obra_nome: c.obras?.nome ?? "—" }))}
           sugestaoNumero={sugestao}
         />

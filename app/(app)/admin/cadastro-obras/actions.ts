@@ -153,6 +153,14 @@ export async function criarObra(d: { nome: string; nome_completo: string | null;
       await supabase.from("posobra_obras").update({ excluido_em: agora }).eq("id", posId);
       return { ok: false, erro: "Não consegui criar a obra: " + (e2?.message ?? "erro") };
     }
+    // Em desenvolvimento ou execução: já nasce na Medição/Contratos (obra + serviços padrão), ligada ao Cadastro
+    if (d.fase !== "entregue") {
+      const { error: e3 } = await supabase.rpc("cadastro_criar_obra_medicao", { p_cadastro: nova.id });
+      if (e3) {
+        revalidatePath("/admin/cadastro-obras");
+        return { ok: false, erro: "A obra foi criada no Cadastro, mas não consegui criá-la na Medição: " + e3.message };
+      }
+    }
     revalidatePath("/admin/cadastro-obras");
     return { ok: true, id: nova.id };
   } catch (e) {
@@ -182,7 +190,16 @@ export async function marcarEntregue(id: string, dataReal: string): Promise<Resu
 // enquanto a fase não for "entregue", ela não vale para a garantia.
 export async function mudarFase(id: string, fase: "desenvolvimento" | "obra"): Promise<Resultado> {
   if (fase !== "desenvolvimento" && fase !== "obra") return { ok: false, erro: "Fase inválida." };
-  return voltarParaObra(id, fase);
+  const r = await voltarParaObra(id, fase);
+  if (!r.ok) return r;
+  try {
+    const { supabase } = await exigirAdmin();
+    const { error } = await supabase.rpc("cadastro_criar_obra_medicao", { p_cadastro: id });
+    if (error) return { ok: false, erro: "Fase alterada, mas não consegui ligar a obra à Medição: " + error.message };
+  } catch (e) {
+    return { ok: false, erro: e instanceof Error ? e.message : "Erro ao ligar à Medição." };
+  }
+  return r;
 }
 export async function voltarParaObra(id: string, fase: "desenvolvimento" | "obra" = "obra"): Promise<Resultado> {
   try {

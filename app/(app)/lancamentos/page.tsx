@@ -1,5 +1,6 @@
 import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { createClient } from "@/lib/supabase/server";
+import { fasesDasObras, paraMedicao } from "@/lib/cadastro/fases";
 import {
   criarLancamento,
   aprovarLancamento,
@@ -26,7 +27,9 @@ export default async function LancamentosPage({
   const { data: meuPerfil } = await perfilDaRequisicao(user!.id);
   const ehAdmin = meuPerfil?.setor === "ADMIN";
 
-  const { data: obras } = await supabase.from("obras").select("id, nome").order("nome");
+  const { data: obrasTodas } = await supabase.from("obras").select("id, nome").order("nome");
+  // obra concluída sai da lista de escolha (a obra aberta na tela continua; nada é apagado)
+  const obras = paraMedicao(obrasTodas ?? [], await fasesDasObras(supabase), searchParams.obra);
   const obraId = searchParams.obra || obras?.[0]?.id || null;
   const obraNome = obras?.find((o) => o.id === obraId)?.nome ?? "";
 

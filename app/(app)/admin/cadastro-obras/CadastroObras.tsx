@@ -774,6 +774,12 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
                     <span className="text-xs text-[#1D5560]">A data de entrega real é a base da garantia no Pós-venda.</span>
                   </div>
                 </Recolher>
+                {obra.fase === "obra" && !obra.andamento_obra_id && (
+                  <p className="rounded-[10px] bg-[#FDF0DC] px-3 py-2 text-xs text-[#9A5B00]">
+                    Esta obra está em execução mas ainda não foi configurada no Andamento de obra (pavimentos e serviços).{" "}
+                    <a href="/andamento-novo/config" className="font-semibold underline">Configurar no Andamento</a>
+                  </p>
+                )}
                 <p className="text-xs text-ink-500">A fase só muda por aqui. Em desenvolvimento: aparece em Medição e Contratos. Em execução: aparece também no Andamento. Concluída: sai de Medição e Andamento (nada é apagado).</p>
               </div>
             </Bloco>

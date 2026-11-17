@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { listarObrasAndamento } from "./obrasAndamento";
+import { fasesDasObras, paraAndamento } from "@/lib/cadastro/fases";
 import type { Apontamento, DadosAndamento } from "./types";
 
 // Busca em páginas: o PostgREST devolve no máximo 1000 linhas por consulta.
@@ -22,7 +23,13 @@ export async function carregarAndamento(obraIdPedida?: string): Promise<DadosAnd
     data: { user },
   } = await supabase.auth.getUser();
   // duas leituras independentes: juntas, uma ida a menos ao banco
-  const [{ data: perfil }, obras] = await Promise.all([supabase.from("perfis").select("nome_completo, setor").eq("id", user!.id).single(), listarObrasAndamento(supabase)]);
+  const [{ data: perfil }, todasObras, fasesObras] = await Promise.all([
+    supabase.from("perfis").select("nome_completo, setor").eq("id", user!.id).single(),
+    listarObrasAndamento(supabase),
+    fasesDasObras(supabase),
+  ]);
+  // só obras em execução na lista de escolha (a obra pedida na tela continua acessível; nada é apagado)
+  const obras = paraAndamento(todasObras, fasesObras, obraIdPedida);
   const obra = obras.find((o) => o.id === obraIdPedida) ?? obras[0];
   if (!obra) return null;
 

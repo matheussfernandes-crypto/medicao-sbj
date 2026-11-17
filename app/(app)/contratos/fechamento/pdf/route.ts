@@ -3,6 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { calcularBoletim } from "@/lib/contratos/boletim";
 import { BoletimContratoPdf } from "@/lib/pdf/BoletimContratoPdf";
+import { nomeMedicaoContrato, numeroDocumentoContrato, disposicao } from "@/lib/pdf/nomeArquivo";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -31,8 +32,15 @@ export async function GET(request: NextRequest) {
       dataGeracao: new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
     })
   );
-  const nome = `${b.previaLancamento !== null ? "previa-" : ""}boletim-contrato-${b.contrato.numero}-${mes}.pdf`.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const nome = nomeMedicaoContrato({
+    numero: await numeroDocumentoContrato(supabase, contratoId, mes, "MEDICAO"),
+    objeto: b.contrato.objeto,
+    obra: b.contrato.obras?.nome,
+    mes,
+    final: b.retido > 0 ? "COM RETIDO" : "SEM RETIDO",
+    previa: !b.fechamento,
+  });
   return new NextResponse(new Uint8Array(buffer), {
-    headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${nome}"` },
+    headers: { "Content-Type": "application/pdf", "Content-Disposition": disposicao(nome) },
   });
 }

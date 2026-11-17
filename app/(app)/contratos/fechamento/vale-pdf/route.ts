@@ -3,6 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { calcularFechamentoVale } from "@/lib/contratos/fechamentoVale";
 import { FechamentoValePdf } from "@/lib/pdf/FechamentoValePdf";
+import { nomeMedicaoContrato, numeroDocumentoContrato, disposicao } from "@/lib/pdf/nomeArquivo";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -30,8 +31,15 @@ export async function GET(request: NextRequest) {
       dataGeracao: new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
     })
   );
-  const nome = `${f.fechamento ? "" : "previa-"}vales-contrato-${f.contrato.numero}-${mes}.pdf`.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const nome = nomeMedicaoContrato({
+    numero: await numeroDocumentoContrato(supabase, contratoId, mes, "VALE"),
+    objeto: f.contrato.objeto,
+    obra: f.contrato.obras?.nome,
+    mes,
+    final: "VALE",
+    previa: !f.fechamento,
+  });
   return new NextResponse(new Uint8Array(buffer), {
-    headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${nome}"` },
+    headers: { "Content-Type": "application/pdf", "Content-Disposition": disposicao(nome) },
   });
 }

@@ -7,6 +7,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { FolhaMedicaoPdf, FolhaValePdf, type ItemMedicao, type ResumoMedicao, type ItemVale, type ResumoVale } from "@/lib/pdf/FolhaPdf";
 import { getMailer } from "@/lib/email/gmail";
 import { calcularMedicao, valeMedicaoDeVale } from "@/lib/fechamento/medicao";
+import { nomeObra } from "@/lib/pdf/nomeArquivo";
 
 async function exigirAdmin() {
   const supabase = createClient();
@@ -151,7 +152,7 @@ export async function finalizarFechamentoMedicao(formData: FormData) {
           to: destinatarios.join(", "),
           subject: `Medição ${obra!.nome} — ${mes}`,
           html: `<p>Segue em anexo o relatório de medição da obra <b>${obra!.nome}</b>, referente a ${mes}, fechado por ${engenheiroNome}.</p>`,
-          attachments: [{ filename: `medicao-${obra!.nome}-${mes}.pdf`, content: buffer }],
+          attachments: [{ filename: nomeObra({ tipo: "MED", obra: obra!.nome, mes }), content: buffer }],
         });
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -327,7 +328,7 @@ export async function finalizarFechamentoVale(formData: FormData) {
           to: destinatarios.join(", "),
           subject: `Vales ${obra!.nome} — ${mes}`,
           html: `<p>Segue em anexo o relatório de vales da obra <b>${obra!.nome}</b>, referente a ${mes}, fechado por ${engenheiroNome}.</p>`,
-          attachments: [{ filename: `vales-${obra!.nome}-${mes}.pdf`, content: buffer }],
+          attachments: [{ filename: nomeObra({ tipo: "VALE", obra: obra!.nome, mes }), content: buffer }],
         });
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);

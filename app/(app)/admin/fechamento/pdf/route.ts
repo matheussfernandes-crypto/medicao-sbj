@@ -10,6 +10,7 @@ import {
   type ResumoVale,
 } from "@/lib/pdf/FolhaPdf";
 import { calcularMedicao } from "@/lib/fechamento/medicao";
+import { nomeObra, disposicao } from "@/lib/pdf/nomeArquivo";
 
 // Gera o MESMO PDF que seria enviado por email ao finalizar a medição/vale do
 // mês, mas só para conferência: não envia email, não salva no Storage e não
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="previa-medicao-${obra.nome}-${mes}.pdf"`,
+        "Content-Disposition": disposicao(nomeObra({ tipo: "MED", obra: obra.nome, mes, previa: true })),
       },
     });
   }
@@ -205,7 +206,7 @@ export async function GET(request: NextRequest) {
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="previa-vale-${obra.nome}-${mes}.pdf"`,
+      "Content-Disposition": disposicao(nomeObra({ tipo: "VALE", obra: obra.nome, mes, previa: true })),
     },
   });
 }

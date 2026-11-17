@@ -13,7 +13,8 @@ async function exigirAdmin() {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Sessão expirada. Entre de novo.");
   const { data: perfil } = await supabase.from("perfis").select("setor,status").eq("id", user.id).single();
-  if (!perfil || perfil.setor !== "ADMIN" || perfil.status !== "aprovado") throw new Error("Apenas o ADM pode alterar o cadastro de obras.");
+  if (!perfil || !["ADMIN", "ENGENHEIRO", "ARQUITETO"].includes(perfil.setor) || perfil.status !== "aprovado")
+    throw new Error("Apenas ADM, engenheiros e arquitetos podem alterar o cadastro de obras.");
   return { supabase, userId: user.id };
 }
 

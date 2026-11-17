@@ -7,7 +7,7 @@ import CadastroObras, { type ObraCadastro } from "./CadastroObras";
 export default async function CadastroObrasPage() {
   const user = await getUsuarioAtual();
   const { data: perfil } = await perfilDaRequisicao(user!.id);
-  if (perfil?.setor !== "ADMIN") redirect("/dashboard");
+  if (!["ADMIN", "ENGENHEIRO", "ARQUITETO"].includes(perfil?.setor ?? "")) redirect("/dashboard");
 
   const supabase = createClient();
   const { data, error } = await supabase

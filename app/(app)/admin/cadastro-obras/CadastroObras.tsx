@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Copy, ImagePlus, Plus, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -162,7 +162,7 @@ export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; 
     );
   };
 
-  if (aberta) return <EditorObra key={aberta.id + (aberta.atualizado_em ?? "")} obra={aberta} voltar={() => setAbertaId(null)} />;
+  if (aberta) return <EditorObra key={aberta.id} obra={aberta} voltar={() => setAbertaId(null)} />;
 
   return (
     <div className="space-y-5">
@@ -488,6 +488,9 @@ type CampoZap = (typeof CAMPOS_ZAP)[number][0];
 function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }) {
   const router = useRouter();
   const [aba, setAba] = useState<Aba>("gerais");
+  // chaves "Aparece em": mudam na hora (otimista) e a tela não é recarregada
+  const [ap, setAp] = useState({ vistorias: obra.aparece_vistorias, posvenda: obra.aparece_posvenda });
+  useEffect(() => setAp({ vistorias: obra.aparece_vistorias, posvenda: obra.aparece_posvenda }), [obra.aparece_vistorias, obra.aparece_posvenda]);
   const [d, setD] = useState<DadosObra>({
     nome: obra.nome,
     nome_completo: obra.nome_completo,
@@ -548,10 +551,15 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
     });
   }
   function aparece(campo: CampoAparece, valor: boolean) {
-    iniciar(async () => {
-      const r = await salvarAparece(obra.id, campo, valor);
+    const k = campo === "aparece_vistorias" ? "vistorias" : "posvenda";
+    const antes = ap[k as "vistorias" | "posvenda"];
+    setAp((x) => ({ ...x, [k]: valor }));
+    salvarAparece(obra.id, campo, valor).then((r) => {
       if (r.ok) router.refresh();
-      else setMsg({ tipo: "erro", texto: r.erro });
+      else {
+        setAp((x) => ({ ...x, [k]: antes }));
+        setMsg({ tipo: "erro", texto: r.erro });
+      }
     });
   }
   function trocarFase(fase: "desenvolvimento" | "obra") {
@@ -854,21 +862,27 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
             <Bloco id="ligacoes" titulo="Ligações com os módulos">
               <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                 {[
-                  ["Medição, Fechamento, Contratos e RH", obra.obra_id, obra.aparece_medicao, "aparece_medicao"],
-                  ["Andamento de obra", obra.andamento_obra_id, obra.aparece_andamento, "aparece_andamento"],
-                  ["Vistorias e Controle de entregas", obra.posobra_id, obra.aparece_vistorias, "aparece_vistorias"],
-                  ["Pós-venda (chamados e clientes)", obra.posvenda_emp_id, obra.aparece_posvenda, "aparece_posvenda"],
-                ].map(([rot, lig, ap, campo]) => (
+                  ["Medição, Fechamento, Contratos e RH", obra.obra_id, obra.fase !== "entregue", null],
+                  ["Andamento de obra", obra.andamento_obra_id, obra.fase === "obra", null],
+                  ["Vistorias e Controle de entregas", obra.posobra_id, ap.vistorias, "aparece_vistorias"],
+                  ["Pós-venda (chamados e clientes)", obra.posvenda_emp_id, ap.posvenda, "aparece_posvenda"],
+                ].map(([rot, lig, on, campo]) => (
                   <div key={rot as string} className="flex items-center justify-between gap-3 rounded-[10px] border border-[#E8EEF0] px-3 py-2">
                     <div className="min-w-0">
                       <div>{rot as string}</div>
                       <div className={`text-xs ${lig ? "text-[#1D6B3D]" : "text-ink-400"}`}>{lig ? "Ligada a esta obra" : "Não existe lá"}</div>
                     </div>
-                    <Chave ligada={!!ap} onChange={(v) => aparece(campo as CampoAparece, v)} disabled={salvando} rotulo={"Aparece em " + rot} />
+                    {campo ? (
+                      <Chave ligada={!!on} onChange={(v) => aparece(campo as CampoAparece, v)} rotulo={"Aparece em " + rot} />
+                    ) : (
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${on ? "bg-[#E3F1E8] text-[#1D6B3D]" : "bg-[#E1E9EB] text-ink-500"}`} title="Definido pela fase da obra">
+                        {on ? "Aparece" : "Não aparece"}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
-              <p className="mt-3 text-xs text-ink-500">“Aparece em” fica guardado aqui; cada módulo passa a respeitar quando for ligado ao cadastro, um de cada vez, com sua aprovação.</p>
+              <p className="mt-3 text-xs text-ink-500">Medição e Andamento aparecem conforme a <b>fase</b> da obra (Em desenvolvimento: Medição; Em execução: Medição e Andamento; Concluída: nenhum). Vistorias e Pós-venda têm chave própria.</p>
             </Bloco>
           </>
         )}

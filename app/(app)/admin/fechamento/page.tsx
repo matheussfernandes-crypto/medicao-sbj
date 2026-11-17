@@ -8,6 +8,7 @@ import { calcularMedicao, saldoDeVales } from "@/lib/fechamento/medicao";
 import Selecao from "@/components/ui/Selecao";
 import TabelaFiltravel from "@/components/ui/TabelaFiltravel";
 import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
+import { fasesDasObras, paraMedicao } from "@/lib/cadastro/fases";
 
 function mesAtual() {
   return new Date().toISOString().slice(0, 7);
@@ -23,7 +24,9 @@ export default async function FechamentoPage({
   const { data: meuPerfil } = await perfilDaRequisicao(user!.id);
   if (meuPerfil?.setor !== "ADMIN") redirect("/dashboard");
 
-  const { data: obras } = await supabase.from("obras").select("id, nome").order("nome");
+  const { data: obrasTodas } = await supabase.from("obras").select("id, nome").order("nome");
+  // obra concluída sai da lista de escolha (a obra pedida na tela continua; nada é apagado)
+  const obras = paraMedicao(obrasTodas ?? [], await fasesDasObras(supabase), searchParams.obra);
   const obraSelecionada = searchParams.obra || obras?.[0]?.id || null;
   const mes = searchParams.mes || mesAtual();
 
@@ -36,7 +39,7 @@ export default async function FechamentoPage({
     .limit(30);
 
   const nomeObra: Record<string, string> = {};
-  for (const o of obras ?? []) nomeObra[o.id] = o.nome;
+  for (const o of obrasTodas ?? []) nomeObra[o.id] = o.nome;
 
   // Gera links assinados (válidos por 1h) para os PDFs que ficaram salvos no Storage.
   const linksPdf: Record<string, string> = {};

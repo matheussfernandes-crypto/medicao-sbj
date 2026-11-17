@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import CarregandoSBJ from "@/components/CarregandoSBJ";
 
 // O Pós-venda (public/posvenda) abre aqui dentro, sem menu próprio: a troca de tela vem do menu
@@ -16,9 +16,12 @@ type JanelaModulo = Window & { go?: (v: string) => void };
 
 export default function PosVendaLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const viaQuadro = useRef(false);
   const quadro = useRef<HTMLIFrameElement>(null);
   const inicial = useRef(telaDe(pathname));
   const tela = telaDe(pathname);
+  const telaAtual = useRef(tela);
   const [visivel, setVisivel] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setVisivel(true), 4000);
@@ -35,7 +38,22 @@ export default function PosVendaLayout({ children }: { children: React.ReactNode
     return () => window.removeEventListener("sbj-tema", aoMudar);
   }, []);
 
+  // quando a pessoa troca de tela por dentro do quadro (ex.: botão "Registrar"), o menu do site acompanha
   useEffect(() => {
+    const aoReceber = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || e.source !== quadro.current?.contentWindow) return;
+      const v = (e.data as { sbjPosvenda?: string } | null)?.sbjPosvenda;
+      if (typeof v !== "string") return;
+      const destino = TELAS.includes(v) ? v : "inicio";
+      if (destino !== telaAtual.current) { viaQuadro.current = true; router.push("/posvenda/" + destino); }
+    };
+    window.addEventListener("message", aoReceber);
+    return () => window.removeEventListener("message", aoReceber);
+  }, [router]);
+
+  useEffect(() => {
+    telaAtual.current = tela;
+    if (viaQuadro.current) { viaQuadro.current = false; return; }
     const w = quadro.current?.contentWindow as JanelaModulo | null | undefined;
     try {
       if (w && typeof w.go === "function" && w.location.hash !== "#" + tela) w.go(tela);

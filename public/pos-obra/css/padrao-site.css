@@ -39,11 +39,12 @@ body { background: var(--bg); font-family: var(--font-body); color: var(--text);
 .topbar-title h1 { font-family: var(--font-body); font-size: 24px; font-weight: 600; color: var(--primary); letter-spacing: 0; }
 .topbar-title p { font-size: 13px; color: var(--text-muted); }
 
-/* conteúdo centralizado, com a mesma largura máxima em todas as telas */
-.main > .topbar, .main > section.view { width: 100%; max-width: 1180px; margin-left: auto; margin-right: auto; box-sizing: border-box; }
+/* conteúdo centralizado, ocupando quase toda a largura da tela (só limita em monitores muito grandes) */
+#ticket-detail-root { max-width: 1400px; }
+.main > .topbar, .main > section.view { width: 100%; max-width: 1840px; margin-left: auto; margin-right: auto; box-sizing: border-box; }
 /* telas de tabela (Controle de entregas e Planilha) ficam mais largas para as colunas caberem */
 .main:has(section.view.active .vtc-wrap) > .topbar, .main:has(section.view.active .vp-tabela) > .topbar,
-.main > section.view:has(.vtc-wrap), .main > section.view:has(.vp-tabela) { max-width: 1600px; }
+.main > section.view:has(.vtc-wrap), .main > section.view:has(.vp-tabela) { max-width: 1840px; }
 
 /* ---------- botões ---------- */
 .btn { font-family: var(--font-body); border-radius: 10px; font-weight: 600; }

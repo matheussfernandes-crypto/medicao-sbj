@@ -52,7 +52,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .nav .count{margin-left:auto;font-size:11px;font-family:var(--f-mono);background:var(--surface-2);color:var(--fg);padding:1px 7px;border-radius:99px}
 .side .foot{margin-top:auto;padding:0 10px;font-size:12px;color:var(--muted)}
 main{min-width:0;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.wrap{max-width:1840px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .top .sub{color:var(--muted);margin-top:4px}
 .bnav{display:none}
@@ -83,6 +83,13 @@ main{min-width:0;padding-block:24px 48px;padding-left:max(16px,env(safe-area-ins
 .btn.done{background:var(--surface-2);border-color:transparent;color:var(--muted)}
 .btn[disabled]{opacity:.5;cursor:not-allowed}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chf-row{display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
+.chf-row>*{flex:0 1 auto;min-width:0}
+.chf-row>.chf-busca{flex:1 1 220px;min-width:160px}
+@media (max-width:1000px){.chf-row{flex-wrap:wrap}.chf-row>.chf-busca{flex-basis:100%;order:-1}}
+.msel{position:relative}.msel>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}.msel>summary::-webkit-details-marker{display:none}.msel>summary::after{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translateY(-2px);flex:none}
+.msel-p{position:absolute;z-index:30;top:calc(100% + 4px);left:0;min-width:240px;max-height:320px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.15);padding:6px}
+.msel-p label{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:13px}.msel-p label:hover{background:var(--surface-2)}.msel-p .msel-x{display:block;width:100%;text-align:left;border:0;background:none;color:var(--accent);font-weight:600;padding:7px 8px;cursor:pointer;font-size:13px}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 .grid-main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start}
 @media (max-width:1000px){.grid-main,.grid2{grid-template-columns:minmax(0,1fr)}}
@@ -584,6 +591,7 @@ function go(v,push=true){
   S.view=v;S.edit=null;document.body.dataset.tela=v;
   if(push&&location.hash!=="#"+v){try{history.replaceState(null,"","#"+v)}catch(e){location.hash=v}}
   $("#quick-sec").hidden=v!=="inicio";
+  try{if(window.parent!==window)window.parent.postMessage({sbjPosvenda:v},location.origin)}catch(e){}
   renderNav();renderView(true);window.scrollTo(0,0);
 }
 function renderBanner(){
@@ -1210,17 +1218,19 @@ async function salvarReview(){
 }
 
 /* ================= CHAMADOS ================= */
+const chCats=f=>Array.isArray(f.cat)?f.cat:(f.cat?[f.cat]:[]);
+const chCatsTxt=f=>{const a=chCats(f);return a.length===0?"Todas as categorias":a.length===1?a[0]:a.length+" categorias"};
 function vChamados(){
   const f=S.chF;
   return `<div class="top"><div><h1>Chamados</h1><div class="sub">${S.ch.length} no total · ${S.ch.filter(c=>c.status!=="resolvido").length} em aberto</div></div>
    <div class="row"><button class="btn" data-a="go" data-v="preencher">Preencher rápido</button><button class="btn pri" data-a="go" data-v="inicio">${I_SPARK}<span>Registrar</span></button></div></div>
-  <div class="row">
-   <div class="seg" role="group" aria-label="Filtrar por situação">${[...(S.ch.some(incompleto)?[["completar",`A completar (${S.ch.filter(incompleto).length})`]]:[]),["abertos","Em aberto"],["agendado","Agendados"],["aguardando","Aguardando"],["resolvido","Resolvidos"],["todos","Todos"]].map(([k,l])=>`<button data-a="ch-st" data-s="${k}" aria-pressed="${f.st===k}">${l}</button>`).join("")}</div>
-   <select class="in" id="chf-emp" data-c="chf" style="width:auto;max-width:220px"><option value="">Todos os empreendimentos</option>${[...S.emp].sort((a,b)=>a.nome.localeCompare(b.nome)).map(e=>`<option value="${esc(e.id)}" ${f.emp===e.id?"selected":""}>${esc(e.nome)}</option>`).join("")}</select>
-   <select class="in" id="chf-cat" data-c="chf" style="width:auto;max-width:220px"><option value="">Todas as categorias</option>${CATS.map(c=>`<option ${f.cat===c?"selected":""}>${esc(c)}</option>`).join("")}</select>
-   <select class="in" id="chf-ri" data-c="chf" style="width:auto;max-width:200px"><option value="">Todos da equipe</option>${eu()?`<option value="__meus" ${f.ri==="__meus"?"selected":""}>Meus (${esc(eu())})</option>`:""}${equipe().map(n=>`<option ${f.ri===n?"selected":""}>${esc(n)}</option>`).join("")}<option value="__sem" ${f.ri==="__sem"?"selected":""}>Sem responsável</option></select>
-   <select class="in" id="chf-ord" data-c="chf" style="width:auto;max-width:220px" aria-label="Ordenar">${[["prio","Urgentes primeiro"],["recentes","Mais recentes"],["antigos","Mais antigos"],["parados","Parados há mais tempo"],["unidade","Por unidade"]].map(([k,l])=>`<option value="${k}" ${(f.ord||"prio")===k?"selected":""}>${l}</option>`).join("")}</select>
-   <input class="in" id="chf-q" type="search" placeholder="Buscar unidade, cliente, problema…" value="${esc(f.q)}" style="flex:1;min-width:180px">
+  <div class="chf-row">
+   <input class="in chf-busca" id="chf-q" type="search" placeholder="Buscar unidade, cliente, problema…" value="${esc(f.q)}">
+   <select class="in" id="chf-st" data-c="chf" aria-label="Situação" style="width:auto;max-width:190px">${[...(S.ch.some(incompleto)?[["completar",`A completar (${S.ch.filter(incompleto).length})`]]:[]),["abertos","Em aberto"],["agendado","Agendados"],["aguardando","Aguardando"],["resolvido","Resolvidos"],["todos","Todos"]].map(([k,l])=>`<option value="${k}" ${f.st===k?"selected":""}>${l}</option>`).join("")}</select>
+   <select class="in" id="chf-emp" data-c="chf" style="width:auto;max-width:200px"><option value="">Todos os empreendimentos</option>${[...S.emp].sort((a,b)=>a.nome.localeCompare(b.nome)).map(e=>`<option value="${esc(e.id)}" ${f.emp===e.id?"selected":""}>${esc(e.nome)}</option>`).join("")}</select>
+   <details class="msel" id="chf-cat-d"><summary class="in" id="chf-cat-t">${esc(chCatsTxt(f))}</summary><div class="msel-p">${CATS.map(c=>`<label><input type="checkbox" class="chf-catcb" data-c="chf" value="${esc(c)}" ${chCats(f).includes(c)?"checked":""}><span>${esc(c)}</span></label>`).join("")}<button type="button" class="msel-x" id="chf-cat-x">Limpar seleção</button></div></details>
+   <select class="in" id="chf-ri" data-c="chf" style="width:auto;max-width:180px"><option value="">Todos da equipe</option>${eu()?`<option value="__meus" ${f.ri==="__meus"?"selected":""}>Meus (${esc(eu())})</option>`:""}${equipe().map(n=>`<option ${f.ri===n?"selected":""}>${esc(n)}</option>`).join("")}<option value="__sem" ${f.ri==="__sem"?"selected":""}>Sem responsável</option></select>
+   <select class="in" id="chf-ord" data-c="chf" style="width:auto;max-width:190px" aria-label="Ordenar">${[["prio","Urgentes primeiro"],["recentes","Mais recentes"],["antigos","Mais antigos"],["parados","Parados há mais tempo"],["unidade","Por unidade"]].map(([k,l])=>`<option value="${k}" ${(f.ord||"prio")===k?"selected":""}>${l}</option>`).join("")}</select>
   </div>
   <div class="card" style="padding:6px 14px" id="ch-list"></div>`;
 }
@@ -1230,7 +1240,7 @@ function filtrarCh(){
     if(f.st==="abertos"&&c.status==="resolvido")return false;
     if(f.st==="completar"&&!incompleto(c))return false;
     if(!["abertos","todos","completar"].includes(f.st)&&c.status!==f.st)return false;
-    if(f.emp&&c.empId!==f.emp)return false;if(f.cat&&c.cat!==f.cat)return false;
+    if(f.emp&&c.empId!==f.emp)return false;{const cs=chCats(f);if(cs.length&&!cs.includes(c.cat))return false}
     if(f.ri){const ri=c.respInt||"";if(f.ri==="__meus"?ri!==eu():f.ri==="__sem"?!!ri:ri!==f.ri)return false}
     if(q){const u=uni(c.uniId)||{};const hay=norm([c.num,chTitulo(c),c.cli,u.prop,c.desc,c.amb,c.cat,c.sol,c.origemUni].join(" "));if(!q.split(" ").every(w=>hay.includes(w)))return false}
     return true}).sort((a,b)=>{const o=f.ord||"prio";const rec=(b.abertoEm||"").localeCompare(a.abertoEm||"")||(b.num||0)-(a.num||0);
@@ -2018,10 +2028,11 @@ document.addEventListener("change",e=>{
   if(c==="rv-agon"){$("#"+el.dataset.p+"-agw").hidden=!el.checked;return}
   if(c==="resp-sel"){const p=el.dataset.p;$("#"+p+"-respnovo").hidden=el.value!=="__novo";const cb=$("#"+p+"-cargobox");if(cb)cb.hidden=el.value!=="";if(el.value==="__novo")$("#"+p+"-rnome").focus();return}
   if(c==="cargo-sel"){const p=el.dataset.p;const l=$("#"+p+"-cargonovo-l");if(l)l.hidden=el.value!=="__novo";if(el.value==="__novo")$("#"+p+"-cargonovo").focus();return}
-  if(c==="chf"){S.chF.emp=val("chf-emp");S.chF.cat=val("chf-cat");S.chF.ri=val("chf-ri");S.chF.ord=val("chf-ord")||"prio";renderChList();return}
+  if(c==="chf"){S.chF.st=val("chf-st")||S.chF.st;S.chF.emp=val("chf-emp");S.chF.cat=[...document.querySelectorAll(".chf-catcb:checked")].map(x=>x.value);const ct=$("#chf-cat-t");if(ct)ct.textContent=chCatsTxt(S.chF);S.chF.ri=val("chf-ri");S.chF.ord=val("chf-ord")||"prio";renderChList();return}
   if(c==="rp"){S.rep.mes=val("rp-mes")||hojeISO().slice(0,7);S.rep.emp=val("rp-emp");renderView(true);return}
   if(c==="cad-emp"){S.cadEmp=el.value;renderView(true);return}
 });
+document.addEventListener("click",e=>{const d=$("#chf-cat-d");if(!d)return;if(e.target.id==="chf-cat-x"){document.querySelectorAll(".chf-catcb").forEach(x=>x.checked=false);S.chF.cat=[];$("#chf-cat-t").textContent=chCatsTxt(S.chF);renderChList();return}if(d.open&&!d.contains(e.target))d.open=false});
 document.addEventListener("input",e=>{if(e.target.id==="chf-q"){S.chF.q=e.target.value;renderChList()}if(e.target.id==="busca")renderBusca();if(e.target.id==="cad-uq"||e.target.id==="cad-ufin")filtrarUnidades()});
 document.addEventListener("change",e=>{if(e.target.id==="cad-ufin")filtrarUnidades()});
 // filtra a lista de unidades na tela (sem recarregar a página)

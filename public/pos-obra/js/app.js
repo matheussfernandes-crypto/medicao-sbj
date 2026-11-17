@@ -99,8 +99,9 @@ function showView(name) {
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.view === name));
   const bt = document.getElementById("btn-new-ticket"); if (bt) bt.style.display = (name === "dashboard" || name === "tickets") ? "" : "none";
   const bm = document.getElementById("btn-new-modification"); if (bm) bm.style.display = name === "modifications" ? "" : "none";
-  document.getElementById("view-title").textContent = viewTitles[name][0];
-  document.getElementById("view-subtitle").textContent = viewTitles[name][1];
+  const tit = (name === "vistorias" && typeof vtModo !== "undefined" && vtModo === "controle") ? ["Controle de entregas", "Quem já pode ser agendado e quem espera obra ou financiamento"] : viewTitles[name];
+  document.getElementById("view-title").textContent = tit[0];
+  document.getElementById("view-subtitle").textContent = tit[1];
   renderAll();
 }
 

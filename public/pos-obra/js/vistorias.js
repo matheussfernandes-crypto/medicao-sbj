@@ -165,6 +165,7 @@ function renderVistorias() {
     <div class="vt-total"><strong>${totalAbertas}</strong> pendência${totalAbertas === 1 ? "" : "s"} a resolver${vtFiltroPredio ? " nesta obra" : " no total"} <span id="vt-sync-estado" class="vt-sync-estado"></span></div>
     <div id="vt-grade"></div>`;
 
+  if (controle) { const m = root.querySelector(".vt-modos"); if (m) m.remove(); }
   root.querySelector("#vt-predio").addEventListener("change", e => { vtFiltroPredio = e.target.value; renderVistorias(); });
   const campoBusca = root.querySelector("#vt-busca"); if (campoBusca) campoBusca.addEventListener("input", e => { vtBusca = e.target.value; root.classList.add("vt-sem-anim"); vtRenderGrade(root); });
   root.querySelectorAll("[data-vt-st]").forEach(b => b.addEventListener("click", () => { vtStatus = b.dataset.vtSt; renderVistorias(); }));
@@ -367,11 +368,11 @@ async function vtControlePdf() {
   if (!window.jspdf) { toast("Biblioteca de PDF não carregada.", "error"); return; }
   const emp = vtEmpSel();
   if (!emp) return;
-  const linhas = vtControleFiltradas();
+  const linhas = vtControleFiltradas().slice().sort((a, b) => String(a.c.unit).localeCompare(String(b.c.unit), "pt-BR", { numeric: true }));
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
-  const M = 12, TEAL = [12, 107, 118], INK = [6, 27, 30], CINZA = [105, 115, 125];
+  const M = 10, TEAL = [12, 107, 118], INK = [6, 27, 30], CINZA = [105, 115, 125];
   const logo = await vtLogoDataUrl();
   const emitido = new Date().toLocaleDateString("pt-BR");
   const CORES = { ok: [22, 128, 61], agendada: [12, 107, 118], feita: [21, 128, 61], fin: [185, 28, 28], obra: [180, 83, 9] };
@@ -397,36 +398,36 @@ async function vtControlePdf() {
 
   // resumo: quantos em cada situação
   const cards = [["ok", "Liberado p/ agendar"], ["agendada", "Agendadas"], ["feita", "Realizadas"], ["fin", "Financiamento"], ["obra", "Aguardando obra"]];
-  const cw = (pw - 2 * M - 4 * 4) / 5;
+  const cw = (pw - 2 * M - 4 * 3) / 5;
   cards.forEach(([k, t], i) => {
-    const x = M + i * (cw + 4), y = 33;
+    const x = M + i * (cw + 3), y = 33;
     doc.setFillColor(246, 248, 250); doc.setDrawColor(...LINHA_CARD());
     doc.roundedRect(x, y, cw, 16, 2, 2, "FD");
     doc.setFillColor(...CORES[k]); doc.rect(x, y, 1.6, 16, "F");
-    doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(...INK);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(...INK);
     doc.text(String(linhas.filter(l => l.cls === k).length), x + 6, y + 9.5);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(...CINZA);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.8); doc.setTextColor(...CINZA);
     doc.text(t, x + 6, y + 13.8);
   });
 
   const corpo = linhas.map(l => [
-    vtObraCurta(l.b.name || ""), l.c.unit, l.c.name || "sem cliente", l.c.garage || "—", VTC_FIN[l.fin] || "—",
+    l.c.unit, l.c.name || "sem cliente", l.c.garage || "—", VTC_FIN[l.fin] || "—",
     l.obra === null ? "a ligar" : l.obra ? "Pronta" : "Não pronta", l.st, l.data || "—",
   ]);
   doc.autoTable({
-    startY: 53,
+    startY: 52,
     tableWidth: pw - 2 * M, // a tabela ocupa a largura da folha (deitada), sem cortar colunas
-    margin: { left: M, right: M, top: 20, bottom: 16 },
-    head: [["Obra", "Apto", "Cliente", "Vaga", "Financiamento", "Pintura final", "Situação", "Data"]],
+    margin: { left: M, right: M, top: 20, bottom: 14 },
+    head: [["Apto", "Cliente", "Vaga", "Financiamento", "Pintura final", "Situação", "Data"]],
     body: corpo,
     theme: "striped",
-    styles: { font: "helvetica", fontSize: 8.8, cellPadding: { top: 1.8, bottom: 1.8, left: 2, right: 2 }, textColor: [30, 35, 40], valign: "middle", overflow: "linebreak" },
-    headStyles: { fillColor: TEAL, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.6 },
+    styles: { font: "helvetica", fontSize: 8, cellPadding: { top: 1.1, bottom: 1.1, left: 1.8, right: 1.8 }, textColor: [30, 35, 40], valign: "middle", overflow: "linebreak" },
+    headStyles: { fillColor: TEAL, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
     alternateRowStyles: { fillColor: [247, 249, 250] },
-    columnStyles: { 0: { cellWidth: 34 }, 1: { cellWidth: 14, fontStyle: "bold" }, 2: { cellWidth: 70 }, 3: { cellWidth: 22 }, 4: { cellWidth: 36 }, 5: { cellWidth: 26 }, 6: { cellWidth: 46, fontStyle: "bold" }, 7: { cellWidth: 17 } },
+    columnStyles: { 0: { cellWidth: 13, fontStyle: "bold" }, 1: { cellWidth: "auto" }, 2: { cellWidth: 20 }, 3: { cellWidth: 25 }, 4: { cellWidth: 21 }, 5: { cellWidth: 32, fontStyle: "bold" }, 6: { cellWidth: 17 } },
     didParseCell: (d) => {
-      if (d.section === "body" && d.column.index === 6) { const l = linhas[d.row.index]; if (l) d.cell.styles.textColor = CORES[l.cls] || INK; }
-      if (d.section === "body" && d.column.index === 5) { const t = d.cell.raw; d.cell.styles.textColor = t === "Pronta" ? CORES.ok : t === "Não pronta" ? CORES.obra : CINZA; }
+      if (d.section === "body" && d.column.index === 5) { const l = linhas[d.row.index]; if (l) d.cell.styles.textColor = CORES[l.cls] || INK; }
+      if (d.section === "body" && d.column.index === 4) { const t = d.cell.raw; d.cell.styles.textColor = t === "Pronta" ? CORES.ok : t === "Não pronta" ? CORES.obra : CINZA; }
     },
     didDrawPage: (d) => topo(d.pageNumber === 1),
   });

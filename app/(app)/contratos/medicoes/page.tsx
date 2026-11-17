@@ -112,9 +112,9 @@ async function ContratoSelecionado({
   const retPct = retencaoVigente((rets ?? []) as any, mesAtual());
 
   // Edição de um lançamento pendente próprio (ou ADM)
-  const editando = editarId ? (lancs ?? []).find((l: any) => l.id === editarId && l.status === "PENDENTE" && (ehAdmin || l.criado_por === userId)) : null;
+  const editando = editarId ? (lancs ?? []).find((l: any) => l.id === editarId && l.status !== "APROVADO" && (ehAdmin || l.criado_por === userId)) : null;
   const reserva: Record<string, number> = {};
-  if (editando) for (const li of editando.contrato_lancamento_itens ?? []) reserva[li.item_id] = (reserva[li.item_id] ?? 0) + Number(li.quantidade_medida);
+  if (editando?.status === "PENDENTE") for (const li of editando.contrato_lancamento_itens ?? []) reserva[li.item_id] = (reserva[li.item_id] ?? 0) + Number(li.quantidade_medida);
 
   const edicao: Edicao | null = editando
     ? {
@@ -169,6 +169,7 @@ async function ContratoSelecionado({
             edicao={edicao}
           />
         )}
+        {editando?.status === "REJEITADO" && <p className="text-xs text-danger mt-3">Corrigindo lançamento rejeitado ({editando.motivo_rejeicao}). Ao salvar, ele volta para aprovação.</p>}
         {edicao && <Link href={`/contratos/medicoes?contrato=${contratoId}`} className="text-xs text-ink-500 underline mt-3 inline-block">Cancelar edição</Link>}
       </div>
 
@@ -192,7 +193,7 @@ async function ContratoSelecionado({
             </thead>
             <tbody>
               {(lancs ?? []).map((l: any) => {
-                const minhaPendente = l.status === "PENDENTE" && (ehAdmin || l.criado_por === userId);
+                const minhaPendente = l.status !== "APROVADO" && (ehAdmin || l.criado_por === userId);
                 const fotosL = (fotos ?? []).filter((f: any) => f.lancamento_id === l.id);
                 return (
                   <tr key={l.id} className="border-b align-top">

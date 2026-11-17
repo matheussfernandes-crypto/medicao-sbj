@@ -521,7 +521,7 @@ export async function salvarLancamento(fd: FormData): Promise<Resultado> {
   if (lancamentoId) {
     const { data } = await p.supabase.from("contrato_lancamentos").select("*").eq("id", lancamentoId).single();
     if (!data) return { erro: "Lançamento não encontrado." };
-    if (data.status !== "PENDENTE") return { erro: "Este lançamento já foi aprovado/rejeitado e não pode mais ser alterado." };
+    if (data.status === "APROVADO") return { erro: "Este lançamento já foi aprovado e não pode mais ser alterado." };
     if (!p.ehAdmin && data.criado_por !== p.userId) return { erro: "Você só pode editar lançamentos feitos por você." };
     anterior = data;
   }
@@ -542,8 +542,8 @@ export async function salvarLancamento(fd: FormData): Promise<Resultado> {
 
     const { data: saldos } = await p.supabase
       .from("contrato_itens_saldo").select("*").eq("contrato_id", contratoId);
-    // Na edição, o que este lançamento já reservava volta para o saldo.
-    const { data: proprios } = lancamentoId
+    // Na edição de um pendente, o que ele já reservava volta para o saldo (rejeitado não reserva nada).
+    const { data: proprios } = lancamentoId && anterior?.status === "PENDENTE"
       ? await p.supabase.from("contrato_lancamento_itens").select("item_id, quantidade_medida").eq("lancamento_id", lancamentoId)
       : { data: [] as any[] };
 
@@ -582,7 +582,11 @@ export async function salvarLancamento(fd: FormData): Promise<Resultado> {
   if (anterior) {
     const { error } = await p.supabase
       .from("contrato_lancamentos")
-      .update({ ...campos, editado_por: p.userId, editado_em: new Date().toISOString() })
+      .update({
+        ...campos, editado_por: p.userId, editado_em: new Date().toISOString(),
+        // Rejeitado corrigido volta para aprovação.
+        status: "PENDENTE", motivo_rejeicao: null, aprovado_por: null, aprovado_em: null,
+      })
       .eq("id", lancamentoId);
     if (error) return { erro: error.message };
     await p.supabase.from("contrato_lancamento_itens").delete().eq("lancamento_id", lancamentoId);
@@ -608,14 +612,14 @@ export async function salvarLancamento(fd: FormData): Promise<Resultado> {
   const valor = tipo === "VALE" ? valorVale : valorMedido;
   if (!p.ehAdmin || anterior) {
     notificarAdmins({
-      title: anterior ? `${TIPO_LANC_LABEL[tipo]} editado(a)` : `Novo(a) ${TIPO_LANC_LABEL[tipo].toLowerCase()} de contrato`,
+      title: anterior?.status === "REJEITADO" ? `${TIPO_LANC_LABEL[tipo]} corrigido(a) e reenviado(a)` : anterior ? `${TIPO_LANC_LABEL[tipo]} editado(a)` :`Novo(a) ${TIPO_LANC_LABEL[tipo].toLowerCase()} de contrato`,
       body: `Contrato ${contrato.numero} · ${contrato.obra_nome} · ${contrato.empresa_nome} · ${brl(valor)} · por ${p.nome}`,
       url: `/contratos/aprovacoes#l-${id}`,
     }).catch(() => null);
   }
 
   revalidarTudo(contratoId);
-  return { ok: anterior ? "Lançamento atualizado." : "Lançamento enviado para aprovação.", id };
+  return { ok: anterior?.status === "REJEITADO" ? "Lançamento corrigido e reenviado para aprovação." : anterior ? "Lançamento atualizado." : "Lançamento enviado para aprovação.", id };
 }
 
 export async function excluirLancamentoContrato(fd: FormData): Promise<Resultado> {
@@ -625,7 +629,7 @@ export async function excluirLancamentoContrato(fd: FormData): Promise<Resultado
   const { data: l } = await p.supabase
     .from("contrato_lancamentos").select("status, criado_por, contrato_id, tipo, valor_medido").eq("id", id).single();
   if (!l) return { erro: "Lançamento não encontrado." };
-  if (l.status !== "PENDENTE") return { erro: "Só é possível excluir lançamentos pendentes." };
+  if (l.status === "APROVADO") return { erro: "Só é possível excluir lançamentos pendentes ou rejeitados." };
   if (!p.ehAdmin && l.criado_por !== p.userId) return { erro: "Você só pode excluir lançamentos feitos por você." };
 
   const { data: fotos } = await p.supabase.from("contrato_anexos").select("storage_path").eq("lancamento_id", id);

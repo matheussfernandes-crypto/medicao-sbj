@@ -45,7 +45,7 @@ export function camposDoCadastro(c: CadastroPosobra) {
   const end = enderecoCompleto(c);
   if (end) r.address = end;
   if (c.fase === "entregue") r.status = "concluido";
-  else if (c.fase === "obra") r.status = "andamento";
+  else if (c.fase === "obra" || c.fase === "desenvolvimento") r.status = "andamento";
   const entrega = c.data_entrega_real || c.data_entrega_prevista;
   if (entrega) r.deliveryDate = entrega.slice(0, 10);
   if (c.unidades) r.units = c.unidades;

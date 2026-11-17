@@ -6,14 +6,14 @@ import { ArrowLeft, Copy, ImagePlus, Plus, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import FiltroColuna, { contarValores, type Direcao } from "@/components/ui/FiltroColuna";
 import { BotaoSeta, DataCampo, Paginador, Recolher, useAberto, usePaginas } from "@/components/ui/anima";
-import { criarObra, marcarEntregue, salvarAparece, salvarLogo, salvarObra, voltarParaObra, type CampoAparece, type DadosObra } from "./actions";
+import { criarObra, marcarEntregue, mudarFase, salvarAparece, salvarLogo, salvarObra, voltarParaObra, type CampoAparece, type DadosObra } from "./actions";
 
 export type ObraCadastro = {
   id: string;
   nome: string;
   nome_completo: string | null;
   nomes_alternativos: string[] | null;
-  fase: "obra" | "entregue" | null;
+  fase: "desenvolvimento" | "obra" | "entregue" | null;
   cnpj: string | null;
   cno: string | null;
   razao_social: string | null;
@@ -80,7 +80,7 @@ const COLUNAS: Record<
   { rot: string; val?: (o: ObraCadastro) => string; lab?: (v: string) => string; ordens?: [Direcao, string][]; ord?: (o: ObraCadastro) => string | number | null }
 > = {
   obra: { rot: "Obra", ordens: AZ, ord: (o) => o.nome },
-  fase: { rot: "Fase", val: (o) => o.fase ?? "", lab: (v) => (v === "entregue" ? "Entregue" : v === "obra" ? "Em construção" : "Sem fase") },
+  fase: { rot: "Fase", val: (o) => o.fase ?? "", lab: (v) => (v === "entregue" ? "Concluída" : v === "obra" ? "Em execução" : v === "desenvolvimento" ? "Em desenvolvimento" : "Sem fase") },
   endereco: { rot: "Endereço", val: (o) => [o.cidade, o.uf].filter(Boolean).join("/"), lab: (v) => v || "Sem cidade", ordens: AZ, ord: (o) => o.endereco || null },
   cnpj: { rot: "CNPJ", val: (o) => o.cnpj ?? "", lab: (v) => v || "Sem CNPJ" },
   cno: { rot: "CNO", val: (o) => (o.cno ? "sim" : ""), lab: (v) => (v ? "Com CNO" : "Sem CNO") },
@@ -95,8 +95,9 @@ const COLUNAS: Record<
 };
 
 function Fase({ fase }: { fase: ObraCadastro["fase"] }) {
-  if (fase === "entregue") return <span className="rounded-full bg-[#E3F1E8] px-2.5 py-0.5 text-xs font-semibold text-[#1D6B3D]">Entregue</span>;
-  if (fase === "obra") return <span className="rounded-full bg-[#FDF0DC] px-2.5 py-0.5 text-xs font-semibold text-[#9A5B00]">Em construção</span>;
+  if (fase === "entregue") return <span className="rounded-full bg-[#E3F1E8] px-2.5 py-0.5 text-xs font-semibold text-[#1D6B3D]">Concluída</span>;
+  if (fase === "obra") return <span className="rounded-full bg-[#FDF0DC] px-2.5 py-0.5 text-xs font-semibold text-[#9A5B00]">Em execução</span>;
+  if (fase === "desenvolvimento") return <span className="rounded-full bg-[#E4ECFA] px-2.5 py-0.5 text-xs font-semibold text-[#2A4B8D]">Em desenvolvimento</span>;
   return <span className="rounded-full bg-[#E1E9EB] px-2.5 py-0.5 text-xs font-semibold text-ink-500">Sem fase</span>;
 }
 
@@ -280,7 +281,7 @@ export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; 
 function NovaObra({ cancelar, criada }: { cancelar: () => void; criada: (id: string) => void }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
-  const [f, setF] = useState({ nome: "", nome_completo: "", fase: "obra" as "obra" | "entregue", unidades: "", endereco: "", cidade: "", uf: "SC" });
+  const [f, setF] = useState({ nome: "", nome_completo: "", fase: "desenvolvimento" as "desenvolvimento" | "obra" | "entregue", unidades: "", endereco: "", cidade: "", uf: "SC" });
   const [erro, setErro] = useState<string | null>(null);
   const set = (k: keyof typeof f, v: string) => setF((x) => ({ ...x, [k]: v }));
 
@@ -319,8 +320,9 @@ function NovaObra({ cancelar, criada }: { cancelar: () => void; criada: (id: str
         </Campo>
         <Campo rotulo="Fase">
           <select className={inp} value={f.fase} onChange={(e) => set("fase", e.target.value)}>
-            <option value="obra">Em construção</option>
-            <option value="entregue">Entregue</option>
+            <option value="desenvolvimento">Em desenvolvimento</option>
+            <option value="obra">Em execução</option>
+            <option value="entregue">Concluída</option>
           </select>
         </Campo>
         <Campo rotulo="Unidades">
@@ -538,7 +540,7 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
       const r = await marcarEntregue(obra.id, dataReal);
       if (r.ok) {
         setEntregaAberta(false);
-        setMsg({ tipo: "ok", texto: "Obra marcada como entregue." });
+        setMsg({ tipo: "ok", texto: "Obra marcada como concluída." });
         router.refresh();
       } else setMsg({ tipo: "erro", texto: r.erro });
     });
@@ -550,12 +552,14 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
       else setMsg({ tipo: "erro", texto: r.erro });
     });
   }
-  function voltarObra() {
-    if (!confirm("Voltar esta obra para \"Em construção\"? A data de entrega real fica guardada, mas deixa de valer para a garantia.")) return;
+  function trocarFase(fase: "desenvolvimento" | "obra") {
+    const nome = fase === "obra" ? "Em execução" : "Em desenvolvimento";
+    if (obra.fase === "entregue" && !confirm(`Voltar esta obra para "${nome}"? A data de entrega real fica guardada, mas deixa de valer para a garantia.`)) return;
+    if (obra.fase === "obra" && fase === "desenvolvimento" && !confirm(`Voltar esta obra para "${nome}"? Ela sai do Andamento de obra (nada é apagado).`)) return;
     iniciar(async () => {
-      const r = await voltarParaObra(obra.id);
+      const r = await mudarFase(obra.id, fase);
       if (r.ok) {
-        setMsg({ tipo: "ok", texto: "Obra voltou para Em construção." });
+        setMsg({ tipo: "ok", texto: `Obra em ${nome.toLowerCase()}.` });
         router.refresh();
       } else setMsg({ tipo: "erro", texto: r.erro });
     });
@@ -733,13 +737,29 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
               <div className="space-y-3 text-sm">
                 <div className="flex flex-wrap items-center gap-3">
                   <Fase fase={obra.fase} />
-                  {obra.fase === "entregue" ? (
-                    <button type="button" className={btnSec} onClick={voltarObra} disabled={salvando}>
-                      Voltar para Em construção
+                  {obra.fase === "desenvolvimento" && (
+                    <button type="button" className={btnPri} onClick={() => trocarFase("obra")} disabled={salvando}>
+                      Iniciar execução da obra
                     </button>
-                  ) : (
+                  )}
+                  {obra.fase === "obra" && (
+                    <>
+                      <button type="button" className={btnPri} onClick={() => setEntregaAberta((a) => !a)} disabled={salvando}>
+                        Marcar como concluída
+                      </button>
+                      <button type="button" className={btnSec} onClick={() => trocarFase("desenvolvimento")} disabled={salvando}>
+                        Voltar para Em desenvolvimento
+                      </button>
+                    </>
+                  )}
+                  {obra.fase === "entregue" && (
+                    <button type="button" className={btnSec} onClick={() => trocarFase("obra")} disabled={salvando}>
+                      Voltar para Em execução
+                    </button>
+                  )}
+                  {!obra.fase && (
                     <button type="button" className={btnPri} onClick={() => setEntregaAberta((a) => !a)} disabled={salvando}>
-                      Marcar como entregue
+                      Marcar como concluída
                     </button>
                   )}
                 </div>
@@ -749,12 +769,12 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
                       <DataCampo value={dataReal} onChange={setDataReal} />
                     </Campo>
                     <button type="button" className={btnPri} onClick={entregar} disabled={salvando || !dataReal}>
-                      Confirmar entrega
+                      Confirmar conclusão
                     </button>
                     <span className="text-xs text-[#1D5560]">A data de entrega real é a base da garantia no Pós-venda.</span>
                   </div>
                 </Recolher>
-                <p className="text-xs text-ink-500">A fase só muda por aqui. Quando os módulos forem ligados ao cadastro, obra entregue sai do Andamento (fica no arquivo) e a Medição continua como está.</p>
+                <p className="text-xs text-ink-500">A fase só muda por aqui. Em desenvolvimento: aparece em Medição e Contratos. Em execução: aparece também no Andamento. Concluída: sai de Medição e Andamento (nada é apagado).</p>
               </div>
             </Bloco>
           </>

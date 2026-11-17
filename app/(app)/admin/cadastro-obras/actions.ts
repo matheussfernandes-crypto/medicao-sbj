@@ -93,7 +93,7 @@ export async function salvarObra(id: string, d: DadosObra): Promise<Resultado> {
 
 // Obra nova: nasce no Cadastro e já fica disponível nas Vistorias e no Pós-venda (cria a obra correspondente no pós-obra).
 // Medição, Fechamento, Contratos e Andamento não são tocados: a obra só aparece lá quando for ligada de propósito.
-export async function criarObra(d: { nome: string; nome_completo: string | null; fase: "obra" | "entregue"; unidades: number | null; endereco: string | null; cidade: string | null; uf: string | null }): Promise<
+export async function criarObra(d: { nome: string; nome_completo: string | null; fase: "desenvolvimento" | "obra" | "entregue"; unidades: number | null; endereco: string | null; cidade: string | null; uf: string | null }): Promise<
   { ok: true; id: string } | { ok: false; erro: string }
 > {
   try {
@@ -107,6 +107,7 @@ export async function criarObra(d: { nome: string; nome_completo: string | null;
 
     const agora = new Date().toISOString();
     const nomeCompleto = txt(d.nome_completo) ?? "Residencial " + nome.toLowerCase().replace(/(^|\s)(\S)/g, (_m, a, b, i) => (i > 0 && /^(de|da|do|dos|das)$/.test(nome.toLowerCase().slice(i + a.length).split(" ")[0]) ? a + b : a + b.toUpperCase()));
+    if (!["desenvolvimento", "obra", "entregue"].includes(d.fase)) return { ok: false, erro: "Fase inválida." };
     const status = d.fase === "entregue" ? "concluido" : "andamento";
     const endereco = txt(d.endereco);
     const unidades = num(d.unidades);
@@ -177,14 +178,18 @@ export async function marcarEntregue(id: string, dataReal: string): Promise<Resu
   }
 }
 
-// Volta para "em construção" (ex.: marcada como entregue por engano). A data real NÃO é apagada (nada se perde);
-// enquanto a fase for "em construção", ela não vale para a garantia.
-export async function voltarParaObra(id: string): Promise<Resultado> {
+// Muda entre "em desenvolvimento" e "em execução" (e volta de "entregue" por engano). A data real NÃO é apagada (nada se perde);
+// enquanto a fase não for "entregue", ela não vale para a garantia.
+export async function mudarFase(id: string, fase: "desenvolvimento" | "obra"): Promise<Resultado> {
+  if (fase !== "desenvolvimento" && fase !== "obra") return { ok: false, erro: "Fase inválida." };
+  return voltarParaObra(id, fase);
+}
+export async function voltarParaObra(id: string, fase: "desenvolvimento" | "obra" = "obra"): Promise<Resultado> {
   try {
     const { supabase, userId } = await exigirAdmin();
     const { error } = await supabase
       .from("cadastro_obras")
-      .update({ fase: "obra", atualizado_em: new Date().toISOString(), atualizado_por: userId })
+      .update({ fase, atualizado_em: new Date().toISOString(), atualizado_por: userId })
       .eq("id", id);
     if (error) return { ok: false, erro: "Não consegui salvar: " + error.message };
     revalidatePath("/admin/cadastro-obras");

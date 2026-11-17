@@ -5,7 +5,8 @@ import { exigirPerfil } from "@/lib/contratos/server";
 import { calcularBoletim } from "@/lib/contratos/boletim";
 import { brl, num, pct, mesAtual, mesLabel, dataBR, dataHoraBR } from "@/lib/contratos/util";
 import FormAcao from "@/components/contratos/FormAcao";
-import { fecharMesContrato, reabrirMesContrato } from "../actions";
+import { fecharMesContrato, reabrirMesContrato, fecharValeMesContrato, reabrirValeMesContrato } from "../actions";
+import { calcularFechamentoVale } from "@/lib/contratos/fechamentoVale";
 import Selecao from "@/components/ui/Selecao";
 import { TabelaPaginada } from "@/components/ui/anima";
 
@@ -22,12 +23,14 @@ export default async function FechamentoContratosPage({
   const contratoId = searchParams.contrato || "";
   const mes = searchParams.mes || mesAtual();
 
-  const [b, { data: historico }] = contratoId
+  const [b, { data: historico }, fv, { data: historicoVale }] = contratoId
     ? await Promise.all([
         calcularBoletim(supabase, contratoId, mes),
         supabase.from("contrato_fechamentos").select("*").eq("contrato_id", contratoId).order("mes_referencia", { ascending: false }),
+        calcularFechamentoVale(supabase, contratoId, mes),
+        supabase.from("contrato_fechamentos_vale").select("*").eq("contrato_id", contratoId).order("mes_referencia", { ascending: false }),
       ])
-    : [null, { data: [] as any[] }];
+    : [null, { data: [] as any[] }, null, { data: [] as any[] }];
 
   return (
     <div className="space-y-5">
@@ -167,9 +170,72 @@ export default async function FechamentoContratosPage({
             )}
           </div>
 
+          {fv && (
+            <section className="card space-y-3">
+              <div className="flex flex-wrap items-baseline gap-2">
+                <h2 className="font-semibold text-primaryDark">Fechamento de vales de {mesLabel(mes)}</h2>
+                {fv.fechamento ? <span className="badge badge-aprovado">FECHADO</span> : <span className="badge badge-pendente">ABERTO</span>}
+                <span className="text-sm text-ink-500 ml-auto">{fv.vales.length} vale(s) · total <b className="text-ink-900">{brl(fv.total)}</b></span>
+              </div>
+              {fv.vales.length ? (
+                <ul className="text-sm divide-y">
+                  {fv.vales.map((v) => (
+                    <li key={v.id} className="py-1.5 flex gap-3">
+                      <span>Vale nº {v.numero} · {dataBR(v.data)}{v.observacao ? <span className="text-ink-500"> · {v.observacao}</span> : null}</span>
+                      <span className="ml-auto font-semibold whitespace-nowrap">{brl(v.valor)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="text-sm text-ink-400">Nenhum vale aprovado em {mesLabel(mes)}.</p>}
+              {fv.pendentesNoMes > 0 && !fv.fechamento && (
+                <p className="text-xs text-amber-800">Há {fv.pendentesNoMes} vale(s) pendente(s) neste mês. <Link href="/contratos/aprovacoes?tipo=VALE" className="underline font-semibold">Aprovar agora →</Link></p>
+              )}
+              <div className="flex flex-wrap items-center gap-3">
+                <a href={`/contratos/fechamento/vale-pdf?contrato=${contratoId}&mes=${mes}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-primary text-primary rounded-lg px-4 py-2 text-sm font-semibold">
+                  <FileDown className="w-4 h-4" /> {fv.fechamento ? "PDF dos vales" : "Ver PDF dos vales"}
+                </a>
+                {!fv.fechamento ? (
+                  <FormAcao action={fecharValeMesContrato} reset={false} confirmar={`Fechar os vales de ${mesLabel(mes)}? Total ${brl(fv.total)}. Depois de fechado, não entram mais vales neste mês.`} className="flex items-center">
+                    <input type="hidden" name="contratoId" value={contratoId} />
+                    <input type="hidden" name="mes" value={mes} />
+                    <button className="bg-primary text-white rounded-lg px-5 py-2 text-sm font-semibold">Fechar vale do mês</button>
+                  </FormAcao>
+                ) : (
+                  <>
+                    <span className="text-sm text-ink-500">Fechado em {dataHoraBR(fv.fechamento.fechado_em)}</span>
+                    <FormAcao action={reabrirValeMesContrato} reset={false} confirmar="Reabrir o fechamento de vales deste mês?" className="flex items-center">
+                      <input type="hidden" name="contratoId" value={contratoId} />
+                      <input type="hidden" name="mes" value={mes} />
+                      <button className="text-sm text-danger underline">Reabrir vales</button>
+                    </FormAcao>
+                  </>
+                )}
+              </div>
+            </section>
+          )}
+
+          {(historicoVale ?? []).length > 0 && (
+            <section className="card space-y-2">
+              <h2 className="font-semibold text-primaryDark">Vales fechados deste contrato</h2>
+              <TabelaPaginada por={15} className="w-full text-sm" cabecalho={
+<thead><tr className="text-left border-b"><th className="py-2">Mês</th><th className="py-2 text-right">Qtd. vales</th><th className="py-2 text-right">Total de vales</th><th className="py-2">Fechado em</th><th></th></tr></thead>
+}>
+                  {(historicoVale ?? []).map((f: any) => (
+                    <tr key={f.id} className="border-b">
+                      <td className="py-2"><Link href={`/contratos/fechamento?contrato=${contratoId}&mes=${f.mes_referencia}`} className="text-primary hover:underline">{mesLabel(f.mes_referencia)}</Link></td>
+                      <td className="py-2 text-right">{f.qtd_vales}</td>
+                      <td className="py-2 text-right font-semibold">{brl(f.valor_total)}</td>
+                      <td className="py-2 text-xs text-ink-500">{dataHoraBR(f.fechado_em)}</td>
+                      <td className="py-2 text-right"><a href={`/contratos/fechamento/vale-pdf?contrato=${contratoId}&mes=${f.mes_referencia}`} target="_blank" rel="noreferrer" className="text-xs text-primary underline">PDF</a></td>
+                    </tr>
+                  ))}
+                </TabelaPaginada>
+            </section>
+          )}
+
           {(historico ?? []).length > 0 && (
             <section className="card space-y-2">
-              <h2 className="font-semibold text-primaryDark">Meses fechados deste contrato</h2>
+              <h2 className="font-semibold text-primaryDark">Medições fechadas deste contrato</h2>
               <TabelaPaginada por={15} className="w-full text-sm" cabecalho={
 <thead><tr className="text-left border-b"><th className="py-2">Mês</th><th className="py-2 text-right">Bruto</th><th className="py-2 text-right">Retenção</th><th className="py-2 text-right">Vales</th><th className="py-2 text-right">Líquido</th><th></th></tr></thead>
 }>

@@ -5,7 +5,7 @@
     ".seg-deslize{position:relative!important}" +
     ".seg-deslize>.seg-marca{position:absolute;left:0;top:0;z-index:0;border-radius:inherit;background:var(--surface,#fff);box-shadow:0 1px 3px rgba(0,0,0,.14);pointer-events:none;opacity:0;transition:transform .34s cubic-bezier(.22,1,.36,1),width .34s cubic-bezier(.22,1,.36,1),height .34s cubic-bezier(.22,1,.36,1),opacity .2s ease}" +
     ".seg-deslize>:not(.seg-marca){position:relative;z-index:1}" +
-    '.seg-deslize>[aria-pressed="true"],.seg-deslize>.ativo{background:transparent!important;box-shadow:none!important}' +
+    '.seg-deslize>[aria-pressed="true"],.seg-deslize>.ativo,.seg-deslize>.active{background:transparent!important;box-shadow:none!important}' +
     "@keyframes segTroca{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}" +
     "#view.troca,.view.troca{animation:segTroca .32s cubic-bezier(.22,1,.36,1) both}" +
     "@media (prefers-reduced-motion:reduce){.seg-deslize>.seg-marca,#view.troca,.view.troca{transition:none!important;animation:none!important}}";
@@ -17,7 +17,7 @@
 
   function alinha(g) {
     var chave = g.getAttribute("aria-label") || g.className || "seg";
-    var ativo = g.querySelector('[aria-pressed="true"]') || g.querySelector(".ativo");
+    var ativo = g.querySelector('[aria-pressed="true"]') || g.querySelector(".ativo") || g.querySelector(".active");
     var m = g.querySelector(":scope > .seg-marca");
     if (!ativo) {
       if (m) m.style.opacity = "0";
@@ -50,7 +50,7 @@
   var agendado = false;
   function todos() {
     agendado = false;
-    var grupos = document.querySelectorAll(".seg, .vt-seg");
+    var grupos = document.querySelectorAll(".seg, .vt-seg, .vt-modos, .vt-chipbar");
     for (var i = 0; i < grupos.length; i++) {
       grupos[i].classList.add("seg-deslize");
       alinha(grupos[i]);

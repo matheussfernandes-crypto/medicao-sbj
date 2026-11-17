@@ -291,7 +291,7 @@ function vtRenderControle(root) {
   const seletor = `<style>.vtc-emp{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0 4px}.vtc-emp select{min-width:280px;padding:8px 10px;border-radius:10px;border:1px solid var(--border,#e2e6ec);font:inherit;background:var(--surface,#fff)}.vtc-msg{font-size:13px;color:var(--text-muted,#64748b)}.vtc-erro{color:#b91c1c}.vtc-ov{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:9000;padding:16px}.vtc-box{background:#fff;border-radius:14px;padding:18px;max-width:520px;width:100%}.vtc-box textarea{width:100%;font:13px monospace;margin:8px 0;padding:8px;border:1px solid #e2e6ec;border-radius:8px}.vtc-acoes2{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}</style>
     <div class="vtc-emp"><label>Empreendimento <select id="vtc-emp">${(vtCtrl.lista || []).map(e => `<option value="${escapeHtml(e.id)}" ${emp && e.id === emp.id ? "selected" : ""}>${escapeHtml(e.nome)} · ${e.pct}%</option>`).join("")}</select></label>${vtCtrl.carregando ? `<span class="vtc-msg">Carregando do Andamento…</span>` : ""}${vtCtrl.erro ? `<span class="vtc-msg vtc-erro">${escapeHtml(vtCtrl.erro)}</span>` : ""}</div>`;
   // cada empreendimento tem a sua tabela; um novo empreendimento aparece aqui sozinho quando entrar no Andamento
-  let linhas = vtControleDados().filter(l => emp && vtChaveEmp(l.b.name) === emp.chave);
+  let linhas = vtControleFiltradas(); // já vem em ordem crescente de apartamento
   const cont = k => linhas.filter(l => l.cls === k).length;
   const cartoes = [["ok", "Liberado p/ agendar"], ["agendada", "Agendadas"], ["feita", "Realizadas"], ["fin", "Financiamento"], ["obra", "Aguardando obra"]]
     .map(([k, t]) => `<div class="vtc-card vtc-${k}"><strong>${cont(k)}</strong><span>${t}</span></div>`).join("");
@@ -481,7 +481,8 @@ async function vtCadSalvar(linhas) {
 /* linhas do controle do empreendimento escolhido */
 function vtControleFiltradas() {
   const emp = vtEmpSel();
-  return vtControleDados().filter(l => emp && vtChaveEmp(l.b.name) === emp.chave);
+  return vtControleDados().filter(l => emp && vtChaveEmp(l.b.name) === emp.chave)
+    .sort((a, b) => String(a.c.unit).localeCompare(String(b.c.unit), "pt-BR", { numeric: true })); // sempre em ordem crescente de apartamento
 }
 /* gera a planilha do controle (CSV separado por ponto e vírgula, abre direto no Excel) */
 function vtControleRelatorio() {

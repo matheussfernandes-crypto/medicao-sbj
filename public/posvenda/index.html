@@ -314,7 +314,7 @@ input:not([type=checkbox]):not([type=radio]),select,textarea{border-radius:10px;
 .seg{border-radius:12px;padding:4px;background:var(--surface-2);gap:2px}
 .seg button{border-radius:9px;min-height:36px;padding:8px 14px;font-weight:600;transition:color .2s ease}
 .seg button[aria-pressed="true"]{color:var(--accent)}
-.tbl-wrap{border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.tbl-wrap{border-radius:14px;overflow-x:auto;box-shadow:var(--shadow)}
 table thead th{background:var(--surface-2);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:700}
 tbody tr{transition:background .15s ease}
 tbody tr:hover{background:var(--accent-soft)}
@@ -609,6 +609,7 @@ function renderView(force){
   const f={inicio:vInicio,chamados:vChamados,agenda:vAgenda,painel:vPainel,relatorios:vRelatorios,cadastros:vCadastros,preencher:vPreencher}[S.view];
   $("#view").innerHTML=f();
   if(S.view==="chamados")renderChList();
+  if(S.view==="cadastros"){renderCadUni();renderCadForn()}
 }
 document.addEventListener("focusout",()=>{if(S.pending)setTimeout(()=>{if(S.pending)renderView()},350)});
 
@@ -1258,13 +1259,13 @@ function renderChList(dir){
   el.innerHTML=dica+(l.length?`<div class="list${dir===1?" pg-dir":dir===-1?" pg-esq":""}">${l.map(c=>chRow(c,true)).join("")}</div>${chPager(S.chPag,pags,tudo.length,POR)}`:(S.ch.length?`<div class="empty" style="margin:10px 0">Nenhum chamado com esses filtros.</div>`:`<div class="empty" style="margin:10px 0"><b>Nenhum chamado ainda</b>Use o Registro rápido na tela inicial: cole a conversa do WhatsApp e a IA cria o primeiro chamado.</div>`));
 }
 
-function chPager(p,pags,total,por){
+function chPager(p,pags,total,por,at="data-pag"){
   if(pags<2)return "";
   const nums=[];for(let i=0;i<pags;i++){if(i===0||i===pags-1||Math.abs(i-p)<=1)nums.push(i);else if(nums[nums.length-1]!=="…")nums.push("…")}
   return `<div class="pager"><span class="small muted">${p*por+1}–${Math.min(total,p*por+por)} de ${total}</span><div class="pager-b">
-    <button class="btn sm" data-pag="${p-1}" ${p===0?"disabled":""} aria-label="Página anterior">‹</button>
-    ${nums.map(n=>n==="…"?'<span class="muted small">…</span>':`<button class="btn sm${n===p?" pri":""}" data-pag="${n}" ${n===p?'aria-current="page"':""}>${n+1}</button>`).join("")}
-    <button class="btn sm" data-pag="${p+1}" ${p===pags-1?"disabled":""} aria-label="Próxima página">›</button></div></div>`;
+    <button class="btn sm" ${at}="${p-1}" ${p===0?"disabled":""} aria-label="Página anterior">‹</button>
+    ${nums.map(n=>n==="…"?'<span class="muted small">…</span>':`<button class="btn sm${n===p?" pri":""}" ${at}="${n}" ${n===p?'aria-current="page"':""}>${n+1}</button>`).join("")}
+    <button class="btn sm" ${at}="${p+1}" ${p===pags-1?"disabled":""} aria-label="Próxima página">›</button></div></div>`;
 }
 document.addEventListener("click",function(e){
   const b=e.target.closest&&e.target.closest("[data-pag]");if(!b||b.disabled)return;
@@ -1450,6 +1451,10 @@ function drawerUni(u){
   if(!u)return `<div class="dr-h"><h2>Unidade não encontrada</h2><button class="btn ghost" data-a="dr-close" aria-label="Fechar">${I_X}</button></div>`;
   const e=emp(u.empId)||{};const chs=S.ch.filter(c=>c.uniId===u.id).sort((a,b)=>(b.num||0)-(a.num||0));
   const cats={};chs.forEach(c=>cats[c.cat]=(cats[c.cat]||0)+1);
+  if(S.drawerMode==="edit"){const campo=(id,l,v,cls)=>`<label class="f ${cls||""}">${l}<input class="in" id="${id}" value="${esc(v||"")}"></label>`;
+    return `<div class="dr-h"><div><div class="eyebrow">Editar cliente</div><h2>${esc(e.nome||"")} · ${esc(uniLabel(u))}</h2></div><button class="btn ghost" data-a="du-cancel" aria-label="Fechar">${I_X}</button></div>
+    <div class="dr-b"><div class="fgrid">${campo("du-num","Unidade",u.numero,"s3")}${campo("du-bl","Bloco",u.bloco,"s3")}${campo("du-prop","Proprietário",u.prop,"s6")}${campo("du-tel","WhatsApp",fmtTel(u.tel),"s3")}${campo("du-contatos","Outros telefones",u.contatos,"s3")}${campo("du-email","E-mail",u.email,"s6")}${campo("du-vaga","Vaga",u.vaga,"s3")}<label class="f s3">Financiamento<select class="in" id="du-fin">${FIN_OPTS.map(o=>`<option value="${o[0]}" ${(u.fin||"")===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></label><label class="f s6">Observações<textarea class="in" id="du-obs" rows="3">${esc(u.obs||"")}</textarea></label></div>
+    <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="du-cancel">Cancelar</button><button class="btn pri" data-a="du-save">Salvar</button></div></div>`}
   return `<div class="dr-h"><div><div class="eyebrow">Histórico da unidade</div><h2>${esc(e.nome||"")} · ${esc(uniLabel(u))}</h2></div><button class="btn ghost" data-a="dr-close" aria-label="Fechar">${I_X}</button></div>
   <div class="dr-b"><div class="row"><button class="btn pri sm" data-a="uni-novo" data-id="${esc(u.id)}">${I_SPARK}<span>Novo chamado nesta unidade</span></button>${u.tel?`<a class="btn sm wa" href="${esc(waLink(u.tel,""))}" target="_blank" rel="noopener">${I_WA}<span>WhatsApp</span></a>`:""}<button class="btn sm ghost" data-a="cad-edit-uni" data-id="${esc(u.id)}">Editar dados</button></div>
   <dl class="kv"><dt>Proprietário</dt><dd>${esc(u.prop||"—")}</dd><dt>WhatsApp</dt><dd class="mono">${u.tel?`<a href="${esc(waLink(u.tel,""))}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(fmtTel(u.tel))}</a>`:"—"}</dd>
@@ -1706,7 +1711,7 @@ function repBaixarCSV(){
 /* ================= CADASTROS ================= */
 function vCadastros(){
   const t=S.cadTab;
-  const tabs=[["emp","Empreendimentos"],["uni","Unidades"],["forn","Fornecedores"],["resp","Responsáveis"],["gar","Garantia"],["msg","Mensagens"],["eq","Equipe"],["imp","Importar"],["bkp","Backup"]];
+  const tabs=[["emp","Empreendimentos"],["uni","Clientes"],["forn","Fornecedores"],["resp","Responsáveis"],["gar","Garantia"],["msg","Mensagens"],["eq","Equipe"],["imp","Importar"],["bkp","Backup"]];
   let body="";if(t==="imp")body=cadImp();if(t==="bkp")body=cadBkp();if(t==="eq")body=cadEq();
   if(t==="emp")body=cadEmp();if(t==="uni")body=cadUni();if(t==="resp")body=cadResp();if(t==="gar")body=cadGar();if(t==="msg")body=cadMsg();if(t==="forn")body=cadForn();
   return `<div class="top"><div><h1>Cadastros</h1><div class="sub">Os cadastros também se formam sozinhos a partir dos chamados.</div></div></div>
@@ -1732,15 +1737,27 @@ function cadUni(){
   if(!S.cadEmp){const cont={};S.uni.forEach(u=>cont[u.empId]=(cont[u.empId]||0)+1);
     return `<div class="small muted">Escolha o empreendimento, ou use a busca no topo para achar uma unidade ou cliente.</div>
     <div class="emp-pick">${[...S.emp].sort((a,b)=>a.nome.localeCompare(b.nome)).map(e=>`<button data-a="cad-emp-pick" data-id="${esc(e.id)}"><b>${esc(e.nome)}</b><div class="small muted">${cont[e.id]||0} ${plural(cont[e.id]||0,"unidade")}${e.status==="obra"?" · em construção":""}</div></button>`).join("")}</div>`}
-  const lista=S.uni.filter(u=>!S.cadEmp||u.empId===S.cadEmp).sort((a,b)=>((emp(a.empId)||{}).nome||"").localeCompare((emp(b.empId)||{}).nome||"")||String(a.bloco).localeCompare(String(b.bloco))||String(a.numero).localeCompare(String(b.numero),"pt",{numeric:true}));
-  const form=u=>`<tr><td>${esc((emp(u.empId)||{}).nome||"")}</td><td><input class="in" id="cu-num" value="${esc(u.numero||"")}" style="width:90px"></td><td><input class="in" id="cu-bl" value="${esc(u.bloco||"")}" style="width:70px"></td><td><input class="in" id="cu-prop" value="${esc(u.prop||"")}"></td><td><input class="in" id="cu-tel" value="${esc(fmtTel(u.tel))}"></td><td><input class="in" id="cu-email" value="${esc(u.email||"")}"></td><td><input class="in" id="cu-vaga" value="${esc(u.vaga||"")}" style="width:90px"></td><td><select class="in" id="cu-fin">${FIN_OPTS.map(o=>`<option value="${o[0]}" ${(u.fin||"")===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></td><td></td><td style="white-space:nowrap"><button class="btn sm ghost" data-a="ed-cancel">Cancelar</button> <button class="btn sm pri" data-a="cu-save" data-id="${esc(u.id)}">Salvar</button></td></tr>`;
-  return `<div class="row"><select class="in" id="cad-emp" data-c="cad-emp" style="width:auto"><option value="">‹ Escolher outro empreendimento</option>${[...S.emp].sort((a,b)=>a.nome.localeCompare(b.nome)).map(e=>`<option value="${esc(e.id)}" ${S.cadEmp===e.id?"selected":""}>${esc(e.nome)}</option>`).join("")}</select><span class="small muted">${lista.length} ${plural(lista.length,"unidade")}</span></div>
-  <div class="cad-uni-filtros"><input class="in" id="cad-uq" placeholder="Buscar por unidade, proprietário, telefone, e-mail, vaga…" autocomplete="off"><select class="in" id="cad-ufin"><option value="">Financiamento: todos</option>${FIN_OPTS.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</select><span class="small muted" id="cad-ucont"></span></div>
-  <style>.cad-uni-filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.cad-uni-filtros input{min-width:300px;flex:1}.cad-uni-filtros select{width:auto;min-width:200px}.cad-uni-tab{font-size:13px}.cad-uni-tab th,.cad-uni-tab td{white-space:normal;vertical-align:middle;padding:8px 10px}.cad-uni-tab td .in{font-size:13px;min-width:0}.cad-uni-tab td:nth-child(5){min-width:150px}.cad-uni-tab td:nth-child(7){min-width:190px}.cad-uni-tab td:nth-child(8){min-width:200px}</style>
-  <div class="tbl-wrap"><table class="cad-uni-tab"><thead><tr><th>Empreendimento</th><th>Unidade</th><th>Bloco</th><th>Proprietário</th><th>WhatsApp</th><th>E-mail</th><th>Vaga</th><th>Financiamento</th><th class="n">Chamados</th><th></th></tr></thead><tbody>
-  ${lista.map(u=>isEd("uni",u.id)?form(u):`<tr class="click" data-a="open-uni" data-id="${esc(u.id)}" data-fin="${esc(u.fin||"")}" data-busca="${esc(norm([u.numero,u.bloco,u.prop,u.tel,u.contatos,u.email,u.vaga,(emp(u.empId)||{}).nome].join(" ")))}"><td>${esc((emp(u.empId)||{}).nome||"")}</td><td><b>${esc(u.numero)}</b></td><td>${esc(u.bloco||"")}</td><td>${esc(u.prop||"")}</td><td class="mono">${u.tel?esc(fmtTel(u.tel)):`<span class="small muted" style="font-family:var(--f-body)">${esc(u.contatos||"")}</span>`}</td><td>${esc(u.email||"—")}</td><td>${esc(u.vaga||"—")}</td><td>${esc(finLabel(u.fin))}</td><td class="n">${S.ch.filter(c=>c.uniId===u.id).length}</td><td><button class="btn sm ghost" data-a="cad-edit" data-k="uni" data-id="${esc(u.id)}" ${S.edit?"disabled":""}>Editar</button></td></tr>`).join("")}
-  ${!lista.length?`<tr><td colspan="10"><div class="empty" style="border:0">As unidades são criadas automaticamente quando um chamado é registrado.</div></td></tr>`:""}
-  </tbody></table></div>`;
+  return `<div class="row"><select class="in" id="cad-emp" data-c="cad-emp" style="width:auto"><option value="">‹ Escolher outro empreendimento</option>${[...S.emp].sort((a,b)=>a.nome.localeCompare(b.nome)).map(e=>`<option value="${esc(e.id)}" ${S.cadEmp===e.id?"selected":""}>${esc(e.nome)}</option>`).join("")}</select><span class="small muted" id="cad-utotal"></span></div>
+  <div class="cad-uni-filtros"><input class="in" id="cad-uq" placeholder="Buscar por unidade, proprietário, telefone, e-mail, vaga…" autocomplete="off" value="${esc(S.cadUq||"")}"><select class="in" id="cad-ufin"><option value="">Financiamento: todos</option>${FIN_OPTS.map(o=>`<option value="${o[0]}" ${S.cadUfin===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></div>
+  <style>.cad-uni-filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.cad-uni-filtros input{min-width:300px;flex:1}.cad-uni-filtros select{width:auto;min-width:200px}.cad-uni-tab{font-size:13px;table-layout:auto;width:100%}.cad-uni-tab th,.cad-uni-tab td{white-space:normal;vertical-align:middle;padding:8px 10px;overflow-wrap:anywhere}.cad-uni-tab td:nth-child(5){min-width:140px}</style>
+  <div id="cad-ulist"></div>`;
+}
+const CAD_POR=15;
+function cadUniFiltradas(){
+  const q=norm(S.cadUq||""),f=S.cadUfin||"";
+  return S.uni.filter(u=>!S.cadEmp||u.empId===S.cadEmp).filter(u=>(!f||(u.fin||"")===f)&&(!q||norm([u.numero,u.bloco,u.prop,u.tel,u.contatos,u.email,u.vaga,(emp(u.empId)||{}).nome].join(" ")).includes(q)))
+   .sort((a,b)=>((emp(a.empId)||{}).nome||"").localeCompare((emp(b.empId)||{}).nome||"")||String(a.bloco).localeCompare(String(b.bloco))||String(a.numero).localeCompare(String(b.numero),"pt",{numeric:true}));
+}
+function renderCadUni(){
+  const el=$("#cad-ulist");if(!el)return;
+  const tudo=cadUniFiltradas(),todas=S.uni.filter(u=>!S.cadEmp||u.empId===S.cadEmp).length;
+  const pags=Math.max(1,Math.ceil(tudo.length/CAD_POR));S.cadUPag=Math.min(S.cadUPag||0,pags-1);
+  const l=tudo.slice(S.cadUPag*CAD_POR,S.cadUPag*CAD_POR+CAD_POR);
+  const t=$("#cad-utotal");if(t)t.textContent=tudo.length===todas?`${todas} ${plural(todas,"unidade")}`:`${tudo.length} de ${todas} unidades`;
+  el.innerHTML=`<div class="tbl-wrap"><table class="cad-uni-tab"><thead><tr><th>Empreendimento</th><th>Unidade</th><th>Bloco</th><th>Proprietário</th><th>WhatsApp</th><th>E-mail</th><th>Vaga</th><th>Financiamento</th><th class="n">Chamados</th><th></th></tr></thead><tbody>
+  ${l.map(u=>`<tr class="click" data-a="open-uni" data-id="${esc(u.id)}"><td>${esc((emp(u.empId)||{}).nome||"")}</td><td><b>${esc(u.numero)}</b></td><td>${esc(u.bloco||"")}</td><td>${esc(u.prop||"")}</td><td class="mono">${u.tel?esc(fmtTel(u.tel)):`<span class="small muted" style="font-family:var(--f-body)">${esc(u.contatos||"")}</span>`}</td><td>${esc(u.email||"—")}</td><td>${esc(u.vaga||"—")}</td><td>${esc(finLabel(u.fin))}</td><td class="n">${S.ch.filter(c=>c.uniId===u.id).length}</td><td><button class="btn sm ghost" data-a="cad-edit-uni" data-id="${esc(u.id)}">Editar</button></td></tr>`).join("")}
+  ${!l.length?`<tr><td colspan="10"><div class="empty" style="border:0">${S.uni.length?"Nenhum cliente com esses filtros.":"As unidades são criadas automaticamente quando um chamado é registrado."}</div></td></tr>`:""}
+  </tbody></table></div>${chPager(S.cadUPag,pags,tudo.length,CAD_POR,"data-upag")}`;
 }
 function cadResp(){
   const novo=isEd("resp","__new");
@@ -1798,14 +1815,27 @@ function cadForn(){
   const novo=isEd("forn","__new");
   const campo=(id,val,ph)=>`<input class="in" id="${id}" value="${esc(val||"")}" placeholder="${ph}">`;
   const form=f=>`<tr><td>${campo("cf-nome",f.nomeFantasia,"Nome fantasia")}</td><td>${campo("cf-razao",f.razaoSocial,"Razão social")}</td><td>${campo("cf-cnpj",f.cnpj,"CNPJ")}</td><td>${campo("cf-tel",f.telefone,"Telefone")}</td><td>${campo("cf-email",f.email,"E-mail")}</td><td><select class="in" id="cf-st"><option value="ativo" ${f.status!=="inativo"?"selected":""}>Ativo</option><option value="inativo" ${f.status==="inativo"?"selected":""}>Inativo</option></select></td><td style="white-space:nowrap"><button class="btn sm pri" data-a="forn-save" data-id="${esc(f.id||"__new")}">Salvar</button> <button class="btn sm ghost" data-a="ed-cancel">Cancelar</button></td></tr>`;
-  const lista=S.forn;
-  return `<div class="row" style="justify-content:space-between"><span class="small muted">${lista.length} ${plural(lista.length,"fornecedor","fornecedores")} · o mesmo cadastro do módulo de vistorias</span><button class="btn pri sm" data-a="forn-new" ${S.edit?"disabled":""}>Novo fornecedor</button></div>
+  return `<div class="row" style="justify-content:space-between"><span class="small muted" id="forn-total"></span><button class="btn pri sm" data-a="forn-new" ${S.edit?"disabled":""}>Novo fornecedor</button></div>
+  <div class="cad-uni-filtros"><input class="in" id="forn-q" placeholder="Buscar fornecedor por nome, razão social, CNPJ, telefone ou e-mail…" autocomplete="off" value="${esc(S.fornQ||"")}"></div>
   ${S.fornErro?`<div class="banner c-bad" style="margin-top:12px">${esc(S.fornErro)}</div>`:""}
-  <div class="tbl-wrap"><table><thead><tr><th>Nome fantasia</th><th>Razão social</th><th>CNPJ</th><th>Telefone</th><th>E-mail</th><th>Situação</th><th></th></tr></thead><tbody>
+  <style>.cad-uni-filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.cad-uni-filtros input{min-width:300px;flex:1}.cad-uni-tab{font-size:13px;width:100%}.cad-uni-tab th,.cad-uni-tab td{white-space:normal;vertical-align:middle;padding:8px 10px;overflow-wrap:anywhere}</style>
+  <div id="forn-list"></div>`;
+}
+function renderCadForn(){
+  const el=$("#forn-list");if(!el||!S.forn)return;
+  const novo=isEd("forn","__new");
+  const campo=(id,val,ph)=>`<input class="in" id="${id}" value="${esc(val||"")}" placeholder="${ph}">`;
+  const form=f=>`<tr><td>${campo("cf-nome",f.nomeFantasia,"Nome fantasia")}</td><td>${campo("cf-razao",f.razaoSocial,"Razão social")}</td><td>${campo("cf-cnpj",f.cnpj,"CNPJ")}</td><td>${campo("cf-tel",f.telefone,"Telefone")}</td><td>${campo("cf-email",f.email,"E-mail")}</td><td><select class="in" id="cf-st"><option value="ativo" ${f.status!=="inativo"?"selected":""}>Ativo</option><option value="inativo" ${f.status==="inativo"?"selected":""}>Inativo</option></select></td><td style="white-space:nowrap"><button class="btn sm pri" data-a="forn-save" data-id="${esc(f.id||"__new")}">Salvar</button> <button class="btn sm ghost" data-a="ed-cancel">Cancelar</button></td></tr>`;
+  const q=norm(S.fornQ||"");
+  const tudo=S.forn.filter(f=>!q||norm([f.nomeFantasia,f.razaoSocial,f.cnpj,f.telefone,f.email].join(" ")).includes(q));
+  const pags=Math.max(1,Math.ceil(tudo.length/CAD_POR));S.fornPag=Math.min(S.fornPag||0,pags-1);
+  const l=tudo.slice(S.fornPag*CAD_POR,S.fornPag*CAD_POR+CAD_POR);
+  const t=$("#forn-total");if(t)t.textContent=(tudo.length===S.forn.length?`${S.forn.length} ${plural(S.forn.length,"fornecedor","fornecedores")}`:`${tudo.length} de ${S.forn.length} fornecedores`)+" · o mesmo cadastro do módulo de vistorias";
+  el.innerHTML=`<div class="tbl-wrap"><table class="cad-uni-tab"><thead><tr><th>Nome fantasia</th><th>Razão social</th><th>CNPJ</th><th>Telefone</th><th>E-mail</th><th>Situação</th><th></th></tr></thead><tbody>
   ${novo?form({}):""}
-  ${lista.map(f=>isEd("forn",f.id)?form(f):`<tr><td><b>${esc(f.nomeFantasia||f.razaoSocial||"—")}</b></td><td>${esc(f.razaoSocial||"")}</td><td class="mono">${esc(f.cnpj||"")}</td><td class="mono">${esc(f.telefone||"")}</td><td>${esc(f.email||"")}</td><td>${f.status==="inativo"?`<span class="pill">Inativo</span>`:`<span class="pill c-ok">Ativo</span>`}</td><td style="white-space:nowrap"><button class="btn sm ghost" data-a="forn-edit" data-id="${esc(f.id)}" ${S.edit?"disabled":""}>Editar</button></td></tr>`).join("")}
-  ${!lista.length&&!novo&&!S.fornErro?`<tr><td colspan="7"><div class="empty" style="border:0">Nenhum fornecedor cadastrado.</div></td></tr>`:""}
-  </tbody></table></div>`;
+  ${l.map(f=>isEd("forn",f.id)?form(f):`<tr><td><b>${esc(f.nomeFantasia||f.razaoSocial||"—")}</b></td><td>${esc(f.razaoSocial||"")}</td><td class="mono">${esc(f.cnpj||"")}</td><td class="mono">${esc(f.telefone||"")}</td><td>${esc(f.email||"")}</td><td>${f.status==="inativo"?`<span class="pill">Inativo</span>`:`<span class="pill c-ok">Ativo</span>`}</td><td style="white-space:nowrap"><button class="btn sm ghost" data-a="forn-edit" data-id="${esc(f.id)}" ${S.edit?"disabled":""}>Editar</button></td></tr>`).join("")}
+  ${!l.length&&!novo&&!S.fornErro?`<tr><td colspan="7"><div class="empty" style="border:0">${S.forn.length?"Nenhum fornecedor com essa busca.":"Nenhum fornecedor cadastrado."}</div></td></tr>`:""}
+  </tbody></table></div>${chPager(S.fornPag,pags,tudo.length,CAD_POR,"data-fpag")}`;
 }
 async function fornGravar(id){
   const val=i=>((document.getElementById(i)||{}).value||"").trim();
@@ -1979,7 +2009,9 @@ if(a==="ag-cal-dia"){agEscolheData(el.dataset.d);return}
   if(a==="busca-ch"){$("#busca").value="";$("#busca-r").hidden=true;openCh(el.dataset.id);return}
   if(a==="bkp-go"){fazerBackup();return}
   if(a==="cad-emp-pick"){S.cadEmp=el.dataset.id;renderView(true);return}
-  if(a==="cad-edit-uni"){const u=uni(el.dataset.id);if(!u)return;closeDrawer();S.cadTab="uni";S.cadEmp=u.empId;go("cadastros");S.edit={kind:"uni",id:u.id};renderView(true);return}
+  if(a==="cad-edit-uni"){e.stopPropagation();const u=uni(el.dataset.id);if(!u)return;S.drawer={k:"uni",id:u.id};S.drawerMode="edit";renderDrawer();return}
+  if(a==="du-cancel"){S.drawerMode=null;renderDrawer();return}
+  if(a==="du-save"){const id=S.drawer&&S.drawer.id;if(!id)return;const d={numero:val("du-num"),bloco:val("du-bl"),prop:val("du-prop"),tel:digits(val("du-tel")),contatos:val("du-contatos"),email:val("du-email"),vaga:val("du-vaga"),fin:val("du-fin"),obs:val("du-obs")};if(!d.numero)return toast("Informe a unidade.");dbUpd("uni",id,d).then(()=>{toast("Dados do cliente salvos");S.drawerMode=null;renderDrawer()}).catch(dbErr);return}
   if(a==="uni-novo"){const u=uni(el.dataset.id);if(!u)return;closeDrawer();go("inicio");const d=rascunhoVazio("");Object.assign(d.itens[0],{empId:u.empId,num:u.numero,bloco:u.bloco||"",cli:u.prop||"",tel:u.tel||"",desc:""});openReview(d);setTimeout(()=>{const f=$("#rv0-desc");f&&f.focus()},300);return}
   if(a==="cr-merge-ok"){const de=el.dataset.id,para=val("cr-merge-to");if(!para)return;el.disabled=true;(async()=>{try{
       const vs=S.ag.filter(x=>x.respId===de);for(const v of vs)await dbUpd("ag",v.id,{respId:para});
@@ -2033,10 +2065,11 @@ document.addEventListener("change",e=>{
   if(c==="cad-emp"){S.cadEmp=el.value;renderView(true);return}
 });
 document.addEventListener("click",e=>{const d=$("#chf-cat-d");if(!d)return;if(e.target.id==="chf-cat-x"){document.querySelectorAll(".chf-catcb").forEach(x=>x.checked=false);S.chF.cat=[];$("#chf-cat-t").textContent=chCatsTxt(S.chF);renderChList();return}if(d.open&&!d.contains(e.target))d.open=false});
-document.addEventListener("input",e=>{if(e.target.id==="chf-q"){S.chF.q=e.target.value;renderChList()}if(e.target.id==="busca")renderBusca();if(e.target.id==="cad-uq"||e.target.id==="cad-ufin")filtrarUnidades()});
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-upag],[data-fpag]");if(!b||b.disabled)return;e.stopPropagation();if(b.dataset.upag!==undefined){S.cadUPag=+b.dataset.upag;renderCadUni()}else{S.fornPag=+b.dataset.fpag;renderCadForn()}});
+document.addEventListener("input",e=>{if(e.target.id==="forn-q"){S.fornQ=e.target.value;S.fornPag=0;renderCadForn()}if(e.target.id==="chf-q"){S.chF.q=e.target.value;renderChList()}if(e.target.id==="busca")renderBusca();if(e.target.id==="cad-uq"||e.target.id==="cad-ufin")filtrarUnidades()});
 document.addEventListener("change",e=>{if(e.target.id==="cad-ufin")filtrarUnidades()});
 // filtra a lista de unidades na tela (sem recarregar a página)
-function filtrarUnidades(){const q=norm(($("#cad-uq")||{}).value||"");const f=($("#cad-ufin")||{}).value||"";let n=0;document.querySelectorAll("tr[data-busca]").forEach(tr=>{const ok=(!q||tr.dataset.busca.includes(q))&&(!f||tr.dataset.fin===f);tr.hidden=!ok;if(ok)n++});const c=$("#cad-ucont");if(c)c.textContent=(q||f)?`${n} de ${document.querySelectorAll("tr[data-busca]").length} unidades`:""}
+function filtrarUnidades(){S.cadUq=($("#cad-uq")||{}).value||"";S.cadUfin=($("#cad-ufin")||{}).value||"";S.cadUPag=0;renderCadUni();return;const q=norm(($("#cad-uq")||{}).value||"");const f=($("#cad-ufin")||{}).value||"";let n=0;document.querySelectorAll("tr[data-busca]").forEach(tr=>{const ok=(!q||tr.dataset.busca.includes(q))&&(!f||tr.dataset.fin===f);tr.hidden=!ok;if(ok)n++});const c=$("#cad-ucont");if(c)c.textContent=(q||f)?`${n} de ${document.querySelectorAll("tr[data-busca]").length} unidades`:""}
 document.addEventListener("focusout",e=>{if(e.target.id==="busca")setTimeout(()=>{const b=$("#busca-r");if(b&&!$("#busca-w").contains(document.activeElement))b.hidden=true},200)});
 document.addEventListener("focusin",e=>{if(e.target.id==="busca"&&e.target.value.trim())renderBusca()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&e.target.id==="busca"){e.target.value="";$("#busca-r").hidden=true;return}if(e.key==="Enter"&&e.target.id==="busca"){const f=$("#busca-r button");if(f){e.preventDefault();f.click()}return}if(e.key==="Escape"&&S.drawer){if(S.drawerMode){S.drawerMode=null;renderDrawer()}else closeDrawer()}});

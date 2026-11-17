@@ -58,8 +58,13 @@ export function nomeObra(o: { tipo: "MED" | "VALE"; obra: string; mes: string; p
   return limpa(`${o.previa ? "PRÉVIA - " : ""}${o.tipo} - ${obraCurta(o.obra)} - ${mesAno(o.mes)}`) + ".pdf";
 }
 
-/** Content-Disposition com acento (filename*) e versão sem acento para navegadores antigos. */
+/**
+ * Content-Disposition mantendo Ç e acentos. Leitores de PDF (ex.: extensão do Adobe no Chrome) usam só o
+ * `filename=` e ignoram o `filename*`, então o `filename=` leva o nome em UTF-8 bruto (o Chrome decodifica).
+ * Cabeçalho HTTP só aceita bytes 0–255: por isso os bytes UTF-8 vão "embrulhados" numa string latin1.
+ */
 export function disposicao(nome: string, tipo: "inline" | "attachment" = "inline") {
-  const ascii = nome.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "");
-  return `${tipo}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(nome)}`;
+  const n = nome.normalize("NFC").replace(/"/g, "");
+  const utf8Bruto = Buffer.from(n, "utf8").toString("latin1");
+  return `${tipo}; filename="${utf8Bruto}"; filename*=UTF-8''${encodeURIComponent(n)}`;
 }

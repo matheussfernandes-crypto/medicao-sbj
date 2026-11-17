@@ -118,3 +118,7 @@ summary.sbj-sum { list-style: none; display: inline-flex; align-items: center; g
 summary.sbj-sum::-webkit-details-marker { display: none; }
 summary.sbj-sum::after { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; opacity: .7; transform: rotate(-45deg); transition: transform .3s cubic-bezier(.22,1,.36,1); }
 details[open] > summary.sbj-sum::after { transform: rotate(45deg) translate(-2px, -2px); }
+
+/* títulos das colunas das tabelas: escuros e em negrito em todo o site */
+table thead th:not(.th-leve) { color: #1f2733; font-weight: 700; }
+html.dark table thead th:not(.th-leve) { color: #e3ecee; }

@@ -4,7 +4,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Copy, ImagePlus, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import BotaoOrdenar from "@/components/ui/BotaoOrdenar";
+import FiltroColuna, { contarValores, type Direcao } from "@/components/ui/FiltroColuna";
 import { BotaoSeta, DataCampo, Paginador, Recolher, useAberto, usePaginas } from "@/components/ui/anima";
 import { marcarEntregue, salvarAparece, salvarLogo, salvarObra, voltarParaObra, type CampoAparece, type DadosObra } from "./actions";
 
@@ -72,6 +72,28 @@ const norm = (s: string) =>
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase();
 
+// colunas da lista: o que cada título filtra (val/lab) e como ordena (ord)
+type ColunaObra = "obra" | "fase" | "endereco" | "cnpj" | "cno" | "unidades" | "entrega";
+const AZ: [Direcao, string][] = [["asc", "A → Z"], ["desc", "Z → A"]];
+const COLUNAS: Record<
+  ColunaObra,
+  { rot: string; val?: (o: ObraCadastro) => string; lab?: (v: string) => string; ordens?: [Direcao, string][]; ord?: (o: ObraCadastro) => string | number | null }
+> = {
+  obra: { rot: "Obra", ordens: AZ, ord: (o) => o.nome },
+  fase: { rot: "Fase", val: (o) => o.fase ?? "", lab: (v) => (v === "entregue" ? "Entregue" : v === "obra" ? "Em construção" : "Sem fase") },
+  endereco: { rot: "Endereço", val: (o) => [o.cidade, o.uf].filter(Boolean).join("/"), lab: (v) => v || "Sem cidade", ordens: AZ, ord: (o) => o.endereco || null },
+  cnpj: { rot: "CNPJ", val: (o) => o.cnpj ?? "", lab: (v) => v || "Sem CNPJ" },
+  cno: { rot: "CNO", val: (o) => (o.cno ? "sim" : ""), lab: (v) => (v ? "Com CNO" : "Sem CNO") },
+  unidades: { rot: "Unidades", ordens: [["asc", "Menos"], ["desc", "Mais"]], ord: (o) => o.unidades ?? null },
+  entrega: {
+    rot: "Entrega",
+    val: (o) => (entregaDe(o) ?? "").slice(0, 4),
+    lab: (v) => v || "Sem data",
+    ordens: [["asc", "Mais antigas"], ["desc", "Mais recentes"]],
+    ord: (o) => entregaDe(o) ?? null,
+  },
+};
+
 function Fase({ fase }: { fase: ObraCadastro["fase"] }) {
   if (fase === "entregue") return <span className="rounded-full bg-[#E3F1E8] px-2.5 py-0.5 text-xs font-semibold text-[#1D6B3D]">Entregue</span>;
   if (fase === "obra") return <span className="rounded-full bg-[#FDF0DC] px-2.5 py-0.5 text-xs font-semibold text-[#9A5B00]">Em construção</span>;
@@ -84,27 +106,59 @@ function Fase({ fase }: { fase: ObraCadastro["fase"] }) {
 export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; erro: string | null }) {
   const [abertaId, setAbertaId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
-  const [ordem, setOrdem] = useState<"nome" | "entrega">("nome");
+  const [filtros, setFiltros] = useState<Partial<Record<ColunaObra, string[]>>>({});
+  const [ordem, setOrdem] = useState<{ k: ColunaObra; d: Direcao } | null>(null);
   const aberta = obras.find((o) => o.id === abertaId) ?? null;
 
-  const lista = useMemo(() => {
+  const achadas = useMemo(() => {
     const q = norm(busca.trim());
-    const achadas = obras.filter(
-      (o) => !q || norm([o.nome, o.nome_completo, ...(o.nomes_alternativos ?? []), o.endereco, o.cidade, o.cnpj, o.cno].join(" ")).includes(q)
-    );
+    return obras.filter((o) => !q || norm([o.nome, o.nome_completo, ...(o.nomes_alternativos ?? []), o.endereco, o.cidade, o.cnpj, o.cno].join(" ")).includes(q));
+  }, [obras, busca]);
+  // passa nos filtros de todas as colunas, menos a indicada (para contar os valores daquela coluna)
+  const passa = (o: ObraCadastro, menos?: ColunaObra) =>
+    (Object.keys(filtros) as ColunaObra[]).every((k) => k === menos || !filtros[k]?.length || filtros[k]!.includes(COLUNAS[k].val!(o)));
+  const lista = useMemo(() => {
+    const vis = achadas.filter((o) => passa(o));
     const porNome = (a: ObraCadastro, b: ObraCadastro) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
-    if (ordem === "nome") return achadas.sort(porNome);
-    // ordem de entrega: entregues pela data real, em construção pela prevista; sem data vão para o fim
-    return achadas.sort((a, b) => {
-      const da = entregaDe(a);
-      const db = entregaDe(b);
-      if (da && db) return da < db ? -1 : da > db ? 1 : porNome(a, b);
-      if (da) return -1;
-      if (db) return 1;
-      return porNome(a, b);
+    if (!ordem) return vis.sort(porNome);
+    const def = COLUNAS[ordem.k];
+    const m = ordem.d === "desc" ? -1 : 1;
+    return vis.sort((a, b) => {
+      const x = def.ord!(a);
+      const y = def.ord!(b);
+      // sem valor sempre no fim
+      if (x === null && y === null) return porNome(a, b);
+      if (x === null) return 1;
+      if (y === null) return -1;
+      const r = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), "pt-BR", { numeric: true });
+      return r * m || porNome(a, b);
     });
-  }, [obras, busca, ordem]);
-  const pg = usePaginas(lista, 15, busca + "|" + ordem);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [achadas, filtros, ordem]);
+  const pg = usePaginas(lista, 15, busca + "|" + JSON.stringify(filtros) + "|" + JSON.stringify(ordem));
+  const nFiltros = Object.values(filtros).filter((v) => v?.length).length;
+
+  const titulo = (k: ColunaObra, direita = false) => {
+    const def = COLUNAS[k];
+    const valores = def.val
+      ? contarValores(achadas.filter((o) => passa(o, k)), def.val, def.lab).sort((a, b) =>
+          k === "entrega" ? b.v.localeCompare(a.v) : a.l.localeCompare(b.l, "pt-BR", { numeric: true })
+        )
+      : undefined;
+    (filtros[k] ?? []).forEach((v) => valores && !valores.some((x) => x.v === v) && valores.push({ v, l: def.lab ? def.lab(v) : v, n: 0 }));
+    return (
+      <FiltroColuna
+        rotulo={def.rot}
+        ordens={def.ordens}
+        ordem={ordem?.k === k ? ordem.d : null}
+        onOrdem={(d) => setOrdem(d ? { k, d } : null)}
+        valores={valores}
+        marcados={filtros[k] ?? []}
+        onMarcar={(v) => setFiltros((f) => ({ ...f, [k]: v }))}
+        alinharDireita={direita}
+      />
+    );
+  };
 
   if (aberta) return <EditorObra key={aberta.id + (aberta.atualizado_em ?? "")} obra={aberta} voltar={() => setAbertaId(null)} />;
 
@@ -121,28 +175,43 @@ export default function CadastroObras({ obras, erro }: { obras: ObraCadastro[]; 
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
           <input className={inp + " pl-9"} placeholder="Buscar por nome, endereço, CNPJ ou CNO…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
-        <BotaoOrdenar
-          valor={ordem}
-          onChange={setOrdem}
-          opcoes={[
-            { valor: "nome", rotulo: "Ordem alfabética" },
-            { valor: "entrega", rotulo: "Ordem de entrega" },
-          ]}
-        />
-        <span className="text-sm text-ink-500">{lista.length === obras.length ? `${obras.length} obras` : `${lista.length} de ${obras.length} obras`}</span>
+        <span className="text-sm text-ink-500">
+          {lista.length === obras.length ? `${obras.length} obras` : `${lista.length} de ${obras.length} obras`}
+          {(nFiltros > 0 || ordem) && (
+            <>
+              {nFiltros > 0 && (
+                <b className="text-primary">
+                  {" "}
+                  · {nFiltros} {nFiltros === 1 ? "filtro" : "filtros"} nas colunas
+                </b>
+              )}{" "}
+              ·{" "}
+              <button
+                type="button"
+                className="font-semibold text-primary underline"
+                onClick={() => {
+                  setFiltros({});
+                  setOrdem(null);
+                }}
+              >
+                limpar
+              </button>
+            </>
+          )}
+        </span>
       </div>
 
       <div ref={pg.topo} className="card-flush overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-500">
-              <th className="px-4 py-3">Obra</th>
-              <th className="px-3 py-3">Fase</th>
-              <th className="px-3 py-3">Endereço</th>
-              <th className="px-3 py-3">CNPJ</th>
-              <th className="px-3 py-3">CNO</th>
-              <th className="px-3 py-3 text-right">Unidades</th>
-              <th className="px-3 py-3">Entrega</th>
+              <th className="px-4 py-3">{titulo("obra")}</th>
+              <th className="px-3 py-3">{titulo("fase")}</th>
+              <th className="px-3 py-3">{titulo("endereco")}</th>
+              <th className="px-3 py-3">{titulo("cnpj")}</th>
+              <th className="px-3 py-3">{titulo("cno")}</th>
+              <th className="px-3 py-3 text-right">{titulo("unidades", true)}</th>
+              <th className="px-3 py-3">{titulo("entrega")}</th>
               <th className="px-3 py-3" />
             </tr>
           </thead>

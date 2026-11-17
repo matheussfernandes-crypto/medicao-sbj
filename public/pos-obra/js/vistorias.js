@@ -229,23 +229,53 @@ function vtControleDados() {
     else if (obra !== true) { st = "Aguardando obra"; cls = "obra"; }
     else { st = "Liberado p/ agendar"; cls = "ok"; }
     const data = marcada ? fmtDate(marcada.date) + (marcada.hora ? " · " + marcada.hora : "") : feita ? fmtDate(feita.date) : "";
-    return { c, b, st, cls, data, fin, obra, feita: !!feita, marcada: !!marcada };
+    const iso = marcada ? marcada.date + (marcada.hora ? " " + marcada.hora : "") : feita ? feita.date : "";
+    return { c, b, st, cls, data, iso, fin, obra, feita: !!feita, marcada: !!marcada };
   });
 }
-/* filtros de cada coluna e páginas da tabela do controle (20 por página, como na Medição) */
-const vtcF = { apto: "", cliente: "", vaga: "", fin: "", pintura: "", sit: "", data: "" };
+/* filtros e ordem no título de cada coluna, e páginas da tabela do controle (20 por página, como na Medição) */
+const vtcF = { apto: [], cliente: [], vaga: [], fin: [], pintura: [], sit: [], data: [] };
+let vtcOrd = null;   // { k, d } — sem escolha: ordem crescente de apartamento
 let vtcPag = 0;
 const VTC_POR = 20;
-function vtcPassa(l) {
-  const tem = (txt, q) => !q || vtNorm(txt).includes(vtNorm(q));
-  if (!tem(l.c.unit, vtcF.apto) || !tem(l.c.name, vtcF.cliente) || !tem(l.c.garage, vtcF.vaga) || !tem(l.data, vtcF.data)) return false;
-  if (vtcF.fin && (vtcF.fin === "-" ? !!l.fin : l.fin !== vtcF.fin)) return false;
-  if (vtcF.pintura && vtcF.pintura !== (l.obra === null ? "ligar" : l.obra ? "pronta" : "nao")) return false;
-  if (vtcF.sit && l.cls !== vtcF.sit) return false;
+const VTC_SIT = { ok: "Liberado p/ agendar", agendada: "Agendada", feita: "Vistoria realizada", fin: "Financiamento — não agendar", obra: "Aguardando obra" };
+const VTC_COLS = {
+  apto: { rot: "Apto", val: l => String(l.c.unit), ord: [["asc", "Menor → maior"], ["desc", "Maior → menor"]] },
+  cliente: { rot: "Cliente", val: l => l.c.name || "", lab: v => v || "Sem cliente", ord: [["asc", "A → Z"], ["desc", "Z → A"]] },
+  vaga: { rot: "Vaga", val: l => l.c.garage || "", lab: v => v || "—", ord: [["asc", "Menor → maior"], ["desc", "Maior → menor"]] },
+  fin: { rot: "Financiamento", val: l => l.fin || "", lab: v => VTC_FIN[v] || "—", ord: null },
+  pintura: { rot: "Pintura final", val: l => l.obra === null ? "ligar" : l.obra ? "pronta" : "nao", lab: v => ({ ligar: "a ligar", pronta: "Pronta", nao: "Não pronta" })[v] || v, ord: null },
+  sit: { rot: "Situação", val: l => l.cls, lab: v => VTC_SIT[v] || v, ord: null },
+  data: { rot: "Data", val: l => (l.iso || "").slice(0, 10), lab: v => v ? fmtDate(v) : "Sem data", ordv: l => l.iso || "~", ord: [["asc", "Mais antigas"], ["desc", "Mais recentes"]] }
+};
+function vtcPassa(l, excluir) {
+  for (const k in vtcF) { if (k !== excluir && vtcF[k].length && !vtcF[k].includes(VTC_COLS[k].val(l))) return false; }
   return true;
 }
+let vtcAtual = null;   // { grade, linhas } da tabela na tela (para o menu do título)
+function vtcCabecalho(grade) {
+  const tr = grade.querySelector("#vtc-cab"); if (!tr) return;
+  tr.innerHTML = "<th>Obra</th>" + Object.keys(VTC_COLS).map(k => `<th>${tfcBotao("vtc:" + k, VTC_COLS[k].rot, vtcF[k].length, vtcOrd && vtcOrd.k === k ? vtcOrd.d : null)}</th>`).join("");
+}
+document.addEventListener("click", e => {
+  const h = e.target.closest && e.target.closest('[data-tfc^="vtc:"]'); if (!h || !vtcAtual) return;
+  e.preventDefault(); e.stopPropagation();
+  const k = h.dataset.tfc.slice(4), def = VTC_COLS[k], { grade, linhas } = vtcAtual;
+  const base = linhas.filter(l => vtcPassa(l, k));
+  let valores = tfcContar(base, def.val, def.lab, false);
+  vtcF[k].forEach(v => { if (!valores.some(x => x.v === v)) valores.push({ v, l: def.lab ? def.lab(v) : v, n: 0 }); });
+  valores.sort((a, b) => k === "data" ? String(a.v || "~").localeCompare(String(b.v || "~")) : a.l.localeCompare(b.l, "pt-BR", { numeric: true }));
+  tfcAbrir(h, { chave: h.dataset.tfc, ord: def.ord, ordAtual: vtcOrd && vtcOrd.k === k ? vtcOrd.d : null, valores, marcados: vtcF[k],
+    onOrdem: d => { vtcOrd = d ? { k, d } : null; vtcDesenharLinhas(grade, linhas); tfcReancorar(); },
+    onMarcar: arr => { vtcF[k] = arr; vtcPag = 0; vtcDesenharLinhas(grade, linhas); tfcReancorar(); } });
+}, true);
 function vtcDesenharLinhas(grade, linhas) {
-  const vis = linhas.filter(vtcPassa);
+  const vis = linhas.filter(l => vtcPassa(l));
+  if (vtcOrd) {
+    const def = VTC_COLS[vtcOrd.k], m = vtcOrd.d === "desc" ? -1 : 1, v = def.ordv || def.val;
+    vis.sort((a, b) => String(v(a)).localeCompare(String(v(b)), "pt-BR", { numeric: true }) * m || String(a.c.unit).localeCompare(String(b.c.unit), "pt-BR", { numeric: true }));
+  }
+  vtcCabecalho(grade);
   const pags = Math.max(1, Math.ceil(vis.length / VTC_POR));
   if (vtcPag > pags - 1) vtcPag = pags - 1;
   const pagina = vis.slice(vtcPag * VTC_POR, vtcPag * VTC_POR + VTC_POR);
@@ -261,9 +291,10 @@ function vtcDesenharLinhas(grade, linhas) {
       <td>${l.data || "—"}</td></tr>`).join("")
     || `<tr><td colspan="8" style="text-align:center;padding:28px;color:var(--text-muted)">${linhas.length ? "Nenhum apartamento com esses filtros." : "Nenhum apartamento deste empreendimento."}</td></tr>`;
   grade.querySelectorAll(".vtc-sit").forEach(s => s.onchange = () => vtSituacaoSalvar(s.dataset.id, s.value));
-  const filtrando = Object.values(vtcF).some(Boolean);
+  const filtrando = Object.values(vtcF).some(a => a.length) || !!vtcOrd;
   grade.querySelector("#vtc-conta").textContent = filtrando ? `${vis.length} de ${linhas.length} apartamentos` : `${linhas.length} apartamento${linhas.length === 1 ? "" : "s"}`;
   grade.querySelector("#vtc-limpar").hidden = !filtrando;
+  grade.querySelector("#vtc-limpar").textContent = "Limpar filtros";
   // páginas: 1 … atual-1 atual atual+1 … última
   const pager = grade.querySelector("#vtc-pager");
   if (pags < 2) { pager.innerHTML = ""; return; }
@@ -294,17 +325,6 @@ function vtRenderControle(root) {
   const cont = k => linhas.filter(l => l.cls === k).length;
   const cartoes = [["ok", "Liberado p/ agendar"], ["agendada", "Agendadas"], ["feita", "Realizadas"], ["fin", "Financiamento"], ["obra", "Aguardando obra"]]
     .map(([k, t]) => `<div class="vtc-card vtc-${k}"><strong>${cont(k)}</strong><span>${t}</span></div>`).join("");
-  const opc = (lista, atual) => lista.map(([v, t]) => `<option value="${v}" ${atual === v ? "selected" : ""}>${t}</option>`).join("");
-  const filtroLinha = `<tr class="vtc-filtros">
-      <th></th>
-      <th><input data-f="apto" placeholder="Filtrar" value="${escapeHtml(vtcF.apto)}"></th>
-      <th><input data-f="cliente" placeholder="Filtrar" value="${escapeHtml(vtcF.cliente)}"></th>
-      <th><input data-f="vaga" placeholder="Filtrar" value="${escapeHtml(vtcF.vaga)}"></th>
-      <th><select data-f="fin">${opc([["", "Todos"], ["-", "—"], ["nao", "Não financia"], ["analise", "Financiando"], ["aprovado", "Aprovado"]], vtcF.fin)}</select></th>
-      <th><select data-f="pintura">${opc([["", "Todas"], ["pronta", "Pronta"], ["nao", "Não pronta"], ["ligar", "a ligar"]], vtcF.pintura)}</select></th>
-      <th><select data-f="sit">${opc([["", "Todas"], ["ok", "Liberado p/ agendar"], ["agendada", "Agendada"], ["feita", "Vistoria realizada"], ["fin", "Financiamento"], ["obra", "Aguardando obra"]], vtcF.sit)}</select></th>
-      <th><input data-f="data" placeholder="Filtrar" value="${escapeHtml(vtcF.data)}"></th>
-    </tr>`;
   grade.innerHTML = `
     <style>
       .vtc-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0 16px; }
@@ -316,7 +336,7 @@ function vtRenderControle(root) {
       .vtc-quadro { background: var(--panel, #fff); border: 1px solid var(--border, #e2e6ec); border-radius: 14px; padding: 6px 6px 4px; }
       .vtc-wrap { overflow-x: auto; }
       .vtc-tab { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--panel, #fff); }
-      .vtc-tab th { text-align: left; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted, #64748b); padding: 10px 12px 6px; background: var(--panel, #fff); }
+      .vtc-tab th { text-align: left; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted, #64748b); padding: 12px 12px 10px; background: var(--panel, #fff); border-bottom: 1px solid var(--border, #e2e6ec); }
       .vtc-tab tr.vtc-filtros th { padding: 0 6px 10px; border-bottom: 1px solid var(--border, #e2e6ec); text-transform: none; letter-spacing: 0; }
       .vtc-filtros input, .vtc-filtros select { width: 100%; min-width: 70px; box-sizing: border-box; height: 32px; padding: 0 8px; border: 1px solid var(--border, #e2e6ec); border-radius: 8px; font: inherit; font-size: 12.5px; font-weight: 400; color: var(--text, #14242a); background-color: var(--panel, #fff); }
       .vtc-filtros input:focus, .vtc-filtros select:focus { outline: none; border-color: var(--primary, #00687a); box-shadow: 0 0 0 3px rgba(0,104,122,.15); }
@@ -340,18 +360,14 @@ function vtRenderControle(root) {
     <div class="vtc-cards">${cartoes}</div>
     <div class="vtc-quadro">
       <div class="vtc-topo"><span id="vtc-conta"></span><button type="button" class="vtc-limpar" id="vtc-limpar" hidden>Limpar filtros</button></div>
-      <div class="vtc-wrap"><table class="vtc-tab"><thead><tr><th>Obra</th><th>Apto</th><th>Cliente</th><th>Vaga</th><th>Financiamento</th><th>Pintura final</th><th>Situação</th><th>Data</th></tr>${filtroLinha}</thead>
+      <div class="vtc-wrap"><table class="vtc-tab"><thead><tr id="vtc-cab"></tr></thead>
       <tbody id="vtc-corpo"></tbody></table></div>
       <div class="vtc-pager" id="vtc-pager"></div>
     </div>`;
   const sel = grade.querySelector("#vtc-emp");
   if (sel) sel.onchange = e => { vtCtrl.emp = e.target.value; vtcPag = 0; renderVistorias(); };
-  // filtros de cada coluna: só redesenham as linhas (o campo onde se digita não perde o foco)
-  grade.querySelectorAll(".vtc-filtros [data-f]").forEach(f => {
-    const aoMudar = () => { vtcF[f.dataset.f] = f.value; vtcPag = 0; vtcDesenharLinhas(grade, linhas); };
-    f.oninput = aoMudar; f.onchange = aoMudar;
-  });
-  grade.querySelector("#vtc-limpar").onclick = () => { Object.keys(vtcF).forEach(k => vtcF[k] = ""); vtcPag = 0; renderVistorias(); };
+  grade.querySelector("#vtc-limpar").onclick = () => { tfcFechar(); Object.keys(vtcF).forEach(k => vtcF[k] = []); vtcOrd = null; vtcPag = 0; renderVistorias(); };
+  vtcAtual = { grade, linhas };
   vtcDesenharLinhas(grade, linhas);
   // no controle, as ações da tela Vistorias são trocadas por estas duas
   const acoes = root.querySelector(".vt-acoes");
@@ -578,49 +594,86 @@ function vtRenderPlanilha(root) {
   [[vtSelApto, aptos], [vtSelTipo, tipos], [vtSelAmb, ambs], [vtSelData, datas]].forEach(([s, l]) => Array.from(s).forEach(x => { if (!l.includes(x)) s.delete(x); }));
   grade.innerHTML = `
     <div class="vp-card">
+      <div class="vp-busca"><input type="search" id="vc-desc" placeholder="Buscar na descrição…" value="${escapeHtml(vtColDesc)}" autocomplete="off" aria-label="Buscar na descrição"></div>
       <div class="vp-rolagem"><table class="vp-tabela">
-        <thead>
-          <tr class="vp-tit"><th>Apto</th><th>Data</th><th>Serviço</th><th>Ambiente</th><th>Descrição</th><th>Situação</th></tr>
-          <tr class="vp-filtros">
-            <th data-r="Apto"><button type="button" class="vp-multi" id="vc-apto" aria-label="Filtrar apartamentos"></button></th>
-            <th data-r="Data"><button type="button" class="vp-multi" id="vc-data" aria-label="Filtrar datas"></button></th>
-            <th data-r="Serviço"><button type="button" class="vp-multi" id="vc-tipo" aria-label="Filtrar serviços"></button></th>
-            <th data-r="Ambiente"><button type="button" class="vp-multi" id="vc-amb" aria-label="Filtrar ambientes"></button></th>
-            <th data-r="Descrição"><input type="search" id="vc-desc" placeholder="Buscar no texto" value="${escapeHtml(vtColDesc)}" autocomplete="off" aria-label="Filtrar pela descrição"></th>
-            <th data-r="Situação"><select id="vc-sit" aria-label="Filtrar por situação"><option value="pendentes" ${vtStatus === "pendentes" ? "selected" : ""}>A resolver</option><option value="resolvidos" ${vtStatus === "resolvidos" ? "selected" : ""}>Resolvidas</option><option value="todos" ${vtStatus === "todos" ? "selected" : ""}>Todas</option></select></th>
-          </tr>
-        </thead>
+        <thead><tr class="vp-tit" id="vp-cab"></tr></thead>
         <tbody></tbody>
       </table></div>
       <div class="vp-rodape"></div>
     </div>`;
+  vpAtual = { root, aptos, datas, tipos, ambs };
   const $ = id => grade.querySelector("#" + id);
   const mudou = () => { vtLimitePlanilha = 300; vtPlanMantem.clear(); vtPlanCorpo(root); };
-  const op = (l, f) => l.map(x => ({ v: x, t: f ? f(x) : x }));
-  vtMultiSel($("vc-apto"), "Apartamentos", op(aptos), vtSelApto, mudou);
-  vtMultiSel($("vc-data"), "Datas da vistoria", op(datas, fmtDate), vtSelData, mudou);
-  vtMultiSel($("vc-tipo"), "Serviços", op(tipos), vtSelTipo, mudou);
-  vtMultiSel($("vc-amb"), "Ambientes", op(ambs), vtSelAmb, mudou);
   $("vc-desc").addEventListener("input", e => { vtColDesc = e.target.value; mudou(); });
-  $("vc-sit").addEventListener("change", e => { vtStatus = e.target.value; mudou(); });
   vtPlanCorpo(root);
 }
+
+/* Planilha: filtro no título de cada coluna */
+let vpAtual = null;
+const VP_SIT = () => vtStatus === "pendentes" ? ["pend"] : vtStatus === "resolvidos" ? ["res"] : [];
+const VP_COLS = {
+  apto: { rot: "Apto", sel: () => vtSelApto, val: (v) => v.unit },
+  data: { rot: "Data", sel: () => vtSelData, val: (v) => v.date, lab: x => fmtDate(x) },
+  tipo: { rot: "Serviço", sel: () => vtSelTipo, val: (v, i) => i.tipo },
+  amb: { rot: "Ambiente", sel: () => vtSelAmb, val: (v, i) => i.ambiente },
+  desc: { rot: "Descrição" },
+  sit: { rot: "Situação", val: (v, i) => i.feito ? "res" : "pend", lab: x => x === "res" ? "Resolvidas" : "A resolver" }
+};
+function vpItens(excluir) {
+  const qd = vtColDesc.trim().toLowerCase(), out = [];
+  vtLista().forEach(v => {
+    if (vtFiltroPredio && v.buildingId !== vtFiltroPredio) return;
+    if (excluir !== "apto" && vtSelApto.size && !vtSelApto.has(v.unit)) return;
+    if (excluir !== "data" && vtSelData.size && !vtSelData.has(v.date)) return;
+    v.items.forEach(i => {
+      if (excluir !== "tipo" && vtSelTipo.size && !vtSelTipo.has(i.tipo)) return;
+      if (excluir !== "amb" && vtSelAmb.size && !vtSelAmb.has(i.ambiente)) return;
+      if (qd && !i.descricao.toLowerCase().includes(qd)) return;
+      if (excluir !== "sit") {
+        if (vtStatus === "pendentes" && i.feito && !vtPlanMantem.has(i.id)) return;
+        if (vtStatus === "resolvidos" && !i.feito && !vtPlanMantem.has(i.id)) return;
+      }
+      out.push({ v, i });
+    });
+  });
+  return out;
+}
+function vpCabecalho(grade) {
+  const tr = grade.querySelector("#vp-cab"); if (!tr) return;
+  tr.innerHTML = Object.keys(VP_COLS).map(k => {
+    const def = VP_COLS[k];
+    if (k === "desc") return `<th>Descrição</th>`;
+    const n = k === "sit" ? VP_SIT().length : def.sel().size;
+    return `<th>${tfcBotao("vp:" + k, def.rot, n, null)}</th>`;
+  }).join("");
+}
+document.addEventListener("click", e => {
+  const h = e.target.closest && e.target.closest('[data-tfc^="vp:"]'); if (!h || !vpAtual) return;
+  e.preventDefault(); e.stopPropagation();
+  const k = h.dataset.tfc.slice(3), def = VP_COLS[k], { root } = vpAtual;
+  const base = vpItens(k);
+  // apartamento e data contam apartamentos; os outros contam pendências
+  let valores;
+  if (k === "apto" || k === "data") { const vs = Array.from(new Map(base.map(x => [x.v.id, x.v])).values()); valores = tfcContar(vs, v => def.val(v), def.lab, false); }
+  else valores = tfcContar(base, x => def.val(x.v, x.i), def.lab, false);
+  const marcados = k === "sit" ? VP_SIT() : Array.from(def.sel());
+  marcados.forEach(v => { if (!valores.some(x => x.v === v)) valores.push({ v, l: def.lab ? def.lab(v) : v, n: 0 }); });
+  if (k === "sit") { const ordem = ["pend", "res"]; valores = ordem.map(v => valores.find(x => x.v === v) || { v, l: def.lab(v), n: 0 }); }
+  else if (k === "data") valores.sort((a, b) => String(b.v).localeCompare(String(a.v)));
+  else valores.sort((a, b) => a.l.localeCompare(b.l, "pt-BR", { numeric: true }));
+  tfcAbrir(h, { chave: h.dataset.tfc, ord: null, valores, marcados,
+    onMarcar: arr => {
+      if (k === "sit") vtStatus = arr.length === 1 ? (arr[0] === "pend" ? "pendentes" : "resolvidos") : "todos";
+      else { const s = def.sel(); s.clear(); arr.forEach(x => s.add(x)); }
+      vtLimitePlanilha = 300; vtPlanMantem.clear(); vtPlanCorpo(root); tfcReancorar();
+    } });
+}, true);
 
 /* só o corpo e o rodapé: assim, digitar num filtro não perde o foco */
 function vtPlanCorpo(root) {
   const grade = root.querySelector("#vt-grade");
-  const qd = vtColDesc.trim().toLowerCase();
-  const linhas = [];
-  vtLista().filter(v => (!vtFiltroPredio || v.buildingId === vtFiltroPredio) && (!vtSelApto.size || vtSelApto.has(v.unit)) && (!vtSelData.size || vtSelData.has(v.date))).forEach(v => {
-    v.items.forEach(i => {
-      if (vtSelTipo.size && !vtSelTipo.has(i.tipo)) return;
-      if (vtSelAmb.size && !vtSelAmb.has(i.ambiente)) return;
-      if (qd && !i.descricao.toLowerCase().includes(qd)) return;
-      if (vtStatus === "pendentes" && i.feito && !vtPlanMantem.has(i.id)) return;
-      if (vtStatus === "resolvidos" && !i.feito && !vtPlanMantem.has(i.id)) return;
-      linhas.push({ v, i });
-    });
-  });
+  const linhas = vpItens(null);
+  vpCabecalho(grade);
   linhas.sort((a, b) => (((getBuilding(a.v.buildingId) || {}).name || "").localeCompare((getBuilding(b.v.buildingId) || {}).name || "", "pt-BR"))
     || a.v.unit.localeCompare(b.v.unit, "pt-BR", { numeric: true }) || a.i.ambiente.localeCompare(b.i.ambiente, "pt-BR"));
   const multiObra = new Set(linhas.map(l => l.v.buildingId)).size > 1;
@@ -644,7 +697,6 @@ function vtPlanCorpo(root) {
   const ativos = !!(vtSelApto.size || vtSelData.size || vtSelTipo.size || vtSelAmb.size || vtColDesc || vtStatus !== "pendentes");
   grade.querySelector(".vp-rodape").innerHTML = `<span>${linhas.length} linha${linhas.length === 1 ? "" : "s"} · ${new Set(linhas.map(l => l.v.id)).size} apartamento(s)</span>
     <span class="vp-acoes">${ativos ? `<button type="button" class="btn ghost small" id="vp-limpar">Limpar filtros</button>` : ""}${linhas.length > mostra.length ? `<button type="button" class="btn ghost small" id="vp-mais">Mostrar mais ${Math.min(300, linhas.length - mostra.length)}</button>` : ""}</span>`;
-  [["vc-apto", vtSelApto.size > 0], ["vc-data", vtSelData.size > 0], ["vc-tipo", vtSelTipo.size > 0], ["vc-amb", vtSelAmb.size > 0], ["vc-desc", !!vtColDesc], ["vc-sit", vtStatus !== "pendentes"]].forEach(([id, on]) => { const el = grade.querySelector("#" + id); if (el) el.closest("th").classList.toggle("vp-ativo", on); });
   tbody.querySelectorAll("[data-vt-abrir]").forEach(b => b.addEventListener("click", () => { vtAbertaId = b.dataset.vtAbrir; renderVistorias(); window.scrollTo({ top: 0 }); }));
   tbody.querySelectorAll("[data-vp-fotos]").forEach(b => b.addEventListener("click", () => {
     const v = vtLista().find(x => x.id === b.dataset.vpV), it = v.items.find(x => x.id === b.dataset.vpFotos);
@@ -657,7 +709,7 @@ function vtPlanCorpo(root) {
     const rol = grade.querySelector(".vp-rolagem"), y = rol ? rol.scrollTop : 0; vtPlanCorpo(root); if (rol) rol.scrollTop = y;
   }));
   const limpar = grade.querySelector("#vp-limpar");
-  if (limpar) limpar.addEventListener("click", () => { vtPlanMantem.clear(); vtSelApto.clear(); vtSelData.clear(); vtSelTipo.clear(); vtSelAmb.clear(); vtColDesc = ""; vtStatus = "pendentes"; renderVistorias(); });
+  if (limpar) limpar.addEventListener("click", () => { tfcFechar(); vtPlanMantem.clear(); vtSelApto.clear(); vtSelData.clear(); vtSelTipo.clear(); vtSelAmb.clear(); vtColDesc = ""; vtStatus = "pendentes"; renderVistorias(); });
   const mais = grade.querySelector("#vp-mais"); if (mais) mais.addEventListener("click", () => { vtLimitePlanilha += 300; vtPlanCorpo(root); });
 }
 

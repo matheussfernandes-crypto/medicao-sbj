@@ -85,7 +85,7 @@ main{min-width:0;padding-block:24px 48px;padding-left:max(16px,env(safe-area-ins
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .chf-row{display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
 /* filtro e ordenação no título da coluna */
-.tf-h{display:inline-flex;align-items:center;gap:6px;margin:-5px -8px;padding:5px 8px;border:0;border-radius:8px;background:none;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.tf-h{display:inline-flex;align-items:center;gap:6px;margin:-5px -8px;padding:5px 8px;border:0;border-radius:8px;background:none;font:inherit;font-weight:700;color:var(--fg);text-transform:inherit;letter-spacing:inherit;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
 .tf-h:hover{background:var(--accent-soft);color:var(--fg)}.tf-h .tf-i{display:inline-flex;opacity:.45;transition:opacity .15s}.tf-h:hover .tf-i{opacity:1}
 .tf-h.on{color:var(--accent)}.tf-h.aberto{background:var(--accent-soft);color:var(--fg)}
 .tf-h .tf-c{background:var(--accent);color:var(--accent-fg,#fff);border-radius:999px;font-size:10.5px;padding:0 6px;letter-spacing:0;line-height:16px}
@@ -181,7 +181,7 @@ textarea.in{resize:vertical;min-height:70px;line-height:1.45}
 /* tabela */
 .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
 table{border-collapse:collapse;width:100%;font-size:13px}
-th{text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface-2)}
+th{text-align:left;font-weight:700;color:var(--fg);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface-2)}
 td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
 tr:last-child td{border-bottom:0}
 td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}

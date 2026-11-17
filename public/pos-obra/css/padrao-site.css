@@ -152,3 +152,18 @@ details:not(.mod-details):not(.vt-mais) > summary { list-style: none; display: i
 details:not(.mod-details):not(.vt-mais) > summary::-webkit-details-marker { display: none; }
 details:not(.mod-details):not(.vt-mais) > summary::after { content: ""; width: 6px; height: 6px; flex-shrink: 0; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; opacity: .7; transform: rotate(-45deg); transition: transform .3s cubic-bezier(.22,1,.36,1); }
 details:not(.mod-details):not(.vt-mais)[open] > summary::after { transform: rotate(45deg) translate(-2px, -2px); }
+
+/* Planilha das vistorias: busca na descrição acima da tabela; filtros nos títulos das colunas */
+.vp-busca { padding: 10px 10px 8px; }
+.vp-busca input { width: 100%; max-width: 380px; box-sizing: border-box; height: 38px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; font: inherit; font-size: 14px; background: var(--panel); color: var(--text); }
+.vp-busca input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,104,122,.15); }
+.vp-tit th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); font-weight: 600; }
+@media (max-width: 720px) {
+  /* no celular a planilha vira cartões: os filtros dos títulos ficam numa faixa de botões */
+  .vp-tabela thead .vp-tit { display: flex !important; flex-wrap: wrap; gap: 6px 14px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .vp-tabela thead .vp-tit th { display: block; position: static !important; height: auto; padding: 4px 0 !important; border: 0 !important; background: none !important; min-width: 0 !important; width: auto !important; }
+  .vp-tabela thead .vp-tit th:nth-child(5) { display: none; }
+}
+
+/* títulos das colunas das tabelas: escuros e em negrito em todo o módulo */
+table thead th { color: var(--text) !important; font-weight: 700 !important; }

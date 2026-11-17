@@ -20,14 +20,14 @@ const mesLabel = (m: string) => {
 const dataBR = (d: string) => (d ? d.slice(0, 10).split("-").reverse().join("/") : "");
 
 const s = StyleSheet.create({
-  page: { padding: 28, fontSize: 8, fontFamily: "Helvetica", color: "#1f2733" },
+  page: { padding: 22, fontSize: 8, fontFamily: "Helvetica", color: "#1f2733" },
   header: { flexDirection: "row", alignItems: "center", borderBottomWidth: 2, borderBottomColor: "#1c474f", paddingBottom: 6, marginBottom: 10 },
   logo: { width: 38, height: 38, marginRight: 10 },
   title: { fontSize: 12, fontWeight: 700, color: "#1c474f" },
   sub: { fontSize: 7.5, color: "#444", marginTop: 2 },
   right: { marginLeft: "auto", textAlign: "right", fontSize: 7, color: "#444" },
   info: { flexDirection: "row", flexWrap: "wrap", backgroundColor: "#eef3f4", padding: 6, marginBottom: 10, borderRadius: 3 },
-  infoCell: { width: "50%", marginBottom: 3 },
+  infoCell: { width: "25%", marginBottom: 3 },
   infoLbl: { fontSize: 6, color: "#65707d", textTransform: "uppercase" },
   infoVal: { fontSize: 8.5, fontWeight: 700 },
   section: { fontSize: 8.5, fontWeight: 700, textTransform: "uppercase", marginBottom: 4, color: "#16232e" },
@@ -46,7 +46,7 @@ export function FechamentoValePdf({ f, engenheiroNome, dataGeracao }: { f: Fecha
   const c = f.contrato;
   return (
     <Document>
-      <Page size="A4" style={s.page}>
+      <Page size="A4" orientation="landscape" style={s.page}>
         <View style={s.header}>
           {lg ? <Image style={s.logo} src={lg} /> : null}
           <View>

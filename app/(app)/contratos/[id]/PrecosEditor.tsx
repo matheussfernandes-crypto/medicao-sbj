@@ -1,5 +1,6 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, X } from "lucide-react";
@@ -74,7 +75,7 @@ export default function PrecosEditor({ contratoId, precos }: { contratoId: strin
               <FormAcao action={excluirPreco} confirmar={`Remover "${pr.servico}" dos preços do contrato?`} mostrarOk={false} className="col-span-3 sm:col-span-1 text-right">
                 <input type="hidden" name="id" value={pr.id} />
                 <input type="hidden" name="contratoId" value={contratoId} />
-                <button className="text-xs text-danger px-1">Remover</button>
+                <button className="btn-acao-excluir" title="Remover" aria-label="Remover"><Trash2 className="w-4 h-4" aria-hidden /></button>
               </FormAcao>
             </div>
           ) : (

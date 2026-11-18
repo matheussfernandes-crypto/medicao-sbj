@@ -4,7 +4,7 @@
 // campo de data com calendário). As animações ficam em app/anima.css.
 
 import { Children, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Recolher: o conteúdo abre e fecha deslizando (altura animada)
@@ -303,12 +303,13 @@ export function BotaoAcoes({ aberto, onClick, rotulo = "Ações" }: { aberto: bo
       type="button"
       onClick={onClick}
       aria-expanded={aberto}
-      className={`inline-flex items-center gap-1 rounded-[9px] border px-2.5 py-1 text-xs font-semibold transition-colors ${
+      title={rotulo}
+      aria-label={rotulo}
+      className={`inline-flex items-center justify-center w-8 h-8 rounded-[9px] border transition-colors ${
         aberto ? "border-primary bg-primary/10 text-primaryDark" : "border-border bg-white text-ink-700 hover:border-primary hover:text-primary"
       }`}
     >
-      {rotulo}
-      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${aberto ? "rotate-180" : ""}`} />
+      <MoreHorizontal className="w-4 h-4" aria-hidden />
     </button>
   );
 }

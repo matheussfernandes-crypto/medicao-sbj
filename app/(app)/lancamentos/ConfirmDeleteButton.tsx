@@ -1,5 +1,7 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
+
 export default function ConfirmDeleteButton({
   jaFechado = false,
   mensagemPersonalizada,
@@ -16,14 +18,16 @@ export default function ConfirmDeleteButton({
   return (
     <button
       type="submit"
-      className="bg-red-100 text-red-700 rounded px-2 py-0.5 text-xs"
+      className="btn-acao-excluir"
+      title="Excluir"
+      aria-label="Excluir"
       onClick={(e) => {
         if (!confirm(mensagem)) {
           e.preventDefault();
         }
       }}
     >
-      Excluir
+      <Trash2 className="w-4 h-4" aria-hidden />
     </button>
   );
 }

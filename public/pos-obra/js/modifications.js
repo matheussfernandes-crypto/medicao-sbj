@@ -805,7 +805,7 @@ function orcamentoItemParamRowHTML(item) {
       <div class="field full"><label>Serviço</label><select class="op-item">${state.priceTable.filter(p => p.ativo).map(p => `<option value="${p.id}" ${item?.priceTableId === p.id ? "selected" : ""}>${escapeHtml(p.descricao)} — R$ ${p.valor.toFixed(2)}/${escapeHtml(p.unidade)}</option>`).join("") || `<option value="">Nenhum serviço cadastrado</option>`}</select></div>
       <div class="field"><label>Quantidade</label><input type="number" min="1" class="op-qtd" value="${item?.quantidade || 1}"></div>
     </div>
-    <button type="button" class="btn ghost small remove-contact-btn">Remover</button>
+    <button type="button" class="btn-acao-excluir remove-contact-btn" title="Remover" aria-label="Remover">${ckIco("lixeira", 16)}</button>
   </div>`;
 }
 function orcamentoItemCustomRowHTML(item) {
@@ -817,7 +817,7 @@ function orcamentoItemCustomRowHTML(item) {
       <div class="field"><label>Valor (R$)</label><input type="number" min="0" step="0.01" class="oc-valor" value="${item?.valor || ""}"></div>
       <div class="field full"><label>Observação</label><input type="text" class="oc-obs" value="${escapeHtml(item?.observacao || "")}"></div>
     </div>
-    <button type="button" class="btn ghost small remove-contact-btn">Remover</button>
+    <button type="button" class="btn-acao-excluir remove-contact-btn" title="Remover" aria-label="Remover">${ckIco("lixeira", 16)}</button>
   </div>`;
 }
 function orcamentoCreditoRowHTML(item, buildingId) {
@@ -826,7 +826,7 @@ function orcamentoCreditoRowHTML(item, buildingId) {
     <div class="form-grid">
       <div class="field full"><label>Item</label><select class="ocr-item">${opts.map(c => `<option value="${c.id}" ${item?.creditTableId === c.id ? "selected" : ""}>${escapeHtml(c.item)} — crédito R$ ${c.creditoCliente.toFixed(2)}</option>`).join("") || `<option value="">Nenhum item de crédito cadastrado para este empreendimento</option>`}</select></div>
     </div>
-    <button type="button" class="btn ghost small remove-contact-btn">Remover</button>
+    <button type="button" class="btn-acao-excluir remove-contact-btn" title="Remover" aria-label="Remover">${ckIco("lixeira", 16)}</button>
   </div>`;
 }
 
@@ -1317,7 +1317,7 @@ function openPriceTableModal() {
           <tbody>${rows.length ? rows.map(p => `<tr>
             <td>${escapeHtml(p.descricao)}</td><td>${escapeHtml(p.categoria)}</td><td>R$ ${p.valor.toFixed(2)}</td><td>${escapeHtml(p.unidade)}</td><td>${fmtDate(p.vigenteDesde)}</td>
             <td>${p.ativo ? "Ativo" : "Inativo"}</td>
-            <td><button class="btn ghost small" data-edit-price="${p.id}">Editar</button></td>
+            <td><button class="btn-acao-editar" data-edit-price="${p.id}" title="Editar" aria-label="Editar">${ckIco("lapis", 16)}</button></td>
           </tr>`).join("") : `<tr><td colspan="7" class="empty-hint">Nenhum serviço cadastrado.</td></tr>`}</tbody>
         </table>
       </div>
@@ -1385,7 +1385,7 @@ function openCreditTableModal(buildingId) {
           <tbody>${rows.length ? rows.map(c => `<tr>
             <td>${escapeHtml(c.item)}</td><td>R$ ${c.custoConstrutora.toFixed(2)}</td><td>R$ ${c.creditoCliente.toFixed(2)}</td>
             <td>${c.ativo ? "Ativo" : "Inativo"}</td>
-            <td><button class="btn ghost small" data-edit-credit="${c.id}">Editar</button></td>
+            <td><button class="btn-acao-editar" data-edit-credit="${c.id}" title="Editar" aria-label="Editar">${ckIco("lapis", 16)}</button></td>
           </tr>`).join("") : `<tr><td colspan="5" class="empty-hint">Nenhum item de crédito cadastrado.</td></tr>`}</tbody>
         </table>
       </div>

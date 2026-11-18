@@ -1,5 +1,6 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Pencil, X } from "lucide-react";
 import FormAcao from "@/components/contratos/FormAcao";
@@ -83,7 +84,7 @@ export default function ItemEditor({ contratoId, item, temMedicao }: { contratoI
               <FormAcao action={excluirItem} confirmar="Excluir este item do contrato?" onSucesso={() => setAberto(false)} className="mt-3 pt-3 border-t">
                 <input type="hidden" name="id" value={item.id} />
                 <input type="hidden" name="contratoId" value={contratoId} />
-                <button className="text-xs text-danger">Excluir item</button>
+                <button className="btn-acao-excluir" title="Excluir item" aria-label="Excluir item"><Trash2 className="w-4 h-4" aria-hidden /></button>
               </FormAcao>
             )}
           </div>

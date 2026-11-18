@@ -1,7 +1,7 @@
 import MesCampo from "@/components/MesCampo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FileText, ExternalLink } from "lucide-react";
+import { FileText, ExternalLink, Trash2 } from "lucide-react";
 import { exigirPerfil, itensComSaldo, nomesUsuarios, urlsAssinadas } from "@/lib/contratos/server";
 import {
   SETORES_VEEM_CONTRATO, TIPO_ADITIVO_LABEL, TIPO_LANC_LABEL, STATUS_LANC_LABEL, UNIDADES,
@@ -135,7 +135,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
                 {ehAdmin && (
                   <FormAcao action={excluirAnexo} confirmar="Remover este arquivo?" mostrarOk={false}>
                     <input type="hidden" name="id" value={a.id} />
-                    <button className="text-xs text-danger">Remover</button>
+                    <button className="btn-acao-excluir" title="Remover" aria-label="Remover"><Trash2 className="w-4 h-4" aria-hidden /></button>
                   </FormAcao>
                 )}
               </li>

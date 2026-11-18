@@ -201,3 +201,24 @@ table thead th { color: var(--text) !important; font-weight: 700 !important; }
   .vp-tabela td:empty { display: none; }
   .vp-tabela tr.vp-vazio, .vp-tabela td.vp-vazio { display: block; }
 }
+
+/* celular: o controle de entregas vira cartões (o cabeçalho com os filtros fica em faixa acima) */
+@media (max-width: 720px) {
+  .vtc-tab, .vtc-tab tbody { display: block; width: 100%; }
+  .vtc-tab thead tr { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; }
+  .vtc-tab thead th { display: block; padding: 0; border: 0; }
+  .vtc-tab tbody tr.vtc-l { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "apto apto" "obra obra" "cli cli" "fin pronta" "vaga vaga" "sit sit"; gap: 6px 12px; padding: 12px 14px; border-bottom: 1px solid #eaeff2; }
+  .vtc-tab tbody tr.vtc-l td { display: block; min-width: 0; padding: 0 !important; border: 0 !important; white-space: normal !important; font-size: 13px; }
+  .vtc-tab tbody tr.vtc-l td:nth-child(1) { grid-area: obra; font-size: 12px; color: var(--text-muted, #6b7686); }
+  .vtc-tab tbody tr.vtc-l td:nth-child(2) { grid-area: apto; font-size: 16px; }
+  .vtc-tab tbody tr.vtc-l td:nth-child(3) { grid-area: cli; }
+  .vtc-tab tbody tr.vtc-l td:nth-child(4) { grid-area: vaga; font-size: 12px; color: var(--text-muted, #6b7686); }
+  .vtc-tab tbody tr.vtc-l td:nth-child(5) { grid-area: fin; }
+  .vtc-tab tbody tr.vtc-l td:nth-child(6) { grid-area: pronta; }
+  .vtc-tab tbody tr.vtc-l td:nth-child(7) { grid-area: sit; }
+  .vtc-tab tbody tr.vtc-l td:empty { display: none; }
+  .vtc-tab tbody tr.vtc-l select.vtc-sit { width: 100%; min-height: 40px; }
+}
+
+/* botões de ação das Vistorias alinhados à esquerda (tablet e computador) */
+.vt-acoes, .vt-barra .vt-acoes { justify-content: flex-start !important; margin-left: 0 !important; }

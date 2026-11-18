@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Pencil, Trash2 } from "lucide-react";
 import { Camera } from "lucide-react";
 import { exigirPerfil, itensComSaldo, listarContratos, nomesUsuarios, urlsAssinadas } from "@/lib/contratos/server";
 import {
@@ -180,10 +181,10 @@ async function ContratoSelecionado({
                     <td className="py-2 whitespace-nowrap">
                       {minhaPendente && (
                         <div className="flex flex-col gap-1 items-start">
-                          <Link href={`/contratos/medicoes?contrato=${contratoId}&editar=${l.id}`} className="text-xs text-primary underline">Editar</Link>
+                          <Link href={`/contratos/medicoes?contrato=${contratoId}&editar=${l.id}`} className="btn-acao-editar" title="Editar" aria-label="Editar"><Pencil className="w-4 h-4" aria-hidden /></Link>
                           <FormAcao action={excluirLancamentoContrato} confirmar="Excluir este lançamento?" mostrarOk={false}>
                             <input type="hidden" name="id" value={l.id} />
-                            <button className="text-xs text-danger underline">Excluir</button>
+                            <button className="btn-acao-excluir" title="Excluir" aria-label="Excluir"><Trash2 className="w-4 h-4" aria-hidden /></button>
                           </FormAcao>
                         </div>
                       )}

@@ -195,7 +195,7 @@ function openSupplierDetail(id) {
     <div class="modal-footer">
       <button class="btn danger" id="btn-delete-supplier" style="margin-right:auto;">Excluir</button>
       <button class="btn ghost" id="btn-supplier-tickets-btn">Ver todos os chamados deste fornecedor</button>
-      <button class="btn ghost" data-edit-supplier="${s.id}">Editar</button>
+      <button class="btn-acao-editar" data-edit-supplier="${s.id}" title="Editar" aria-label="Editar">${ckIco("lapis", 16)}</button>
       <button class="btn primary" data-close>Fechar</button>
     </div>
   `, true);
@@ -343,7 +343,7 @@ function buildingLinkCardHTML(link) {
   <div class="supplier-building-card" data-building-id="${link.buildingId}">
     <div class="supplier-link-head">
       <strong>${escapeHtml(building ? building.name : "(empreendimento removido)")}</strong>
-      <button type="button" class="btn ghost small remove-building-link-btn" style="margin-left:auto;">Remover</button>
+      <button type="button" class="btn-acao-excluir remove-building-link-btn" title="Remover" aria-label="Remover">${ckIco("lixeira", 16)}</button>
     </div>
     <div class="form-grid">
       <div class="field"><label>Categoria</label><select class="bl-categoria"><option value="">—</option>${CATEGORIES.map(c => `<option value="${c}" ${link.categoria === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
@@ -378,7 +378,7 @@ function contactRowHTML(contact) {
       <div class="field"><label>WhatsApp</label><input type="text" class="ct-whatsapp" value="${escapeHtml(contact.whatsapp || "")}"></div>
       <div class="field"><label>E-mail</label><input type="text" class="ct-email" value="${escapeHtml(contact.email || "")}"></div>
     </div>
-    <button type="button" class="btn ghost small remove-contact-btn">Remover contato</button>
+    <button type="button" class="btn-acao-excluir remove-contact-btn" title="Remover contato" aria-label="Remover contato">${ckIco("lixeira", 16)}</button>
   </div>`;
 }
 

@@ -37,7 +37,7 @@ function openMaintenanceMatrixModal(buildingId) {
                 <td>${escapeHtml(r.oQueVerificar || "—")}</td>
                 <td>${escapeHtml(r.periodicidade || "—")}</td>
                 <td>${escapeHtml(FONTE_TIPO_MAP[r.fonteTipo] ? FONTE_TIPO_MAP[r.fonteTipo].label : "—")}</td>
-                <td><button class="btn ghost small" data-edit-maintenance="${r.id}">Editar</button></td>
+                <td><button class="btn-acao-editar" data-edit-maintenance="${r.id}" title="Editar" aria-label="Editar">${ckIco("lapis", 16)}</button></td>
               </tr>`).join("") : `<tr><td colspan="6" class="empty-hint">Nenhum item de manutenção preventiva cadastrado para este empreendimento.</td></tr>`}
           </tbody>
         </table>

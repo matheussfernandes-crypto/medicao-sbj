@@ -205,7 +205,7 @@ function openWarrantyMatrixModal(buildingId) {
                 <td>${r.prazoValor ? escapeHtml(r.prazoValor + " " + (r.prazoUnidade === "anos" ? "ano(s)" : "mês(es)")) : "—"}</td>
                 <td>${escapeHtml(FONTE_TIPO_MAP[r.fonteTipo] ? FONTE_TIPO_MAP[r.fonteTipo].label : "—")}</td>
                 <td>${escapeHtml((INICIO_CONTAGEM_OPTIONS.find(o => o.id === r.inicioContagemCriterio) || {}).label || "—")}</td>
-                <td><button class="btn ghost small" data-edit-warranty="${r.id}">Editar</button></td>
+                <td><button class="btn-acao-editar" data-edit-warranty="${r.id}" title="Editar" aria-label="Editar">${ckIco("lapis", 16)}</button></td>
               </tr>`).join("") : `<tr><td colspan="6" class="empty-hint">Nenhuma regra de garantia cadastrada para este empreendimento.</td></tr>`}
           </tbody>
         </table>

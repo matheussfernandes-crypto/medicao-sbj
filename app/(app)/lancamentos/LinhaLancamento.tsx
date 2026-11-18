@@ -1,5 +1,6 @@
 "use client";
 
+import { Pencil } from "lucide-react";
 import { useState } from "react";
 import ConfirmDeleteButton from "./ConfirmDeleteButton";
 import EditarLancamentoForm from "./EditarLancamentoForm";
@@ -212,8 +213,8 @@ export default function LinhaLancamento({
 
         {podeEditarOuExcluirProprio && (
           <div className="flex gap-1 flex-wrap">
-            <button onClick={() => setEditando(true)} className="bg-blue-100 text-blue-700 rounded px-2 py-0.5 text-xs">
-              Editar
+            <button onClick={() => setEditando(true)} className="btn-acao-editar" title="Editar" aria-label="Editar">
+              <Pencil className="w-4 h-4" aria-hidden />
             </button>
             <form action={isOwner && !ehAdmin ? excluirLancamentoProprio : excluirLancamento} className="inline">
               <input type="hidden" name="id" value={l.id} />

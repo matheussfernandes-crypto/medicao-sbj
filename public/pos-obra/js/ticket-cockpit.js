@@ -36,6 +36,8 @@ const CK_ICONES = {
   res_nao_solucionado: '<circle cx="12" cy="12" r="8.5"/><path d="M9 9l6 6M15 9l-6 6"/>',
   res_improcedente: '<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',
   relogio: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  lapis: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+  lixeira: '<path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/><path d="M10 11v5M14 11v5"/>',
 };
 function ckIco(nome, tam) {
   return `<svg class="ck-svg" width="${tam || 18}" height="${tam || 18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CK_ICONES[nome] || ""}</svg>`;

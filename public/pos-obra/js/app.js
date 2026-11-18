@@ -685,7 +685,7 @@ function renderClients() {
       <td>${c.name ? escapeHtml(c.name) : '<span class="empty-hint">sem cliente cadastrado</span>'}</td>
       <td>${escapeHtml(c.phone || "—")}</td>
       <td>${escapeHtml(c.email || "—")}</td>
-      <td><button class="btn ghost small" data-open-client="${c.id}">Editar</button></td>
+      <td><button class="btn-acao-editar" data-open-client="${c.id}" title="Editar" aria-label="Editar">${ckIco("lapis", 16)}</button></td>
     </tr>`;
   }).join("");
 

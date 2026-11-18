@@ -1,3 +1,4 @@
+import { Trash2 } from "lucide-react";
 import MesCampo from "@/components/MesCampo";
 import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
@@ -259,7 +260,7 @@ export default async function ObrasPage({
                             </a>
                             <form action={removerVinculoEmpresaObra}>
                               <input type="hidden" name="id" value={v.id} />
-                              <button className="text-red-500 underline">Remover</button>
+                              <button className="btn-acao-excluir" title="Remover" aria-label="Remover"><Trash2 className="w-4 h-4" aria-hidden /></button>
                             </form>
                           </div>
                         </td>

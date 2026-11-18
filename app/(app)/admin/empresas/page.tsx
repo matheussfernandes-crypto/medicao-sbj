@@ -1,3 +1,4 @@
+import { Pencil } from "lucide-react";
 import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -202,7 +203,7 @@ export default async function EmpresasPage({
                   </td>
                   <td className="p-3 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <a href={`/admin/empresas?editar=${emp.id}`} className="text-xs text-primary underline">Editar</a>
+                      <a href={`/admin/empresas?editar=${emp.id}`} className="btn-acao-editar" title="Editar" aria-label="Editar"><Pencil className="w-4 h-4" aria-hidden /></a>
                       <form action={toggleEmpresaAtivo}>
                         <input type="hidden" name="id" value={emp.id} />
                         <input type="hidden" name="ativo" value={String(emp.ativo)} />

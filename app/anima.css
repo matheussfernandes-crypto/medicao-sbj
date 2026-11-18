@@ -159,3 +159,10 @@ html.dark table thead th:not(.th-leve) { color: #e3ecee; }
   .lanc-form .flex > * { min-width: 0; }
   .lanc-form .flex > button { flex: 1 1 140px; }
 }
+
+/* ações com símbolo (padrão do site): excluir = lixeira vermelha; editar = lápis azul. Só aparência. */
+.btn-acao-excluir, .btn-acao-editar { width: 32px; height: 32px; min-width: 32px; border: 0; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; padding: 0; flex: none; text-decoration: none; }
+.btn-acao-excluir { background: #d9413a; }
+.btn-acao-excluir:hover { background: #bf332d; }
+.btn-acao-editar { background: #00687a; }
+.btn-acao-editar:hover { background: #005564; }

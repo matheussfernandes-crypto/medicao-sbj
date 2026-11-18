@@ -135,7 +135,7 @@ export default function LancamentosTable({
               <th className="p-1">Lançado por</th>
               <th className="p-1">Total</th>
               <th className="p-1">Status</th>
-              <th className="p-1">Ações</th>
+              <th className="p-1 w-10"><span className="sr-only">Ações</span></th>
             </tr>
           </thead>
 }>

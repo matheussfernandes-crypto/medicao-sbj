@@ -1,3 +1,4 @@
+import { Trash2 } from "lucide-react";
 import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -171,7 +172,7 @@ export default async function RetiradasPage() {
                   <td className="p-1">
                     <form action={excluirRetirada}>
                       <input type="hidden" name="id" value={r.id} />
-                      <button className="bg-red-100 text-red-700 rounded px-2 py-0.5 text-xs">Excluir</button>
+                      <button className="btn-acao-excluir" title="Excluir" aria-label="Excluir"><Trash2 className="w-4 h-4" aria-hidden /></button>
                     </form>
                   </td>
                 </tr>

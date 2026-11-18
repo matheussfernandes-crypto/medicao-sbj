@@ -409,17 +409,18 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
           className="w-full text-sm"
           colunas={[
             { chave: "n", rotulo: "Nº", ordem: true },
-            { chave: "data", rotulo: "Data", ordens: [["asc", "Mais antigas"], ["desc", "Mais recentes"]], lab: (v) => dataBR(v) },
-            { chave: "tipo", rotulo: "Tipo", filtro: true, lab: (v) => TIPO_LANC_LABEL[v] ?? v },
-            { chave: "mes", rotulo: "Mês", filtro: true, lab: (v) => mesLabel(v) },
+            { chave: "data", rotulo: "Data", ordens: [["asc", "Mais antigas"], ["desc", "Mais recentes"]] },
+            { chave: "tipo", rotulo: "Tipo", filtro: true },
+            { chave: "mes", rotulo: "Mês", filtro: true },
             { chave: "valor", rotulo: "Valor", direita: true },
             { chave: "retencao", rotulo: "Retenção", direita: true },
             { chave: "nome", rotulo: "Lançado por", filtro: true },
-            { chave: "status", rotulo: "Status", filtro: true, lab: (v) => STATUS_LANC_LABEL[v] ?? v },
+            { chave: "status", rotulo: "Status", filtro: true },
           ]}
           itens={(lancs ?? []).map((l: any) => ({
             id: String(l.id),
             d: { n: String(l.numero ?? ""), data: String(l.data ?? ""), tipo: String(l.tipo ?? ""), mes: String(l.mes_referencia ?? ""), nome: nomes[l.criado_por] ?? "", status: String(l.status ?? "") },
+            l: { data: dataBR(l.data), tipo: TIPO_LANC_LABEL[l.tipo] ?? String(l.tipo), mes: mesLabel(l.mes_referencia), status: STATUS_LANC_LABEL[l.status] ?? String(l.status) },
             linha: (<tr key={l.id} className="border-b">
                   <td className="py-2 pr-2">{l.numero}</td>
                   <td className="py-2 pr-2 whitespace-nowrap">{dataBR(l.data)}</td>

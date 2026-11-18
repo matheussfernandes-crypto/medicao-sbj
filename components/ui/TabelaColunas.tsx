@@ -20,7 +20,8 @@ export type ColunaTab = {
 };
 
 // d: valores de cada coluna (texto), usados para filtrar e ordenar; linha: a <tr> já montada pelo servidor
-export type ItemTab = { id: string; d: Record<string, string>; linha: React.ReactNode };
+// l: rótulos prontos de cada valor (texto), para páginas do servidor que não podem passar funções
+export type ItemTab = { id: string; d: Record<string, string>; l?: Record<string, string>; linha: React.ReactNode };
 
 const AZ: [Direcao, string][] = [
   ["asc", "A → Z"],
@@ -64,16 +65,19 @@ export default function TabelaColunas({
   const nFiltros = Object.values(filtros).filter((v) => v?.length).length;
   const ativo = nFiltros > 0 || !!ord;
 
+  // rótulo de um valor no filtro: função (só em componentes do navegador) ou o rótulo pronto vindo do item
+  const rotulo = (c: ColunaTab) => (v: string) => (c.lab ? c.lab(v) : itens.find((it) => it.d[c.chave] === v)?.l?.[c.chave] ?? v);
+
   function cabecalho(c: ColunaTab) {
     if (!c.filtro && !c.ordem && !c.ordens) return <span className="whitespace-nowrap">{c.rotulo}</span>;
     const valores = c.filtro
       ? contarValores(
           itens.filter((it) => passa(it, c.chave)),
           (it) => it.d[c.chave] ?? "",
-          c.lab
+          rotulo(c)
         ).sort((a, b) => a.l.localeCompare(b.l, "pt-BR", { numeric: true }))
       : undefined;
-    (filtros[c.chave] ?? []).forEach((v) => valores && !valores.some((x) => x.v === v) && valores.push({ v, l: c.lab ? c.lab(v) : v, n: 0 }));
+    (filtros[c.chave] ?? []).forEach((v) => valores && !valores.some((x) => x.v === v) && valores.push({ v, l: rotulo(c)(v), n: 0 }));
     return (
       <FiltroColuna
         rotulo={c.rotulo}

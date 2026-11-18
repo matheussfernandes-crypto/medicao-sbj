@@ -4,6 +4,7 @@ import "./tema-escuro.css";
 import { SCRIPT_TEMA_INICIAL } from "@/lib/tema";
 import type { Metadata, Viewport } from "next";
 import PushRegistrar from "@/components/PushRegistrar";
+import ConfirmacaoRoot from "@/components/ui/Confirmacao";
 
 export const metadata: Metadata = {
   title: "Engenharia SBJ",
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script src="/intro-sbj/intro-data.js" />
         <script src="/intro-sbj/intro.js" />
         <PushRegistrar />
+        <ConfirmacaoRoot />
         {children}
       </body>
     </html>

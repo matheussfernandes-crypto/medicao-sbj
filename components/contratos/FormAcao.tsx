@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { pedirConfirmacao } from "@/components/ui/Confirmacao";
 
 type Resultado = { erro?: string; ok?: string; id?: string };
 
@@ -31,7 +32,6 @@ export default function FormAcao({
   const ref = useRef<HTMLFormElement>(null);
   const [pendente, start] = useTransition();
   const [msg, setMsg] = useState<Resultado | null>(null);
-  const [aguardandoConfirmacao, setAguardando] = useState(false);
 
   function enviar(fd: FormData) {
     setMsg(null);
@@ -50,26 +50,20 @@ export default function FormAcao({
     <form
       ref={ref}
       className={className}
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
-        if (confirmar && !aguardandoConfirmacao) {
-          setAguardando(true);
-          return;
+        const form = e.currentTarget;
+        const fd = new FormData(form);
+        if (confirmar) {
+          const ok = await pedirConfirmacao({ texto: confirmar, botao: "Confirmar" });
+          if (!ok) return;
         }
-        setAguardando(false);
-        enviar(new FormData(e.currentTarget));
+        enviar(fd);
       }}
     >
       <fieldset disabled={pendente} className="contents">
         {children}
       </fieldset>
-      {aguardandoConfirmacao && (
-        <div className="basis-full w-full mt-2 flex flex-wrap items-center gap-2 text-sm bg-amber-50 border border-amber-200 rounded px-3 py-2">
-          <span className="text-amber-800 flex-1">{confirmar}</span>
-          <button type="submit" className="bg-primary text-white rounded px-3 py-1 text-xs font-semibold">Confirmar</button>
-          <button type="button" onClick={() => setAguardando(false)} className="text-ink-500 text-xs underline">Cancelar</button>
-        </div>
-      )}
       {pendente && <p className="basis-full w-full text-xs text-ink-500 mt-1">Salvando…</p>}
       {msg?.erro && (
         <p className="basis-full w-full mt-2 text-sm text-danger bg-red-50 border border-red-200 rounded px-3 py-2">{msg.erro}</p>

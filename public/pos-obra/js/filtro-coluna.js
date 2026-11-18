@@ -15,7 +15,7 @@
   .tf-ord button{flex:1;border:1px solid var(--border,#e2e6ec);border-radius:8px;background:var(--panel,#fff);padding:6px 4px;font:inherit;font-size:12.5px;font-weight:600;color:var(--text,#14242a);cursor:pointer;white-space:nowrap}
   .tf-ord button:hover{border-color:var(--primary,#00687a)}.tf-ord button.on{background:rgba(0,104,122,.1);border-color:var(--primary,#00687a);color:var(--primary,#00687a)}
   .tf-linha{border-top:1px solid var(--border,#e2e6ec);margin:0 2px}
-  .tf-busca{display:block;width:calc(100% - 4px);box-sizing:border-box;margin:8px 2px 6px;height:32px;border:1px solid var(--border,#e2e6ec);border-radius:9px;padding:0 10px;font:inherit;font-size:13px;background:var(--panel,#fff);color:var(--text,#14242a)}
+  .tf-busca{display:block;width:calc(100% - 16px);box-sizing:border-box;margin:8px 8px 6px;height:32px;border:1px solid var(--border,#e2e6ec);border-radius:9px;padding:0 10px;font:inherit;font-size:13px;background:var(--panel,#fff);color:var(--text,#14242a)}
   .tf-busca:focus{outline:none;border-color:var(--primary,#00687a);box-shadow:0 0 0 3px rgba(0,104,122,.15)}
   .tf-lista{max-height:260px;overflow:auto;padding-top:4px}
   .tf-op{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;cursor:pointer}.tf-op:hover{background:rgba(0,104,122,.06)}

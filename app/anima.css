@@ -75,7 +75,7 @@ html.dark .sbj-aba.ativa { color: #fff; }
 .sbj-sel-menu.saindo { animation: sbjDdOut .12s ease both; pointer-events: none; }
 @keyframes sbjDdIn { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
 @keyframes sbjDdOut { to { opacity: 0; transform: scale(.98); } }
-.sbj-sel-busca { margin: 2px 2px 6px; padding: 8px 12px; border: 1px solid #dfe5e7; border-radius: 9px; font-size: 14px; background: #f7f9fb; }
+.sbj-sel-busca { margin: 2px 9px 6px; padding: 8px 12px; border: 1px solid #dfe5e7; border-radius: 9px; font-size: 14px; background: #f7f9fb; }
 .sbj-sel-busca:focus { outline: none; border-color: #00687a; background: #fff; }
 .sbj-sel-item { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 9px 12px; border-radius: 9px; font-size: 14px; color: #1f2d33; cursor: pointer; }
 .sbj-sel-item.ativo { background: #eaf4f5; }

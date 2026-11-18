@@ -145,7 +145,7 @@ export default function FiltroColuna({
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
                     placeholder="Buscar…"
-                    className="mx-0.5 mb-1.5 mt-2 block h-8 w-[calc(100%-4px)] rounded-[9px] border border-border px-2.5 text-[13px] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+                    className="mx-2 mb-1.5 mt-2 block h-8 w-[calc(100%-16px)] rounded-[9px] border border-border px-2.5 text-[13px] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
                   />
                 )}
                 <div className="max-h-[260px] overflow-auto pt-1">

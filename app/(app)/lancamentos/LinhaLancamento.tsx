@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { CalendarDays, Pencil } from "lucide-react";
 import { useState } from "react";
 import ConfirmDeleteButton from "./ConfirmDeleteButton";
 import EditarLancamentoForm from "./EditarLancamentoForm";
@@ -246,8 +246,8 @@ export default function LinhaLancamento({
               <button type="button" onClick={() => setEditandoData(false)} className="bg-gray-200 rounded px-2 py-0.5 text-xs">✕</button>
             </form>
           ) : (
-            <button onClick={() => setEditandoData(true)} className="bg-yellow-100 text-yellow-800 rounded px-2 py-0.5 text-xs">
-              Data
+            <button onClick={() => setEditandoData(true)} className="btn-acao-editar" title="Alterar data" aria-label="Alterar data">
+              <CalendarDays className="w-4 h-4" aria-hidden />
             </button>
           )
         )}

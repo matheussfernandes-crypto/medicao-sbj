@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Copy, ImagePlus, Plus, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { consultarCep, consultarCnpj, enderecoComNumero, formatarCep } from "@/lib/consultaDocs";
 import FiltroColuna, { contarValores, type Direcao } from "@/components/ui/FiltroColuna";
 import { DataCampo, Paginador, Recolher, Seta, useAberto, usePaginas } from "@/components/ui/anima";
 import { criarObra, marcarEntregue, mudarFase, salvarAparece, salvarLogo, salvarObra, voltarParaObra, type CampoAparece, type DadosObra } from "./actions";
@@ -525,6 +526,27 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
     setMudou(true);
     setMsg(null);
   };
+  // consulta de CEP/CNPJ: preenche só o que está vazio
+  async function puxarCep(valor: string) {
+    const r = await consultarCep(valor);
+    if (!r) return;
+    setD((x) => ({ ...x, endereco: x.endereco || r.logradouro || null, bairro: x.bairro || r.bairro || null, cidade: x.cidade || r.cidade || null, uf: x.uf || r.uf || null }));
+    setMudou(true);
+  }
+  async function puxarCnpj(valor: string) {
+    const r = await consultarCnpj(valor);
+    if (!r) return;
+    setD((x) => ({
+      ...x,
+      razao_social: x.razao_social || r.razaoSocial || null,
+      endereco: x.endereco || enderecoComNumero(r) || null,
+      bairro: x.bairro || r.bairro || null,
+      cidade: x.cidade || r.cidade || null,
+      uf: x.uf || r.uf || null,
+      cep: x.cep || formatarCep(r.cep) || null,
+    }));
+    setMudou(true);
+  }
   const t = (k: keyof DadosObra) => ({
     value: (d[k] as string | number | null) ?? "",
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => set(k, e.target.value as never),
@@ -693,7 +715,7 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
             <Bloco id="fiscais" titulo="Dados fiscais">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Campo rotulo="CNPJ da obra">
-                  <input className={inp} {...t("cnpj")} onBlur={(e) => e.target.value && set("cnpj", mascaraCnpj(e.target.value))} placeholder="00.000.000/0000-00" inputMode="numeric" />
+                  <input className={inp} {...t("cnpj")} onBlur={(e) => { if (e.target.value) { set("cnpj", mascaraCnpj(e.target.value)); puxarCnpj(e.target.value); } }} placeholder="00.000.000/0000-00" inputMode="numeric" />
                 </Campo>
                 <Campo rotulo="CNO">
                   <input className={inp} {...t("cno")} onBlur={(e) => e.target.value && set("cno", mascaraCno(e.target.value))} placeholder="00.000.00000/00" inputMode="numeric" />
@@ -709,7 +731,7 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
                   <input className={inp} {...t("endereco")} />
                 </Campo>
                 <Campo rotulo="CEP" className="sm:col-span-2">
-                  <input className={inp} {...t("cep")} onBlur={(e) => e.target.value && set("cep", mascaraCep(e.target.value))} placeholder="00000-000" inputMode="numeric" />
+                  <input className={inp} {...t("cep")} onBlur={(e) => { if (e.target.value) { set("cep", mascaraCep(e.target.value)); puxarCep(e.target.value); } }} placeholder="00000-000" inputMode="numeric" />
                 </Campo>
                 <Campo rotulo="Bairro" className="sm:col-span-2">
                   <input className={inp} {...t("bairro")} />

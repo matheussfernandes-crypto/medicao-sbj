@@ -488,6 +488,7 @@ function openSupplierForm(id) {
   }
   wireBuildingLinkRemoveButtons();
   wireAddBuildingButton();
+  if (typeof sbjAutoPreencher === "function") sbjAutoPreencher(document.getElementById("supplier-form"));
 
   document.getElementById("btn-save-supplier").addEventListener("click", () => {
     const form = document.getElementById("supplier-form");

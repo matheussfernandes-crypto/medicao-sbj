@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { consultarCep, consultarCnpj, enderecoComNumero, formatarCep } from "@/lib/consultaDocs";
 import { Pencil, Snowflake, Sun } from "lucide-react";
 import { criarEmpresa, editarEmpresa, toggleEmpresaAtivo } from "./actions";
 import Selecao from "@/components/ui/Selecao";
@@ -13,6 +14,39 @@ const UF_LIST = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG
 export default function EmpresasView({ empresas, qtdContratos, editarInicial }: { empresas: any[]; qtdContratos: Record<string, { ativos: number; total: number }>; editarInicial: string | null }) {
   const [editarId, setEditarId] = useState<string | null>(editarInicial);
   const e = editarId ? (empresas ?? []).find((x) => x.id === editarId) ?? null : null;
+
+  // UF controlada, para poder ser preenchida pela consulta de CEP/CNPJ
+  const [uf, setUf] = useState<string>(e?.uf ?? "");
+  useEffect(() => setUf(e?.uf ?? ""), [e?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // preenche só o que está vazio (nunca sobrescreve o que a pessoa já digitou)
+  function vazio(form: HTMLFormElement | null, nome: string, valor: string) {
+    const el = form?.elements.namedItem(nome) as HTMLInputElement | null;
+    if (el && valor && !el.value.trim()) el.value = valor;
+  }
+  async function aoSairCep(ev: React.FocusEvent<HTMLInputElement>) {
+    const form = ev.target.form;
+    const r = await consultarCep(ev.target.value);
+    if (!r) return;
+    vazio(form, "endereco", r.logradouro);
+    vazio(form, "bairro", r.bairro);
+    vazio(form, "municipio", r.cidade);
+    if (!uf && r.uf) setUf(r.uf);
+  }
+  async function aoSairCnpj(ev: React.FocusEvent<HTMLInputElement>) {
+    const form = ev.target.form;
+    const r = await consultarCnpj(ev.target.value);
+    if (!r) return;
+    vazio(form, "nome_empresarial", r.razaoSocial);
+    vazio(form, "nome", r.nomeFantasia || r.razaoSocial);
+    vazio(form, "endereco", enderecoComNumero(r));
+    vazio(form, "cep", formatarCep(r.cep));
+    vazio(form, "bairro", r.bairro);
+    vazio(form, "municipio", r.cidade);
+    vazio(form, "telefone", r.telefone);
+    vazio(form, "email", r.email);
+    if (!uf && r.uf) setUf(r.uf);
+  }
   return (
     <div className="space-y-6">
         <h1 className="text-xl font-semibold text-primaryDark">Cadastro de Terceirizado</h1>
@@ -40,7 +74,7 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
             {/* CNPJ + Inscrição Municipal */}
             <div>
               <label className="text-xs text-gray-500 block mb-1">CNPJ / CPF</label>
-              <input name="cnpj" defaultValue={e?.cnpj ?? ""} className="border rounded px-3 py-2 w-full" placeholder="45.126.416/0001-99" />
+              <input name="cnpj" onBlur={aoSairCnpj} defaultValue={e?.cnpj ?? ""} className="border rounded px-3 py-2 w-full" placeholder="45.126.416/0001-99" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Inscrição Municipal</label>
@@ -56,7 +90,7 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
             {/* CEP + Bairro */}
             <div>
               <label className="text-xs text-gray-500 block mb-1">CEP</label>
-              <input name="cep" defaultValue={e?.cep ?? ""} className="border rounded px-3 py-2 w-full" placeholder="88311-740" />
+              <input name="cep" onBlur={aoSairCep} defaultValue={e?.cep ?? ""} className="border rounded px-3 py-2 w-full" placeholder="88311-740" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Bairro</label>
@@ -70,7 +104,7 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">UF</label>
-              <Selecao name="uf" defaultValue={e?.uf ?? ""} className="border rounded px-3 py-2 w-full">
+              <Selecao name="uf" value={uf} onChange={(ev) => setUf(ev.target.value)} className="border rounded px-3 py-2 w-full">
                 <option value="">—</option>
                 {UF_LIST.map((u) => <option key={u} value={u}>{u}</option>)}
               </Selecao>

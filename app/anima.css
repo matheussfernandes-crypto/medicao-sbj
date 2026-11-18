@@ -172,3 +172,10 @@ html.dark table thead th:not(.th-leve) { color: #e3ecee; }
 .btn-acao-pdf:hover { background: #eaf4f5; border-color: #00687a; }
 /* tabelas dentro dos cartões: respiro entre o texto e a borda do bloco */
 .card table th.p-1, .card table td.p-1 { padding: 8px 12px !important; }
+
+/* desativar (congelar) e reativar (descongelar) uma empresa: símbolos, sem texto */
+.btn-acao-congelar, .btn-acao-descongelar { width: 32px; height: 32px; min-width: 32px; border: 0; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; padding: 0; }
+.btn-acao-congelar { background: #3f8fb0; }
+.btn-acao-congelar:hover { background: #2f7898; }
+.btn-acao-descongelar { background: #d9a526; }
+.btn-acao-descongelar:hover { background: #bf8c17; }

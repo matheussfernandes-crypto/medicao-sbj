@@ -356,7 +356,8 @@ h1{font-family:var(--f-body)!important;font-weight:600!important;font-size:24px;
 .rel-sec-h{width:fit-content;max-width:100%;padding:2px 9px;margin-left:0;border-radius:8px;cursor:pointer;transition:background .2s}
 .rel-sec-h:hover{background:var(--accent-soft)}
 .rel-sec-h .rel-toggle:hover{background:none!important}
-.rel-sec-h:hover .rel-toggle{color:var(--accent)!important}.btn.ativo{background:var(--accent)!important;border-color:var(--accent)!important;color:var(--accent-fg,#fff)!important;box-shadow:0 0 0 3px var(--accent-soft)}.btn.apagado{background:var(--surface)!important;border-color:var(--line)!important;color:var(--fg)!important}#quick-sec .top h1{font-size:22px}#quick-sec .top{margin-bottom:10px}#quick-sec .sub{font-size:13px}.quick textarea{min-height:52px;max-height:60vh;padding:10px 16px;font-size:14px;line-height:1.45;resize:none;overflow-y:auto;transition:height .12s ease}.quick-bar{padding:8px 10px}.quick-bar .btn{padding-top:6px;padding-bottom:6px}.fgrid[hidden],label.f[hidden],div[hidden]{display:none!important}</style>
+.rel-sec-h:hover .rel-toggle{color:var(--accent)!important}.btn.ativo{background:var(--accent)!important;border-color:var(--accent)!important;color:var(--accent-fg,#fff)!important;box-shadow:0 0 0 3px var(--accent-soft)}.btn.apagado{background:var(--surface)!important;border-color:var(--line)!important;color:var(--fg)!important}#quick-sec .top h1{font-size:22px}#quick-sec .top{margin-bottom:10px}#quick-sec .sub{font-size:13px}.quick textarea{min-height:52px;max-height:60vh;padding:10px 16px;font-size:14px;line-height:1.45;resize:none;overflow-y:auto;transition:height .12s ease}.quick-bar{padding:8px 10px}.quick-bar .btn{padding-top:6px;padding-bottom:6px}.fgrid[hidden],label.f[hidden],div[hidden]{display:none!important}.rel-pag-oculta{display:none!important}.rel-pager{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 0 2px;font-size:13px;color:var(--muted)}.rel-pager[hidden]{display:none}.rel-pager button{border:1px solid var(--line);background:var(--surface);color:var(--accent);border-radius:9px;padding:6px 12px;font:inherit;font-weight:600;cursor:pointer}.rel-pager button:disabled{opacity:.4;cursor:default}
+</style>
 
 <style>
 .embutido .side,.embutido .bnav{display:none!important}
@@ -1398,6 +1399,20 @@ function relTfAplicar(t){
   relTfCols(t).forEach(({k,b})=>{const n=(st.sel[k]||[]).length,o=st.sort&&st.sort.k===k?st.sort.d:null;b.outerHTML=tfBotao("rel:"+k,b.dataset.rot,n,o)});
   const cont=t.closest(".rel-sec")&&t.closest(".rel-sec").querySelector("[data-rel-cont]");if(cont)cont.textContent=linhas.filter(tr=>!tr.classList.contains("rel-oculta")).length;
 }
+/* tabelas longas (ex.: Chamados do mês): 15 linhas por página, com Anterior / Próxima embaixo */
+const REL_POR=15;
+function relTfPaginar(t){
+  const st=relTfEstado(t),vis=[...t.tBodies[0].rows].filter(tr=>!tr.classList.contains("rel-oculta"));
+  const pags=Math.max(1,Math.ceil(vis.length/REL_POR));st.pag=Math.min(Math.max(0,st.pag||0),pags-1);
+  vis.forEach((tr,i)=>tr.classList.toggle("rel-pag-oculta",i<st.pag*REL_POR||i>=(st.pag+1)*REL_POR));
+  const sec=t.closest(".rel-sec");if(!sec)return;
+  let p=sec.querySelector(".rel-pager");
+  if(!p){p=document.createElement("div");p.className="rel-pager";t.parentElement.after(p)}
+  p.hidden=pags<2;
+  p.innerHTML='<button type="button" data-rel-pag="-1"'+(st.pag<=0?" disabled":"")+'>‹ Anterior</button><span>Página '+(st.pag+1)+' de '+pags+'</span><button type="button" data-rel-pag="1"'+(st.pag>=pags-1?" disabled":"")+'>Próxima ›</button>';
+}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-rel-pag]");if(!b)return;const t=b.closest(".rel-sec").querySelector("table[data-tf-tabela]");if(!t)return;const st=relTfEstado(t);st.pag=(st.pag||0)+Number(b.dataset.relPag);relTfPaginar(t)});
+new MutationObserver(()=>document.querySelectorAll("table[data-tf-tabela]").forEach(t=>{if(!t._pagOk){t._pagOk=1;relTfPaginar(t)}})).observe(document.body,{childList:true,subtree:true});
 function relTfAbrir(h,t){
   const k=h.dataset.tfh.split(":")[1],st=relTfEstado(t),th=h.closest("th");
   const filtra=th.hasAttribute("data-tf-filtro"),ord=th.dataset.tfOrd==="num"?[["asc","Menor → maior"],["desc","Maior → menor"]]:th.dataset.tfOrd==="data"?[["asc","Mais antigos"],["desc","Mais recentes"]]:[["asc","A → Z"],["desc","Z → A"]];

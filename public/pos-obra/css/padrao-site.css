@@ -222,3 +222,8 @@ table thead th { color: var(--text) !important; font-weight: 700 !important; }
 
 /* botões de ação das Vistorias alinhados à esquerda (tablet e computador) */
 .vt-acoes, .vt-barra .vt-acoes { justify-content: flex-start !important; margin-left: 0 !important; }
+
+/* excluir vistoria: mesmo símbolo das outras telas (32 px) e afastado do botão de PDF */
+.btn-acao-excluir, .btn-acao-editar { width: 32px; height: 32px; min-width: 32px; border-radius: 9px; }
+#vt-excluir { margin-left: 10px; }
+.vt-acoes #vt-doc, .vt-acoes .btn { margin-right: 0; }

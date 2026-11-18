@@ -224,3 +224,9 @@ html.dark table thead th:not(.th-leve) { color: #e3ecee; }
 @media (max-width: 767px) {
   .card table.tab-cartao td, .card table.tab-cartao th { padding-left: 0; padding-right: 0; }
 }
+
+/* celular: no formulário de lançamento cada campo ocupa sua própria linha (nada sobreposto) */
+@media (max-width: 767px) {
+  .lanc-form .flex-wrap > * { flex: 1 1 100% !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; }
+  .lanc-form .flex-wrap > .relative, .lanc-form .flex-wrap > .inline-block { display: block; }
+}

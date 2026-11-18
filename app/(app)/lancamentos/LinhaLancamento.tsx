@@ -164,7 +164,9 @@ export default function LinhaLancamento({
       </td>
       <td data-col="acoes" className="p-1 text-right whitespace-nowrap">
         {ehAdmin && l.status !== "PENDENTE" ? (
-          editandoData ? (
+          <>
+          <div className="hidden lg:block">
+          {editandoData ? (
             <form action={editarDataLancamento} className="flex items-center justify-end gap-1" onSubmit={() => setEditandoData(false)}>
               <input type="hidden" name="id" value={l.id} />
               <DataCampo name="data" defaultValue={l.data} />
@@ -182,7 +184,12 @@ export default function LinhaLancamento({
                 <ConfirmDeleteButton jaFechado={jaFechado} />
               </form>
             </div>
-          )
+          )}
+          </div>
+          <div className="lg:hidden">
+            <BotaoAcoes aberto={aberta} onClick={() => setAberta((v) => !v)} />
+          </div>
+          </>
         ) : temAcoes ? (
           <BotaoAcoes aberto={aberta} onClick={() => setAberta((v) => !v)} />
         ) : (
@@ -191,7 +198,7 @@ export default function LinhaLancamento({
       </td>
     </tr>
     {aberta && temAcoes && (
-      <tr className="bg-surface-subtle sbj-entra">
+      <tr className={"bg-surface-subtle sbj-entra " + (ehAdmin && l.status !== "PENDENTE" ? "lg:hidden" : "")}>
         <td colSpan={COLUNAS} className="px-3 py-3">
           <div className="flex flex-wrap items-center gap-2">
         {ehAdmin && l.status === "PENDENTE" && (
@@ -239,13 +246,14 @@ export default function LinhaLancamento({
 
         {podeEditarOuExcluirProprio && (
           <div className="flex gap-1 flex-wrap">
-            <button onClick={() => setEditando(true)} className="btn-acao-editar" title="Editar" aria-label="Editar">
+            <button onClick={() => setEditando(true)} className="btn-acao-alterar-txt" title="Editar" aria-label="Editar">
               <Pencil className="w-4 h-4" aria-hidden />
+              Editar
             </button>
             <form action={isOwner && !ehAdmin ? excluirLancamentoProprio : excluirLancamento} className="inline">
               <input type="hidden" name="id" value={l.id} />
               <input type="hidden" name="obraId" value={obraId} />
-              <ConfirmDeleteButton />
+              <ConfirmDeleteButton rotulo="Excluir lançamento" />
             </form>
           </div>
         )}
@@ -258,7 +266,7 @@ export default function LinhaLancamento({
           <form action={excluirLancamento} className="inline">
             <input type="hidden" name="id" value={l.id} />
             <input type="hidden" name="obraId" value={obraId} />
-            <ConfirmDeleteButton jaFechado={jaFechado} />
+            <ConfirmDeleteButton jaFechado={jaFechado} rotulo="Excluir lançamento" />
           </form>
         )}
 
@@ -272,8 +280,9 @@ export default function LinhaLancamento({
               <button type="button" onClick={() => setEditandoData(false)} className="bg-gray-200 rounded px-2 py-0.5 text-xs">✕</button>
             </form>
           ) : (
-            <button onClick={() => setEditandoData(true)} className="btn-acao-editar" title="Alterar data" aria-label="Alterar data">
+            <button onClick={() => setEditandoData(true)} className="btn-acao-alterar-txt" title="Alterar data" aria-label="Alterar data">
               <CalendarDays className="w-4 h-4" aria-hidden />
+              Alterar data
             </button>
           )
         )}

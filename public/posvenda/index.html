@@ -476,7 +476,7 @@ const I_X=ICON('<path d="M6 6l12 12M18 6L6 18"/>');
 const S={emp:[],uni:[],resp:[],ch:[],ag:[],cfg:{},M:{emp:new Map,uni:new Map,resp:new Map,ch:new Map,ag:new Map},
   loaded:{},view:"inicio",db:null,dict:null,assets:null,dl:null,user:null,uid:null,
   dbState:"conectando",qFiles:[],qBusy:false,qCtl:null,draft:null,drawer:null,drawerMode:null,edit:null,
-  chF:{q:"",col:{st:["aberto","agendado","aguardando"]},sort:null},agSem:0,painelPer:"90",cadTab:"emp",cadEmp:"",rep:{mes:"",emp:""},repResumo:{},names:{},pending:false};
+  chF:{q:"",col:{st:["aberto","agendado","aguardando"]},sort:null},agSem:0,painelPer:"90",cadTab:"uni",cadEmp:"",rep:{mes:"",emp:""},repResumo:{},names:{},pending:false};
 
 /* ================= utilidades ================= */
 const $=s=>document.querySelector(s);
@@ -1876,7 +1876,7 @@ function repBaixarCSV(){
 /* ================= CADASTROS ================= */
 function vCadastros(){
   const t=S.cadTab;
-  const tabs=[["emp","Empreendimentos"],["uni","Clientes"],["forn","Fornecedores"],["resp","Responsáveis"],["gar","Garantia"],["msg","Mensagens"],["eq","Equipe"],["imp","Importar"],["bkp","Backup"]];
+  const tabs=[["uni","Clientes"],["forn","Fornecedores"],["resp","Responsáveis"],["gar","Garantia"],["msg","Mensagens"],["eq","Equipe"],["imp","Importar"],["bkp","Backup"]];
   let body="";if(t==="imp")body=cadImp();if(t==="bkp")body=cadBkp();if(t==="eq")body=cadEq();
   if(t==="emp")body=cadEmp();if(t==="uni")body=cadUni();if(t==="resp")body=cadResp();if(t==="gar")body=cadGar();if(t==="msg")body=cadMsg();if(t==="forn")body=cadForn();
   return `<div class="top"><div><h1>Cadastros</h1><div class="sub">Os cadastros também se formam sozinhos a partir dos chamados.</div></div></div>

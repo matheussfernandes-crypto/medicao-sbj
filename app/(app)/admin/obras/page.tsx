@@ -100,12 +100,6 @@ export default async function ObrasPage({
       <h1 className="text-xl font-semibold text-primaryDark">Obras &amp; Pessoas</h1>
 
       <div className="card">
-        <h2 className="font-semibold text-primaryDark mb-2">Cadastrar nova obra</h2>
-        <p className="text-sm text-ink-500 mb-2">As obras agora são cadastradas no Cadastro de obras: ao criar lá em desenvolvimento ou em execução, ela já nasce aqui na Medição com os serviços padrão.</p>
-        <a href="/admin/cadastro-obras" className="inline-block bg-primary text-white rounded px-4 py-2">Ir para o Cadastro de obras</a>
-      </div>
-
-      <div className="card">
         <h2 className="font-semibold text-primaryDark mb-2">Selecionar obra</h2>
         <form method="get" className="flex gap-2">
           <Selecao name="obra" defaultValue={obraSelecionada ?? ""} className="border rounded px-3 py-2 flex-1">

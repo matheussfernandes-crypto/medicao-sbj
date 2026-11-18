@@ -225,5 +225,23 @@ table thead th { color: var(--text) !important; font-weight: 700 !important; }
 
 /* excluir vistoria: mesmo símbolo das outras telas (32 px) e afastado do botão de PDF */
 .btn-acao-excluir, .btn-acao-editar { width: 32px; height: 32px; min-width: 32px; border-radius: 9px; }
-#vt-excluir { margin-left: 10px; }
+#vt-excluir { margin-left: 0; }
+.vt-abas #vt-doc { margin-right: 10px; }
 .vt-acoes #vt-doc, .vt-acoes .btn { margin-right: 0; }
+
+/* celular: abas em cima; PDF e excluir sempre numa linha própria, alinhados à esquerda */
+@media (max-width: 720px) {
+  .vt-abas { row-gap: 10px; }
+  .vt-abas .vt-espaco { display: block; flex: 1 0 100%; height: 0; }
+  .vt-abas .btn, .vt-abas .btn-acao-excluir { height: 38px; min-height: 38px; }
+  .vt-abas .btn-acao-excluir { width: 38px; min-width: 38px; }
+  #vt-excluir { margin-left: 0; }
+}
+
+/* celular: as células dos cartões ocupam a largura toda do cartão (antes ficavam espremidas e o texto quebrava letra por letra) */
+@media (max-width: 720px) {
+  .vp-tabela tbody tr, .vtc-tab tbody tr.vtc-l { justify-items: stretch; }
+  .vp-tabela td, .vtc-tab tbody tr.vtc-l td { width: auto !important; justify-self: stretch !important; }
+  .vp-tabela td.vp-sit { justify-self: end !important; }
+  .vp-tabela td.vp-sit .vp-pill { min-width: 28px; }
+}

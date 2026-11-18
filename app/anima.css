@@ -1,9 +1,9 @@
 /* Animações no padrão do pós-obra (ver components/ui/anima.tsx). */
 
 /* recolher: a altura anima pelo grid (0fr ↔ 1fr) */
-.sbj-recolhe { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .32s cubic-bezier(.22,1,.36,1), opacity .22s ease; }
+.sbj-recolhe { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .32s cubic-bezier(.22,1,.36,1), opacity .22s ease; }
 .sbj-recolhe.aberto { grid-template-rows: 1fr; opacity: 1; }
-.sbj-recolhe > .sbj-recolhe-in { overflow: hidden; min-height: 0; }
+.sbj-recolhe > .sbj-recolhe-in { overflow: hidden; min-height: 0; min-width: 0; }
 .sbj-recolhe:not(.aberto) > .sbj-recolhe-in { visibility: hidden; transition: visibility 0s .32s; }
 .sbj-recolhe.solto > .sbj-recolhe-in { overflow: visible; }
 

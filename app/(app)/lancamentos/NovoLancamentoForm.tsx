@@ -39,7 +39,7 @@ export default function NovoLancamentoForm({
   const temEmpresasAtivas = empresasContrato.length > 0;
 
   return (
-    <form action={criarLancamento} className="space-y-3">
+    <form action={criarLancamento} className="space-y-3 lanc-form min-w-0">
       <input type="hidden" name="obraId" value={obraId} />
       <input type="hidden" name="tipoContratado" value={tipoContratado} />
 

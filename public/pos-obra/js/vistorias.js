@@ -112,7 +112,9 @@ document.addEventListener("click", e => {
   vtModo = b.dataset.modo || "aptos";
   // ao abrir o controle, busca de novo no Andamento (para refletir o que acabou de ser marcado)
   if (vtModo === "controle") vtCtrl.lista = null;
-  setTimeout(() => document.querySelectorAll(".nav-btn").forEach(x => x.classList.toggle("active", x === b)), 0);
+  // se havia uma vistoria aberta, sai dela: o menu tem que trocar a tela, não só o título
+  vtAbertaId = null;
+  setTimeout(() => { document.querySelectorAll(".nav-btn").forEach(x => x.classList.toggle("active", x === b)); if (typeof renderVistorias === "function") renderVistorias(); }, 0);
 }, true);
 
 document.addEventListener("click", e => { document.querySelectorAll("details.vt-mais[open]").forEach(d => { if (!d.contains(e.target) || e.target.closest(".vt-mais-p button")) d.open = false; }); });
@@ -776,7 +778,7 @@ function renderVistoriaDetalhe(root) {
       <button type="button" role="tab" class="vt-aba ${vtAbaDet === "lancar" ? "ativa" : ""}" data-vt-aba="lancar">+ Lançar pendências</button>
       <span class="vt-espaco"></span>
       ${v.folha ? `<button type="button" class="btn ghost small" id="vt-doc">PDF e e-mail</button>` : ""}
-      <button type="button" class="btn ghost small danger-txt" id="vt-excluir">Excluir vistoria</button>
+      <button type="button" class="btn-acao-excluir" id="vt-excluir" title="Excluir vistoria" aria-label="Excluir vistoria"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
     </div>
 
     ${vtAbaDet === "lancar" ? `

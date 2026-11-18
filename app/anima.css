@@ -150,3 +150,12 @@ html.dark table thead th:not(.th-leve) { color: #e3ecee; }
   .tab-cartao td:nth-child(10) { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; gap: 6px; }
   .tab-cartao td:nth-child(10)::before { content: none; }
 }
+
+/* celular: o formulário de lançamento cabe na tela (campos e botões quebram linha, nada passa da borda) */
+@media (max-width: 767px) {
+  .lanc-form { max-width: 100%; }
+  .lanc-form .flex, .lanc-form .flex-wrap { flex-wrap: wrap !important; min-width: 0; }
+  .lanc-form input, .lanc-form select { width: 100% !important; max-width: 100%; min-width: 0 !important; box-sizing: border-box; }
+  .lanc-form .flex > * { min-width: 0; }
+  .lanc-form .flex > button { flex: 1 1 140px; }
+}

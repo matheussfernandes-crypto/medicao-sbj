@@ -171,14 +171,13 @@ export default function LinhaLancamento({
             </form>
           ) : (
             <div className="flex items-center justify-end gap-1.5">
-              <button type="button" onClick={() => setEditandoData(true)} className="btn-acao-alterar-txt" title="Alterar data" aria-label="Alterar data">
+              <button type="button" onClick={() => setEditandoData(true)} className="btn-acao-editar" title="Alterar data" aria-label="Alterar data">
                 <CalendarDays className="w-4 h-4" aria-hidden />
-                Alterar data
               </button>
               <form action={excluirLancamento} className="inline">
                 <input type="hidden" name="id" value={l.id} />
                 <input type="hidden" name="obraId" value={obraId} />
-                <ConfirmDeleteButton jaFechado={jaFechado} rotulo="Excluir lançamento" />
+                <ConfirmDeleteButton jaFechado={jaFechado} />
               </form>
             </div>
           )

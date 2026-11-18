@@ -40,7 +40,7 @@ export default function SecaoRecolhivel({
 
   return (
     <section className="card">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 px-2">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <h2 className="font-semibold text-primaryDark">
@@ -57,7 +57,7 @@ export default function SecaoRecolhivel({
         {!fechado && acoes && <div className="flex flex-wrap items-center gap-3 ml-auto sbj-entra">{acoes}</div>}
       </div>
       <Recolher aberto={!fechado}>
-        <div className="pt-3 space-y-3">{children}</div>
+        <div className="pt-3 space-y-3 px-2">{children}</div>
       </Recolher>
     </section>
   );

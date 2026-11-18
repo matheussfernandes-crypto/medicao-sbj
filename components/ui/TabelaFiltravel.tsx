@@ -75,7 +75,7 @@ export default function TabelaFiltravel({
   const pg = usePaginas(filtrados, por, JSON.stringify(v) + "|" + itens.length);
 
   return (
-    <div ref={pg.topo} className="space-y-3">
+    <div ref={pg.topo} className="space-y-3 px-2">
       <div className="flex flex-wrap items-end gap-3">
         {filtros.map((f) => {
           if (f.tipo === "busca") {

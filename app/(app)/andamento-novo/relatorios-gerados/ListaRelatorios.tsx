@@ -4,7 +4,7 @@ import Selecao from "@/components/ui/Selecao";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Download, Mail } from "lucide-react";
+import { Download, FileDown, Mail } from "lucide-react";
 import EnviarEmail from "../relatorio/EnviarEmail";
 import { DataCampo, Paginador, usePaginas } from "@/components/ui/anima";
 import type { CorpoEmail, LinhaLog, RespostaRelatorio } from "../relatorio/tiposApi";
@@ -163,8 +163,8 @@ export default function ListaRelatorios({ linhas, obraId, obraNome, todas }: { l
                 <td className="py-2 whitespace-nowrap">
                   <div className="flex gap-1.5">
                     {l.url && (
-                      <a href={l.url} className="text-xs px-2 py-1 border border-border rounded-md bg-white" download>
-                        Baixar PDF
+                      <a href={l.url} className="btn-acao-pdf" download title="Baixar PDF" aria-label="Baixar PDF">
+                        <FileDown className="w-4 h-4" aria-hidden />
                       </a>
                     )}
                     {l.acao === "EMAIL" && l.pdf_path && (

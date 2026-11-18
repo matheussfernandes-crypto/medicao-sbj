@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FileDown } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { createClient } from "@/lib/supabase/server";
@@ -85,9 +86,7 @@ export default async function HistoricoFechamentos() {
                   <td className="p-1">{h.email_enviado_para || "—"}</td>
                   <td className="p-1">
                     {h.pdf_path && linksPorCaminho[h.pdf_path] ? (
-                      <a href={linksPorCaminho[h.pdf_path]} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs">
-                        Baixar PDF
-                      </a>
+                      <a href={linksPorCaminho[h.pdf_path]} target="_blank" rel="noopener noreferrer" className="btn-acao-pdf" title="Baixar PDF" aria-label="Baixar PDF"><FileDown className="w-4 h-4" aria-hidden /></a>
                     ) : (
                       <span className="text-xs text-gray-400">—</span>
                     )}

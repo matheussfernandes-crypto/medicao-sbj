@@ -166,3 +166,9 @@ html.dark table thead th:not(.th-leve) { color: #e3ecee; }
 .btn-acao-excluir:hover { background: #bf332d; }
 .btn-acao-editar { background: #00687a; }
 .btn-acao-editar:hover { background: #005564; }
+
+/* baixar PDF: ícone de documento com seta (mesmo tamanho dos outros botões de ação) */
+.btn-acao-pdf { width: 32px; height: 32px; min-width: 32px; border: 1px solid #cfdde1; border-radius: 9px; background: #fff; color: #00687a; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; cursor: pointer; flex: none; }
+.btn-acao-pdf:hover { background: #eaf4f5; border-color: #00687a; }
+/* tabelas dentro dos cartões: respiro entre o texto e a borda do bloco */
+.card table th.p-1, .card table td.p-1 { padding: 8px 12px !important; }

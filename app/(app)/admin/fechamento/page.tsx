@@ -1,4 +1,5 @@
 import MesCampo from "@/components/MesCampo";
+import { FileDown } from "lucide-react";
 import { getUsuarioAtual, perfilDaRequisicao } from "@/lib/auth/getCurrentUserProfile";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -306,9 +307,11 @@ export default async function FechamentoPage({
                           href={linksPdf[h.id]}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-primary underline text-xs"
+                          className="btn-acao-pdf"
+                          title="Baixar PDF"
+                          aria-label="Baixar PDF"
                         >
-                          Baixar PDF
+                          <FileDown className="w-4 h-4" aria-hidden />
                         </a>
                       ) : (
                         <span className="text-xs text-gray-400">—</span>

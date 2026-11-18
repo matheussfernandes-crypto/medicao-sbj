@@ -721,26 +721,26 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
                   <input className={inp} {...t("cno")} onBlur={(e) => e.target.value && set("cno", mascaraCno(e.target.value))} placeholder="00.000.00000/00" inputMode="numeric" />
                 </Campo>
                 <Campo rotulo="Razão social / incorporadora">
-                  <input className={inp} {...t("razao_social")} />
+                  <input className={inp} {...t("razao_social")} placeholder="Ex.: ABC Incorporadora Ltda" />
                 </Campo>
               </div>
             </Bloco>
             <Bloco id="localizacao" titulo="Localização">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-6">
                 <Campo rotulo="Endereço (rua e número)" className="sm:col-span-4">
-                  <input className={inp} {...t("endereco")} />
+                  <input className={inp} {...t("endereco")} placeholder="Ex.: Rua das Flores, 123" />
                 </Campo>
                 <Campo rotulo="CEP" className="sm:col-span-2">
                   <input className={inp} {...t("cep")} onFocus={(e) => { e.target.dataset.orig = e.target.value; }} onBlur={(e) => { if (e.target.value) { const mudou = e.target.value !== (e.target.dataset.orig ?? ""); set("cep", mascaraCep(e.target.value)); if (mudou) puxarCep(e.target.value); } }} placeholder="00000-000" inputMode="numeric" />
                 </Campo>
                 <Campo rotulo="Bairro" className="sm:col-span-2">
-                  <input className={inp} {...t("bairro")} />
+                  <input className={inp} {...t("bairro")} placeholder="Ex.: Centro" />
                 </Campo>
                 <Campo rotulo="Cidade" className="sm:col-span-3">
-                  <input className={inp} {...t("cidade")} />
+                  <input className={inp} {...t("cidade")} placeholder="Ex.: Itajaí" />
                 </Campo>
                 <Campo rotulo="UF" className="sm:col-span-1">
-                  <input className={inp} {...t("uf")} maxLength={2} />
+                  <input className={inp} {...t("uf")} maxLength={2} placeholder="SC" />
                 </Campo>
               </div>
             </Bloco>

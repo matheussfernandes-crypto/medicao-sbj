@@ -394,15 +394,15 @@ function openSupplierForm(id) {
       <form id="supplier-form">
         <h4 class="form-section-title">Dados da empresa</h4>
         <div class="form-grid">
-          <div class="field"><label>Razão social</label><input type="text" name="razaoSocial" value="${escapeHtml(s.razaoSocial)}"></div>
-          <div class="field"><label>Nome fantasia</label><input type="text" name="nomeFantasia" value="${escapeHtml(s.nomeFantasia)}"></div>
-          <div class="field"><label>CNPJ</label><input type="text" name="cnpj" value="${escapeHtml(s.cnpj)}"></div>
+          <div class="field"><label>Razão social</label><input type="text" name="razaoSocial" placeholder="Ex.: ABC Materiais Ltda" value="${escapeHtml(s.razaoSocial)}"></div>
+          <div class="field"><label>Nome fantasia</label><input type="text" name="nomeFantasia" placeholder="Ex.: ABC Materiais" value="${escapeHtml(s.nomeFantasia)}"></div>
+          <div class="field"><label>CNPJ</label><input type="text" name="cnpj" placeholder="00.000.000/0001-00" value="${escapeHtml(s.cnpj)}"></div>
           <div class="field"><label>Status</label><select name="status"><option value="ativo" ${s.status === "ativo" ? "selected" : ""}>Ativo</option><option value="inativo" ${s.status === "inativo" ? "selected" : ""}>Inativo</option></select></div>
-          <div class="field"><label>Telefone</label><input type="text" name="telefone" value="${escapeHtml(s.telefone)}"></div>
-          <div class="field"><label>WhatsApp</label><input type="text" name="whatsapp" value="${escapeHtml(s.whatsapp)}"></div>
-          <div class="field"><label>E-mail</label><input type="text" name="email" value="${escapeHtml(s.email)}"></div>
-          <div class="field"><label>Site</label><input type="text" name="site" value="${escapeHtml(s.site)}"></div>
-          <div class="field full"><label>Endereço</label><input type="text" name="endereco" value="${escapeHtml(s.endereco)}"></div>
+          <div class="field"><label>Telefone</label><input type="text" name="telefone" placeholder="(47) 3000-0000" value="${escapeHtml(s.telefone)}"></div>
+          <div class="field"><label>WhatsApp</label><input type="text" name="whatsapp" placeholder="(47) 90000-0000" value="${escapeHtml(s.whatsapp)}"></div>
+          <div class="field"><label>E-mail</label><input type="text" name="email" placeholder="contato@empresa.com.br" value="${escapeHtml(s.email)}"></div>
+          <div class="field"><label>Site</label><input type="text" name="site" placeholder="www.empresa.com.br" value="${escapeHtml(s.site)}"></div>
+          <div class="field full"><label>Endereço</label><input type="text" name="endereco" placeholder="Ex.: Rua das Flores, 123 - Centro" value="${escapeHtml(s.endereco)}"></div>
         </div>
 
         <h4 class="form-section-title">Especialidades</h4>

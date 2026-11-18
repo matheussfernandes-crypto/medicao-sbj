@@ -67,45 +67,45 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
             {/* Nome fantasia */}
             <div className="sm:col-span-2">
               <label className="text-xs text-gray-500 block mb-1">Nome fantasia *</label>
-              <input name="nome" defaultValue={e?.nome ?? ""} className="border rounded px-3 py-2 w-full" placeholder="EMPREITEIRA DE MAO DE OBRA GABRIELA CAVALCANTE" required />
+              <input name="nome" defaultValue={e?.nome ?? ""} className="border rounded px-3 py-2 w-full" placeholder="Ex.: ABC Revestimentos Ltda" required />
             </div>
 
             {/* Nome empresarial */}
             <div className="sm:col-span-2">
               <label className="text-xs text-gray-500 block mb-1">Nome empresarial (razão social)</label>
-              <input name="nome_empresarial" defaultValue={e?.nome_empresarial ?? ""} className="border rounded px-3 py-2 w-full" placeholder="GARCIA CAVALCANTE LTDA" />
+              <input name="nome_empresarial" defaultValue={e?.nome_empresarial ?? ""} className="border rounded px-3 py-2 w-full" placeholder="Ex.: ABC Revestimentos e Serviços Ltda" />
             </div>
 
             {/* CNPJ + Inscrição Municipal */}
             <div>
               <label className="text-xs text-gray-500 block mb-1">CNPJ / CPF</label>
-              <input name="cnpj" onFocus={guardar} onBlur={aoSairCnpj} defaultValue={e?.cnpj ?? ""} className="border rounded px-3 py-2 w-full" placeholder="45.126.416/0001-99" />
+              <input name="cnpj" onFocus={guardar} onBlur={aoSairCnpj} defaultValue={e?.cnpj ?? ""} className="border rounded px-3 py-2 w-full" placeholder="00.000.000/0001-00" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Inscrição Municipal</label>
-              <input name="inscricao_municipal" defaultValue={e?.inscricao_municipal ?? ""} className="border rounded px-3 py-2 w-full" placeholder="334110" />
+              <input name="inscricao_municipal" defaultValue={e?.inscricao_municipal ?? ""} className="border rounded px-3 py-2 w-full" placeholder="000000" />
             </div>
 
             {/* Endereço */}
             <div className="sm:col-span-2">
               <label className="text-xs text-gray-500 block mb-1">Endereço</label>
-              <input name="endereco" defaultValue={e?.endereco ?? ""} className="border rounded px-3 py-2 w-full" placeholder="MARIO URIARTE, 255 - SALA 210 BOX 17" />
+              <input name="endereco" defaultValue={e?.endereco ?? ""} className="border rounded px-3 py-2 w-full" placeholder="Ex.: Rua das Flores, 123 - Sala 4" />
             </div>
 
             {/* CEP + Bairro */}
             <div>
               <label className="text-xs text-gray-500 block mb-1">CEP</label>
-              <input name="cep" onFocus={guardar} onBlur={aoSairCep} defaultValue={e?.cep ?? ""} className="border rounded px-3 py-2 w-full" placeholder="88311-740" />
+              <input name="cep" onFocus={guardar} onBlur={aoSairCep} defaultValue={e?.cep ?? ""} className="border rounded px-3 py-2 w-full" placeholder="00000-000" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Bairro</label>
-              <input name="bairro" defaultValue={e?.bairro ?? ""} className="border rounded px-3 py-2 w-full" placeholder="CORDEIROS" />
+              <input name="bairro" defaultValue={e?.bairro ?? ""} className="border rounded px-3 py-2 w-full" placeholder="Ex.: Centro" />
             </div>
 
             {/* Município + UF */}
             <div>
               <label className="text-xs text-gray-500 block mb-1">Município</label>
-              <input name="municipio" defaultValue={e?.municipio ?? ""} className="border rounded px-3 py-2 w-full" placeholder="ITAJAÍ" />
+              <input name="municipio" defaultValue={e?.municipio ?? ""} className="border rounded px-3 py-2 w-full" placeholder="Ex.: Itajaí" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">UF</label>
@@ -118,17 +118,17 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
             {/* Contato + Telefone */}
             <div>
               <label className="text-xs text-gray-500 block mb-1">Contato (responsável)</label>
-              <input name="contato" defaultValue={e?.contato ?? ""} className="border rounded px-3 py-2 w-full" placeholder="Nome do responsável" />
+              <input name="contato" defaultValue={e?.contato ?? ""} className="border rounded px-3 py-2 w-full" placeholder="Ex.: João da Silva" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Telefone / Fone</label>
-              <input name="telefone" defaultValue={e?.telefone ?? ""} className="border rounded px-3 py-2 w-full" placeholder="47 3246-2529" />
+              <input name="telefone" defaultValue={e?.telefone ?? ""} className="border rounded px-3 py-2 w-full" placeholder="(47) 3000-0000" />
             </div>
 
             {/* WhatsApp + Especialidade */}
             <div>
               <label className="text-xs text-gray-500 block mb-1">WhatsApp</label>
-              <input name="whatsapp" defaultValue={(e as any)?.whatsapp ?? ""} className="border rounded px-3 py-2 w-full" placeholder="47 99999-9999" />
+              <input name="whatsapp" defaultValue={(e as any)?.whatsapp ?? ""} className="border rounded px-3 py-2 w-full" placeholder="(47) 90000-0000" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Especialidade</label>
@@ -138,7 +138,7 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
             {/* E-mail */}
             <div className="sm:col-span-2">
               <label className="text-xs text-gray-500 block mb-1">E-mail</label>
-              <input type="email" name="email" defaultValue={e?.email ?? ""} className="border rounded px-3 py-2 w-full" placeholder="r.ccontabilidade@terra.com.br" />
+              <input type="email" name="email" defaultValue={e?.email ?? ""} className="border rounded px-3 py-2 w-full" placeholder="contato@empresa.com.br" />
             </div>
 
             {/* Observações */}

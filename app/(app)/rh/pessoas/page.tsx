@@ -63,7 +63,7 @@ export default async function PessoasPage({
       <SecaoRecolhivel chave="rh-cadastro" titulo="Cadastrar novo empreiteiro">
         {obras && obras.length > 0 ? (
           <form action={criarPessoa} className="flex flex-wrap gap-2">
-            <input name="nome" placeholder="Nome da pessoa" className="border rounded px-2 py-1 flex-1 min-w-[160px]" required />
+            <input name="nome" placeholder="Ex.: Maria Souza" className="border rounded px-2 py-1 flex-1 min-w-[160px]" required />
             <Selecao name="papel" className="border rounded px-2 py-1">
               <option value="EMPREITEIRO">Empreiteiro</option>
               <option value="MESTRE">Mestre</option>

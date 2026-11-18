@@ -245,3 +245,9 @@ table thead th { color: var(--text) !important; font-weight: 700 !important; }
   .vp-tabela td.vp-sit { justify-self: end !important; }
   .vp-tabela td.vp-sit .vp-pill { min-width: 28px; }
 }
+
+/* tablet: a coluna Situação tem largura para o título com o filtro (antes o botão passava da borda e a planilha rolava para o lado) */
+@media (min-width: 721px) and (max-width: 1100px) {
+  .vp-rolagem .vp-tabela th:nth-child(6), .vp-rolagem .vp-tabela td:nth-child(6) { width: 118px !important; }
+  .vp-rolagem { overflow-x: hidden; }
+}

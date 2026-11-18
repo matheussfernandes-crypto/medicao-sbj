@@ -7,9 +7,11 @@ import { desfazivel, pedirConfirmacao } from "@/components/ui/Confirmacao";
 export default function ConfirmDeleteButton({
   jaFechado = false,
   mensagemPersonalizada,
+  rotulo,
 }: {
   jaFechado?: boolean;
   mensagemPersonalizada?: string;
+  rotulo?: string; // se informado, o símbolo vem com o texto ao lado
 }) {
   const mensagem =
     mensagemPersonalizada ??
@@ -20,9 +22,9 @@ export default function ConfirmDeleteButton({
   return (
     <button
       type="button"
-      className="btn-acao-excluir"
-      title="Excluir"
-      aria-label="Excluir"
+      className={rotulo ? "btn-acao-excluir-txt" : "btn-acao-excluir"}
+      title={rotulo ?? "Excluir"}
+      aria-label={rotulo ?? "Excluir"}
       onClick={async (e) => {
         const form = e.currentTarget.form;
         if (!form) return;
@@ -32,6 +34,7 @@ export default function ConfirmDeleteButton({
       }}
     >
       <Trash2 className="w-4 h-4" aria-hidden />
+      {rotulo}
     </button>
   );
 }

@@ -135,7 +135,7 @@ export default function LinhaLancamento({
           `${l.servico ?? ""} ${l.detalhe_texto ?? ""}`
         )}
       </td>
-      <td className="p-1">{l.local ?? "—"}</td>
+      <td className="p-1 max-w-[170px] break-words">{l.local ?? "—"}</td>
       <td className="p-1">{nomeCriador}</td>
       <td className="p-1 whitespace-nowrap tabular-nums font-medium">
         {l.tipo === "VALE_MEDICAO"
@@ -161,7 +161,32 @@ export default function LinhaLancamento({
         )}
       </td>
       <td className="p-1 text-right whitespace-nowrap">
-        {temAcoes ? <BotaoAcoes aberto={aberta} onClick={() => setAberta((v) => !v)} /> : l.status === "APROVADO" && <span className="text-xs text-gray-400">Aprovado</span>}
+        {ehAdmin && l.status !== "PENDENTE" ? (
+          editandoData ? (
+            <form action={editarDataLancamento} className="flex items-center justify-end gap-1" onSubmit={() => setEditandoData(false)}>
+              <input type="hidden" name="id" value={l.id} />
+              <DataCampo name="data" defaultValue={l.data} />
+              <button type="submit" className="bg-primary text-white rounded px-2 py-0.5 text-xs">Salvar</button>
+              <button type="button" onClick={() => setEditandoData(false)} className="bg-gray-200 rounded px-2 py-0.5 text-xs">✕</button>
+            </form>
+          ) : (
+            <div className="flex items-center justify-end gap-1.5">
+              <button type="button" onClick={() => setEditandoData(true)} className="btn-acao-alterar-txt" title="Alterar data" aria-label="Alterar data">
+                <CalendarDays className="w-4 h-4" aria-hidden />
+                Alterar data
+              </button>
+              <form action={excluirLancamento} className="inline">
+                <input type="hidden" name="id" value={l.id} />
+                <input type="hidden" name="obraId" value={obraId} />
+                <ConfirmDeleteButton jaFechado={jaFechado} rotulo="Excluir lançamento" />
+              </form>
+            </div>
+          )
+        ) : temAcoes ? (
+          <BotaoAcoes aberto={aberta} onClick={() => setAberta((v) => !v)} />
+        ) : (
+          l.status === "APROVADO" && <span className="text-xs text-gray-400">Aprovado</span>
+        )}
       </td>
     </tr>
     {aberta && temAcoes && (

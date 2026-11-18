@@ -179,3 +179,10 @@ html.dark table thead th:not(.th-leve) { color: #e3ecee; }
 .btn-acao-congelar:hover { background: #2f7898; }
 .btn-acao-descongelar { background: #d9a526; }
 .btn-acao-descongelar:hover { background: #bf8c17; }
+
+/* ações com texto ao lado do símbolo (só quando a linha tem poucas opções) */
+.btn-acao-excluir-txt, .btn-acao-alterar-txt { height: 32px; padding: 0 10px; border: 0; border-radius: 9px; display: inline-flex; align-items: center; gap: 6px; color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.btn-acao-excluir-txt { background: #d9413a; }
+.btn-acao-excluir-txt:hover { background: #bf332d; }
+.btn-acao-alterar-txt { background: #00687a; }
+.btn-acao-alterar-txt:hover { background: #005564; }

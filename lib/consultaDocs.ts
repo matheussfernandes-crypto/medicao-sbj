@@ -1,5 +1,6 @@
-// Consulta pública de CEP (ViaCEP) e de CNPJ (BrasilAPI) para preencher os outros campos do formulário.
-// Só o número digitado (CEP ou CNPJ) é enviado. Se a consulta falhar, o formulário continua como está.
+// Consulta pública de CEP (ViaCEP, com BrasilAPI de reserva) e de CNPJ (BrasilAPI, com CNPJ.ws de reserva)
+// para preencher os outros campos do formulário. Só o número digitado (CEP ou CNPJ) é enviado.
+// Se todas as consultas falharem, devolve null e o formulário continua como está.
 
 export type EnderecoCep = { logradouro: string; bairro: string; cidade: string; uf: string };
 export type DadosCnpj = {
@@ -15,19 +16,20 @@ export type DadosCnpj = {
   email: string;
 };
 
-const digitos = (s: string) => (s || "").replace(/\D/g, "");
+export const digitos = (s: string) => (s || "").replace(/\D/g, "");
+const t = (s: unknown) => String(s ?? "").trim();
 
-async function buscar(url: string, ms = 8000): Promise<any | null> {
+async function buscar(url: string, ms = 9000): Promise<any | null> {
   const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), ms);
+  const tm = setTimeout(() => ctl.abort(), ms);
   try {
-    const r = await fetch(url, { signal: ctl.signal });
+    const r = await fetch(url, { signal: ctl.signal, headers: { Accept: "application/json" } });
     if (!r.ok) return null;
     return await r.json();
   } catch {
     return null;
   } finally {
-    clearTimeout(t);
+    clearTimeout(tm);
   }
 }
 
@@ -35,29 +37,54 @@ export async function consultarCep(valor: string): Promise<EnderecoCep | null> {
   const cep = digitos(valor);
   if (cep.length !== 8) return null;
   const j = await buscar(`https://viacep.com.br/ws/${cep}/json/`);
-  if (!j || j.erro) return null;
-  return { logradouro: j.logradouro || "", bairro: j.bairro || "", cidade: j.localidade || "", uf: j.uf || "" };
+  if (j && !j.erro) return { logradouro: t(j.logradouro), bairro: t(j.bairro), cidade: t(j.localidade), uf: t(j.uf) };
+  // reserva
+  const b = await buscar(`https://brasilapi.com.br/api/cep/v1/${cep}`);
+  if (b && (b.city || b.street)) return { logradouro: t(b.street), bairro: t(b.neighborhood), cidade: t(b.city), uf: t(b.state) };
+  return null;
+}
+
+function telefoneBR(bruto: string) {
+  const d = digitos(bruto);
+  return d.length >= 10 ? `(${d.slice(0, 2)}) ${d.slice(2, d.length - 4)}-${d.slice(-4)}` : "";
 }
 
 export async function consultarCnpj(valor: string): Promise<DadosCnpj | null> {
   const cnpj = digitos(valor);
   if (cnpj.length !== 14) return null;
   const j = await buscar(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
-  if (!j || !j.razao_social) return null;
-  const tel = digitos(String(j.ddd_telefone_1 || ""));
-  const titulo = (s: string) => String(s || "").trim();
-  return {
-    razaoSocial: titulo(j.razao_social),
-    nomeFantasia: titulo(j.nome_fantasia),
-    logradouro: [titulo(j.descricao_tipo_de_logradouro), titulo(j.logradouro)].filter(Boolean).join(" "),
-    numero: titulo(j.numero),
-    bairro: titulo(j.bairro),
-    cidade: titulo(j.municipio),
-    uf: titulo(j.uf),
-    cep: digitos(String(j.cep || "")),
-    telefone: tel.length >= 10 ? `(${tel.slice(0, 2)}) ${tel.slice(2, tel.length - 4)}-${tel.slice(-4)}` : "",
-    email: titulo(j.email).toLowerCase(),
-  };
+  if (j && j.razao_social) {
+    return {
+      razaoSocial: t(j.razao_social),
+      nomeFantasia: t(j.nome_fantasia),
+      logradouro: [t(j.descricao_tipo_de_logradouro), t(j.logradouro)].filter(Boolean).join(" "),
+      numero: t(j.numero),
+      bairro: t(j.bairro),
+      cidade: t(j.municipio),
+      uf: t(j.uf),
+      cep: digitos(t(j.cep)),
+      telefone: telefoneBR(t(j.ddd_telefone_1)),
+      email: t(j.email).toLowerCase(),
+    };
+  }
+  // reserva (CNPJ.ws)
+  const w = await buscar(`https://publica.cnpj.ws/cnpj/${cnpj}`);
+  if (w && w.razao_social) {
+    const e = w.estabelecimento || {};
+    return {
+      razaoSocial: t(w.razao_social),
+      nomeFantasia: t(e.nome_fantasia),
+      logradouro: [t(e.tipo_logradouro), t(e.logradouro)].filter(Boolean).join(" "),
+      numero: t(e.numero),
+      bairro: t(e.bairro),
+      cidade: t(e.cidade?.nome),
+      uf: t(e.estado?.sigla),
+      cep: digitos(t(e.cep)),
+      telefone: telefoneBR(`${t(e.ddd1)}${t(e.telefone1)}`),
+      email: t(e.email).toLowerCase(),
+    };
+  }
+  return null;
 }
 
 export const formatarCep = (d: string) => {

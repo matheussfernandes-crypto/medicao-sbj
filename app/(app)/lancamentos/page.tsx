@@ -116,7 +116,7 @@ export default async function LancamentosPage({
                 criarLancamento={criarLancamento}
               />
             ) : (
-              <p className="text-sm text-gray-400">Nenhuma pessoa ativa nesta obra. Cadastre em RH &amp; Pessoas.</p>
+              <p className="text-sm text-gray-400">Nenhuma pessoa ativa nesta obra. Cadastre em Funcionários.</p>
             )}
           </SecaoRecolhivel>
         )}

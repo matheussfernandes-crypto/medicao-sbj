@@ -7,6 +7,7 @@ import { criarServico, editarValorServico } from "./actions";
 import RetencaoForm from "./RetencaoForm";
 import { vincularEmpresaObra, editarVinculoEmpresaObra, removerVinculoEmpresaObra } from "./empresa-obra-actions";
 import Selecao from "@/components/ui/Selecao";
+import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
 import { DataCampo } from "@/components/ui/anima";
 import { TabelaPaginada } from "@/components/ui/anima";
 
@@ -97,31 +98,29 @@ export default async function ObrasPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold text-primaryDark">Obras &amp; Pessoas</h1>
+      <h1 className="text-xl font-semibold text-primaryDark">Retenção e serviços</h1>
 
-      <div className="card">
-        <h2 className="font-semibold text-primaryDark mb-2">Selecionar obra</h2>
+      <SecaoRecolhivel chave="obras-selecionar" titulo="Selecionar obra">
         <form method="get" className="flex gap-2">
-          <Selecao name="obra" defaultValue={obraSelecionada ?? ""} className="border rounded px-3 py-2 flex-1">
+          <Selecao name="obra" defaultValue={obraSelecionada ?? ""} className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-ink-900 flex-1">
             {(obras ?? []).map((o) => (
               <option key={o.id} value={o.id}>{o.nome}</option>
             ))}
           </Selecao>
           <input type="hidden" name="mes" value={mes} />
-          <button className="bg-gray-200 rounded px-4 py-2">Ver</button>
+          <button className="rounded-[10px] border border-border bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-primary hover:text-primary">Ver</button>
         </form>
         {(!obras || obras.length === 0) && <p className="text-sm text-gray-400 mt-2">Nenhuma obra cadastrada ainda.</p>}
-      </div>
+      </SecaoRecolhivel>
 
       {obraSelecionada && (
         <>
-          <div className="card">
-            <h2 className="font-semibold text-primaryDark mb-2">Retenção mensal por pessoa</h2>
+          <SecaoRecolhivel chave="obras-retencao" titulo="Retenção mensal por pessoa">
             <form method="get" className="flex items-center gap-2 mb-3">
               <input type="hidden" name="obra" value={obraSelecionada} />
               <label className="text-sm text-gray-500">Mês de referência</label>
               <MesCampo name="mes" defaultValue={mes} />
-              <button className="bg-gray-200 rounded px-3 py-1 text-sm">Atualizar</button>
+              <button className="rounded-[10px] border border-border bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-primary hover:text-primary">Atualizar</button>
             </form>
             <p className="text-xs text-gray-400 mb-3">
               O % informado vale a partir deste mês até você cadastrar um novo valor. Medições já lançadas em meses anteriores mantêm a % que estava em vigor na época.
@@ -134,13 +133,13 @@ export default async function ObrasPage({
                 mes={mes}
               />
             ) : (
-              <p className="text-sm text-gray-400">Nenhuma pessoa ativa nesta obra ainda. Cadastre em RH &amp; Pessoas.</p>
+              <p className="text-sm text-gray-400">Nenhuma pessoa ativa nesta obra ainda. Cadastre em Funcionários.</p>
             )}
 
             {log && log.length > 0 && (
               <details className="mt-4">
                 <summary className="sbj-sum text-sm font-semibold text-primaryDark">
-                  ▶ Histórico de alterações de % de retenção ({log.length})
+                  Histórico de alterações de % de retenção ({log.length})
                 </summary>
                 <TabelaPaginada por={15} className="w-full text-xs mt-2" cabecalho={
 <thead className="text-left text-gray-400">
@@ -159,10 +158,9 @@ export default async function ObrasPage({
                   </TabelaPaginada>
               </details>
             )}
-          </div>
+          </SecaoRecolhivel>
 
-          <div className="card">
-            <h2 className="font-semibold text-primaryDark mb-2">Tabela de serviços e valores</h2>
+          <SecaoRecolhivel chave="obras-servicos" titulo="Tabela de serviços e valores">
             {servicos && servicos.length > 0 && (
               <div className="overflow-x-auto">
               <table className="w-full text-sm mb-3">
@@ -178,8 +176,8 @@ export default async function ObrasPage({
                         <form action={editarValorServico} className="flex items-center gap-1">
                           <input type="hidden" name="servicoId" value={s.id} />
                           <span className="text-gray-400">R$</span>
-                          <input type="number" step="0.01" name="valor" defaultValue={s.valor_unitario} className="border rounded px-2 py-1 w-24" />
-                          <button className="bg-gray-200 rounded px-2 py-1 text-xs">Salvar</button>
+                          <input type="number" step="0.01" name="valor" defaultValue={s.valor_unitario} className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-ink-900 w-24" />
+                          <button className="rounded-[10px] border border-border bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 hover:border-primary hover:text-primary">Salvar</button>
                         </form>
                       </td>
                     </tr>
@@ -189,26 +187,20 @@ export default async function ObrasPage({
               </div>
             )}
             <form action={criarServico.bind(null, obraSelecionada)} className="flex gap-2 flex-wrap">
-              <input name="nome" placeholder="Novo serviço" className="border rounded px-2 py-1" required />
-              <Selecao name="tipo" className="border rounded px-2 py-1">
+              <input name="nome" placeholder="Novo serviço" className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-ink-900" required />
+              <Selecao name="tipo" className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-ink-900">
                 <option value="area">Por m²</option>
                 <option value="linear">Por metro linear</option>
                 <option value="unidade">Por unidade</option>
                 <option value="diaria">Por diária</option>
               </Selecao>
-              <input name="valor" type="number" step="0.01" placeholder="Valor unitário" className="border rounded px-2 py-1 w-32" required />
-              <button className="bg-primary text-white rounded px-3 py-1">Adicionar serviço</button>
+              <input name="valor" type="number" step="0.01" placeholder="Valor unitário" className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-ink-900 w-32" required />
+              <button className="rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primaryDark">Adicionar serviço</button>
             </form>
-          </div>
+          </SecaoRecolhivel>
 
           {/* ───────── EMPRESAS CONTRATADAS ───────── */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-primaryDark">Empresas Contratadas nesta Obra</h2>
-              <a href="/admin/empresas" className="text-xs text-primary underline">
-                Gerenciar empresas →
-              </a>
-            </div>
+<SecaoRecolhivel chave="obras-empresas" titulo="Empresas contratadas nesta obra" acoes={<a href="/admin/empresas" className="text-xs text-primary underline">Gerenciar empresas</a>}>
 
             {/* Lista de vínculos */}
             {(vinculosObra ?? []).length > 0 && (
@@ -283,7 +275,7 @@ export default async function ObrasPage({
                   <label className="text-xs text-gray-500 block mb-1">Empresa *</label>
                   <Selecao
                     name="empresaId"
-                    className="border rounded px-2 py-1 w-full"
+                    className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-ink-900 w-full"
                     defaultValue={vinculoEditando?.empresa_id ?? ""}
                     required
                   >
@@ -299,7 +291,7 @@ export default async function ObrasPage({
                   <input
                     name="tipoServico"
                     defaultValue={vinculoEditando?.tipo_servico ?? ""}
-                    className="border rounded px-2 py-1 w-full"
+                    className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-ink-900 w-full"
                     placeholder="Ex: Impermeabilização, Instalações Elétricas"
                     required
                   />
@@ -320,7 +312,7 @@ export default async function ObrasPage({
                   <Selecao
                     name="status"
                     defaultValue={vinculoEditando?.status ?? "ATIVO"}
-                    className="border rounded px-2 py-1 w-full"
+                    className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-ink-900 w-full"
                   >
                     <option value="ATIVO">Ativo</option>
                     <option value="INATIVO">Inativo</option>
@@ -347,7 +339,7 @@ export default async function ObrasPage({
                       max={100}
                       step={0.01}
                       defaultValue={vinculoEditando ? Number(vinculoEditando.retencao_pct) : 0}
-                      className="border rounded px-2 py-1 w-20"
+                      className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-ink-900 w-20"
                       placeholder="%"
                     />
                     <span className="text-sm text-gray-500">%</span>
@@ -359,19 +351,19 @@ export default async function ObrasPage({
                   <input
                     name="observacoes"
                     defaultValue={vinculoEditando?.observacoes ?? ""}
-                    className="border rounded px-2 py-1 w-full"
+                    className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-ink-900 w-full"
                     placeholder="Número do contrato, notas…"
                   />
                 </div>
 
                 <div className="sm:col-span-2 flex gap-2">
-                  <button className="bg-primary text-white rounded px-4 py-2 text-sm">
+                  <button className="rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primaryDark">
                     {vinculoEditando ? "Salvar alterações" : "Vincular empresa"}
                   </button>
                   {vinculoEditando && (
                     <a
                       href={`/admin/obras?obra=${obraSelecionada}&mes=${mes}`}
-                      className="border rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                      className="rounded-[10px] border border-border bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:border-primary hover:text-primary"
                     >
                       Cancelar
                     </a>
@@ -383,10 +375,10 @@ export default async function ObrasPage({
             {(todasEmpresas ?? []).length === 0 && (
               <p className="text-xs text-gray-400 mt-2">
                 Nenhuma empresa ativa cadastrada.{" "}
-                <a href="/admin/empresas" className="text-primary underline">Cadastrar empresa →</a>
+                <a href="/admin/empresas" className="text-primary underline">Cadastrar empresa</a>
               </p>
             )}
-          </div>
+          </SecaoRecolhivel>
         </>
       )}
     </div>

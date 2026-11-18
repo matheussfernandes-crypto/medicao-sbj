@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { consultarCep, consultarCnpj, enderecoComNumero, formatarCep } from "@/lib/consultaDocs";
 import { Pencil, Snowflake, Sun } from "lucide-react";
 import { criarEmpresa, editarEmpresa, toggleEmpresaAtivo } from "./actions";
@@ -17,40 +17,52 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
 
   // UF controlada, para poder ser preenchida pela consulta de CEP/CNPJ
   const [uf, setUf] = useState<string>(e?.uf ?? "");
-  useEffect(() => setUf(e?.uf ?? ""), [e?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setUf(e?.uf ?? ""); setMsgDoc(null); ultima.current = {}; }, [e?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // preenche só o que está vazio (nunca sobrescreve o que a pessoa já digitou)
-  function vazio(form: HTMLFormElement | null, nome: string, valor: string) {
-    const el = form?.elements.namedItem(nome) as HTMLInputElement | null;
-    if (el && valor && !el.value.trim()) el.value = valor;
-  }
-  // só consulta quando o CEP/CNPJ foi DIGITADO ou alterado agora (abrir e sair do campo sem mudar não faz nada)
+  // consulta de CEP/CNPJ: só roda quando o número foi digitado ou alterado agora; mostra o resultado abaixo do campo
+  const [msgDoc, setMsgDoc] = useState<{ campo: "cnpj" | "cep"; texto: string; ok: boolean } | null>(null);
+  const ultima = useRef<Record<string, string>>({});
   const guardar = (ev: React.FocusEvent<HTMLInputElement>) => { ev.target.dataset.orig = ev.target.value; };
-  const mudou = (ev: React.FocusEvent<HTMLInputElement>) => ev.target.value !== (ev.target.dataset.orig ?? "");
-  async function aoSairCep(ev: React.FocusEvent<HTMLInputElement>) {
-    if (!mudou(ev)) return;
-    const form = ev.target.form;
-    const r = await consultarCep(ev.target.value);
-    if (!r) return;
-    vazio(form, "endereco", r.logradouro);
-    vazio(form, "bairro", r.bairro);
-    vazio(form, "municipio", r.cidade);
-    if (!uf && r.uf) setUf(r.uf);
+  const dig = (x: string) => x.replace(/\D/g, "");
+  function pos(form: HTMLFormElement | null, nome: string, valor: string, sobrescrever: boolean) {
+    const el = form?.elements.namedItem(nome) as HTMLInputElement | null;
+    if (!el || !valor) return;
+    if (sobrescrever || !el.value.trim()) el.value = valor;
   }
-  async function aoSairCnpj(ev: React.FocusEvent<HTMLInputElement>) {
-    if (!mudou(ev)) return;
-    const form = ev.target.form;
-    const r = await consultarCnpj(ev.target.value);
-    if (!r) return;
-    vazio(form, "nome_empresarial", r.razaoSocial);
-    vazio(form, "nome", r.nomeFantasia || r.razaoSocial);
-    vazio(form, "endereco", enderecoComNumero(r));
-    vazio(form, "cep", formatarCep(r.cep));
-    vazio(form, "bairro", r.bairro);
-    vazio(form, "municipio", r.cidade);
-    vazio(form, "telefone", r.telefone);
-    vazio(form, "email", r.email);
-    if (!uf && r.uf) setUf(r.uf);
+  async function consultaCep(ev: React.FocusEvent<HTMLInputElement> | React.FormEvent<HTMLInputElement>) {
+    const el = ev.target as HTMLInputElement;
+    if (dig(el.value).length !== 8 || el.value === (el.dataset.orig ?? "") || ultima.current.cep === el.value) return;
+    ultima.current.cep = el.value;
+    const form = el.form;
+    setMsgDoc({ campo: "cep", texto: "Consultando o CEP…", ok: true });
+    const r = await consultarCep(el.value);
+    if (!r) return setMsgDoc({ campo: "cep", texto: "Não consegui consultar este CEP agora (ou ele não existe). Preencha o endereço manualmente.", ok: false });
+    pos(form, "endereco", r.logradouro, false);
+    pos(form, "bairro", r.bairro, true);
+    pos(form, "municipio", r.cidade, true);
+    if (r.uf) setUf(r.uf);
+    setMsgDoc({ campo: "cep", texto: "Endereço preenchido pelo CEP. Confira e acrescente o número.", ok: true });
+  }
+  async function consultaCnpj(ev: React.FocusEvent<HTMLInputElement> | React.FormEvent<HTMLInputElement>) {
+    const el = ev.target as HTMLInputElement;
+    if (dig(el.value).length !== 14 || el.value === (el.dataset.orig ?? "") || ultima.current.cnpj === el.value) return;
+    ultima.current.cnpj = el.value;
+    const form = el.form;
+    setMsgDoc({ campo: "cnpj", texto: "Consultando o CNPJ…", ok: true });
+    const r = await consultarCnpj(el.value);
+    if (!r) return setMsgDoc({ campo: "cnpj", texto: "Não consegui consultar este CNPJ agora (ou ele não existe). Preencha os dados manualmente.", ok: false });
+    // CNPJ novo ou alterado: os nomes e o endereço passam a ser os desta empresa
+    pos(form, "nome_empresarial", r.razaoSocial, true);
+    pos(form, "nome", r.nomeFantasia || r.razaoSocial, true);
+    pos(form, "endereco", enderecoComNumero(r), true);
+    pos(form, "cep", formatarCep(r.cep), true);
+    pos(form, "bairro", r.bairro, true);
+    pos(form, "municipio", r.cidade, true);
+    if (r.uf) setUf(r.uf);
+    // contatos: só se estiverem vazios
+    pos(form, "telefone", r.telefone, false);
+    pos(form, "email", r.email, false);
+    setMsgDoc({ campo: "cnpj", texto: "Dados preenchidos pelo CNPJ (nome, endereço e contatos vazios). Confira antes de salvar.", ok: true });
   }
   return (
     <div className="space-y-6">
@@ -79,7 +91,8 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
             {/* CNPJ + Inscrição Municipal */}
             <div>
               <label className="text-xs text-gray-500 block mb-1">CNPJ / CPF</label>
-              <input name="cnpj" onFocus={guardar} onBlur={aoSairCnpj} defaultValue={e?.cnpj ?? ""} className="border rounded px-3 py-2 w-full" placeholder="00.000.000/0001-00" />
+              <input name="cnpj" onFocus={guardar} onInput={consultaCnpj} onBlur={consultaCnpj} defaultValue={e?.cnpj ?? ""} className="border rounded px-3 py-2 w-full" placeholder="00.000.000/0001-00" />
+              {msgDoc?.campo === "cnpj" && <p className={"mt-1 text-xs " + (msgDoc.ok ? "text-ink-500" : "text-danger")}>{msgDoc.texto}</p>}
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Inscrição Municipal</label>
@@ -95,7 +108,8 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
             {/* CEP + Bairro */}
             <div>
               <label className="text-xs text-gray-500 block mb-1">CEP</label>
-              <input name="cep" onFocus={guardar} onBlur={aoSairCep} defaultValue={e?.cep ?? ""} className="border rounded px-3 py-2 w-full" placeholder="00000-000" />
+              <input name="cep" onFocus={guardar} onInput={consultaCep} onBlur={consultaCep} defaultValue={e?.cep ?? ""} className="border rounded px-3 py-2 w-full" placeholder="00000-000" />
+              {msgDoc?.campo === "cep" && <p className={"mt-1 text-xs " + (msgDoc.ok ? "text-ink-500" : "text-danger")}>{msgDoc.texto}</p>}
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Bairro</label>

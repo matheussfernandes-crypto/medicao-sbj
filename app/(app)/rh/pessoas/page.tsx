@@ -51,7 +51,7 @@ export default async function PessoasPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold text-primaryDark">RH &amp; Pessoas</h1>
+      <h1 className="text-xl font-semibold text-primaryDark">Funcionários</h1>
 
       {searchParams.erro && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-3">{searchParams.erro}</div>
@@ -78,7 +78,7 @@ export default async function PessoasPage({
             <button className="bg-primary text-white rounded px-3 py-1">Cadastrar</button>
           </form>
         ) : (
-          <p className="text-sm text-gray-400">Cadastre uma obra primeiro em Obras &amp; Pessoas.</p>
+          <p className="text-sm text-gray-400">Cadastre uma obra primeiro no Cadastro de obras.</p>
         )}
         <p className="text-xs text-gray-400 mt-2">
           O Mestre de uma obra é quem assina &quot;Conferido por&quot; nas folhas de medição/vale daquela obra.

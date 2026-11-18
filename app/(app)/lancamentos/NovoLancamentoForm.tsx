@@ -43,35 +43,6 @@ export default function NovoLancamentoForm({
       <input type="hidden" name="obraId" value={obraId} />
       <input type="hidden" name="tipoContratado" value={tipoContratado} />
 
-      {/* ── PASSO 1: Tipo de contratado ── */}
-      <div>
-        <p className="text-xs text-gray-500 mb-1 font-medium">Tipo de contratado</p>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setTipoContratado("SBJ")}
-            className={`flex-1 border rounded px-3 py-2 text-sm font-medium transition ${
-              tipoContratado === "SBJ"
-                ? "bg-primary text-white border-primary"
-                : "bg-white text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            Empreiteiros SBJ
-          </button>
-          <button
-            type="button"
-            onClick={() => setTipoContratado("TERCEIRIZADA")}
-            className={`flex-1 border rounded px-3 py-2 text-sm font-medium transition ${
-              tipoContratado === "TERCEIRIZADA"
-                ? "bg-primary text-white border-primary"
-                : "bg-white text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            Empresa Terceirizada
-          </button>
-        </div>
-      </div>
-
       {/* ── PASSO 2: Quem vai medir ── */}
       <div className="flex flex-wrap gap-2">
         {tipoContratado === "SBJ" ? (

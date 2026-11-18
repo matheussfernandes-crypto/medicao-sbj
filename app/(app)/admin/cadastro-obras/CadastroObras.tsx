@@ -529,16 +529,16 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
   // consulta de CEP/CNPJ: preenche só o que está vazio
   async function puxarCep(valor: string) {
     const r = await consultarCep(valor);
-    if (!r) return;
+    if (!r) return setMsg({ tipo: "erro", texto: "Não consegui consultar este CEP agora (ou ele não existe). Preencha o endereço manualmente." });
     setD((x) => ({ ...x, endereco: x.endereco || r.logradouro || null, bairro: x.bairro || r.bairro || null, cidade: x.cidade || r.cidade || null, uf: x.uf || r.uf || null }));
     setMudou(true);
   }
   async function puxarCnpj(valor: string) {
     const r = await consultarCnpj(valor);
-    if (!r) return;
+    if (!r) return setMsg({ tipo: "erro", texto: "Não consegui consultar este CNPJ agora (ou ele não existe). Preencha os dados manualmente." });
     setD((x) => ({
       ...x,
-      razao_social: x.razao_social || r.razaoSocial || null,
+      razao_social: r.razaoSocial || x.razao_social || null, // CNPJ novo ou alterado: a razão social passa a ser a dele
       endereco: x.endereco || enderecoComNumero(r) || null,
       bairro: x.bairro || r.bairro || null,
       cidade: x.cidade || r.cidade || null,

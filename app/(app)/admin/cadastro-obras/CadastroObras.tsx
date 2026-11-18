@@ -715,7 +715,7 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
             <Bloco id="fiscais" titulo="Dados fiscais">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Campo rotulo="CNPJ da obra">
-                  <input className={inp} {...t("cnpj")} onBlur={(e) => { if (e.target.value) { set("cnpj", mascaraCnpj(e.target.value)); puxarCnpj(e.target.value); } }} placeholder="00.000.000/0000-00" inputMode="numeric" />
+                  <input className={inp} {...t("cnpj")} onFocus={(e) => { e.target.dataset.orig = e.target.value; }} onBlur={(e) => { if (e.target.value) { const mudou = e.target.value !== (e.target.dataset.orig ?? ""); set("cnpj", mascaraCnpj(e.target.value)); if (mudou) puxarCnpj(e.target.value); } }} placeholder="00.000.000/0000-00" inputMode="numeric" />
                 </Campo>
                 <Campo rotulo="CNO">
                   <input className={inp} {...t("cno")} onBlur={(e) => e.target.value && set("cno", mascaraCno(e.target.value))} placeholder="00.000.00000/00" inputMode="numeric" />
@@ -731,7 +731,7 @@ function EditorObra({ obra, voltar }: { obra: ObraCadastro; voltar: () => void }
                   <input className={inp} {...t("endereco")} />
                 </Campo>
                 <Campo rotulo="CEP" className="sm:col-span-2">
-                  <input className={inp} {...t("cep")} onBlur={(e) => { if (e.target.value) { set("cep", mascaraCep(e.target.value)); puxarCep(e.target.value); } }} placeholder="00000-000" inputMode="numeric" />
+                  <input className={inp} {...t("cep")} onFocus={(e) => { e.target.dataset.orig = e.target.value; }} onBlur={(e) => { if (e.target.value) { const mudou = e.target.value !== (e.target.dataset.orig ?? ""); set("cep", mascaraCep(e.target.value)); if (mudou) puxarCep(e.target.value); } }} placeholder="00000-000" inputMode="numeric" />
                 </Campo>
                 <Campo rotulo="Bairro" className="sm:col-span-2">
                   <input className={inp} {...t("bairro")} />

@@ -24,7 +24,11 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
     const el = form?.elements.namedItem(nome) as HTMLInputElement | null;
     if (el && valor && !el.value.trim()) el.value = valor;
   }
+  // só consulta quando o CEP/CNPJ foi DIGITADO ou alterado agora (abrir e sair do campo sem mudar não faz nada)
+  const guardar = (ev: React.FocusEvent<HTMLInputElement>) => { ev.target.dataset.orig = ev.target.value; };
+  const mudou = (ev: React.FocusEvent<HTMLInputElement>) => ev.target.value !== (ev.target.dataset.orig ?? "");
   async function aoSairCep(ev: React.FocusEvent<HTMLInputElement>) {
+    if (!mudou(ev)) return;
     const form = ev.target.form;
     const r = await consultarCep(ev.target.value);
     if (!r) return;
@@ -34,6 +38,7 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
     if (!uf && r.uf) setUf(r.uf);
   }
   async function aoSairCnpj(ev: React.FocusEvent<HTMLInputElement>) {
+    if (!mudou(ev)) return;
     const form = ev.target.form;
     const r = await consultarCnpj(ev.target.value);
     if (!r) return;
@@ -74,7 +79,7 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
             {/* CNPJ + Inscrição Municipal */}
             <div>
               <label className="text-xs text-gray-500 block mb-1">CNPJ / CPF</label>
-              <input name="cnpj" onBlur={aoSairCnpj} defaultValue={e?.cnpj ?? ""} className="border rounded px-3 py-2 w-full" placeholder="45.126.416/0001-99" />
+              <input name="cnpj" onFocus={guardar} onBlur={aoSairCnpj} defaultValue={e?.cnpj ?? ""} className="border rounded px-3 py-2 w-full" placeholder="45.126.416/0001-99" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Inscrição Municipal</label>
@@ -90,7 +95,7 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
             {/* CEP + Bairro */}
             <div>
               <label className="text-xs text-gray-500 block mb-1">CEP</label>
-              <input name="cep" onBlur={aoSairCep} defaultValue={e?.cep ?? ""} className="border rounded px-3 py-2 w-full" placeholder="88311-740" />
+              <input name="cep" onFocus={guardar} onBlur={aoSairCep} defaultValue={e?.cep ?? ""} className="border rounded px-3 py-2 w-full" placeholder="88311-740" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Bairro</label>

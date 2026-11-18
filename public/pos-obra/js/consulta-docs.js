@@ -11,7 +11,10 @@
   window.sbjAutoPreencher = function (form) {
     if (!form || form.dataset.autoDocs) return; form.dataset.autoDocs = "1";
     const cnpj = form.elements.namedItem("cnpj"), cep = form.elements.namedItem("cep");
+    /* só consulta quando o número foi digitado ou alterado agora (abrir e sair do campo sem mudar não faz nada) */
+    [cnpj, cep].forEach(el => { if (el) { el.dataset.orig = el.value; el.addEventListener("focus", () => { el.dataset.orig = el.value; }); } });
     if (cnpj) cnpj.addEventListener("blur", async () => {
+      if (cnpj.value === (cnpj.dataset.orig || "")) return;
       const n = dig(cnpj.value); if (n.length !== 14) return;
       const j = await buscar("https://brasilapi.com.br/api/cnpj/v1/" + n); if (!j || !j.razao_social) return;
       const tel = dig(j.ddd_telefone_1);
@@ -22,6 +25,7 @@
       vazio(form, "endereco", [rua, j.numero].filter(Boolean).join(", ") + (j.bairro ? " - " + j.bairro : "") + (j.municipio ? " - " + j.municipio + "/" + j.uf : ""));
     });
     if (cep) cep.addEventListener("blur", async () => {
+      if (cep.value === (cep.dataset.orig || "")) return;
       const n = dig(cep.value); if (n.length !== 8) return;
       const j = await buscar("https://viacep.com.br/ws/" + n + "/json/"); if (!j || j.erro) return;
       vazio(form, "endereco", [j.logradouro, j.bairro, j.localidade && j.uf ? j.localidade + "/" + j.uf : ""].filter(Boolean).join(" - "));

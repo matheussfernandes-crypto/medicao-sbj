@@ -1,6 +1,6 @@
 /* Service worker: deixa o site abrir e funcionar SEM INTERNET depois da primeira visita.
    (Arquivo gerado por gerar-sw.py a partir de sw.modelo.js. Só funciona em endereço seguro: https:// ou localhost.) */
-const VERSAO = "padrao-site-2026-11-19a";
+const VERSAO = "padrao-site-2026-11-19b";
 const CACHE = "posobra-" + VERSAO;
 const CACHE_EXTRA = "posobra-extra"; // fontes e outros arquivos de fora
 const ARQUIVOS = [

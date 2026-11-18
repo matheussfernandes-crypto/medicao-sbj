@@ -147,6 +147,17 @@ html.dark table thead th:not(.th-leve) { color: #e3ecee; }
   .tab-cartao td[data-col="total"]::before { content: "Total"; }
   .tab-cartao td[data-col="status"]::before { content: "Status"; }
   .tab-cartao td[data-col="acoes"] { flex-direction: row; flex-wrap: wrap; justify-content: flex-start; gap: 8px; }
+  /* tabelas que usam data-rot: o rótulo vem do próprio atributo */
+  .tab-cartao td[data-rot]::before { content: attr(data-rot); }
+  .tab-cartao td[data-rot] { text-align: left !important; }
+  .tab-cartao td[data-rot="Ações"], .tab-cartao td[data-rot="Status"] { grid-column: auto; }
+  .tab-cartao tr > td:first-child:not([data-rot]):not([data-col]) { grid-column: 1 / -1; font-weight: 600; }
+  .tab-cartao td[data-rot] > div { justify-content: flex-start !important; }
+  /* tabelas com filtro no título: o cabeçalho vira uma faixa só com os botões de filtro */
+  .tab-cartao.com-filtros thead { display: block; margin-bottom: 8px; }
+  .tab-cartao.com-filtros thead tr { display: flex; flex-wrap: wrap; gap: 8px; border: 0 !important; padding: 0; background: none; }
+  .tab-cartao.com-filtros thead th { display: block; padding: 0 !important; }
+  .tab-cartao.com-filtros thead th:not(:has(button)) { display: none; }
 }
 /* tablet: a tabela cabe na largura do cartão (células mais justas, textos que quebram linha) */
 @media (min-width: 768px) and (max-width: 1100px) {
@@ -199,3 +210,17 @@ html.dark table thead th:not(.th-leve) { color: #e3ecee; }
 .btn-acao-excluir-txt:hover { background: #bf332d; }
 .btn-acao-alterar-txt { background: #00687a; }
 .btn-acao-alterar-txt:hover { background: #005564; }
+
+/* celular e tablet: nenhum campo ou bloco passa da largura da tela */
+.card, main { min-width: 0; }
+@media (max-width: 1023px) {
+  .w-36, .w-40, .w-44, .w-48, .w-52, .w-56, .w-60, .w-64, .w-72, .w-80, .w-96 { max-width: 100%; }
+  .card input:not([type="checkbox"]):not([type="radio"]), .card select, .card textarea { max-width: 100%; box-sizing: border-box; }
+  .card img, .card svg { max-width: 100%; }
+}
+
+/* tabelas dentro de cartões: o título da coluna e o texto da célula começam no mesmo ponto, com respiro nas laterais */
+.card table th:not(.p-1), .card table td:not(.p-1) { padding-left: 12px; padding-right: 12px; }
+@media (max-width: 767px) {
+  .card table.tab-cartao td, .card table.tab-cartao th { padding-left: 0; padding-right: 0; }
+}

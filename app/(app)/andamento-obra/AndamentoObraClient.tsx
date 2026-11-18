@@ -1277,6 +1277,7 @@ function ConfigPanel(props: {
           <p className="text-xs text-ink-500 mb-3">
             De baixo pra cima, com a área de cada pavimento e as unidades dele. Isso serve de base pra montar obras futuras também.
           </p>
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[11px] uppercase text-ink-400">
@@ -1362,6 +1363,7 @@ function ConfigPanel(props: {
               })}
             </tbody>
           </table>
+          </div>
           <button
             onClick={props.onAddPavimento}
             disabled={props.salvando}
@@ -1378,6 +1380,7 @@ function ConfigPanel(props: {
           Digite a <b>porcentagem</b> que cada serviço vale no andamento geral da obra. Ao mudar um, os que você ainda não mexeu se ajustam
           sozinhos pra fechar 100%. Os que você já definiu ficam fixos.
         </p>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm max-w-2xl">
           <thead>
             <tr className="text-left text-[11px] uppercase text-ink-400">
@@ -1428,6 +1431,7 @@ function ConfigPanel(props: {
             ))}
           </tbody>
         </table>
+        </div>
         <div className="mt-3 flex items-center gap-3 flex-wrap">
           <button
             onClick={props.onAddServico}

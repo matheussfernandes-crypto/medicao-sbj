@@ -64,6 +64,7 @@ export default async function AprovacoesPage() {
       </p>
 
       <div className="card !p-0 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
@@ -104,6 +105,7 @@ export default async function AprovacoesPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <h2 className="text-lg font-semibold text-primaryDark">Cadastros já decididos</h2>

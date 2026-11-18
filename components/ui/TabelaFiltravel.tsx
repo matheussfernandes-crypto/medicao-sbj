@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
+import { useRotulosCartao } from "./useRotulosCartao";
 import { Search, X } from "lucide-react";
 import { DataCampo, Paginador, usePaginas } from "./anima";
 import Selecao from "./Selecao";
@@ -72,6 +73,8 @@ export default function TabelaFiltravel({
     );
   }, [itens, filtros, v]);
 
+  const raiz = useRef<HTMLDivElement>(null);
+  useRotulosCartao(raiz);
   const pg = usePaginas(filtrados, por, JSON.stringify(v) + "|" + itens.length);
 
   return (
@@ -99,8 +102,8 @@ export default function TabelaFiltravel({
             const k = "s:" + f.chave;
             return (
               <div key={k} className="text-xs text-ink-500">
-                {f.rotulo}
-                <Selecao value={v[k] ?? ""} onChange={(e) => set(k, e.target.value)} className="block mt-0.5 border border-border rounded px-3 py-2 text-sm bg-white min-w-[180px]">
+                <span className="block mb-1">{f.rotulo}</span>
+                <Selecao value={v[k] ?? ""} onChange={(e) => set(k, e.target.value)} className="block border border-border rounded px-3 py-2 text-sm bg-white min-w-[180px]">
                   <option value="">{f.todas ?? "Todas"}</option>
                   {(opcoes[f.chave] ?? []).map((o) => (
                     <option key={o.valor} value={o.valor}>
@@ -114,12 +117,12 @@ export default function TabelaFiltravel({
           return (
             <Fragment key={"p:" + f.chave}>
               <div className="text-xs text-ink-500">
-                {f.rotulo} — de
-                <DataCampo className="block mt-0.5" value={v["de:" + f.chave] ?? ""} onChange={(x) => set("de:" + f.chave, x)} placeholder="Início" />
+                <span className="block mb-1">{f.rotulo} — de</span>
+                <DataCampo className="block" value={v["de:" + f.chave] ?? ""} onChange={(x) => set("de:" + f.chave, x)} placeholder="Início" />
               </div>
               <div className="text-xs text-ink-500">
-                até
-                <DataCampo className="block mt-0.5" value={v["ate:" + f.chave] ?? ""} onChange={(x) => set("ate:" + f.chave, x)} placeholder="Fim" />
+                <span className="block mb-1">até</span>
+                <DataCampo className="block" value={v["ate:" + f.chave] ?? ""} onChange={(x) => set("ate:" + f.chave, x)} placeholder="Fim" />
               </div>
             </Fragment>
           );
@@ -134,8 +137,8 @@ export default function TabelaFiltravel({
         </span>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className={className}>
+      <div className="overflow-x-auto" ref={raiz}>
+        <table className={className + " tab-cartao"}>
           {cabecalho}
           <tbody key={pg.giro} className={pg.classe}>
             {pg.itens.length === 0 ? (

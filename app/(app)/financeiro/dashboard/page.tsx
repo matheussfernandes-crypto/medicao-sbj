@@ -236,6 +236,7 @@ export default async function DashboardGastosPage({
             Medições − retenção − vales acumulados descontados + vale pago agora (Vale + Medição do dia 21 em diante). Obra com "estimado" ainda não teve a medição do mês fechada.
           </p>
           {linhasPagar.length > 0 ? (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-gray-400">
                 <tr>
@@ -271,6 +272,7 @@ export default async function DashboardGastosPage({
                 </tr>
               </tbody>
             </table>
+            </div>
           ) : (
             <p className="text-sm text-gray-400">Nenhuma medição aprovada neste mês ainda.</p>
           )}

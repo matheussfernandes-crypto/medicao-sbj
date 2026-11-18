@@ -5,6 +5,7 @@
 
 import { Children, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+import { useRotulosCartao } from "./useRotulosCartao";
 
 // ---------------------------------------------------------------------------
 // Recolher: o conteúdo abre e fecha deslizando (altura animada)
@@ -281,10 +282,12 @@ export function DataCampo({
 export function TabelaPaginada({ cabecalho, children, por = 25, className = "w-full text-sm" }: { cabecalho: React.ReactNode; children: React.ReactNode; por?: number; className?: string }) {
   const linhas = useMemo(() => Children.toArray(children), [children]);
   const pg = usePaginas(linhas, por, linhas.length);
+  const raiz = useRef<HTMLDivElement>(null);
+  useRotulosCartao(raiz);
   return (
     <div ref={pg.topo}>
-      <div className="overflow-x-auto">
-        <table className={className}>
+      <div className="overflow-x-auto" ref={raiz}>
+        <table className={className + (className.includes("tab-cartao") ? "" : " tab-cartao")}>
           {cabecalho}
           <tbody key={pg.giro} className={pg.classe}>
             {pg.itens}

@@ -170,6 +170,7 @@ export default async function ObrasPage({
           <div className="card">
             <h2 className="font-semibold text-primaryDark mb-2">Tabela de serviços e valores</h2>
             {servicos && servicos.length > 0 && (
+              <div className="overflow-x-auto">
               <table className="w-full text-sm mb-3">
                 <thead className="text-left text-gray-400">
                   <tr><th className="p-1">Serviço</th><th className="p-1">Tipo</th><th className="p-1">Valor unitário</th></tr>
@@ -191,6 +192,7 @@ export default async function ObrasPage({
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
             <form action={criarServico.bind(null, obraSelecionada)} className="flex gap-2 flex-wrap">
               <input name="nome" placeholder="Novo serviço" className="border rounded px-2 py-1" required />

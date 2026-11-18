@@ -123,7 +123,7 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
 
         {/* Lista */}
         <div className="card !p-0 overflow-hidden">
-          <TabelaPaginada por={15} className="w-full text-sm" cabecalho={
+          <TabelaPaginada por={15} className="w-full text-sm tab-cartao" cabecalho={
 <thead className="bg-gray-50 text-left text-gray-400 text-xs uppercase tracking-wide">
               <tr>
                 <th className="p-3">Empresa</th>
@@ -155,12 +155,12 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
                       </a>
                     )}
                   </td>
-                  <td className="p-3 text-gray-600 text-xs">
+                  <td data-rot="CNPJ / Insc. Mun." className="p-3 text-gray-600 text-xs">
                     {emp.cnpj && <span className="block">{emp.cnpj}</span>}
                     {emp.inscricao_municipal && <span className="block text-gray-400">Insc. {emp.inscricao_municipal}</span>}
                     {!emp.cnpj && !emp.inscricao_municipal && "—"}
                   </td>
-                  <td className="p-3 text-xs text-gray-600">
+                  <td data-rot="Localização" className="p-3 text-xs text-gray-600">
                     {emp.municipio ? (
                       <>
                         <span className="block">{emp.municipio}{emp.uf ? ` / ${emp.uf}` : ""}</span>
@@ -168,18 +168,18 @@ export default function EmpresasView({ empresas, qtdContratos, editarInicial }: 
                       </>
                     ) : "—"}
                   </td>
-                  <td className="p-3 text-xs">
+                  <td data-rot="Contato / Fone" className="p-3 text-xs">
                     <span className="block">{emp.contato ?? "—"}</span>
                     {emp.telefone && <span className="text-gray-400 block">{emp.telefone}</span>}
                     {(emp as any).whatsapp && <span className="text-gray-400 block">WhatsApp: {(emp as any).whatsapp}</span>}
                     {emp.email && <span className="text-gray-400 block">{emp.email}</span>}
                   </td>
-                  <td className="p-3 text-center">
+                  <td data-rot="Status" className="p-3 text-center">
                     <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-semibold ${emp.ativo ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                       {emp.ativo ? "Ativa" : "Inativa"}
                     </span>
                   </td>
-                  <td className="p-3 text-center">
+                  <td data-rot="Ações" className="p-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <button type="button" onClick={() => { setEditarId(emp.id); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="btn-acao-editar" title="Editar" aria-label="Editar"><Pencil className="w-4 h-4" aria-hidden /></button>
                       <form action={toggleEmpresaAtivo}>

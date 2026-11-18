@@ -201,6 +201,7 @@ export default async function FechamentoPage({
                 Vale real e a parte de vale do Vale + Medição ficam no saldo da pessoa e são descontados de uma vez na próxima medição dela. Quem não tem medição no fechamento segue acumulando.
               </p>
               {saldo.length ? (
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="text-left text-gray-400">
                     <tr>
@@ -221,6 +222,7 @@ export default async function FechamentoPage({
                     ))}
                   </tbody>
                 </table>
+                </div>
               ) : (
                 <p className="text-sm text-gray-400">Nenhum vale acumulado nesta obra.</p>
               )}

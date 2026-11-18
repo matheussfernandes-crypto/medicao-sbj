@@ -339,6 +339,7 @@ export default function FachadaView(p: Props) {
                 </button>
               </div>
             )}
+            <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-left text-ink-500">
@@ -382,6 +383,7 @@ export default function FachadaView(p: Props) {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       </div>

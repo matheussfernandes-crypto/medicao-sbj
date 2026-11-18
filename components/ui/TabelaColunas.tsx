@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
+import { useRotulosCartao } from "@/components/ui/useRotulosCartao";
 import FiltroColuna, { contarValores, type Direcao } from "@/components/ui/FiltroColuna";
 import { Paginador, usePaginas } from "@/components/ui/anima";
 
@@ -57,6 +58,8 @@ export default function TabelaColunas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itens, filtros, ord]);
 
+  const raiz = useRef<HTMLDivElement>(null);
+  useRotulosCartao(raiz);
   const pg = usePaginas(lista, por, JSON.stringify(filtros) + "|" + JSON.stringify(ord) + "|" + itens.length);
   const nFiltros = Object.values(filtros).filter((v) => v?.length).length;
   const ativo = nFiltros > 0 || !!ord;
@@ -102,8 +105,8 @@ export default function TabelaColunas({
           </button>
         )}
       </div>
-      <div className="overflow-x-auto">
-        <table className={className}>
+      <div className="overflow-x-auto" ref={raiz}>
+        <table className={className + " tab-cartao com-filtros"}>
           <thead>
             <tr className="border-b text-left text-xs uppercase tracking-wide text-ink-500">
               {colunas.map((c) => (

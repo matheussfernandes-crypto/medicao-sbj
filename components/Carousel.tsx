@@ -34,11 +34,11 @@ export default function Carousel({
   }
 
   return (
-    <div className="relative rounded-xl overflow-hidden border border-border bg-white h-full min-h-[500px] lg:min-h-[420px]">
+    <div className="relative grid rounded-xl overflow-hidden border border-border bg-white lg:block lg:h-full lg:min-h-[420px]">
       {slides.map((slide, i) => (
         <div
           key={i}
-          className="absolute inset-0 transition-opacity duration-700 ease-in-out"
+          className="col-start-1 row-start-1 transition-opacity duration-700 ease-in-out lg:absolute lg:inset-0"
           style={{ opacity: i === index ? 1 : 0, pointerEvents: i === index ? "auto" : "none" }}
           aria-hidden={i !== index}
         >
@@ -52,7 +52,7 @@ export default function Carousel({
             type="button"
             onClick={() => goTo(index - 1)}
             aria-label="Slide anterior"
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/25 hover:bg-black/40 text-white rounded-full p-1.5 transition-colors"
+            className="absolute left-2 top-[100px] -translate-y-1/2 lg:top-1/2 z-10 bg-black/25 hover:bg-black/40 text-white rounded-full p-1.5 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -60,12 +60,12 @@ export default function Carousel({
             type="button"
             onClick={() => goTo(index + 1)}
             aria-label="Próximo slide"
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/25 hover:bg-black/40 text-white rounded-full p-1.5 transition-colors"
+            className="absolute right-2 top-[100px] -translate-y-1/2 lg:top-1/2 z-10 bg-black/25 hover:bg-black/40 text-white rounded-full p-1.5 transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
 
-          <div className="absolute bottom-3 left-0 right-0 z-10 flex items-center justify-center gap-1.5">
+          <div className="row-start-2 flex items-center justify-center gap-1.5 py-2.5 lg:absolute lg:bottom-3 lg:left-0 lg:right-0 lg:py-0 z-10">
             {slides.map((_, i) => (
               <button
                 key={i}

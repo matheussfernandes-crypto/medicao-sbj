@@ -129,3 +129,24 @@ details[open] > summary.sbj-sum::after { transform: rotate(45deg) translate(-2px
 /* títulos das colunas das tabelas: escuros e em negrito em todo o site */
 table thead th:not(.th-leve) { color: #1f2733; font-weight: 700; }
 html.dark table thead th:not(.th-leve) { color: #e3ecee; }
+
+/* celular: tabela vira uma lista de cartões (a mesma tabela; só muda a apresentação) */
+@media (max-width: 767px) {
+  .tab-cartao thead { display: none; }
+  .tab-cartao, .tab-cartao tbody { display: block; width: 100%; }
+  .tab-cartao tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; border: 1px solid var(--line, #e2e6ec) !important; border-radius: 12px; padding: 12px; margin-bottom: 10px; background: var(--surface, #fff); }
+  .tab-cartao td { display: flex; flex-direction: column; padding: 0 !important; white-space: normal !important; min-width: 0; }
+  .tab-cartao td::before { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: #7b8a8f; }
+  .tab-cartao td:nth-child(2)::before { content: "Data"; }
+  .tab-cartao td:nth-child(3)::before { content: "Tipo"; }
+  .tab-cartao td:nth-child(4)::before { content: "Pessoa"; }
+  .tab-cartao td:nth-child(5)::before { content: "Detalhe"; }
+  .tab-cartao td:nth-child(6)::before { content: "Local"; }
+  .tab-cartao td:nth-child(7)::before { content: "Lançado por"; }
+  .tab-cartao td:nth-child(8)::before { content: "Total"; }
+  .tab-cartao td:nth-child(9)::before { content: "Status"; }
+  .tab-cartao td:nth-child(1), .tab-cartao td[colspan] { grid-column: 1 / -1; }
+  .tab-cartao td:nth-child(1)::before { content: none; }
+  .tab-cartao td:nth-child(10) { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .tab-cartao td:nth-child(10)::before { content: none; }
+}

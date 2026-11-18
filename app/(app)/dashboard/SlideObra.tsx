@@ -51,7 +51,7 @@ export default function SlideObra({ p, fotos, ativo }: { p: ProgressoObra; fotos
   const lista = p.frentes.length ? p.frentes : p.servicos.filter((s) => s.pct < 100).slice(0, 4).map((s) => ({ ...s, onde: "" }));
 
   return (
-    <div className="h-full w-full bg-white grid grid-rows-[200px_minmax(0,1fr)] lg:grid-rows-1 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+    <div className="w-full bg-white grid grid-rows-[200px_auto] lg:h-full lg:grid-rows-1 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
       {/* fotos */}
       <div className="relative bg-primaryDark overflow-hidden">
         {fotos.length ? (
@@ -90,7 +90,7 @@ export default function SlideObra({ p, fotos, ativo }: { p: ProgressoObra; fotos
       </div>
 
       {/* andamento */}
-      <div className="p-5 pr-12 lg:p-6 lg:pr-12 flex flex-col min-h-0 overflow-y-auto">
+      <div className="p-5 pr-12 lg:p-6 lg:pr-12 flex flex-col min-h-0 lg:overflow-y-auto">
         <div className="pr-10">
           <h2 className="text-primaryDark font-semibold text-lg leading-tight">{p.nome}</h2>
           <p className="text-xs text-ink-500">Andamento físico · {p.unidades} locais</p>

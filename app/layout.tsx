@@ -2,7 +2,7 @@ import "./globals.css";
 import "./anima.css";
 import "./tema-escuro.css";
 import { SCRIPT_TEMA_INICIAL } from "@/lib/tema";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import PushRegistrar from "@/components/PushRegistrar";
 
 export const metadata: Metadata = {
@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   description: "Sistema de medição de empreiteiros — SBJ Construtora e Incorporadora.",
   manifest: "/manifest.json",
 };
+
+// celular: tela travada, sem zoom (como no computador e no tablet)
+export const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 1, userScalable: false };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

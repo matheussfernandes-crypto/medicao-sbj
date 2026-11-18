@@ -110,7 +110,7 @@ export default function LancamentosTable({
       )}
 
       <div className="overflow-x-auto">
-        <TabelaPaginada por={25} className="w-full text-sm" cabecalho={
+        <TabelaPaginada por={25} className="w-full text-sm tab-cartao" cabecalho={
 <thead className="text-left text-gray-400">
             <tr>
               {/* Select-all para ADM */}

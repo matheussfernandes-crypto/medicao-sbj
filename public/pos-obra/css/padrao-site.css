@@ -167,3 +167,12 @@ details:not(.mod-details):not(.vt-mais)[open] > summary::after { transform: rota
 
 /* títulos das colunas das tabelas: escuros e em negrito em todo o módulo */
 table thead th { color: var(--text) !important; font-weight: 700 !important; }
+
+/* ---------- celular: cabeçalho fixo com fundo (o texto não passa por cima do conteúdo) e botão de resolver só com o check ---------- */
+@media (max-width: 720px) {
+  .main > .topbar { position: sticky; top: 0; z-index: 50; background: var(--bg) !important; padding: 10px 12px !important; box-shadow: 0 1px 0 var(--border, #e2e6ec); }
+  .main > .topbar .topbar-title h1 { font-size: 18px !important; }
+  .main > .topbar .topbar-title p { display: none; }
+  .vt-resolver { width: 36px; height: 36px; min-height: 36px; padding: 0; justify-content: center; border-radius: 8px; gap: 0; }
+  .vt-resolver span { display: none; }
+}

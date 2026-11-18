@@ -43,6 +43,7 @@ export default function LinhaLancamento({
   pessoas,
   servicos,
   ehAdmin,
+  comSelecao = ehAdmin,
   isOwner,
   jaFechado,
   selected,
@@ -61,6 +62,7 @@ export default function LinhaLancamento({
   pessoas: Pessoa[];
   servicos: Servico[];
   ehAdmin: boolean;
+  comSelecao?: boolean; // coluna de seleção (só quando há pendentes)
   isOwner: boolean;
   jaFechado: boolean;
   selected?: boolean;
@@ -79,7 +81,7 @@ export default function LinhaLancamento({
   const [aberta, setAberta] = useState(false); // faixa de ações aberta
 
   // checkbox + 9 colunas existentes (quando admin); 9 sem checkbox (não-admin)
-  const COLUNAS = ehAdmin ? 10 : 9;
+  const COLUNAS = comSelecao ? 10 : 9;
 
   const podeEditarOuExcluirProprio = l.status === "PENDENTE" && (isOwner || ehAdmin);
   const temAcoes = ehAdmin || podeEditarOuExcluirProprio;
@@ -105,8 +107,8 @@ export default function LinhaLancamento({
     <>
     <tr className={"border-t " + (aberta ? "bg-surface-subtle" : "")}>
       {/* Checkbox de seleção — apenas para ADM em lançamentos PENDENTES */}
-      {ehAdmin && (
-        <td className="p-1 w-8 text-center">
+      {comSelecao && (
+        <td data-col="sel" className="p-1 w-8 text-center">
           {l.status === "PENDENTE" && (
             <input
               type="checkbox"
@@ -118,10 +120,10 @@ export default function LinhaLancamento({
         </td>
       )}
 
-      <td className="p-1 whitespace-nowrap">{new Date(l.data).toLocaleDateString("pt-BR")}</td>
-      <td className="p-1 whitespace-nowrap">{rotuloTipo(l.tipo)}</td>
-      <td className="p-1">{nomePessoa}</td>
-      <td className="p-1">
+      <td data-col="data" className="p-1 whitespace-nowrap">{new Date(l.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })}</td>
+      <td data-col="tipo" className="p-1 whitespace-nowrap">{rotuloTipo(l.tipo)}</td>
+      <td data-col="pessoa" className="p-1">{nomePessoa}</td>
+      <td data-col="detalhe" className="p-1">
         {l.tipo === "VALE_MEDICAO" ? (
           <>
             {`Vale R$ ${Number(l.valor_vale_hibrido ?? 0).toFixed(2)} + Medição compl. R$ ${Number(l.total_reais).toFixed(2)} (bruto)`}
@@ -135,14 +137,14 @@ export default function LinhaLancamento({
           `${l.servico ?? ""} ${l.detalhe_texto ?? ""}`
         )}
       </td>
-      <td className="p-1 max-w-[170px] break-words">{l.local ?? "—"}</td>
-      <td className="p-1">{nomeCriador}</td>
-      <td className="p-1 whitespace-nowrap tabular-nums font-medium">
+      <td data-col="local" className="p-1 max-w-[140px] break-words">{l.local ?? "—"}</td>
+      <td data-col="por" className="p-1 max-w-[130px]">{nomeCriador}</td>
+      <td data-col="total" className="p-1 whitespace-nowrap tabular-nums font-medium">
         {l.tipo === "VALE_MEDICAO"
           ? `R$ ${(Number(l.valor_vale_hibrido ?? 0) + Number(l.total_reais)).toFixed(2)}`
           : `R$ ${Number(l.total_reais).toFixed(2)}`}
       </td>
-      <td className="p-1">
+      <td data-col="status" className="p-1">
         <span
           className={
             "badge " +
@@ -160,7 +162,7 @@ export default function LinhaLancamento({
           <p className="text-xs text-red-600 mt-0.5 max-w-[180px] break-words">{l.motivo_rejeicao}</p>
         )}
       </td>
-      <td className="p-1 text-right whitespace-nowrap">
+      <td data-col="acoes" className="p-1 text-right whitespace-nowrap">
         {ehAdmin && l.status !== "PENDENTE" ? (
           editandoData ? (
             <form action={editarDataLancamento} className="flex items-center justify-end gap-1" onSubmit={() => setEditandoData(false)}>

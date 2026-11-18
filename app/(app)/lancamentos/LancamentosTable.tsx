@@ -113,8 +113,8 @@ export default function LancamentosTable({
         <TabelaPaginada por={25} className="w-full text-sm tab-cartao" cabecalho={
 <thead className="text-left text-gray-400">
             <tr>
-              {/* Select-all para ADM */}
-              {ehAdmin && (
+              {/* Select-all para ADM (só aparece quando há pendentes) */}
+              {ehAdmin && pendentes.length > 0 && (
                 <th className="p-1 w-8">
                   {pendentes.length > 0 && (
                     <input
@@ -155,6 +155,7 @@ export default function LancamentosTable({
                   pessoas={pessoas}
                   servicos={servicos}
                   ehAdmin={ehAdmin}
+                  comSelecao={ehAdmin && pendentes.length > 0}
                   isOwner={isOwner}
                   jaFechado={jaFechado}
                   selected={selectedIds.has(l.id)}

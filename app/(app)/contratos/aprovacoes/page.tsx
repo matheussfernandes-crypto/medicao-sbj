@@ -1,3 +1,4 @@
+import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
 import Link from "next/link";
 import { Camera, FileDown } from "lucide-react";
 import { exigirPerfil, nomesUsuarios, urlsAssinadas } from "@/lib/contratos/server";
@@ -185,8 +186,7 @@ export default async function AprovacoesContratosPage({
       </section>
 
       {/* Decididos recentemente */}
-      <section className="card space-y-2">
-        <h2 className="font-semibold text-primaryDark">Decididos recentemente</h2>
+      <SecaoRecolhivel chave="ctr-aprov-decididos" titulo="Decididos recentemente">
         <div className="table-scroll">
           <TabelaPaginada por={15} className="w-full text-sm" cabecalho={
 <thead><tr className="text-left border-b"><th className="py-2 pr-2">Quando</th><th className="py-2 pr-2">Obra / contrato</th><th className="py-2 pr-2">Tipo</th><th className="py-2 pr-2 text-right">Valor</th><th className="py-2 pr-2">Status</th><th></th></tr></thead>
@@ -213,7 +213,7 @@ export default async function AprovacoesContratosPage({
               ))}
             </TabelaPaginada>
         </div>
-      </section>
+      </SecaoRecolhivel>
     </div>
   );
 }

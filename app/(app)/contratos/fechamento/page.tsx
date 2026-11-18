@@ -9,6 +9,8 @@ import { fecharMesContrato, reabrirMesContrato, fecharValeMesContrato, reabrirVa
 import { calcularFechamentoVale } from "@/lib/contratos/fechamentoVale";
 import Selecao from "@/components/ui/Selecao";
 import { TabelaPaginada } from "@/components/ui/anima";
+import TabelaColunas from "@/components/ui/TabelaColunas";
+import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
 
 export default async function FechamentoContratosPage({
   searchParams,
@@ -76,43 +78,47 @@ export default async function FechamentoContratosPage({
             </div>
           )}
 
-          <section className="card space-y-3">
-            <h2 className="font-semibold text-primaryDark">Planilha de medição</h2>
-            <div className="table-scroll">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-left border-b">
-                    <th className="py-2 pr-2">Item</th><th className="py-2 pr-2">Serviço</th><th className="py-2 pr-2">Un</th>
-                    <th className="py-2 pr-2 text-right">Contratado</th><th className="py-2 pr-2 text-right">V. unit.</th>
-                    <th className="py-2 pr-2 text-right">Anterior</th><th className="py-2 pr-2 text-right">Este mês</th>
-                    <th className="py-2 pr-2 text-right">Acumulado</th><th className="py-2 pr-2 text-right">Saldo</th>
-                    <th className="py-2 pr-2 text-right">% exec.</th><th className="py-2 pr-2 text-right">Valor do mês</th>
+          <SecaoRecolhivel chave="ctr-boletim-planilha" titulo="Planilha de medição">
+            <TabelaColunas
+              por={15}
+              className="w-full text-xs"
+              colunas={[
+                { chave: "item", rotulo: "Item", ordem: true },
+                { chave: "servico", rotulo: "Serviço", ordem: true },
+                { chave: "un", rotulo: "Un", filtro: true },
+                { chave: "contratado", rotulo: "Contratado", direita: true },
+                { chave: "vunit", rotulo: "V. unit.", direita: true },
+                { chave: "anterior", rotulo: "Anterior", direita: true },
+                { chave: "mes", rotulo: "Este mês", direita: true },
+                { chave: "acumulado", rotulo: "Acumulado", direita: true },
+                { chave: "saldo", rotulo: "Saldo", direita: true },
+                { chave: "perc", rotulo: "% exec.", direita: true },
+                { chave: "valor", rotulo: "Valor do mês", direita: true },
+              ]}
+              itens={b.linhas.map((l) => ({
+                id: String(l.item_id),
+                d: { item: String(l.codigo ?? ""), servico: String(l.descricao ?? ""), un: String(l.unidade ?? "") },
+                linha: (
+                  <tr className={`border-b ${l.qtd_atual > 0 ? "bg-primary/5" : ""}`}>
+                    <td className="py-1.5 pr-2 font-semibold">{l.codigo}</td>
+                    <td className="py-1.5 pr-2">{l.descricao}{l.antecipado && <span className="ml-1 text-[10px] bg-amber-100 rounded px-1">antecipado</span>}</td>
+                    <td className="py-1.5 pr-2">{l.unidade}</td>
+                    <td className="py-1.5 pr-2 text-right">{num(l.qtd_contratada)}</td>
+                    <td className="py-1.5 pr-2 text-right whitespace-nowrap">{brl(l.valor_unitario)}</td>
+                    <td className="py-1.5 pr-2 text-right">{num(l.qtd_anterior)}</td>
+                    <td className="py-1.5 pr-2 text-right font-semibold">{num(l.qtd_atual)}</td>
+                    <td className="py-1.5 pr-2 text-right">{num(l.qtd_acumulada)}</td>
+                    <td className="py-1.5 pr-2 text-right">{num(l.qtd_saldo)}</td>
+                    <td className="py-1.5 pr-2 text-right">{pct(l.perc_executado)}</td>
+                    <td className="py-1.5 pr-2 text-right whitespace-nowrap font-semibold">{brl(l.valor_atual)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {b.linhas.map((l) => (
-                    <tr key={l.item_id} className={`border-b ${l.qtd_atual > 0 ? "bg-primary/5" : ""}`}>
-                      <td className="py-1.5 pr-2 font-semibold">{l.codigo}</td>
-                      <td className="py-1.5 pr-2">{l.descricao}{l.antecipado && <span className="ml-1 text-[10px] bg-amber-100 rounded px-1">antecipado</span>}</td>
-                      <td className="py-1.5 pr-2">{l.unidade}</td>
-                      <td className="py-1.5 pr-2 text-right">{num(l.qtd_contratada)}</td>
-                      <td className="py-1.5 pr-2 text-right whitespace-nowrap">{brl(l.valor_unitario)}</td>
-                      <td className="py-1.5 pr-2 text-right">{num(l.qtd_anterior)}</td>
-                      <td className="py-1.5 pr-2 text-right font-semibold">{num(l.qtd_atual)}</td>
-                      <td className="py-1.5 pr-2 text-right">{num(l.qtd_acumulada)}</td>
-                      <td className="py-1.5 pr-2 text-right">{num(l.qtd_saldo)}</td>
-                      <td className="py-1.5 pr-2 text-right">{pct(l.perc_executado)}</td>
-                      <td className="py-1.5 pr-2 text-right whitespace-nowrap font-semibold">{brl(l.valor_atual)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                ),
+              }))}
+            />
+          </SecaoRecolhivel>
 
           <div className="grid lg:grid-cols-2 gap-4">
-            <section className="card space-y-2 text-sm">
-              <h2 className="font-semibold text-primaryDark">Vales (adiantamentos)</h2>
+            <SecaoRecolhivel chave="ctr-boletim-vales" titulo="Vales (adiantamentos)">
               {b.vales.length ? (
                 <ul className="divide-y">
                   {b.vales.map((v) => (
@@ -132,9 +138,8 @@ export default async function FechamentoContratosPage({
                   Vales de medição no mês (já pagos, não descontam de novo): bruto {brl(b.valeMedicaoBruto)} · retenção {brl(b.valeMedicaoRetido)} · líquido pago {brl(b.valeMedicaoLiquido)}
                 </p>
               )}
-            </section>
-            <section className="card space-y-2 text-sm">
-              <h2 className="font-semibold text-primaryDark">Glosas e retenção</h2>
+            </SecaoRecolhivel>
+            <SecaoRecolhivel chave="ctr-boletim-glosas" titulo="Glosas e retenção">
               {b.glosas.length ? (
                 <ul className="text-xs space-y-1">
                   {b.glosas.map((g, i) => <li key={i}>Med. nº {g.numero} · {g.codigo} {g.descricao}: {num(g.medido)} → {num(g.aprovado)} {g.unidade} — {g.motivo}</li>)}
@@ -145,7 +150,7 @@ export default async function FechamentoContratosPage({
                   {b.retencoesDispensadas.map((r, i) => <li key={i}>Retenção dispensada no lançamento nº {r.numero}: {r.motivo}</li>)}
                 </ul>
               )}
-            </section>
+            </SecaoRecolhivel>
           </div>
 
           <div className="card flex flex-wrap items-center gap-3">
@@ -171,9 +176,9 @@ export default async function FechamentoContratosPage({
           </div>
 
           {fv && (
-            <section className="card space-y-3">
+            <SecaoRecolhivel chave="ctr-fechamento-vales" titulo={`Fechamento de vales de ${mesLabel(mes)}`}>
               <div className="flex flex-wrap items-baseline gap-2">
-                <h2 className="font-semibold text-primaryDark">Fechamento de vales de {mesLabel(mes)}</h2>
+                
                 {fv.fechamento ? <span className="badge badge-aprovado">FECHADO</span> : <span className="badge badge-pendente">ABERTO</span>}
                 <span className="text-sm text-ink-500 ml-auto">{fv.vales.length} vale(s) · total <b className="text-ink-900">{brl(fv.total)}</b></span>
               </div>
@@ -211,12 +216,11 @@ export default async function FechamentoContratosPage({
                   </>
                 )}
               </div>
-            </section>
+            </SecaoRecolhivel>
           )}
 
           {(historicoVale ?? []).length > 0 && (
-            <section className="card space-y-2">
-              <h2 className="font-semibold text-primaryDark">Vales fechados deste contrato</h2>
+            <SecaoRecolhivel chave="ctr-vales-fechados" titulo="Vales fechados deste contrato">
               <TabelaPaginada por={15} className="w-full text-sm" cabecalho={
 <thead><tr className="text-left border-b"><th className="py-2">Mês</th><th className="py-2 text-right">Qtd. vales</th><th className="py-2 text-right">Total de vales</th><th className="py-2">Fechado em</th><th></th></tr></thead>
 }>
@@ -230,12 +234,11 @@ export default async function FechamentoContratosPage({
                     </tr>
                   ))}
                 </TabelaPaginada>
-            </section>
+            </SecaoRecolhivel>
           )}
 
           {(historico ?? []).length > 0 && (
-            <section className="card space-y-2">
-              <h2 className="font-semibold text-primaryDark">Medições fechadas deste contrato</h2>
+            <SecaoRecolhivel chave="ctr-medicoes-fechadas" titulo="Medições fechadas deste contrato">
               <TabelaPaginada por={15} className="w-full text-sm" cabecalho={
 <thead><tr className="text-left border-b"><th className="py-2">Mês</th><th className="py-2 text-right">Bruto</th><th className="py-2 text-right">Retenção</th><th className="py-2 text-right">Vales</th><th className="py-2 text-right">Líquido</th><th></th></tr></thead>
 }>
@@ -250,7 +253,7 @@ export default async function FechamentoContratosPage({
                     </tr>
                   ))}
                 </TabelaPaginada>
-            </section>
+            </SecaoRecolhivel>
           )}
         </>
       )}

@@ -18,6 +18,7 @@ import ItemEditor from "./ItemEditor";
 import PrecosEditor from "./PrecosEditor";
 import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
 import Selecao from "@/components/ui/Selecao";
+import TabelaColunas from "@/components/ui/TabelaColunas";
 import { DataCampo } from "@/components/ui/anima";
 
 const BADGE: Record<string, string> = {
@@ -123,11 +124,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
       </div>
 
       {/* Documentos */}
-      <section className="card space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold text-primaryDark">Documentos do contrato</h2>
-          {ehAdmin && <UploadArquivo meta={{ contratoId: c.id, tipo: "CONTRATO" }} label="Anexar PDF do contrato" accept="application/pdf,image/*" multiple />}
-        </div>
+      <SecaoRecolhivel chave="ctr-documentos" titulo="Documentos do contrato" acoes={ehAdmin && <UploadArquivo meta={{ contratoId: c.id, tipo: "CONTRATO" }} label="Anexar PDF do contrato" accept="application/pdf,image/*" multiple />}>
         {anexosContrato.length ? (
           <ul className="divide-y text-sm">
             {anexosContrato.map((a) => (
@@ -147,7 +144,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
         ) : (
           <p className="text-sm text-ink-400">Nenhum PDF anexado.</p>
         )}
-      </section>
+      </SecaoRecolhivel>
 
       {/* Preços unitários (contrato tipo) */}
       <SecaoRecolhivel
@@ -305,8 +302,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
       </SecaoRecolhivel>
 
       {/* Aditivos */}
-      <section className="card space-y-3">
-        <h2 className="font-semibold text-primaryDark">Aditivos</h2>
+      <SecaoRecolhivel chave="ctr-aditivos" titulo="Aditivos">
         {(aditivos ?? []).length ? (
           <div className="table-scroll">
             <table className="w-full text-sm">
@@ -342,7 +338,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
           <p className="text-sm text-ink-400">Nenhum aditivo.</p>
         )}
         {ehAdmin && itens.length > 0 && <AditivoForm contratoId={c.id} itens={itens.map((i) => ({ id: i.id, nome: itemNome[i.id], unidade: i.unidade, quantidade: i.quantidade, valor_unitario: i.valor_unitario }))} />}
-      </section>
+      </SecaoRecolhivel>
 
       {/* Retenção */}
       <section className="card grid lg:grid-cols-2 gap-6">
@@ -389,8 +385,7 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
 
       {/* Solicitações */}
       {(solicitacoes ?? []).length > 0 && (
-        <section className="card space-y-2">
-          <h2 className="font-semibold text-primaryDark">Solicitações de aditivo</h2>
+        <SecaoRecolhivel chave="ctr-solicitacoes" titulo="Solicitações de aditivo">
           <ul className="divide-y text-sm">
             {(solicitacoes ?? []).map((s) => (
               <li key={s.id} className="py-2 flex flex-wrap gap-2 items-start">
@@ -404,21 +399,28 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
               </li>
             ))}
           </ul>
-        </section>
+        </SecaoRecolhivel>
       )}
 
       {/* Lançamentos */}
-      <section className="card space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-primaryDark">Lançamentos</h2>
-          <Link href={`/contratos/medicoes?contrato=${c.id}`} className="text-xs text-primary underline">Ver na tela de medições</Link>
-        </div>
-        <div className="table-scroll">
-          <table className="w-full text-sm">
-            <thead><tr className="text-left border-b"><th className="py-2 pr-2">Nº</th><th className="py-2 pr-2">Data</th><th className="py-2 pr-2">Tipo</th><th className="py-2 pr-2">Mês</th><th className="py-2 pr-2 text-right">Valor</th><th className="py-2 pr-2 text-right">Retenção</th><th className="py-2 pr-2">Por</th><th className="py-2 pr-2">Status</th></tr></thead>
-            <tbody>
-              {(lancs ?? []).slice(0, 30).map((l) => (
-                <tr key={l.id} className="border-b">
+      <SecaoRecolhivel chave="ctr-lancamentos" titulo="Lançamentos" acoes={<Link href={`/contratos/medicoes?contrato=${c.id}`} className="text-xs text-primary underline">Ver na tela de medições</Link>}>
+        <TabelaColunas
+          por={15}
+          className="w-full text-sm"
+          colunas={[
+            { chave: "n", rotulo: "Nº", ordem: true },
+            { chave: "data", rotulo: "Data", ordens: [["asc", "Mais antigas"], ["desc", "Mais recentes"]], lab: (v) => dataBR(v) },
+            { chave: "tipo", rotulo: "Tipo", filtro: true, lab: (v) => TIPO_LANC_LABEL[v] ?? v },
+            { chave: "mes", rotulo: "Mês", filtro: true, lab: (v) => mesLabel(v) },
+            { chave: "valor", rotulo: "Valor", direita: true },
+            { chave: "retencao", rotulo: "Retenção", direita: true },
+            { chave: "nome", rotulo: "Lançado por", filtro: true },
+            { chave: "status", rotulo: "Status", filtro: true, lab: (v) => STATUS_LANC_LABEL[v] ?? v },
+          ]}
+          itens={(lancs ?? []).map((l: any) => ({
+            id: String(l.id),
+            d: { n: String(l.numero ?? ""), data: String(l.data ?? ""), tipo: String(l.tipo ?? ""), mes: String(l.mes_referencia ?? ""), nome: nomes[l.criado_por] ?? "", status: String(l.status ?? "") },
+            linha: (<tr key={l.id} className="border-b">
                   <td className="py-2 pr-2">{l.numero}</td>
                   <td className="py-2 pr-2 whitespace-nowrap">{dataBR(l.data)}</td>
                   <td className="py-2 pr-2">{TIPO_LANC_LABEL[l.tipo]}</td>
@@ -428,12 +430,11 @@ export default async function ContratoDetalhePage({ params }: { params: { id: st
                   <td className="py-2 pr-2">{nomes[l.criado_por] ?? "—"}</td>
                   <td className="py-2 pr-2"><span className={`badge ${BADGE[l.status]}`}>{STATUS_LANC_LABEL[l.status]}{l.teve_glosa ? " c/ glosa" : ""}</span></td>
                 </tr>
-              ))}
-              {!(lancs ?? []).length && <tr><td colSpan={8} className="py-4 text-center text-ink-400">Nenhum lançamento.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            ),
+          }))}
+          vazio="Nenhum lançamento ainda."
+        />
+      </SecaoRecolhivel>
 
       {/* Editar dados (ADM) */}
       {ehAdmin && (

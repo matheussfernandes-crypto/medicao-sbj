@@ -10,6 +10,8 @@ import { excluirLancamentoContrato, cancelarSolicitacao } from "../actions";
 import LancamentoForm, { type Edicao } from "./LancamentoForm";
 import PreencheRegistro from "./PreencheRegistro";
 import Selecao from "@/components/ui/Selecao";
+import TabelaColunas from "@/components/ui/TabelaColunas";
+import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
 
 const BADGE: Record<string, string> = {
   PENDENTE: "badge-pendente", APROVADO: "badge-aprovado", REJEITADO: "badge-rejeitado",
@@ -132,70 +134,11 @@ async function ContratoSelecionado({
       }
     : null;
 
-  return (
-    <>
-      <div className="sticky top-0 z-20 -mx-1 px-1">
-        <div className="rounded-xl bg-primaryDark text-white px-5 py-3 shadow-panel flex flex-wrap items-center gap-x-6 gap-y-1">
-          <div>
-            <p className="text-[11px] uppercase tracking-wide text-white/60">Obra</p>
-            <p className="text-lg font-bold leading-tight">{resumo.obra_nome}</p>
-          </div>
-          <div className="text-sm">
-            Contrato <b>Nº {resumo.numero}</b> · {resumo.empresa_nome} · {resumo.objeto}
-          </div>
-          <div className="ml-auto flex flex-wrap gap-4 text-xs text-white/80">
-            <span>Valor <b className="text-white">{brl(resumo.valor_atual)}</b></span>
-            <span>Medido <b className="text-white">{brl(resumo.valor_medido)}</b> ({num(resumo.perc_executado, 1)}%)</span>
-            <span>Saldo <b className="text-accent">{brl(resumo.saldo)}</b></span>
-            <span>Retenção <b className="text-white">{num(retPct)}%</b></span>
-            <Link href={`/contratos/${contratoId}`} className="underline">Ver contrato</Link>
-            <Link href={`/contratos/medicoes?empresa=${resumo.empresa_id}`} className="underline">Trocar</Link>
-          </div>
-        </div>
-      </div>
+  const itensLanc = (lancs ?? []).map((l: any) => {
 
-      <div className="card">
-        {itens.length === 0 ? (
-          <p className="text-sm text-ink-500">Este contrato ainda não tem itens cadastrados. O ADM precisa incluir os serviços e valores.</p>
-        ) : (
-          <LancamentoForm
-            key={edicao?.id ?? "novo"}
-            contrato={{ id: contratoId, numero: resumo.numero, obra_nome: resumo.obra_nome, empresa_nome: resumo.empresa_nome }}
-            itens={itens.map((i) => ({
-              id: i.id, codigo: i.codigo, descricao: i.descricao, unidade: i.unidade, quantidade: i.quantidade,
-              valor_unitario: i.valor_unitario, saldo: i.saldo + (reserva[i.id] ?? 0), ativo: i.ativo,
-            }))}
-            retencaoPct={retPct}
-            edicao={edicao}
-          />
-        )}
-        {editando?.status === "REJEITADO" && <p className="text-xs text-danger mt-3">Corrigindo lançamento rejeitado ({editando.motivo_rejeicao}). Ao salvar, ele volta para aprovação.</p>}
-        {edicao && <Link href={`/contratos/medicoes?contrato=${contratoId}`} className="text-xs text-ink-500 underline mt-3 inline-block">Cancelar edição</Link>}
-      </div>
-
-      {/* Histórico de lançamentos */}
-      <div className="card space-y-3">
-        <h2 className="font-semibold text-primaryDark">Lançamentos deste contrato</h2>
-        <div className="table-scroll">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left border-b">
-                <th className="py-2 pr-2">Nº</th>
-                <th className="py-2 pr-2">Data</th>
-                <th className="py-2 pr-2">Tipo</th>
-                <th className="py-2 pr-2">Mês ref.</th>
-                <th className="py-2 pr-2">Itens</th>
-                <th className="py-2 pr-2 text-right">Valor</th>
-                <th className="py-2 pr-2">Lançado por</th>
-                <th className="py-2 pr-2">Status</th>
-                <th className="py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {(lancs ?? []).map((l: any) => {
                 const minhaPendente = l.status !== "APROVADO" && (ehAdmin || l.criado_por === userId);
                 const fotosL = (fotos ?? []).filter((f: any) => f.lancamento_id === l.id);
-                return (
+                const linha = (
                   <tr key={l.id} className="border-b align-top">
                     <td className="py-2 pr-2">{l.numero}</td>
                     <td className="py-2 pr-2 whitespace-nowrap">{dataBR(l.data)}</td>
@@ -247,12 +190,70 @@ async function ContratoSelecionado({
                     </td>
                   </tr>
                 );
-              })}
-              {!(lancs ?? []).length && <tr><td colSpan={9} className="py-4 text-center text-ink-400">Nenhum lançamento ainda.</td></tr>}
-            </tbody>
-          </table>
+return { id: l.id, d: { n: String(l.numero ?? ""), data: String(l.data ?? ""), tipo: String(l.tipo ?? ""), mes: String(l.mes_referencia ?? ""), nome: nomes[l.criado_por] ?? "", status: String(l.status ?? "") }, linha };
+  });
+
+  return (
+    <>
+      <div className="sticky top-0 z-20 -mx-1 px-1">
+        <div className="rounded-xl bg-primaryDark text-white px-5 py-3 shadow-panel flex flex-wrap items-center gap-x-6 gap-y-1">
+          <div>
+            <p className="text-[11px] uppercase tracking-wide text-white/60">Obra</p>
+            <p className="text-lg font-bold leading-tight">{resumo.obra_nome}</p>
+          </div>
+          <div className="text-sm">
+            Contrato <b>Nº {resumo.numero}</b> · {resumo.empresa_nome} · {resumo.objeto}
+          </div>
+          <div className="ml-auto flex flex-wrap gap-4 text-xs text-white/80">
+            <span>Valor <b className="text-white">{brl(resumo.valor_atual)}</b></span>
+            <span>Medido <b className="text-white">{brl(resumo.valor_medido)}</b> ({num(resumo.perc_executado, 1)}%)</span>
+            <span>Saldo <b className="text-accent">{brl(resumo.saldo)}</b></span>
+            <span>Retenção <b className="text-white">{num(retPct)}%</b></span>
+            <Link href={`/contratos/${contratoId}`} className="underline">Ver contrato</Link>
+            <Link href={`/contratos/medicoes?empresa=${resumo.empresa_id}`} className="underline">Trocar</Link>
+          </div>
         </div>
       </div>
+
+      <div className="card">
+        {itens.length === 0 ? (
+          <p className="text-sm text-ink-500">Este contrato ainda não tem itens cadastrados. O ADM precisa incluir os serviços e valores.</p>
+        ) : (
+          <LancamentoForm
+            key={edicao?.id ?? "novo"}
+            contrato={{ id: contratoId, numero: resumo.numero, obra_nome: resumo.obra_nome, empresa_nome: resumo.empresa_nome }}
+            itens={itens.map((i) => ({
+              id: i.id, codigo: i.codigo, descricao: i.descricao, unidade: i.unidade, quantidade: i.quantidade,
+              valor_unitario: i.valor_unitario, saldo: i.saldo + (reserva[i.id] ?? 0), ativo: i.ativo,
+            }))}
+            retencaoPct={retPct}
+            edicao={edicao}
+          />
+        )}
+        {editando?.status === "REJEITADO" && <p className="text-xs text-danger mt-3">Corrigindo lançamento rejeitado ({editando.motivo_rejeicao}). Ao salvar, ele volta para aprovação.</p>}
+        {edicao && <Link href={`/contratos/medicoes?contrato=${contratoId}`} className="text-xs text-ink-500 underline mt-3 inline-block">Cancelar edição</Link>}
+      </div>
+
+      {/* Histórico de lançamentos */}
+      <SecaoRecolhivel chave="ctr-med-lancamentos" titulo="Lançamentos deste contrato">
+        <TabelaColunas
+          por={15}
+          className="w-full text-sm"
+          colunas={[
+            { chave: "n", rotulo: "Nº", ordem: true },
+            { chave: "data", rotulo: "Data", ordens: [["asc", "Mais antigas"], ["desc", "Mais recentes"]], lab: (v) => dataBR(v) },
+            { chave: "tipo", rotulo: "Tipo", filtro: true, lab: (v) => TIPO_LANC_LABEL[v] ?? v },
+            { chave: "mes", rotulo: "Mês ref.", filtro: true, lab: (v) => mesLabel(v) },
+            { chave: "valor", rotulo: "Itens" },
+            { chave: "tot", rotulo: "Valor", direita: true },
+            { chave: "nome", rotulo: "Lançado por", filtro: true },
+            { chave: "status", rotulo: "Status", filtro: true, lab: (v) => STATUS_LANC_LABEL[v] ?? v },
+            { chave: "acao", rotulo: "" },
+          ]}
+          itens={itensLanc}
+          vazio="Nenhum lançamento ainda."
+        />
+      </SecaoRecolhivel>
 
       {(sols ?? []).length > 0 && (
         <div className="card space-y-2">

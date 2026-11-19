@@ -67,11 +67,12 @@ let vtColDesc = "";   // filtro de texto da planilha
 const vtSelApto = new Set(), vtSelData = new Set(), vtSelTipo = new Set(), vtSelAmb = new Set();   // filtros de várias opções (cabeçalhos da planilha)
 
 let vtSoFotos = false;            // "somente com fotos"
+let vtDataDe = "", vtDataAte = "";   // período da vistoria (datas ISO), escolhido por calendário na folha de filtros
 const vtMantemAp = new Set();     // apartamentos que acabaram de mudar de situação: ficam na lista até mudar o filtro
 const vtExp = new Set();          // apartamentos abertos na lista (mostram as pendências ali mesmo)
 let vtExpNovo = null;             // o que acabou de abrir (só ele anima)
 
-const vtFiltroAtual = () => ({ q: vtBusca, sit: vtStatus, tipos: vtSelTipo, ambs: vtSelAmb, datas: vtSelData, fotos: vtSoFotos });
+const vtFiltroAtual = () => ({ q: vtBusca, sit: vtStatus, tipos: vtSelTipo, ambs: vtSelAmb, datas: vtSelData, fotos: vtSoFotos, de: vtDataDe, ate: vtDataAte });
 function vtItemOk(i, f) { return (!f.tipos.size || f.tipos.has(i.tipo)) && (!f.ambs.size || f.ambs.has(i.ambiente)) && (!f.fotos || (i.fotos && i.fotos.length)); }
 function vtFiltrada(f = vtFiltroAtual(), usarMantem = true) {
   const q = f.q.trim().toLowerCase();
@@ -79,6 +80,8 @@ function vtFiltrada(f = vtFiltroAtual(), usarMantem = true) {
     if (vtFiltroPredio && v.buildingId !== vtFiltroPredio) return false;
     if (q && !v.unit.toLowerCase().includes(q)) return false;
     if (f.datas.size && !f.datas.has(v.date)) return false;
+    if (f.de && v.date < f.de) return false;
+    if (f.ate && v.date > f.ate) return false;
     const its = v.items.filter(i => vtItemOk(i, f));
     if ((f.tipos.size || f.ambs.size || f.fotos) && !its.length) return false;
     if (f.sit === "todos" || (usarMantem && vtMantemAp.has(v.id))) return true;
@@ -95,15 +98,16 @@ function vtChipsAtivos() {
   vtSelTipo.forEach(t => c.push({ k: "t:" + t, r: t }));
   vtSelAmb.forEach(a => c.push({ k: "a:" + a, r: a }));
   vtSelData.forEach(d => c.push({ k: "d:" + d, r: "Vistoria " + fmtDate(d) }));
+  if (vtDataDe || vtDataAte) c.push({ k: "per", r: "Vistoria " + (vtDataDe && vtDataAte ? fmtDate(vtDataDe) + " a " + fmtDate(vtDataAte) : vtDataDe ? "desde " + fmtDate(vtDataDe) : "até " + fmtDate(vtDataAte)) });
   if (vtSoFotos) c.push({ k: "f", r: "Com fotos" });
   return c;
 }
 function vtRemoverFiltro(k) {
-  if (k === "q") vtBusca = ""; else if (k === "sit") vtStatus = "pendentes"; else if (k === "f") vtSoFotos = false;
+  if (k === "q") vtBusca = ""; else if (k === "sit") vtStatus = "pendentes"; else if (k === "f") vtSoFotos = false; else if (k === "per") { vtDataDe = ""; vtDataAte = ""; }
   else if (k.startsWith("t:")) vtSelTipo.delete(k.slice(2)); else if (k.startsWith("a:")) vtSelAmb.delete(k.slice(2)); else if (k.startsWith("d:")) vtSelData.delete(k.slice(2));
   vtMantemAp.clear();
 }
-function vtLimparFiltros() { vtBusca = ""; vtStatus = "pendentes"; vtSelTipo.clear(); vtSelAmb.clear(); vtSelData.clear(); vtSoFotos = false; vtMantemAp.clear(); }
+function vtLimparFiltros() { vtBusca = ""; vtStatus = "pendentes"; vtSelTipo.clear(); vtSelAmb.clear(); vtSelData.clear(); vtSoFotos = false; vtDataDe = ""; vtDataAte = ""; vtMantemAp.clear(); }
 
 /* fotos de uma pendência no visualizador (com "resolvida" e "remover" dentro dele) */
 function vtVerFotos(v, it, pos, aoMudar) {
@@ -118,8 +122,8 @@ function vtVerFotos(v, it, pos, aoMudar) {
 
 /* ---------- Folha de filtros (celular e tablet: tudo num lugar só; a obra fica fora, no topo) ---------- */
 function vtAbrirFiltros() {
-  const D = { q: vtBusca, sit: vtStatus, tipos: new Set(vtSelTipo), ambs: new Set(vtSelAmb), datas: new Set(vtSelData), fotos: vtSoFotos };
-  const aberta = { tipo: true, amb: false, data: false };
+  const D = { q: vtBusca, sit: vtStatus, tipos: new Set(vtSelTipo), ambs: new Set(vtSelAmb), datas: new Set(vtSelData), fotos: vtSoFotos, de: vtDataDe, ate: vtDataAte };
+  const aberta = { tipo: false, amb: false, data: false };
   const base = vtLista().filter(v => !vtFiltroPredio || v.buildingId === vtFiltroPredio);
   openModal(`
     <div class="modal-header"><h3>Filtros</h3><button class="modal-close" id="vfl-x" aria-label="Fechar">×</button></div>
@@ -141,23 +145,37 @@ function vtAbrirFiltros() {
     $("vfl-sit").innerHTML = [["pendentes", "A resolver", nP], ["resolvidos", "Resolvidos", nR], ["todos", "Todos", base.length]].map(([k, r, n]) => `<button type="button" class="vt-chip ${D.sit === k ? "ativo" : ""}" data-s="${k}">${r} · ${n}</button>`).join("");
     const tipos = conta((v, m) => itensSit(v).forEach(i => m.set(i.tipo, (m.get(i.tipo) || 0) + 1))).sort((a, b) => b[1] - a[1]).map(([t, n]) => [t, t, n]);
     const ambs = conta((v, m) => itensSit(v).forEach(i => m.set(i.ambiente, (m.get(i.ambiente) || 0) + 1))).sort((a, b) => a[0].localeCompare(b[0], "pt-BR")).map(([t, n]) => [t, t, n]);
-    const datas = conta((v, m) => m.set(v.date, (m.get(v.date) || 0) + 1)).sort((a, b) => String(b[0]).localeCompare(String(a[0]))).map(([d, n]) => [d, fmtDate(d), n]);
     D.tipos.forEach(t => { if (!tipos.some(x => x[0] === t)) tipos.push([t, t, 0]); }); D.ambs.forEach(t => { if (!ambs.some(x => x[0] === t)) ambs.push([t, t, 0]); });
-    $("vfl-secs").innerHTML = secao("tipo", "Serviço", D.tipos, tipos, "t") + secao("amb", "Ambiente", D.ambs, ambs, "a") + secao("data", "Data da vistoria", D.datas, datas, "d");
+    const nPer = (D.de ? 1 : 0) + (D.ate ? 1 : 0);
+    const periodo = `<details class="vfl-sec" ${aberta.data || nPer ? "open" : ""} data-sec="data"><summary>Data da vistoria${nPer ? `<span class="vfl-n">${nPer}</span>` : ""}</summary>
+      <div class="vfl-ops vfl-per"><div class="vfl-per-campos"><label>De<input type="date" id="vfl-de" value="${escapeHtml(D.de)}" max="${escapeHtml(D.ate)}"></label><label>Até<input type="date" id="vfl-ate" value="${escapeHtml(D.ate)}" min="${escapeHtml(D.de)}"></label></div>
+        <div class="vfl-per-rap"><button type="button" class="vt-chip" data-rap="7">Últimos 7 dias</button><button type="button" class="vt-chip" data-rap="30">Últimos 30 dias</button><button type="button" class="vt-chip" data-rap="mes">Este mês</button>${nPer ? `<button type="button" class="vt-chip" data-rap="0">Limpar datas</button>` : ""}</div></div></details>`;
+    $("vfl-secs").innerHTML = secao("tipo", "Serviço", D.tipos, tipos, "t") + secao("amb", "Ambiente", D.ambs, ambs, "a") + periodo;
     const lista = vtFiltrada(D, false), pend = lista.reduce((n, v) => n + v.items.filter(i => !i.feito && vtItemOk(i, D)).length, 0);
     $("vfl-resumo").innerHTML = `<strong>${lista.length}</strong> apartamento(s) · <strong>${pend}</strong> pendência(s) a resolver`;
     $("vfl-sit").querySelectorAll("[data-s]").forEach(b => b.onclick = () => { D.sit = b.dataset.s; desenhar(); });
     $("vfl-secs").querySelectorAll("details").forEach(d => d.addEventListener("toggle", () => { aberta[d.dataset.sec] = d.open; }));
     const liga = (attr, set) => $("vfl-secs").querySelectorAll(`[data-${attr}]`).forEach(c => c.onchange = () => { const v = c.dataset[attr]; c.checked ? set.add(v) : set.delete(v); desenhar(); });
-    liga("t", D.tipos); liga("a", D.ambs); liga("d", D.datas);
+    liga("t", D.tipos); liga("a", D.ambs);
+    const de = $("vfl-de"), ate = $("vfl-ate");
+    if (de) de.onchange = () => { D.de = de.value; desenhar(); };
+    if (ate) ate.onchange = () => { D.ate = ate.value; desenhar(); };
+    $("vfl-secs").querySelectorAll("[data-rap]").forEach(b => b.onclick = () => {
+      const r = b.dataset.rap, hoje = new Date(), iso = d => toISODateString(d);
+      if (r === "0") { D.de = ""; D.ate = ""; }
+      else if (r === "mes") { D.de = iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)); D.ate = iso(hoje); }
+      else { const ini = new Date(hoje); ini.setDate(ini.getDate() - (Number(r) - 1)); D.de = iso(ini); D.ate = iso(hoje); }
+      aberta.data = true; desenhar();
+    });
   };
   $("vfl-x").onclick = closeModal;
   $("vfl-q").addEventListener("input", e => { D.q = e.target.value; const lista = vtFiltrada(D, false); $("vfl-resumo").innerHTML = `<strong>${lista.length}</strong> apartamento(s) · <strong>${lista.reduce((n, v) => n + v.items.filter(i => !i.feito && vtItemOk(i, D)).length, 0)}</strong> pendência(s) a resolver`; });
   $("vfl-fotos").onchange = e => { D.fotos = e.target.checked; desenhar(); };
-  $("vfl-limpar").onclick = () => { D.q = ""; $("vfl-q").value = ""; D.sit = "pendentes"; D.tipos.clear(); D.ambs.clear(); D.datas.clear(); D.fotos = false; $("vfl-fotos").checked = false; desenhar(); };
+  $("vfl-limpar").onclick = () => { D.q = ""; $("vfl-q").value = ""; D.sit = "pendentes"; D.tipos.clear(); D.ambs.clear(); D.datas.clear(); D.de = ""; D.ate = ""; D.fotos = false; $("vfl-fotos").checked = false; desenhar(); };
   $("vfl-ok").onclick = () => {
     vtBusca = D.q; vtStatus = D.sit; vtSoFotos = D.fotos;
     vtSelTipo.clear(); D.tipos.forEach(x => vtSelTipo.add(x)); vtSelAmb.clear(); D.ambs.forEach(x => vtSelAmb.add(x)); vtSelData.clear(); D.datas.forEach(x => vtSelData.add(x));
+    vtDataDe = D.de; vtDataAte = D.ate;
     vtMantemAp.clear(); closeModal(); renderVistorias();
   };
   desenhar();
@@ -175,12 +193,12 @@ function vtCardApto(v) {
   if (aberto) {
     const ordemAmb = a => { const k = VT_AMBIENTES.indexOf(a); return k < 0 ? 99 : k; };
     const por = new Map(); its.slice().sort((x, y) => ordemAmb(x.ambiente) - ordemAmb(y.ambiente)).forEach(i => { if (!por.has(i.ambiente)) por.set(i.ambiente, []); por.get(i.ambiente).push(i); });
-    corpo = `<div class="vt-ap-corpo ${vtExpNovo === v.id ? "novo" : ""}">${Array.from(por.entries()).map(([amb, lista]) => `<div class="vt-ap-amb">${escapeHtml(amb)}</div>${lista.map(i => `
+    corpo = `<div class="vt-ap-corpo ${vtExpNovo === v.id ? "novo" : ""}"><button type="button" class="vt-ap-abrir" data-vt="${v.id}">Abrir apartamento <span aria-hidden="true">→</span></button>${Array.from(por.entries()).map(([amb, lista]) => `<div class="vt-ap-amb">${escapeHtml(amb)}</div>${lista.map(i => `
       <div class="vt-lin ${i.feito ? "feito" : ""}">
         <button type="button" class="vt-lin-chk" data-vt-tg="${v.id}:${i.id}" aria-pressed="${i.feito}" aria-label="${i.feito ? "Resolvida. Tocar para reabrir" : "Pendente. Tocar para marcar como resolvida"}"><i>${ckIco("feito", 16)}</i></button>
         <div class="vt-lin-t"><span class="vt-lin-s">${escapeHtml(i.tipo)}</span><span class="vt-lin-d">${escapeHtml(i.descricao)}</span></div>
         ${i.fotos && i.fotos.length ? `<button type="button" class="vt-lin-f" data-vt-ver="${v.id}:${i.id}:0" aria-label="Ver ${i.fotos.length} foto(s)">${ckIco("camera", 17)}${i.fotos.length}</button>` : ""}
-      </div>`).join("")}`).join("")}<button type="button" class="vt-ap-abrir" data-vt="${v.id}">Abrir apartamento</button></div>`;
+      </div>`).join("")}`).join("")}</div>`;
   }
   return `<article class="vt-ap ${pronto ? "pronto" : ""} ${aberto ? "aberto" : ""}">
     <button type="button" class="vt-ap-h" data-vt-exp="${v.id}" aria-expanded="${aberto}">

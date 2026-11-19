@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { WifiOff } from "lucide-react";
 import CarregandoSBJ from "@/components/CarregandoSBJ";
 
 // O módulo Pós-obra (public/pos-obra) abre aqui dentro, no espaço de conteúdo do site:
@@ -103,13 +104,19 @@ export default function PosObraLayout({ children }: { children: React.ReactNode 
   return (
     <div className="relative -m-4 lg:-m-8 print:m-0">
       <div aria-hidden="true" className={"cobertura-modulo absolute inset-0 z-10 flex items-center justify-center transition-opacity duration-300 " + (visivel ? "opacity-0 pointer-events-none" : "opacity-100")}><CarregandoSBJ /></div>
+      {/* o aplicativo comum precisa de internet para abrir; esta entrada abre só o módulo, que funciona sem sinal depois de aberto uma vez com internet */}
+      <div className="print:hidden flex items-center justify-end gap-2 px-4 h-8 bg-surface-subtle border-b border-border text-xs text-ink-500">
+        <WifiOff className="w-3.5 h-3.5" aria-hidden />
+        <span className="hidden sm:inline">Vai para a obra sem sinal?</span>
+        <a href="/pos-obra/?app=1" className="font-semibold text-primary hover:underline">Usar sem internet</a>
+      </div>
       <iframe
         ref={quadro}
         src="/pos-obra/"
         title="Vistorias e entrega"
         onLoad={aoCarregar}
         className="block w-full border-0 bg-white"
-        style={{ height: "calc(100dvh - 4rem)" }}
+        style={{ height: "calc(100dvh - 6rem)" }}
       />
       {children}
     </div>

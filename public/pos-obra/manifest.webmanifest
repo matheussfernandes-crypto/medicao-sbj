@@ -2,7 +2,7 @@
   "name": "Pós-obra SBJ",
   "short_name": "Pós-obra",
   "description": "Vistorias e pós-obra da SBJ Construtora e Incorporadora",
-  "start_url": "./",
+  "start_url": "./?app=1",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",

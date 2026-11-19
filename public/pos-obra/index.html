@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <script>/* Este módulo só abre dentro do site (Pós-venda > Entrega). Aberto sozinho e com internet, vai para o site.
-   Sem internet continua abrindo aqui, para não perder vistoria em campo. */
-if (window.top === window.self && navigator.onLine !== false) location.replace("/posobra/vistorias");</script>
+   Sem internet continua abrindo aqui, para não perder vistoria em campo.
+   Com ?app=1 (menu Pós-venda > "Usar sem internet") abre sempre aqui, e é o endereço para pôr na tela inicial. */
+if (window.top === window.self && navigator.onLine !== false && location.search.indexOf("app=1") < 0) location.replace("/posobra/vistorias");</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#073F45">
 <meta name="mobile-web-app-capable" content="yes">
@@ -399,6 +400,25 @@ if (window.top === window.self && navigator.onLine !== false) location.replace("
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 }
+</script>
+<script>
+/* aberto por "Usar sem internet": mostra como colocar o módulo na tela inicial e avisa quando já está pronto para uso sem sinal */
+(function () {
+  try {
+    if (location.search.indexOf("app=1") < 0 || window.top !== window.self) return;
+    if ((window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone) return;
+    var b = document.createElement("div");
+    b.id = "pos-aviso-app";
+    b.setAttribute("role", "status");
+    b.style.cssText = "background:#073F45;color:#fff;padding:12px 16px;font:14px/1.45 'IBM Plex Sans',system-ui,sans-serif;display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;position:relative;z-index:50";
+    b.innerHTML = '<div style="flex:1 1 260px;min-width:0"><strong id="pa-st">Preparando para usar sem internet…</strong><div style="opacity:.9;margin-top:4px">Para abrir como aplicativo: no <b>Android (Chrome)</b>, menu ⋮ → <b>Instalar app</b>. No <b>iPhone/iPad (Safari)</b>, Compartilhar → <b>Adicionar à Tela de Início</b>. Depois, abra sempre por esse ícone.</div></div><button type="button" id="pa-ok" style="min-height:42px;padding:0 16px;border:1.5px solid #fff;border-radius:10px;background:transparent;color:#fff;font:600 14px inherit;cursor:pointer">Entendi</button>';
+    document.body.insertBefore(b, document.body.firstChild);
+    document.getElementById("pa-ok").onclick = function () { b.remove(); };
+    var st = document.getElementById("pa-st");
+    if (!("serviceWorker" in navigator)) { st.textContent = "Este navegador não guarda o módulo para uso sem internet."; return; }
+    navigator.serviceWorker.ready.then(function () { st.textContent = "Pronto: este módulo já abre sem internet."; });
+  } catch (e) { /* aviso é só ajuda */ }
+})();
 </script>
 <script src="js/seg-deslize.js?v=2"></script>
 <script src="js/tema-escuro.js?v=1"></script>

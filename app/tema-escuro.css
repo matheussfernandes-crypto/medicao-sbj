@@ -93,3 +93,16 @@ html.dark tr.bg-gray-50, html.dark .even\:bg-gray-50:nth-child(even) { backgroun
 html.dark .shadow, html.dark .shadow-sm, html.dark .shadow-md { --tw-shadow-color: rgba(0,0,0,.5); }
 /* campos antigos (border + rounded) */
 html.dark input[type="date"], html.dark input[type="month"] { color-scheme: dark; }
+
+/* cartões das tabelas no celular e folha de filtros */
+html.dark .tab-cartao tr { background-color: #1d2b2f; box-shadow: none; border-color: #2a3a3f !important; }
+html.dark .tab-cartao td[data-rot],
+html.dark .tab-cartao td[data-col],
+html.dark .tab-cartao tr > td:last-child:not(:first-child):not([data-rot]):not([data-col]) { border-top-color: #2a3a3f; }
+html.dark .tab-cartao td[data-rot="Valor"],
+html.dark .tab-cartao td[data-rot="Total"],
+html.dark .tab-cartao td[data-col="total"] { color: #7fd0dc; }
+html.dark .tab-cartao tr > td:last-child:not([data-rot]):not([data-col]) > a:only-child,
+html.dark .tab-cartao td[data-col="acoes"] > a:only-child { border-color: #5cc3d2; color: #7fd0dc; }
+html.dark .bg-\[\#E3EEF1\] { background-color: #223a40; }
+html.dark .hover\:bg-\[\#E3EEF1\]:hover { background-color: #223a40; }

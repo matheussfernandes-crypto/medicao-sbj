@@ -159,6 +159,16 @@ html.dark table thead th:not(.th-leve) { color: #e3ecee; }
   .tab-cartao td[data-rot="Ações"] { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; }
   .tab-cartao tr > td:first-child:not([data-rot]):not([data-col]) { grid-column: 1 / -1; font-weight: 700; font-size: 15px; padding-bottom: 8px !important; }
   .tab-cartao tr > td:first-child[data-rot], .tab-cartao tr > td:first-child[data-col]:not([data-col="sel"]) { border-top: 0; }
+  /* destaque no topo do cartão: valor grande à esquerda e status à direita (como na referência) */
+  .tab-cartao tr { grid-template-columns: 1fr auto; }
+  .tab-cartao tr > td { grid-column: 1 / -1; }
+  .tab-cartao td[data-rot="Valor"], .tab-cartao td[data-rot="Total"], .tab-cartao td[data-col="total"] { order: -2; grid-column: 1; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px; border-top: 0; text-align: left !important; font-size: 20px; font-weight: 700; color: #1c474f; padding: 0 0 10px !important; }
+  .tab-cartao td[data-rot="Valor"]::before, .tab-cartao td[data-rot="Total"]::before, .tab-cartao td[data-col="total"]::before { font-size: 10px; font-weight: 400; }
+  .tab-cartao td[data-rot="Status"], .tab-cartao td[data-col="status"] { order: -2; grid-column: 2; border-top: 0; padding: 0 0 10px !important; justify-content: flex-end; align-items: flex-start; }
+  .tab-cartao td[data-rot="Status"]::before, .tab-cartao td[data-col="status"]::before { display: none; }
+  /* última célula sem título (botões e links de ação): faixa própria no rodapé, link único vira botão de largura total */
+  .tab-cartao tr > td:last-child:not(:first-child):not([data-rot]):not([data-col]) { order: 5; border-top: 1px solid var(--line, #e2e6ec); padding-top: 12px !important; margin-top: 4px; }
+  .tab-cartao tr > td:last-child:not([data-rot]):not([data-col]) > a:only-child, .tab-cartao td[data-col="acoes"] > a:only-child { display: block; width: 100%; text-align: center; text-decoration: none; border: 1.5px solid #2c6975; color: #2c6975; border-radius: 10px; padding: 10px 12px; font-weight: 600; font-size: 14px; min-height: 44px; }
 }
 /* tablet: a tabela cabe na largura do cartão (células mais justas, textos que quebram linha) */
 @media (min-width: 768px) and (max-width: 1100px) {

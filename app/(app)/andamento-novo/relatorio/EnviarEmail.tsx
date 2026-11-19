@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Mail, Plus, X } from "lucide-react";
+import { Loader2, Mail, Plus, Trash2, X } from "lucide-react";
 import type { CorpoEmail, RespostaRelatorio } from "./tiposApi";
 
 const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -132,7 +132,7 @@ export default function EnviarEmail({
                   />
                   {i > 0 && (
                     <button type="button" onClick={() => setDest((d) => d.filter((_, k) => k !== i))} aria-label={`Tirar o destinatário ${i + 1}`} className="p-1.5 text-danger border border-border rounded-md bg-white">
-                      <X className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" aria-hidden />
                     </button>
                   )}
                 </div>

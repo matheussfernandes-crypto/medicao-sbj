@@ -911,9 +911,9 @@ function renderVistoriaDetalhe(root) {
 
     <div class="vt-abas" role="tablist">
       <button type="button" role="tab" class="vt-aba ${vtAbaDet === "lista" ? "ativa" : ""}" data-vt-aba="lista">Pendências <span>${v.items.length}</span></button>
-      <button type="button" role="tab" class="vt-aba ${vtAbaDet === "lancar" ? "ativa" : ""}" data-vt-aba="lancar">+ Lançar pendências</button>
+      <button type="button" role="tab" class="vt-aba ${vtAbaDet === "lancar" ? "ativa" : ""}" data-vt-aba="lancar" title="Lançar pendências" aria-label="Lançar pendências">+ Lançar</button>
       <span class="vt-espaco"></span>
-      ${v.folha ? `<button type="button" class="btn ghost small" id="vt-doc">PDF e e-mail</button>` : ""}
+      ${v.folha ? `<button type="button" class="btn ghost small" id="vt-doc" title="PDF e e-mail">PDF<span class="vt-doc-extra"> e e-mail</span></button>` : ""}
       <button type="button" class="btn-acao-excluir" id="vt-excluir" title="Excluir vistoria" aria-label="Excluir vistoria"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
     </div>
 
@@ -941,7 +941,7 @@ function renderVistoriaDetalhe(root) {
           <div class="vt-pc-rod">
             <div class="vt-pc-ferr">
               <button type="button" class="vt-pc-ib" data-vt-cam="${i.id}" aria-label="Tirar foto desta pendência" title="Tirar foto">${ckIco("camera", 19)}</button>
-              <button type="button" class="vt-pc-ib" data-vt-rem="${i.id}" aria-label="Remover pendência" title="Remover">${ckIco("naofeito", 15)}</button>
+              <button type="button" class="vt-pc-ib rem" data-vt-rem="${i.id}" aria-label="Remover pendência" title="Remover pendência">${VTFV_ICO.lixo}</button>
             </div>
             <div class="vt-estado" role="group" aria-label="Situação da pendência">
               <button type="button" class="pend ${i.feito ? "" : "on"}" data-vt-set="${i.id}:0" aria-pressed="${!i.feito}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Pendente</button>

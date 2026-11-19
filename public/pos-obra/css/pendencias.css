@@ -84,7 +84,9 @@
 .vt-pc-rod { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .vt-pc-ferr { display: flex; gap: 6px; }
 .vt-pc-ib { width: 40px; height: 40px; display: grid; place-items: center; border: 1.5px solid var(--border); background: transparent; border-radius: 10px; color: var(--text-muted); cursor: pointer; transition: border-color .15s, color .15s, transform .1s var(--ease); }
-.vt-pc-ib:hover { border-color: var(--primary); color: var(--primary); } .vt-pc-ib:active { transform: scale(.94); }
+.vt-pc-ib:hover { border-color: var(--primary); color: var(--primary); }
+.vt-pc-ib.rem { color: #d9413a; border-color: #f0c4c1; }
+.vt-pc-ib.rem:hover { background: #d9413a; border-color: #d9413a; color: #fff; } .vt-pc-ib:active { transform: scale(.94); }
 /* marcar pendente / resolvida: compacto; o estado atual fica preenchido */
 .vt-estado { display: inline-grid; grid-template-columns: auto auto; overflow: hidden; border: 1.5px solid var(--border); border-radius: 10px; }
 .vt-estado button { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 0; background: var(--panel); color: var(--text-muted); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; transition: background .2s, color .2s; }
@@ -144,3 +146,20 @@
   .vt-ap-grade { grid-template-columns: 1fr; }
   .vt-obra { padding: 12px; }
 }
+
+/* abas do apartamento + lixeira na mesma linha, também no celular */
+.vt-abas .btn-acao-excluir { margin-left: auto; }
+@media (max-width: 720px) {
+  .vt-abas { flex-wrap: nowrap; row-gap: 0; gap: 6px; }
+  .vt-abas .vt-espaco { display: none; }
+  .vt-abas .vt-aba { padding: 10px 10px; font-size: 13px; white-space: nowrap; flex: 0 1 auto; min-width: 0; }
+  .vt-abas .vt-aba span { margin-left: 3px; min-width: 20px; padding: 1px 6px; }
+  .vt-abas > .vt-aba:first-child { padding-left: 12px; }
+  .vt-abas > .vt-aba:nth-child(2) { padding-right: 12px; }
+  .vt-abas .vt-doc-extra { display: none; }
+  .vt-abas #vt-doc { padding: 0 12px; flex: none; }
+  .vt-abas #vt-doc { margin-right: 0; white-space: nowrap; }
+}
+
+/* remover foto/anexo: lixeira no selo vermelho da miniatura */
+.attach-remove { display: grid; place-items: center; width: 24px; height: 24px; top: -8px; right: -8px; padding: 0; }

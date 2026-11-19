@@ -1587,7 +1587,7 @@ async function renderFotoMomentoGallery(ticket, momento, gallery) {
     <div class="attach-item" data-att="${a.id}">
       <div class="attach-thumb" data-thumb="${a.attachmentId}">…</div>
       <div class="attach-name" title="${escapeHtml(a.fileName)}">${escapeHtml(a.fileName)}</div>
-      <button class="attach-remove" data-remove-foto="${a.id}" title="Remover">&times;</button>
+      <button class="attach-remove" data-remove-foto="${a.id}" title="Remover foto" aria-label="Remover foto">${ckIco("lixeira", 12)}</button>
     </div>`).join("")}</div>`;
   gallery.querySelectorAll("[data-remove-foto]").forEach(btn => {
     btn.addEventListener("click", async () => {

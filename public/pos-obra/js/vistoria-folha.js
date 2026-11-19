@@ -196,7 +196,7 @@ function vfItemHTML(amb, item) {
         <div class="vf-obsrow">
           <input type="text" class="vf-obs" data-vf-obs="${ek}" data-i="${i}" value="${escapeHtml(l.obs || "")}" placeholder="${i === 0 ? "O que está errado? (Enter para outra pendência)" : "Outra pendência deste item"}" enterkeyhint="next" autocomplete="off">
           <button type="button" class="vf-cam" data-vf-cam="${ek}" data-i="${i}" aria-label="Tirar foto desta pendência" title="Tirar foto">${ckIco("camera", 22)}</button>
-          ${linhas.length > 1 ? `<button type="button" class="vf-x" data-vf-x="${ek}" data-i="${i}" aria-label="Remover esta linha" title="Remover esta linha">${ckIco("naofeito", 16)}</button>` : ""}
+          ${linhas.length > 1 ? `<button type="button" class="vf-x" data-vf-x="${ek}" data-i="${i}" aria-label="Remover esta linha" title="Remover esta linha">${ckIco("lixeira", 17)}</button>` : ""}
         </div>
         ${vtfThumbs(l.fotos, k + "#" + i)}
       </div>`).join("") : ""}

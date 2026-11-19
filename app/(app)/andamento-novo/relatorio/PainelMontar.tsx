@@ -2,6 +2,7 @@
 
 import Selecao from "@/components/ui/Selecao";
 import { useMemo, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { BotaoIcone, Chave, Chip, Linha, Seg } from "./controles";
 import type { Predefinicao } from "./predefinicoes";
 import { PAPEIS, PAPEL_LISTA, type Ctx, type Filtros, type Formato, type Montagem, type MontagemDados, type MontagemSalva, type Papel, type Secao } from "./modelo";
@@ -129,7 +130,7 @@ export default function PainelMontar(p: Props) {
         <button className="text-xs px-2.5 py-1.5 border border-border rounded-md bg-white disabled:opacity-40" disabled={!m} onClick={p.onDuplicar}>
           Duplicar
         </button>
-        <BotaoIcone titulo="Excluir montagem" vermelho disabled={!m} onClick={p.onExcluir}>✕</BotaoIcone>
+        <BotaoIcone titulo="Excluir montagem" vermelho disabled={!m} onClick={p.onExcluir}><Trash2 className="w-3.5 h-3.5" aria-hidden /></BotaoIcone>
       </div>
 
       {!m ? (
@@ -173,7 +174,7 @@ export default function PainelMontar(p: Props) {
                   <button className={`text-xs px-2.5 py-1 border rounded-md ${aberta === i ? "bg-primary text-white border-primary" : "bg-white border-border"}`} onClick={() => setAberta(aberta === i ? null : i)}>
                     {aberta === i ? "Fechar" : "Editar"}
                   </button>
-                  <BotaoIcone titulo="Tirar seção" vermelho onClick={() => { setAberta(null); setSecoes(secoes.filter((_, j) => j !== i)); }}>✕</BotaoIcone>
+                  <BotaoIcone titulo="Tirar seção" vermelho onClick={() => { setAberta(null); setSecoes(secoes.filter((_, j) => j !== i)); }}><Trash2 className="w-3.5 h-3.5" aria-hidden /></BotaoIcone>
                 </div>
                 <div className="text-xs text-ink-500">{resumoSecao(ctx, s)}</div>
                 {s.pre && (() => {

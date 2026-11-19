@@ -411,7 +411,11 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
     b.id = "pos-aviso-app";
     b.setAttribute("role", "status");
     b.style.cssText = "background:#073F45;color:#fff;padding:12px 16px;font:14px/1.45 'IBM Plex Sans',system-ui,sans-serif;display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;position:relative;z-index:50";
-    b.innerHTML = '<div style="flex:1 1 260px;min-width:0"><strong id="pa-st">Preparando para usar sem internet…</strong><div style="opacity:.9;margin-top:4px">Para abrir como aplicativo: no <b>Android (Chrome)</b>, menu ⋮ → <b>Instalar app</b>. No <b>iPhone/iPad (Safari)</b>, Compartilhar → <b>Adicionar à Tela de Início</b>. Depois, abra sempre por esse ícone.</div></div><button type="button" id="pa-ok" style="min-height:42px;padding:0 16px;border:1.5px solid #fff;border-radius:10px;background:transparent;color:#fff;font:600 14px inherit;cursor:pointer">Entendi</button>';
+    var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    var como = ios
+      ? 'No <b>iPhone/iPad</b>, abra esta página no <b>Safari</b> e toque em Compartilhar → <b>Adicionar à Tela de Início</b>. Na primeira vez que abrir pelo ícone novo, <b>com internet</b>, entre com seu login; depois ele abre também sem internet.'
+      : 'No <b>Chrome</b>: menu ⋮ → <b>Instalar app</b>. No <b>Samsung Internet</b>: menu ☰ → <b>Adicionar página a</b> → <b>Tela inicial</b>. Depois, abra sempre por esse ícone.';
+    b.innerHTML = '<div style="flex:1 1 260px;min-width:0"><strong id="pa-st">Preparando para usar sem internet…</strong><div style="opacity:.9;margin-top:4px">' + como + '</div></div><button type="button" id="pa-ok" style="min-height:42px;padding:0 16px;border:1.5px solid #fff;border-radius:10px;background:transparent;color:#fff;font:600 14px inherit;cursor:pointer">Entendi</button>';
     document.body.insertBefore(b, document.body.firstChild);
     document.getElementById("pa-ok").onclick = function () { b.remove(); };
     var st = document.getElementById("pa-st");

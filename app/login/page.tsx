@@ -7,7 +7,7 @@ import PwaInstallGuide from "../components/PwaInstallGuide";
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: { erro?: string; sucesso?: string };
+  searchParams: { erro?: string; sucesso?: string; volta?: string };
 }) {
   return (
     <main className="min-h-screen lg:flex">
@@ -45,6 +45,7 @@ export default function LoginPage({
           <p className="text-sm text-ink-500 mb-6">Acesse com o email e a senha do seu cadastro.</p>
 
           <form action={login} className="space-y-4">
+            <input type="hidden" name="volta" value={searchParams.volta === "pos-obra" ? "pos-obra" : ""} />
             <div>
               <label className="block text-sm font-medium text-ink-700 mb-1">Email</label>
               <div className="relative">

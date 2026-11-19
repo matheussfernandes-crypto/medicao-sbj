@@ -36,6 +36,10 @@ export function middleware(request: NextRequest) {
     if (path.startsWith("/pos-obra/") && path !== "/pos-obra/") {
       return new NextResponse("Não autenticado", { status: 401 });
     }
+    // abriu o módulo pelo ícone "sem internet" sem estar logado: depois do login volta para ele
+    if (path === "/pos-obra/" && request.nextUrl.searchParams.get("app") === "1") {
+      return NextResponse.redirect(new URL("/login?volta=pos-obra", request.url));
+    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

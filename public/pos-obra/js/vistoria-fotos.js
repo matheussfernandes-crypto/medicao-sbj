@@ -134,8 +134,9 @@ function vtfDim(url) { return new Promise(res => { const i = new Image(); i.onlo
 
 /* seção "Fotos das pendências" no fim do PDF: duas por linha, com apto, ambiente, serviço e observação */
 async function vtfPdfFotos(doc, cabecalho, grupos, { M, pw, ph, topo }) {
-  const fotos = []; grupos.forEach(g => g.ids.forEach(id => fotos.push({ id, titulo: g.titulo, texto: g.texto })));
-  if (!fotos.length) return;
+  const fotos = []; grupos.forEach(g => g.ids.forEach(id => fotos.push({ id, chave: g.chave, titulo: g.titulo, texto: g.texto })));
+  const primeira = new Map();   // chave (apartamento) -> primeira página com foto dele
+  if (!fotos.length) return primeira;
   const colW = (pw - 2 * M - 8) / 2, maxH = 80, capH = 17;
   doc.addPage(); cabecalho();
   let y = topo;
@@ -147,12 +148,14 @@ async function vtfPdfFotos(doc, cabecalho, grupos, { M, pw, ph, topo }) {
     let w = colW, h = w * d.h / d.w; if (h > maxH) { h = maxH; w = h * d.w / d.h; }
     if (col === 0 && y + maxH + capH > ph - 18) { doc.addPage(); cabecalho(); y = topo; }
     const x = M + col * (colW + 8);
+    if (f.chave !== undefined && !primeira.has(f.chave)) primeira.set(f.chave, doc.internal.getCurrentPageInfo().pageNumber);
     doc.addImage(url, "JPEG", x, y, w, h);
     doc.setDrawColor(205, 212, 218); doc.setLineWidth(0.2); doc.rect(x, y, w, h);
     doc.setFont("helvetica", "bold"); doc.setFontSize(9.2); doc.setTextColor(6, 27, 30); doc.text(doc.splitTextToSize(f.titulo, colW)[0], x, y + h + 4.6);
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.8); doc.setTextColor(70, 80, 88); doc.text(doc.splitTextToSize(f.texto || "", colW).slice(0, 3), x, y + h + 9);
     if (col === 1) { y += maxH + capH; col = 0; } else col = 1;
   }
+  return primeira;
 }
 
 /* ---------- levar as fotos junto ao passar vistorias para outro aparelho ---------- */

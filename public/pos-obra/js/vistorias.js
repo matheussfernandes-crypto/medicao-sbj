@@ -975,6 +975,7 @@ function vtAbrirRelatorio() {
   if (!comDados.length) { toast("Cadastre ou importe vistorias antes de gerar relatório.", "error"); return; }
   let predio = vtFiltroPredio && comDados.some(b => b.id === vtFiltroPredio) ? vtFiltroPredio : comDados[0].id;
   let sit = "pendentes";
+  let comFotos = true;   // fotos no PDF (só vale se houver foto nos itens escolhidos)
   const tiposSel = new Set();
   openModal(`
     <div class="modal-header"><h3>Gerar relatório</h3><button class="modal-close" id="vr-x" aria-label="Fechar">×</button></div>
@@ -984,6 +985,9 @@ function vtAbrirRelatorio() {
       <div class="vt-chips" id="vr-tipos"></div>
       <div class="vt-rot">Situação</div>
       <div class="vt-chips" id="vr-sit"></div>
+      <div class="vt-rot" id="vr-fotos-rot">Fotos no relatório</div>
+      <div class="vt-chips" id="vr-fotos"></div>
+      <div class="hint" id="vr-fotos-dica" style="margin-top:6px;"></div>
       <label style="margin-top:14px;">Responsável pelo serviço <span class="hint">(opcional, sai no cabeçalho)</span><input type="text" id="vr-resp" placeholder="ex: Limpeza — equipe do João"></label>
       <label style="margin-top:12px;">Enviar por e-mail <span class="hint">(opcional)</span><input type="email" id="vr-email" placeholder="nome@empresa.com" autocomplete="off"></label>
       <div class="vt-import-res" id="vr-resumo"></div>
@@ -1002,6 +1006,13 @@ function vtAbrirRelatorio() {
     $("vr-sit").innerHTML = [["pendentes", "A resolver"], ["resolvidas", "Resolvidas"], ["todas", "Todas"]].map(([k, r]) => `<button type="button" class="vt-chip ${sit === k ? "ativo" : ""}" data-s="${k}">${r}</button>`).join("");
     const itens = vtItensRelatorio(predio, tiposSel, sit);
     const aptos = new Set(itens.map(i => i.unit)).size;
+    const nFotos = itens.reduce((n, i) => n + i.fotos.length, 0), aptosFotos = new Set(itens.filter(i => i.fotos.length).map(i => i.unit)).size;
+    $("vr-fotos-rot").hidden = $("vr-fotos").hidden = !nFotos;
+    $("vr-fotos").innerHTML = nFotos ? [[true, `Incluir fotos · ${nFotos}`], [false, "Sem fotos"]].map(([k, r]) => `<button type="button" class="vt-chip ${comFotos === k ? "ativo" : ""}" data-f="${k}">${r}</button>`).join("") : "";
+    $("vr-fotos-dica").textContent = !nFotos ? "" : comFotos
+      ? `${nFotos} foto(s) em ${aptosFotos} apartamento(s). Vão no fim do PDF, e cada apartamento com foto indica a página.`
+      : "O PDF sai só com a lista, mais leve para mandar por e-mail ou WhatsApp.";
+    $("vr-fotos").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { comFotos = b.dataset.f === "true"; desenhar(); });
     $("vr-resumo").innerHTML = itens.length ? `<strong>${itens.length}</strong> item(ns) em <strong>${aptos}</strong> apartamento(s)` : "Nada para listar com essa escolha.";
     $("vr-tipos").querySelectorAll("[data-t]").forEach(b => b.onclick = () => { tiposSel.has(b.dataset.t) ? tiposSel.delete(b.dataset.t) : tiposSel.add(b.dataset.t); desenhar(); });
     $("vr-sit").querySelectorAll("[data-s]").forEach(b => b.onclick = () => { sit = b.dataset.s; desenhar(); });
@@ -1023,7 +1034,7 @@ function vtAbrirRelatorio() {
     if (!window.jspdf) { toast("Biblioteca de PDF não carregada.", "error"); return null; }
     const itens = vtItensRelatorio(predio, tiposSel, sit); if (!itens.length) { toast("Nada para listar.", "error"); return null; }
     const { b, nomes, sitTxt } = titulo();
-    const r = await vtPdfRelatorio({ b, itens, nomes, sitTxt, resp: $("vr-resp").value.trim(), varios: tiposSel.size !== 1, retornar: retornar === true });
+    const r = await vtPdfRelatorio({ b, itens, nomes, sitTxt, resp: $("vr-resp").value.trim(), varios: tiposSel.size !== 1, retornar: retornar === true, comFotos: comFotos && itens.some(i => i.fotos.length) });
     return { b, nomes, sitTxt, itens, ...(r || {}) };
   };
   $("vr-pdf").onclick = () => gerarPdf(false);
@@ -1086,7 +1097,15 @@ async function vtEntregarPdf(doc, nome) {
   return "baixado";
 }
 
-async function vtPdfRelatorio({ b, itens, nomes, sitTxt, resp, varios, retornar }) {
+/* ícone de câmera desenhado em vetor (x, y = canto superior esquerdo; 3,8 x 2,9 mm) */
+function vtIconeCamera(doc, x, y, cor) {
+  doc.setDrawColor(...cor); doc.setFillColor(...cor); doc.setLineWidth(0.25);
+  doc.rect(x, y + 0.5, 3.8, 2.4);
+  doc.rect(x + 1.0, y, 1.8, 0.5, "F");
+  doc.circle(x + 1.9, y + 1.7, 0.7);
+}
+
+async function vtPdfRelatorio({ b, itens, nomes, sitTxt, resp, varios, retornar, comFotos }) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
@@ -1094,6 +1113,7 @@ async function vtPdfRelatorio({ b, itens, nomes, sitTxt, resp, varios, retornar 
   const logo = await vtLogoDataUrl();
   const emitido = new Date().toLocaleDateString("pt-BR");
   const paginasComCabecalho = new Set();
+  const cabApt = [];   // onde está o título de cada apartamento, para escrever depois "N fotos · pág. X"
   let mostrarFaixa = true;
   const COL = { ok: 11, amb: 30, srv: varios ? 34 : 0 };
   const faixaColunas = (yf) => {
@@ -1140,9 +1160,11 @@ async function vtPdfRelatorio({ b, itens, nomes, sitTxt, resp, varios, retornar 
     doc.setFillColor(236, 243, 244); doc.roundedRect(M, y, pw - 2 * M, 6.8, 1.2, 1.2, "F");
     doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(...INK); doc.text(`Apartamento ${unit}`, M + 3, y + 4.8);
     const cli = vtNomeCliente(b.id, unit);
-    if (cli) { const larg = doc.getTextWidth(`Apartamento ${unit}`); doc.setFont("helvetica", "normal"); doc.setFontSize(9.2); doc.setTextColor(60, 70, 78); doc.text(vtCorta(cli, 52), M + 3 + larg + 4, y + 4.7); }
+    if (cli) { const larg = doc.getTextWidth(`Apartamento ${unit}`); doc.setFont("helvetica", "normal"); doc.setFontSize(9.2); doc.setTextColor(60, 70, 78); doc.text(vtCorta(cli, comFotos ? 30 : 52), M + 3 + larg + 4, y + 4.7); }
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.3); doc.setTextColor(...CINZA);
-    doc.text(`vistoria ${fmtDate(ap.date)}`, pw - M - 3, y + 4.6, { align: "right" });
+    const txtData = `vistoria ${fmtDate(ap.date)}`;
+    doc.text(txtData, pw - M - 3, y + 4.6, { align: "right" });
+    if (comFotos) cabApt.push({ unit, pagina: doc.internal.getCurrentPageInfo().pageNumber, x: pw - M - 3 - doc.getTextWidth(txtData) - 5, y: y + 4.6 });
     y += 7.6;
     doc.autoTable({
       startY: y, theme: "plain", margin: { left: M, right: M, top: 26, bottom: 20 },
@@ -1157,6 +1179,7 @@ async function vtPdfRelatorio({ b, itens, nomes, sitTxt, resp, varios, retornar 
           const it = ap.itens[d.row.index], bx = d.cell.x + 1.8, by = d.cell.y + (d.cell.height - 3.6) / 2;
           doc.setDrawColor(90, 100, 110); doc.setLineWidth(0.3); doc.rect(bx, by, 3.6, 3.6);
           if (it.feito) { doc.setDrawColor(...TEAL); doc.setLineWidth(0.6); doc.line(bx + 0.7, by + 2, bx + 1.6, by + 2.9); doc.line(bx + 1.6, by + 2.9, bx + 3.1, by + 0.8); }
+          if (comFotos && it.fotos.length) vtIconeCamera(doc, bx + 5.2, by + 0.2, TEAL);   // este item tem foto no fim do relatório
         }
       },
     });
@@ -1164,9 +1187,20 @@ async function vtPdfRelatorio({ b, itens, nomes, sitTxt, resp, varios, retornar 
   });
 
   /* rodapé */
-  const comFoto = itens.filter(i => i.fotos && i.fotos.length);
+  const comFoto = comFotos ? itens.filter(i => i.fotos && i.fotos.length) : [];
   mostrarFaixa = false;
-  if (comFoto.length) await vtfPdfFotos(doc, cabecalho, comFoto.map(i => ({ ids: i.fotos, titulo: `Apartamento ${i.unit}  ·  ${i.ambiente}  ·  ${i.tipo}`, texto: i.desc })), { M, pw, ph, topo: 23 });
+  if (comFoto.length) {
+    const paginas = await vtfPdfFotos(doc, cabecalho, comFoto.map(i => ({ chave: i.unit, ids: i.fotos, titulo: `Apartamento ${i.unit}  ·  ${i.ambiente}  ·  ${i.tipo}`, texto: i.desc })), { M, pw, ph, topo: 23 });
+    // volta aos títulos dos apartamentos e indica quantas fotos há e em que página ver
+    cabApt.forEach(c => {
+      const pg = paginas.get(c.unit); if (!pg) return;
+      const n = comFoto.filter(i => i.unit === c.unit).reduce((t, i) => t + i.fotos.length, 0);
+      doc.setPage(c.pagina);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.3); doc.setTextColor(...TEAL);
+      vtIconeCamera(doc, c.x - doc.getTextWidth(`${n} foto${n > 1 ? "s" : ""} · pág. ${pg}`) - 5.2, c.y - 2.6, TEAL);
+      doc.text(`${n} foto${n > 1 ? "s" : ""} · pág. ${pg}`, c.x, c.y, { align: "right" });
+    });
+  }
   const total = doc.internal.getNumberOfPages();
   for (let i = 1; i <= total; i++) {
     doc.setPage(i);

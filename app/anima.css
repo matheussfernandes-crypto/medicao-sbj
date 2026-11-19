@@ -134,7 +134,14 @@ html.dark table thead th:not(.th-leve) { color: #e3ecee; }
 @media (max-width: 767px) {
   .tab-cartao thead { display: none; }
   .tab-cartao, .tab-cartao tbody { display: block; width: 100%; }
-  .tab-cartao tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; border: 1px solid var(--line, #e2e6ec) !important; border-radius: 12px; padding: 12px; margin-bottom: 10px; background: var(--surface, #fff); }
+  .tab-cartao tr { display: grid; grid-template-columns: 1fr; gap: 0; border: 1px solid var(--line, #e2e6ec) !important; border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; background: var(--surface, #fff); box-shadow: 0 2px 8px rgba(11,70,82,.06); }
+  /* cada campo vira uma linha: rótulo à esquerda, valor à direita */
+  .tab-cartao td[data-rot], .tab-cartao td[data-col]:not([data-col="sel"]):not([data-col="acoes"]) { flex-direction: row; justify-content: space-between; align-items: baseline; gap: 16px; padding: 8px 0 !important; border-top: 1px solid var(--line, #e2e6ec); text-align: right; font-size: 13px; }
+  .tab-cartao td[data-rot]::before, .tab-cartao td[data-col]::before { flex: none; text-align: left; font-size: 11px; }
+  .tab-cartao td[data-rot] { text-align: right !important; overflow-wrap: anywhere; }
+  .tab-cartao td[data-rot] > div { justify-content: flex-end !important; }
+  .tab-cartao td[data-col="acoes"], .tab-cartao td[data-rot="Ações"] { border-top: 1px solid var(--line, #e2e6ec); padding-top: 10px !important; }
+  .tab-cartao td[data-col="acoes"] > a, .tab-cartao td[data-col="acoes"] > button, .tab-cartao td[data-rot="Ações"] a, .tab-cartao td[data-rot="Ações"] button { min-height: 40px; }
   .tab-cartao td { display: flex; flex-direction: column; padding: 0 !important; white-space: normal !important; min-width: 0; max-width: none !important; width: auto !important; justify-self: stretch; }
   .tab-cartao td::before { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: #7b8a8f; }
   .tab-cartao td[data-col="sel"], .tab-cartao td[colspan], .tab-cartao td[data-col="acoes"] { grid-column: 1 / -1; }
@@ -149,15 +156,19 @@ html.dark table thead th:not(.th-leve) { color: #e3ecee; }
   .tab-cartao td[data-col="acoes"] { flex-direction: row; flex-wrap: wrap; justify-content: flex-start; gap: 8px; }
   /* tabelas que usam data-rot: o rótulo vem do próprio atributo */
   .tab-cartao td[data-rot]::before { content: attr(data-rot); }
-  .tab-cartao td[data-rot] { text-align: left !important; }
-  .tab-cartao td[data-rot="Ações"], .tab-cartao td[data-rot="Status"] { grid-column: auto; }
-  .tab-cartao tr > td:first-child:not([data-rot]):not([data-col]) { grid-column: 1 / -1; font-weight: 600; }
-  .tab-cartao td[data-rot] > div { justify-content: flex-start !important; }
-  /* tabelas com filtro no título: o cabeçalho vira uma faixa só com os botões de filtro */
-  .tab-cartao.com-filtros thead { display: block; margin-bottom: 8px; }
-  .tab-cartao.com-filtros thead tr { display: flex; flex-wrap: wrap; gap: 8px; border: 0 !important; padding: 0; background: none; }
-  .tab-cartao.com-filtros thead th { display: block; padding: 0 !important; }
-  .tab-cartao.com-filtros thead th:not(:has(button)) { display: none; }
+  .tab-cartao td[data-rot="Ações"] { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; }
+  .tab-cartao tr > td:first-child:not([data-rot]):not([data-col]) { grid-column: 1 / -1; font-weight: 700; font-size: 15px; padding-bottom: 8px !important; }
+  .tab-cartao tr > td:first-child[data-rot], .tab-cartao tr > td:first-child[data-col]:not([data-col="sel"]) { border-top: 0; }
+  /* destaque no topo do cartão: valor grande à esquerda e status à direita (como na referência) */
+  .tab-cartao tr { grid-template-columns: 1fr auto; }
+  .tab-cartao tr > td { grid-column: 1 / -1; }
+  .tab-cartao td[data-rot="Valor"], .tab-cartao td[data-rot="Total"], .tab-cartao td[data-col="total"] { order: -2; grid-column: 1; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px; border-top: 0; text-align: left !important; font-size: 20px; font-weight: 700; color: #1c474f; padding: 0 0 10px !important; }
+  .tab-cartao td[data-rot="Valor"]::before, .tab-cartao td[data-rot="Total"]::before, .tab-cartao td[data-col="total"]::before { font-size: 10px; font-weight: 400; }
+  .tab-cartao td[data-rot="Status"], .tab-cartao td[data-col="status"] { order: -2; grid-column: 2; border-top: 0; padding: 0 0 10px !important; justify-content: flex-end; align-items: flex-start; }
+  .tab-cartao td[data-rot="Status"]::before, .tab-cartao td[data-col="status"]::before { display: none; }
+  /* última célula sem título (botões e links de ação): faixa própria no rodapé, link único vira botão de largura total */
+  .tab-cartao tr > td:last-child:not(:first-child):not([data-rot]):not([data-col]) { order: 5; border-top: 1px solid var(--line, #e2e6ec); padding-top: 12px !important; margin-top: 4px; }
+  .tab-cartao tr > td:last-child:not([data-rot]):not([data-col]) > a:only-child, .tab-cartao td[data-col="acoes"] > a:only-child { display: block; width: 100%; text-align: center; text-decoration: none; border: 1.5px solid #2c6975; color: #2c6975; border-radius: 10px; padding: 10px 12px; font-weight: 600; font-size: 14px; min-height: 44px; }
 }
 /* tablet: a tabela cabe na largura do cartão (células mais justas, textos que quebram linha) */
 @media (min-width: 768px) and (max-width: 1100px) {

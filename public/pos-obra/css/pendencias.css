@@ -1,0 +1,146 @@
+/* =====================================================================
+   Pendências no celular e tablet: lista de apartamentos, folha de filtros,
+   cards de pendência com fotos e visualizador de fotos.
+   Usa as mesmas cores, fontes, curvas e animações do módulo (itemIn, viewIn, fadeIn, --ease).
+   ===================================================================== */
+
+/* ---------- botão Filtros e filtros ativos ---------- */
+.vt-filtros-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 14px; border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 10px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: border-color .15s, background .15s, transform .1s var(--ease); }
+.vt-filtros-btn:hover { border-color: var(--primary); }
+.vt-filtros-btn:active { transform: scale(.97); }
+.vt-filtros-n { display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--primary); color: #fff; font-size: 12px; }
+.vt-chips-ativos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -6px 0 14px; }
+.vt-chip-at { display: inline-flex; align-items: center; gap: 2px; padding: 3px 3px 3px 12px; border-radius: 99px; background: #e4f1f2; color: var(--primary-dark); font-size: 13px; font-weight: 600; animation: itemIn .25s var(--ease) both; }
+.vt-chip-at button { width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; color: inherit; font-size: 18px; line-height: 1; cursor: pointer; transition: background .15s; }
+.vt-chip-at button:hover { background: rgba(0, 104, 122, .14); }
+.vt-chips-limpar { border: 0; background: none; padding: 0 6px; min-height: 36px; color: var(--primary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.vt-sem-anim .vt-chip-at { animation: none; }
+
+/* ---------- folha de filtros (abre de baixo no celular; é o modal do módulo) ---------- */
+.vfl .vt-campo { display: block; margin-bottom: 4px; }
+.vfl .vt-chips .vt-chip { min-height: 40px; }
+.vfl-sec { border: 1px solid var(--border); border-radius: 12px; margin-top: 12px; background: var(--panel); }
+.vfl-sec > summary { list-style: none; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 14px; font-weight: 600; font-size: 14.5px; cursor: pointer; }
+.vfl-sec > summary::-webkit-details-marker { display: none; }
+.vfl-sec > summary::after { content: ""; margin-left: auto; width: 8px; height: 8px; border-right: 2px solid #8b97a5; border-bottom: 2px solid #8b97a5; transform: rotate(45deg) translateY(-2px); transition: transform .25s var(--ease); }
+.vfl-sec[open] > summary::after { transform: rotate(-135deg); }
+.vfl-sec[open] .vfl-ops { animation: viewIn .25s var(--ease) both; }
+.vfl-n { background: #e4f1f2; color: var(--primary-dark); border-radius: 6px; padding: 1px 7px; font-size: 12px; }
+.vfl-ops { border-top: 1px solid var(--border); max-height: 250px; overflow-y: auto; }
+.vt-form.vfl .vfl-op { display: flex; align-items: center; gap: 12px; min-height: 44px; margin: 0; padding: 0 14px; border-bottom: 1px solid var(--border); font-size: 14.5px; cursor: pointer; }
+.vfl-op:last-child { border-bottom: 0; }
+.vfl-op span { color: var(--text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vfl-op b { color: var(--text-muted); font-weight: 600; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.vt-form.vfl input[type="checkbox"] { display: inline-block; width: 19px; min-height: 0; height: 19px; margin: 0; flex: none; accent-color: var(--primary); }
+.vt-form.vfl .vfl-check { display: flex; align-items: center; gap: 12px; min-height: 48px; margin: 14px 0 0; font-weight: 600; font-size: 14.5px; cursor: pointer; }
+
+/* ---------- lista de apartamentos ---------- */
+.vt-ap-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; align-items: start; }
+.vt-ap { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; animation: itemIn .4s var(--ease) both; transition: border-color .15s, box-shadow .2s; }
+.vt-ap.aberto { border-color: var(--primary); }
+.vt-ap.pronto .vt-ap-n, .vt-ap.pronto .vt-ap-l1 { opacity: .7; }
+#view-vistorias.vt-sem-anim .vt-ap { animation: none; }
+.vt-ap-h { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 12px 14px 6px; border: 0; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.vt-ap-n { min-width: 56px; font-family: var(--font-display); font-size: 26px; font-weight: 600; letter-spacing: -.03em; line-height: 1; color: var(--ink); }
+.vt-ap-n small { display: block; margin-bottom: 3px; font-family: var(--font-body); font-size: 11px; font-weight: 500; letter-spacing: 0; color: var(--text-muted); }
+.vt-ap-m { display: grid; gap: 7px; min-width: 0; }
+.vt-ap-l1 { font-size: 14px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.vt-ap-l1 b { color: #b54708; font-family: var(--font-display); font-size: 16px; }
+.vt-ap .vt-trilho { margin: 0; }
+.vt-ap.pronto .vt-trilho > span { background: #1fa971; }
+.vt-ap-seta { color: #8b97a5; transition: transform .25s var(--ease); }
+.vt-ap.aberto .vt-ap-seta { transform: rotate(180deg); }
+.vt-ap-c { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 14px 12px; }
+.vt-ap-dt { margin-right: 4px; font-size: 12.5px; color: var(--text-muted); }
+.vt-ap-sv { background: #e4f1f2; color: var(--primary-dark); border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.vt-ap-sv.foto { display: inline-flex; align-items: center; gap: 4px; background: var(--bg); color: var(--text-muted); }
+.vt-ap-sv.mais { background: var(--bg); color: var(--text-muted); }
+.vt-ap-corpo { border-top: 1px solid var(--border); background: var(--bg); padding: 4px 14px 14px; }
+.vt-ap-corpo.novo { animation: viewIn .3s var(--ease) both; }
+.vt-ap-amb { padding: 12px 0 2px; font-size: 11.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+.vt-lin { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.vt-lin-chk { width: 44px; height: 44px; margin: -4px 0 -4px -8px; display: grid; place-items: center; border: 0; background: none; cursor: pointer; }
+.vt-lin-chk i { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #f1c58f; background: #fff4e0; color: transparent; transition: background .2s, border-color .2s, transform .15s var(--ease); }
+.vt-lin-chk:active i { transform: scale(.88); }
+.vt-lin-chk[aria-pressed="true"] i { background: #1fa971; border-color: #1fa971; color: #fff; }
+.vt-lin-t { display: grid; gap: 1px; min-width: 0; }
+.vt-lin-s { font-size: 11.5px; font-weight: 600; color: var(--primary-dark); }
+.vt-lin-d { font-size: 14.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.vt-lin.feito .vt-lin-d { color: var(--text-muted); text-decoration: line-through; }
+.vt-lin-f { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 46px; min-height: 40px; padding: 0 10px; border: 1px solid var(--border); background: var(--panel); border-radius: 10px; font: inherit; font-size: 13px; font-weight: 600; color: var(--primary-dark); cursor: pointer; transition: border-color .15s, transform .1s var(--ease); }
+.vt-lin-f:hover { border-color: var(--primary); } .vt-lin-f:active { transform: scale(.95); }
+.vt-ap-abrir { width: 100%; min-height: 44px; margin-top: 12px; border: 1.5px solid var(--primary); background: transparent; color: var(--primary); border-radius: 10px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.vt-ap-abrir:hover { background: #e4f1f2; }
+
+/* ---------- cards de pendência (dentro do apartamento) ---------- */
+.vt-pcs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 720px) { .vt-pcs { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+.vt-pc { display: grid; gap: 10px; align-content: start; min-width: 0; padding: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); animation: itemIn .35s var(--ease) both; transition: border-color .25s; }
+#view-vistorias.vt-sem-anim .vt-pc { animation: none; }
+.vt-pc.feito { border-color: #9fd9bc; }
+.vt-pc-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.vt-pc-desc { font-size: 15.5px; line-height: 1.4; overflow-wrap: anywhere; }
+.vt-pc.feito .vt-pc-desc { color: var(--text-muted); }
+.vt-pc-rod { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.vt-pc-ferr { display: flex; gap: 6px; }
+.vt-pc-ib { width: 40px; height: 40px; display: grid; place-items: center; border: 1.5px solid var(--border); background: transparent; border-radius: 10px; color: var(--text-muted); cursor: pointer; transition: border-color .15s, color .15s, transform .1s var(--ease); }
+.vt-pc-ib:hover { border-color: var(--primary); color: var(--primary); } .vt-pc-ib:active { transform: scale(.94); }
+/* marcar pendente / resolvida: compacto; o estado atual fica preenchido */
+.vt-estado { display: inline-grid; grid-template-columns: auto auto; overflow: hidden; border: 1.5px solid var(--border); border-radius: 10px; }
+.vt-estado button { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 0; background: var(--panel); color: var(--text-muted); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; transition: background .2s, color .2s; }
+.vt-estado button + button { border-left: 1.5px solid var(--border); }
+.vt-estado .pend.on { background: #fff4e0; color: #9a5b12; }
+.vt-estado .res.on { background: #1fa971; color: #fff; }
+.vt-estado button:active { filter: brightness(.95); }
+
+/* fotos dentro do card */
+.vtfb { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.vtfb.um { grid-template-columns: 1fr; }
+.vtfb-ft { position: relative; padding: 0; border: 0; border-radius: 10px; overflow: hidden; background: var(--bg); aspect-ratio: 4 / 3; cursor: zoom-in; transition: transform .15s var(--ease); }
+.vtfb-ft:active { transform: scale(.98); }
+.vtfb.um .vtfb-ft { aspect-ratio: 16 / 9; max-height: 280px; width: 100%; }
+.vtfb-ft img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.vtfb-mais { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(6, 27, 30, .62); color: #fff; font-family: var(--font-display); font-size: 22px; font-weight: 600; }
+.vtfb-lupa { position: absolute; right: 6px; bottom: 6px; padding: 3px 8px; border-radius: 8px; background: rgba(6, 27, 30, .65); color: #fff; font-size: 12px; font-weight: 600; }
+.vtfb-ver { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; border: 1.5px solid var(--primary); background: transparent; color: var(--primary); border-radius: 10px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.vtfb-ver:hover { background: #e4f1f2; }
+
+/* ---------- visualizador de fotos em tela cheia ---------- */
+.vtfv { position: fixed; inset: 0; z-index: 10050; display: flex; flex-direction: column; background: #05090a; color: #fff; animation: fadeIn .2s ease both; transition: opacity .16s; }
+.vtfv.saindo { opacity: 0; }
+.vtfv-top { display: flex; align-items: center; gap: 10px; padding: max(10px, env(safe-area-inset-top)) 12px 10px; }
+.vtfv-info { flex: 1; min-width: 0; }
+.vtfv-info b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-display); font-size: 15px; font-weight: 600; }
+.vtfv-info span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: #b8c8cc; }
+.vtfv-ib { flex: none; width: 48px; height: 48px; display: grid; place-items: center; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .13); color: #fff; font-size: 26px; line-height: 1; cursor: pointer; transition: background .15s; }
+.vtfv-ib:hover { background: rgba(255, 255, 255, .24); }
+.vtfv-pista { position: relative; flex: 1; min-height: 0; }
+.vtfv-car { display: flex; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior: contain; scrollbar-width: none; }
+.vtfv-car::-webkit-scrollbar { display: none; }
+.vtfv-car.zoom { overflow-x: hidden; }
+.vtfv-sl { flex: none; width: 100%; height: 100%; display: grid; place-items: center; overflow: hidden; scroll-snap-align: center; touch-action: pan-x pan-y; }
+.vtfv-sl img { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; transition: transform .2s var(--ease); }
+.vtfv-seta { position: absolute; top: 50%; z-index: 2; width: 54px; height: 54px; transform: translateY(-50%); border: 0; border-radius: 50%; background: rgba(255, 255, 255, .15); color: #fff; font-size: 30px; cursor: pointer; transition: background .15s; }
+.vtfv-seta:hover { background: rgba(255, 255, 255, .28); } .vtfv-seta:disabled { opacity: .25; cursor: default; }
+.vtfv-seta.e { left: 12px; } .vtfv-seta.d { right: 12px; }
+.vtfv-dica { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-size: 12px; color: rgba(255, 255, 255, .7); pointer-events: none; }
+.vtfv-base { display: grid; gap: 10px; padding: 8px 12px max(12px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, rgba(0, 0, 0, .7)); }
+.vtfv-tira { display: flex; gap: 8px; overflow-x: auto; padding: 2px; scrollbar-width: none; }
+.vtfv-tira::-webkit-scrollbar { display: none; }
+.vtfv-mini { flex: none; width: 64px; height: 48px; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: 8px; background: #222; opacity: .6; cursor: pointer; transition: opacity .15s, border-color .15s; }
+.vtfv-mini img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.vtfv-mini.on { border-color: #fff; opacity: 1; }
+.vtfv-acao { display: flex; align-items: center; gap: 10px; }
+.vtfv-cont { display: grid; place-items: center; min-height: 46px; padding: 0 14px; border-radius: 10px; background: rgba(255, 255, 255, .13); font-family: var(--font-display); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.vtfv-res { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; border: 2px solid #1fa971; border-radius: 10px; background: transparent; color: #fff; font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; transition: background .2s; }
+.vtfv-res.on { background: #1fa971; }
+@media (max-width: 720px) { .vtfv-seta { display: none; } }
+@media (prefers-reduced-motion: reduce) { .vtfv, .vtfv-sl img, .vt-ap, .vt-pc, .vt-ap-corpo.novo, .vfl-sec[open] .vfl-ops { animation: none !important; transition: none !important; } }
+
+/* ---------- celular ---------- */
+@media (max-width: 720px) {
+  .vt-filtros-btn { flex: 1 1 36%; justify-content: center; align-self: flex-end; min-height: 46px; }
+  .vt-barra > .vt-campo:only-of-type { flex: 1 1 56% !important; }
+  .vt-ap-grade { grid-template-columns: 1fr; }
+  .vt-obra { padding: 12px; }
+}

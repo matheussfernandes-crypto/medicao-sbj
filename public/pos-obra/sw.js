@@ -1,6 +1,6 @@
 /* Service worker: deixa o site abrir e funcionar SEM INTERNET depois da primeira visita.
    (Arquivo gerado por gerar-sw.py a partir de sw.modelo.js. Só funciona em endereço seguro: https:// ou localhost.) */
-const VERSAO = "d2462db1d5";
+const VERSAO = "56f22d70c2";
 const CACHE = "posobra-" + VERSAO;
 const CACHE_EXTRA = "posobra-extra"; // fontes e outros arquivos de fora
 const ARQUIVOS = [
@@ -16,6 +16,7 @@ const ARQUIVOS = [
   "css/intro.css",
   "css/mobile.css",
   "css/padrao-site.css",
+  "css/pendencias.css",
   "css/redesign.css",
   "css/style.css",
   "data/vistorias-ilha-do-campeche.json",

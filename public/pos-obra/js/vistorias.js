@@ -66,23 +66,149 @@ let vtLimitePlanilha = 300;
 let vtColDesc = "";   // filtro de texto da planilha
 const vtSelApto = new Set(), vtSelData = new Set(), vtSelTipo = new Set(), vtSelAmb = new Set();   // filtros de várias opções (cabeçalhos da planilha)
 
-function vtFiltrada() {
-  const q = vtBusca.trim().toLowerCase();
-  return vtLista().filter(v => (!vtFiltroPredio || v.buildingId === vtFiltroPredio)
-      && (!q || v.unit.toLowerCase().includes(q))
-      && (vtStatus === "todos" || (vtStatus === "pendentes" ? vtResumo(v).abertas > 0 : vtResumo(v).abertas === 0)))
-    .sort((a, b) => ((getBuilding(a.buildingId) || {}).name || "").localeCompare((getBuilding(b.buildingId) || {}).name || "", "pt-BR")
+let vtSoFotos = false;            // "somente com fotos"
+const vtMantemAp = new Set();     // apartamentos que acabaram de mudar de situação: ficam na lista até mudar o filtro
+const vtExp = new Set();          // apartamentos abertos na lista (mostram as pendências ali mesmo)
+let vtExpNovo = null;             // o que acabou de abrir (só ele anima)
+
+const vtFiltroAtual = () => ({ q: vtBusca, sit: vtStatus, tipos: vtSelTipo, ambs: vtSelAmb, datas: vtSelData, fotos: vtSoFotos });
+function vtItemOk(i, f) { return (!f.tipos.size || f.tipos.has(i.tipo)) && (!f.ambs.size || f.ambs.has(i.ambiente)) && (!f.fotos || (i.fotos && i.fotos.length)); }
+function vtFiltrada(f = vtFiltroAtual(), usarMantem = true) {
+  const q = f.q.trim().toLowerCase();
+  return vtLista().filter(v => {
+    if (vtFiltroPredio && v.buildingId !== vtFiltroPredio) return false;
+    if (q && !v.unit.toLowerCase().includes(q)) return false;
+    if (f.datas.size && !f.datas.has(v.date)) return false;
+    const its = v.items.filter(i => vtItemOk(i, f));
+    if ((f.tipos.size || f.ambs.size || f.fotos) && !its.length) return false;
+    if (f.sit === "todos" || (usarMantem && vtMantemAp.has(v.id))) return true;
+    const abertas = its.filter(i => !i.feito).length;
+    return f.sit === "pendentes" ? abertas > 0 : abertas === 0;
+  }).sort((a, b) => ((getBuilding(a.buildingId) || {}).name || "").localeCompare((getBuilding(b.buildingId) || {}).name || "", "pt-BR")
       || a.unit.localeCompare(b.unit, "pt-BR", { numeric: true }));
 }
+/* filtros ativos (a situação "a resolver" é o padrão e não conta) */
+function vtChipsAtivos() {
+  const c = [];
+  if (vtBusca.trim()) c.push({ k: "q", r: "Apto " + vtBusca.trim() });
+  if (vtStatus !== "pendentes") c.push({ k: "sit", r: vtStatus === "todos" ? "Todas as situações" : "Resolvidos" });
+  vtSelTipo.forEach(t => c.push({ k: "t:" + t, r: t }));
+  vtSelAmb.forEach(a => c.push({ k: "a:" + a, r: a }));
+  vtSelData.forEach(d => c.push({ k: "d:" + d, r: "Vistoria " + fmtDate(d) }));
+  if (vtSoFotos) c.push({ k: "f", r: "Com fotos" });
+  return c;
+}
+function vtRemoverFiltro(k) {
+  if (k === "q") vtBusca = ""; else if (k === "sit") vtStatus = "pendentes"; else if (k === "f") vtSoFotos = false;
+  else if (k.startsWith("t:")) vtSelTipo.delete(k.slice(2)); else if (k.startsWith("a:")) vtSelAmb.delete(k.slice(2)); else if (k.startsWith("d:")) vtSelData.delete(k.slice(2));
+  vtMantemAp.clear();
+}
+function vtLimparFiltros() { vtBusca = ""; vtStatus = "pendentes"; vtSelTipo.clear(); vtSelAmb.clear(); vtSelData.clear(); vtSoFotos = false; vtMantemAp.clear(); }
 
+/* fotos de uma pendência no visualizador (com "resolvida" e "remover" dentro dele) */
+function vtVerFotos(v, it, pos, aoMudar) {
+  if (!it.fotos || !it.fotos.length) return;
+  vtfAmpliar(it.fotos[Math.min(pos || 0, it.fotos.length - 1)], it.fotos, {
+    titulo: `Apto ${v.unit} · ${it.ambiente}`, sub: `${it.tipo} · ${it.descricao}`,
+    feito: () => it.feito,
+    aoResolver: () => { it.feito = !it.feito; it.feitoEm = it.feito ? todayISODate() : ""; persist(); vtDetMantem.add(it.id); vtPlanMantem.add(it.id); vtMantemAp.add(v.id); aoMudar(); return it.feito; },
+    aoRemover: async (fid) => { const k = it.fotos.indexOf(fid); if (k >= 0) it.fotos.splice(k, 1); await vtfDel(fid); persist(); aoMudar(); }
+  });
+}
+
+/* ---------- Folha de filtros (celular e tablet: tudo num lugar só; a obra fica fora, no topo) ---------- */
+function vtAbrirFiltros() {
+  const D = { q: vtBusca, sit: vtStatus, tipos: new Set(vtSelTipo), ambs: new Set(vtSelAmb), datas: new Set(vtSelData), fotos: vtSoFotos };
+  const aberta = { tipo: true, amb: false, data: false };
+  const base = vtLista().filter(v => !vtFiltroPredio || v.buildingId === vtFiltroPredio);
+  openModal(`
+    <div class="modal-header"><h3>Filtros</h3><button class="modal-close" id="vfl-x" aria-label="Fechar">×</button></div>
+    <div class="modal-body vt-form vfl">
+      <label class="vt-campo">Apartamento<input type="search" id="vfl-q" placeholder="ex: 404" value="${escapeHtml(D.q)}" autocomplete="off" inputmode="numeric"></label>
+      <div class="vt-rot">Situação</div><div class="vt-chips" id="vfl-sit"></div>
+      <div id="vfl-secs"></div>
+      <label class="vfl-check"><input type="checkbox" id="vfl-fotos" ${D.fotos ? "checked" : ""}> <span>Somente pendências com fotos</span></label>
+      <div class="vt-import-res" id="vfl-resumo"></div>
+    </div>
+    <div class="modal-footer"><button class="btn ghost" id="vfl-limpar">Limpar tudo</button><button class="btn primary" id="vfl-ok">Aplicar</button></div>`);
+  const $ = id => document.getElementById(id);
+  const itensSit = (v) => v.items.filter(i => D.sit === "todos" || (D.sit === "pendentes" ? !i.feito : i.feito));
+  const conta = (fn) => { const m = new Map(); base.forEach(v => fn(v, m)); return Array.from(m.entries()); };
+  const secao = (id, rot, sel, opcoes, attr) => `<details class="vfl-sec" ${aberta[id] || sel.size ? "open" : ""} data-sec="${id}"><summary>${rot}${sel.size ? `<span class="vfl-n">${sel.size}</span>` : ""}</summary>
+    <div class="vfl-ops">${opcoes.length ? opcoes.map(([v, l, n]) => `<label class="vfl-op"><input type="checkbox" data-${attr}="${escapeHtml(v)}" ${sel.has(v) ? "checked" : ""}><span>${escapeHtml(l)}</span><b>${n}</b></label>`).join("") : `<div class="hint" style="padding:10px 12px;">Nada para escolher.</div>`}</div></details>`;
+  const desenhar = () => {
+    const nP = base.filter(v => v.items.some(i => !i.feito)).length, nR = base.length - nP;
+    $("vfl-sit").innerHTML = [["pendentes", "A resolver", nP], ["resolvidos", "Resolvidos", nR], ["todos", "Todos", base.length]].map(([k, r, n]) => `<button type="button" class="vt-chip ${D.sit === k ? "ativo" : ""}" data-s="${k}">${r} · ${n}</button>`).join("");
+    const tipos = conta((v, m) => itensSit(v).forEach(i => m.set(i.tipo, (m.get(i.tipo) || 0) + 1))).sort((a, b) => b[1] - a[1]).map(([t, n]) => [t, t, n]);
+    const ambs = conta((v, m) => itensSit(v).forEach(i => m.set(i.ambiente, (m.get(i.ambiente) || 0) + 1))).sort((a, b) => a[0].localeCompare(b[0], "pt-BR")).map(([t, n]) => [t, t, n]);
+    const datas = conta((v, m) => m.set(v.date, (m.get(v.date) || 0) + 1)).sort((a, b) => String(b[0]).localeCompare(String(a[0]))).map(([d, n]) => [d, fmtDate(d), n]);
+    D.tipos.forEach(t => { if (!tipos.some(x => x[0] === t)) tipos.push([t, t, 0]); }); D.ambs.forEach(t => { if (!ambs.some(x => x[0] === t)) ambs.push([t, t, 0]); });
+    $("vfl-secs").innerHTML = secao("tipo", "Serviço", D.tipos, tipos, "t") + secao("amb", "Ambiente", D.ambs, ambs, "a") + secao("data", "Data da vistoria", D.datas, datas, "d");
+    const lista = vtFiltrada(D, false), pend = lista.reduce((n, v) => n + v.items.filter(i => !i.feito && vtItemOk(i, D)).length, 0);
+    $("vfl-resumo").innerHTML = `<strong>${lista.length}</strong> apartamento(s) · <strong>${pend}</strong> pendência(s) a resolver`;
+    $("vfl-sit").querySelectorAll("[data-s]").forEach(b => b.onclick = () => { D.sit = b.dataset.s; desenhar(); });
+    $("vfl-secs").querySelectorAll("details").forEach(d => d.addEventListener("toggle", () => { aberta[d.dataset.sec] = d.open; }));
+    const liga = (attr, set) => $("vfl-secs").querySelectorAll(`[data-${attr}]`).forEach(c => c.onchange = () => { const v = c.dataset[attr]; c.checked ? set.add(v) : set.delete(v); desenhar(); });
+    liga("t", D.tipos); liga("a", D.ambs); liga("d", D.datas);
+  };
+  $("vfl-x").onclick = closeModal;
+  $("vfl-q").addEventListener("input", e => { D.q = e.target.value; const lista = vtFiltrada(D, false); $("vfl-resumo").innerHTML = `<strong>${lista.length}</strong> apartamento(s) · <strong>${lista.reduce((n, v) => n + v.items.filter(i => !i.feito && vtItemOk(i, D)).length, 0)}</strong> pendência(s) a resolver`; });
+  $("vfl-fotos").onchange = e => { D.fotos = e.target.checked; desenhar(); };
+  $("vfl-limpar").onclick = () => { D.q = ""; $("vfl-q").value = ""; D.sit = "pendentes"; D.tipos.clear(); D.ambs.clear(); D.datas.clear(); D.fotos = false; $("vfl-fotos").checked = false; desenhar(); };
+  $("vfl-ok").onclick = () => {
+    vtBusca = D.q; vtStatus = D.sit; vtSoFotos = D.fotos;
+    vtSelTipo.clear(); D.tipos.forEach(x => vtSelTipo.add(x)); vtSelAmb.clear(); D.ambs.forEach(x => vtSelAmb.add(x)); vtSelData.clear(); D.datas.forEach(x => vtSelData.add(x));
+    vtMantemAp.clear(); closeModal(); renderVistorias();
+  };
+  desenhar();
+}
+
+/* um apartamento na lista: situação, serviços pendentes e fotos; ao tocar, as pendências aparecem ali mesmo */
+function vtCardApto(v) {
+  const f = vtFiltroAtual(), r = vtResumo(v), pronto = !r.abertas;
+  const its = v.items.filter(i => vtItemOk(i, f));
+  const sv = new Map(); its.forEach(i => { if (!i.feito) sv.set(i.tipo, (sv.get(i.tipo) || 0) + 1); });
+  const svs = Array.from(sv.entries()).sort((a, b) => b[1] - a[1]);
+  const nFotos = its.reduce((n, i) => n + (i.fotos ? i.fotos.length : 0), 0);
+  const aberto = vtExp.has(v.id);
+  let corpo = "";
+  if (aberto) {
+    const ordemAmb = a => { const k = VT_AMBIENTES.indexOf(a); return k < 0 ? 99 : k; };
+    const por = new Map(); its.slice().sort((x, y) => ordemAmb(x.ambiente) - ordemAmb(y.ambiente)).forEach(i => { if (!por.has(i.ambiente)) por.set(i.ambiente, []); por.get(i.ambiente).push(i); });
+    corpo = `<div class="vt-ap-corpo ${vtExpNovo === v.id ? "novo" : ""}">${Array.from(por.entries()).map(([amb, lista]) => `<div class="vt-ap-amb">${escapeHtml(amb)}</div>${lista.map(i => `
+      <div class="vt-lin ${i.feito ? "feito" : ""}">
+        <button type="button" class="vt-lin-chk" data-vt-tg="${v.id}:${i.id}" aria-pressed="${i.feito}" aria-label="${i.feito ? "Resolvida. Tocar para reabrir" : "Pendente. Tocar para marcar como resolvida"}"><i>${ckIco("feito", 16)}</i></button>
+        <div class="vt-lin-t"><span class="vt-lin-s">${escapeHtml(i.tipo)}</span><span class="vt-lin-d">${escapeHtml(i.descricao)}</span></div>
+        ${i.fotos && i.fotos.length ? `<button type="button" class="vt-lin-f" data-vt-ver="${v.id}:${i.id}:0" aria-label="Ver ${i.fotos.length} foto(s)">${ckIco("camera", 17)}${i.fotos.length}</button>` : ""}
+      </div>`).join("")}`).join("")}<button type="button" class="vt-ap-abrir" data-vt="${v.id}">Abrir apartamento</button></div>`;
+  }
+  return `<article class="vt-ap ${pronto ? "pronto" : ""} ${aberto ? "aberto" : ""}">
+    <button type="button" class="vt-ap-h" data-vt-exp="${v.id}" aria-expanded="${aberto}">
+      <span class="vt-ap-n"><small>Apto</small>${escapeHtml(v.unit)}</span>
+      <span class="vt-ap-m"><span class="vt-ap-l1">${!r.total ? "Sem pendências" : pronto ? "Tudo resolvido" : `<b>${r.abertas}</b> a resolver`}${r.total ? ` · ${r.total} no total` : ""}</span>
+        <span class="vt-trilho"><span style="width:${pronto ? 100 : r.pct}%"></span></span></span>
+      <svg class="vt-ap-seta" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="vt-ap-c"><span class="vt-ap-dt">vistoria ${fmtDate(v.date)}</span>${svs.slice(0, 4).map(([t, n]) => `<span class="vt-ap-sv">${escapeHtml(t)} ${n}</span>`).join("")}${svs.length > 4 ? `<span class="vt-ap-sv mais">+${svs.length - 4}</span>` : ""}${nFotos ? `<span class="vt-ap-sv foto">${ckIco("camera", 13)} ${nFotos}</span>` : ""}</div>
+    ${corpo}</article>`;
+}
+function vtGradeAtualiza(root) {   // refaz só a lista (mantendo o lugar na tela) e o total
+  const y = window.scrollY;
+  root.classList.add("vt-sem-anim");
+  const base = vtLista().filter(v => !vtFiltroPredio || v.buildingId === vtFiltroPredio);
+  const tot = root.querySelector(".vt-total strong"); if (tot) tot.textContent = base.reduce((n, v) => n + vtResumo(v).abertas, 0);
+  vtRenderGrade(root); vtExpNovo = null;
+  window.scrollTo({ top: y });
+}
 function vtRenderGrade(root) {
   const lista = vtFiltrada();
   const grade = root.querySelector("#vt-grade");
   if (!lista.length) {
     grade.innerHTML = vtLista().length
-      ? `<div class="vt-vazio pequeno">Nenhum apartamento com esses filtros.</div>`
+      ? `<div class="vt-vazio pequeno">Nenhum apartamento com esses filtros.${vtChipsAtivos().length ? `<br><button type="button" class="btn ghost small" id="vt-limpar-f" style="margin-top:12px;">Limpar filtros</button>` : ""}</div>`
       : `<div class="vt-vazio"><h3>Nenhuma vistoria ainda</h3><p>Faça a vistoria de um apartamento na hora, cadastre as pendências de uma vez ou importe a planilha da obra.</p><button type="button" class="btn primary" id="vt-nova2">+ Cadastrar pendências</button></div>`;
     const n2 = grade.querySelector("#vt-nova2"); if (n2) n2.addEventListener("click", vtAbrirNova);
+    const lf = grade.querySelector("#vt-limpar-f"); if (lf) lf.addEventListener("click", () => { vtLimparFiltros(); renderVistorias(); });
     return;
   }
   const grupos = new Map();
@@ -91,18 +217,26 @@ function vtRenderGrade(root) {
     const b = getBuilding(bid), abertas = vs.reduce((n, v) => n + vtResumo(v).abertas, 0);
     return `<section class="vt-obra">
       <h3 class="vt-obra-titulo">${b ? escapeHtml(b.name) : "Sem empreendimento"}<span>${vs.length} apto${vs.length === 1 ? "" : "s"} · ${abertas} a resolver</span></h3>
-      <div class="vt-grid">${vs.map(v => {
-        const r = vtResumo(v), feito = !r.abertas;
-        return `<button type="button" class="vt-card ${feito ? "pronto" : ""}" data-vt="${v.id}">
-          <span class="vt-unidade">${escapeHtml(v.unit)}</span>
-          <span class="vt-trilho"><span style="width:${feito ? 100 : r.pct}%"></span></span>
-          <span class="vt-meta">${!r.total ? "Sem pendências" : feito ? "Tudo resolvido" : `<strong>${r.abertas}</strong> a resolver`}${r.total ? ` · ${r.total} no total` : ""}</span>
-          <span class="vt-meta">vistoria ${fmtDate(v.date)}</span>
-        </button>`;
-      }).join("")}</div>
+      <div class="vt-ap-grade">${vs.map(vtCardApto).join("")}</div>
     </section>`;
   }).join("");
+  vtfHidratar(grade);
+  const ach = (vid) => vtLista().find(x => x.id === vid);
   grade.querySelectorAll("[data-vt]").forEach(b => b.addEventListener("click", () => { vtAbertaId = b.dataset.vt; renderVistorias(); window.scrollTo({ top: 0 }); }));
+  grade.querySelectorAll("[data-vt-exp]").forEach(b => b.addEventListener("click", () => {
+    const id = b.dataset.vtExp; if (vtExp.has(id)) { vtExp.delete(id); vtExpNovo = null; } else { vtExp.add(id); vtExpNovo = id; }
+    vtGradeAtualiza(root);
+  }));
+  grade.querySelectorAll("[data-vt-tg]").forEach(b => b.addEventListener("click", () => {
+    const [vid, iid] = b.dataset.vtTg.split(":"), v = ach(vid), it = v && v.items.find(x => x.id === iid); if (!it) return;
+    it.feito = !it.feito; it.feitoEm = it.feito ? todayISODate() : ""; persist(); vtMantemAp.add(v.id);
+    toast(it.feito ? "Marcada como resolvida" : "Voltou para pendente", "success");
+    vtGradeAtualiza(root);
+  }));
+  grade.querySelectorAll("[data-vt-ver]").forEach(b => b.addEventListener("click", () => {
+    const [vid, iid, pos] = b.dataset.vtVer.split(":"), v = ach(vid), it = v && v.items.find(x => x.id === iid); if (!it) return;
+    vtVerFotos(v, it, Number(pos), () => vtGradeAtualiza(root));
+  }));
 }
 
 // o menu "Controle de entregas" abre a tela de Vistorias já no modo controle; "Vistorias" volta ao modo Apartamentos
@@ -141,6 +275,7 @@ function renderVistorias() {
   const nRes = plan ? itensBase.filter(i => i.feito).length : baseObra.filter(v => vtResumo(v).abertas === 0).length;
   const nTodos = plan ? itensBase.length : baseObra.length;
   const totalAbertas = baseObra.reduce((n, v) => n + vtResumo(v).abertas, 0);
+  const chipsF = vtChipsAtivos();
   const tiposDisp = Array.from(new Set(baseObra.flatMap(v => v.items.map(i => i.tipo)))).sort((a, b) => a.localeCompare(b, "pt-BR"));
 
   root.innerHTML = `
@@ -150,10 +285,7 @@ function renderVistorias() {
     </div>
     <div class="vt-barra">
       <label class="vt-campo">Obra<select id="vt-predio"><option value="">Todas as obras</option>${predios.map(b => `<option value="${b.id}" ${b.id === vtFiltroPredio ? "selected" : ""}>${escapeHtml(b.name)}</option>`).join("")}</select></label>
-      ${plan || controle ? "" : `
-      <label class="vt-campo">Apartamento<input type="search" id="vt-busca" placeholder="ex: 404" value="${escapeHtml(vtBusca)}" autocomplete="off"></label>
-      <label class="vt-campo">Situação<select id="vt-status"><option value="pendentes" ${vtStatus === "pendentes" ? "selected" : ""}>${plan ? "A resolver" : "Com pendência"} (${nPend})</option><option value="resolvidos" ${vtStatus === "resolvidos" ? "selected" : ""}>${plan ? "Resolvidas" : "Tudo resolvido"} (${nRes})</option><option value="todos" ${vtStatus === "todos" ? "selected" : ""}>Todos (${nTodos})</option></select></label>
-      `}
+      ${plan || controle ? "" : `<button type="button" class="vt-filtros-btn" id="vt-filtros" aria-haspopup="dialog"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>Filtros${chipsF.length ? `<span class="vt-filtros-n">${chipsF.length}</span>` : ""}</button>`}
       <div class="vt-acoes">
         <button type="button" class="btn ghost" id="vt-agenda">Agenda</button>
         <button type="button" class="btn ghost" id="vt-relatorio">Gerar relatório</button>
@@ -162,11 +294,15 @@ function renderVistorias() {
         <button type="button" class="btn primary" id="vt-folha">Realizar vistoria</button>
       </div>
     </div>
+    ${!plan && !controle && chipsF.length ? `<div class="vt-chips-ativos" role="group" aria-label="Filtros ativos">${chipsF.map(c => `<span class="vt-chip-at">${escapeHtml(c.r)}<button type="button" data-vt-rm="${escapeHtml(c.k)}" aria-label="Remover filtro ${escapeHtml(c.r)}">×</button></span>`).join("")}${chipsF.length > 1 ? `<button type="button" class="vt-chips-limpar" id="vt-limpar-todos">Limpar tudo</button>` : ""}</div>` : ""}
     <div class="vt-total"><strong>${totalAbertas}</strong> pendência${totalAbertas === 1 ? "" : "s"} a resolver${vtFiltroPredio ? " nesta obra" : " no total"} <span id="vt-sync-estado" class="vt-sync-estado"></span></div>
     <div id="vt-grade"></div>`;
 
   if (controle) { const m = root.querySelector(".vt-modos"); if (m) m.remove(); }
-  root.querySelector("#vt-predio").addEventListener("change", e => { vtFiltroPredio = e.target.value; renderVistorias(); });
+  root.querySelector("#vt-predio").addEventListener("change", e => { vtFiltroPredio = e.target.value; vtMantemAp.clear(); renderVistorias(); });
+  const bf = root.querySelector("#vt-filtros"); if (bf) bf.addEventListener("click", vtAbrirFiltros);
+  root.querySelectorAll("[data-vt-rm]").forEach(b => b.addEventListener("click", () => { vtRemoverFiltro(b.dataset.vtRm); renderVistorias(); }));
+  const lt = root.querySelector("#vt-limpar-todos"); if (lt) lt.addEventListener("click", () => { vtLimparFiltros(); renderVistorias(); });
   const campoBusca = root.querySelector("#vt-busca"); if (campoBusca) campoBusca.addEventListener("input", e => { vtBusca = e.target.value; root.classList.add("vt-sem-anim"); vtRenderGrade(root); });
   const selStatus = root.querySelector("#vt-status"); if (selStatus) selStatus.addEventListener("change", e => { vtStatus = e.target.value; renderVistorias(); });
   root.querySelectorAll("[data-vt-st]").forEach(b => b.addEventListener("click", () => { vtStatus = b.dataset.vtSt; renderVistorias(); }));
@@ -702,7 +838,7 @@ function vtPlanCorpo(root) {
   tbody.querySelectorAll("[data-vt-abrir]").forEach(b => b.addEventListener("click", () => { vtAbertaId = b.dataset.vtAbrir; renderVistorias(); window.scrollTo({ top: 0 }); }));
   tbody.querySelectorAll("[data-vp-fotos]").forEach(b => b.addEventListener("click", () => {
     const v = vtLista().find(x => x.id === b.dataset.vpV), it = v.items.find(x => x.id === b.dataset.vpFotos);
-    vtfGaleria({ titulo: `Apto ${v.unit} · ${it.ambiente} · ${it.tipo}`, ids: it.fotos, aoMudar: () => { persist(); vtPlanCorpo(root); } });
+    vtVerFotos(v, it, 0, () => vtPlanCorpo(root));
   }));
   tbody.querySelectorAll("[data-vp-toggle]").forEach(b => b.addEventListener("click", () => {
     const v = vtLista().find(x => x.id === b.dataset.vpV), it = v.items.find(x => x.id === b.dataset.vpToggle);
@@ -797,20 +933,26 @@ function renderVistoriaDetalhe(root) {
       <div class="vt-seg" role="group" aria-label="Filtrar pendências">
         ${seg("pendentes", "Pendentes", r.abertas)}${seg("resolvidos", "Resolvidos", r.feitos)}${seg("todas", "Todas", r.total)}
       </div>
-      ${filtrados.length ? `<ul class="vt-lista">${filtrados.map(i => `
-        <li class="vt-row ${i.feito ? "feito" : ""}" data-item="${i.id}">
-          <div class="vt-row-corpo">
-            <div class="vt-row-tags"><span class="vt-amb-tag">${escapeHtml(i.ambiente)}</span><span class="vt-tag">${escapeHtml(i.tipo)}</span><span class="vt-status ${i.feito ? "ok" : "aberto"}">${i.feito ? "Resolvida" : "Pendente"}</span></div>
-            <div class="vt-desc">${escapeHtml(i.descricao)}</div>
-            ${vtfThumbs(i.fotos, i.id)}
+      ${filtrados.length ? `<ul class="vt-pcs">${filtrados.map(i => `
+        <li class="vt-pc ${i.feito ? "feito" : ""}" data-item="${i.id}">
+          <div class="vt-pc-tags"><span class="vt-amb-tag">${escapeHtml(i.ambiente)}</span><span class="vt-tag">${escapeHtml(i.tipo)}</span></div>
+          <div class="vt-pc-desc">${escapeHtml(i.descricao)}</div>
+          ${vtfBloco(i.fotos, i.id)}
+          <div class="vt-pc-rod">
+            <div class="vt-pc-ferr">
+              <button type="button" class="vt-pc-ib" data-vt-cam="${i.id}" aria-label="Tirar foto desta pendência" title="Tirar foto">${ckIco("camera", 19)}</button>
+              <button type="button" class="vt-pc-ib" data-vt-rem="${i.id}" aria-label="Remover pendência" title="Remover">${ckIco("naofeito", 15)}</button>
+            </div>
+            <div class="vt-estado" role="group" aria-label="Situação da pendência">
+              <button type="button" class="pend ${i.feito ? "" : "on"}" data-vt-set="${i.id}:0" aria-pressed="${!i.feito}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Pendente</button>
+              <button type="button" class="res ${i.feito ? "on" : ""}" data-vt-set="${i.id}:1" aria-pressed="${i.feito}">${ckIco("feito", 16)}Resolvida</button>
+            </div>
           </div>
-          <button type="button" class="vt-resolver ${i.feito ? "ok" : ""}" data-vt-toggle="${i.id}" aria-pressed="${i.feito}" title="${i.feito ? "Desfazer: voltar para pendente" : "Marcar esta pendência como resolvida"}">${ckIco("feito", 18)} <span>${i.feito ? "Resolvida" : "Marcar resolvida"}</span></button>
-          <button type="button" class="vt-cam" data-vt-cam="${i.id}" aria-label="Tirar foto desta pendência" title="Tirar foto">${ckIco("camera", 20)}</button>
-          <button type="button" class="vt-rem" data-vt-rem="${i.id}" aria-label="Remover">${ckIco("naofeito", 15)}</button>
-        </li>`).join("")}</ul>` : `<div class="vt-vazio pequeno">${msgVazio}</div>`}`}`;
+        </li>`).join("")}</ul>`
+        : `<div class="vt-vazio pequeno">${msgVazio}</div>`}`}`;
 
   const $ = s => root.querySelector(s);
-  $("#vt-voltar").onclick = () => { vtAbertaId = null; renderVistorias(); };
+  $("#vt-voltar").onclick = () => { vtAbertaId = null; vtMantemAp.clear(); renderVistorias(); };
   root.querySelectorAll("[data-vt-aba]").forEach(b => b.onclick = () => { vtAbaDet = b.dataset.vtAba; renderVistorias(); });
   root.querySelectorAll("[data-vt-f]").forEach(b => b.onclick = () => { vtFiltroDet = b.dataset.vtF; vtDetMantem.clear(); renderVistorias(); });
 
@@ -839,10 +981,17 @@ function renderVistoriaDetalhe(root) {
   }
 
   /* aba "Pendências" */
-  root.querySelectorAll("[data-vt-toggle]").forEach(b => b.onclick = () => {
-    const it = v.items.find(i => i.id === b.dataset.vtToggle); it.feito = !it.feito; it.feitoEm = it.feito ? todayISODate() : "";
-    vtDetMantem.add(it.id); persist();
-    const y = window.scrollY; renderVistorias(); window.scrollTo({ top: y });
+  root.querySelectorAll("[data-vt-set]").forEach(b => b.onclick = () => {
+    const [iid, val] = b.dataset.vtSet.split(":"), it = v.items.find(i => i.id === iid), novo = val === "1";
+    if (!it || it.feito === novo) return;
+    it.feito = novo; it.feitoEm = novo ? todayISODate() : "";
+    vtDetMantem.add(it.id); persist(); vtMantemAp.add(v.id);
+    toast(novo ? "Marcada como resolvida" : "Voltou para pendente", "success");
+    const y = window.scrollY; root.classList.add("vt-sem-anim"); renderVistorias(); window.scrollTo({ top: y });
+  });
+  root.querySelectorAll("[data-vt-ver]").forEach(b => b.onclick = () => {
+    const [iid, pos] = b.dataset.vtVer.split(":"), it = v.items.find(i => i.id === iid); if (!it) return;
+    vtVerFotos(v, it, Number(pos), () => { const y = window.scrollY; renderVistorias(); window.scrollTo({ top: y }); });
   });
   root.querySelectorAll("[data-vt-rem]").forEach(b => b.onclick = () => { const it = v.items.find(i => i.id === b.dataset.vtRem); if (it && it.fotos && it.fotos.length && !confirm("Esta pendência tem foto(s). Remover mesmo assim?")) return; (it && it.fotos || []).forEach(vtfDel); v.items = v.items.filter(i => i.id !== b.dataset.vtRem); persist(); renderVistorias(); });
   root.querySelectorAll("[data-vt-cam]").forEach(b => b.onclick = async () => { const it = v.items.find(i => i.id === b.dataset.vtCam); const id = await vtfTirarFoto(); if (id && it) { (it.fotos = it.fotos || []).push(id); persist(); renderVistorias(); } });

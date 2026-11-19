@@ -85,44 +85,102 @@ function vtfGaleria({ titulo, ids, aoMudar }) {
   desenhar();
 }
 
-/* foto em tela cheia. Com mais de uma foto: setas, deslizar com o dedo e setas do teclado. */
-function vtfAmpliar(id, ids) {
-  const lista = ids && ids.length ? ids.slice() : [id];
-  let i = Math.max(0, lista.indexOf(id));
+/* Visualizador de fotos em tela cheia. Várias fotos: deslizar, setas, miniaturas embaixo e contador "2 / 4".
+   Duplo toque aproxima (arraste para mover); de novo, volta. opc (opcional):
+   { titulo, sub, feito: () => bool, aoResolver: () => bool (novo estado), aoRemover: async (id) => void }
+   Com aoResolver, o botão de resolvida fica dentro do visualizador: dá para conferir a foto e marcar sem fechar. */
+const VTFV_ICO = {
+  ok: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  lixo: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>'
+};
+function vtfAmpliar(id, ids, opc) {
+  opc = opc || {};
+  let lista = ids && ids.length ? ids.slice() : [id];
+  let i = Math.max(0, lista.indexOf(id)), z = 0;
   const antiga = document.getElementById("vtf-ampliada"); if (antiga) antiga.remove();
   const fundo = document.createElement("div");
-  fundo.id = "vtf-ampliada"; fundo.className = "vtf-amp";
-  const varias = lista.length > 1;
-  fundo.innerHTML = `<button type="button" class="vtf-amp-x" aria-label="Fechar foto">×</button>${varias ? `<button type="button" class="vtf-amp-seta esq" aria-label="Foto anterior">‹</button><button type="button" class="vtf-amp-seta dir" aria-label="Próxima foto">›</button><span class="vtf-amp-cont"></span>` : ""}<img alt="Foto ampliada">`;
+  fundo.id = "vtf-ampliada"; fundo.className = "vtfv"; fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-modal", "true"); fundo.setAttribute("aria-label", "Fotos da pendência"); fundo.tabIndex = -1;
   document.body.appendChild(fundo);
-  const img = fundo.querySelector("img"), cont = fundo.querySelector(".vtf-amp-cont");
-  const mostrar = (k) => {
-    i = (k + lista.length) % lista.length;
-    img.classList.add("trocando");
-    vtfUrl(lista[i]).then(u => { if (u) img.src = u; img.classList.remove("trocando"); });
-    if (cont) cont.textContent = (i + 1) + " / " + lista.length;
-  };
-  const fechar = () => { document.removeEventListener("keydown", tecla); fundo.remove(); };
+  const fechar = () => { document.removeEventListener("keydown", tecla); fundo.classList.add("saindo"); setTimeout(() => fundo.remove(), 160); };
   const tecla = (e) => {
     if (e.key === "Escape") fechar();
-    if (varias && e.key === "ArrowLeft") mostrar(i - 1);
-    if (varias && e.key === "ArrowRight") mostrar(i + 1);
+    if (e.key === "ArrowLeft") ir(i - 1, true);
+    if (e.key === "ArrowRight") ir(i + 1, true);
   };
-  document.addEventListener("keydown", tecla);
-  fundo.addEventListener("click", e => { if (e.target === fundo) fechar(); });
-  fundo.querySelector(".vtf-amp-x").onclick = fechar;
-  if (varias) {
-    fundo.querySelector(".esq").onclick = e => { e.stopPropagation(); mostrar(i - 1); };
-    fundo.querySelector(".dir").onclick = e => { e.stopPropagation(); mostrar(i + 1); };
-    let x0 = null;
-    fundo.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, { passive: true });
-    fundo.addEventListener("touchend", e => {
-      if (x0 == null) return;
-      const dx = e.changedTouches[0].clientX - x0; x0 = null;
-      if (Math.abs(dx) > 40) mostrar(dx < 0 ? i + 1 : i - 1);
-    }, { passive: true });
+  let car = null, minis = [], cont = null;
+  const marca = () => {
+    if (cont) cont.textContent = (i + 1) + " / " + lista.length;
+    minis.forEach((m, k) => m.classList.toggle("on", k === i));
+    if (minis[i] && minis[i].scrollIntoView) minis[i].scrollIntoView({ inline: "center", block: "nearest" });
+    const p = fundo.querySelector(".vtfv-seta.e"), d = fundo.querySelector(".vtfv-seta.d");
+    if (p) p.disabled = i === 0; if (d) d.disabled = i === lista.length - 1;
+  };
+  const resetZoom = () => { z = 0; if (car) { car.classList.remove("zoom"); car.querySelectorAll("img").forEach(m => { m.style.transform = ""; }); } };
+  function ir(k, suave) {
+    i = Math.max(0, Math.min(lista.length - 1, k)); resetZoom();
+    if (car) car.scrollTo({ left: i * car.clientWidth, behavior: suave && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" });
+    marca();
   }
-  mostrar(i);
+  function montar() {
+    const n = lista.length;
+    fundo.innerHTML = `
+      <div class="vtfv-top"><div class="vtfv-info"><b>${escapeHtml(opc.titulo || "Foto")}</b>${opc.sub ? `<span>${escapeHtml(opc.sub)}</span>` : ""}</div>
+        ${opc.aoRemover ? `<button type="button" class="vtfv-ib" data-rem aria-label="Remover esta foto">${VTFV_ICO.lixo}</button>` : ""}
+        <button type="button" class="vtfv-ib" data-x aria-label="Fechar">×</button></div>
+      <div class="vtfv-pista"><div class="vtfv-car">${lista.map((u, k) => `<div class="vtfv-sl"><img data-foto="${u}" alt="Foto ${k + 1} de ${n}" draggable="false"></div>`).join("")}</div>
+        ${n > 1 ? `<button type="button" class="vtfv-seta e" aria-label="Foto anterior">‹</button><button type="button" class="vtfv-seta d" aria-label="Próxima foto">›</button>` : ""}
+        <div class="vtfv-dica">${n > 1 ? "Deslize para ver as outras · " : ""}toque duas vezes para aproximar</div></div>
+      <div class="vtfv-base">
+        ${n > 1 ? `<div class="vtfv-tira">${lista.map((u, k) => `<button type="button" class="vtfv-mini" aria-label="Ir para a foto ${k + 1}"><img data-foto="${u}" alt=""></button>`).join("")}</div>` : ""}
+        <div class="vtfv-acao"><span class="vtfv-cont"></span>${opc.aoResolver ? `<button type="button" class="vtfv-res ${opc.feito && opc.feito() ? "on" : ""}" data-res aria-pressed="${!!(opc.feito && opc.feito())}">${VTFV_ICO.ok} <span>${opc.feito && opc.feito() ? "Resolvida (tocar para desfazer)" : "Marcar como resolvida"}</span></button>` : ""}</div>
+      </div>`;
+    vtfHidratar(fundo);
+    car = fundo.querySelector(".vtfv-car"); cont = fundo.querySelector(".vtfv-cont"); minis = Array.from(fundo.querySelectorAll(".vtfv-mini"));
+    fundo.querySelector("[data-x]").onclick = fechar;
+    const p = fundo.querySelector(".vtfv-seta.e"), d = fundo.querySelector(".vtfv-seta.d");
+    if (p) p.onclick = () => ir(i - 1, true); if (d) d.onclick = () => ir(i + 1, true);
+    minis.forEach((m, k) => m.onclick = () => ir(k, true));
+    car.addEventListener("scroll", () => { const k = Math.round(car.scrollLeft / car.clientWidth); if (k !== i && !z) { i = k; marca(); } }, { passive: true });
+    const res = fundo.querySelector("[data-res]");
+    if (res) res.onclick = () => {
+      const novo = opc.aoResolver();
+      res.classList.toggle("on", !!novo); res.setAttribute("aria-pressed", String(!!novo));
+      res.querySelector("span").textContent = novo ? "Resolvida (tocar para desfazer)" : "Marcar como resolvida";
+    };
+    const rem = fundo.querySelector("[data-rem]");
+    if (rem) rem.onclick = async () => {
+      if (!confirm("Remover esta foto?")) return;
+      const alvo = lista[i]; await opc.aoRemover(alvo);
+      lista.splice(i, 1);
+      if (!lista.length) { fechar(); return; }
+      i = Math.min(i, lista.length - 1); montar();
+    };
+    /* aproximar: duplo toque (ou duplo clique) e arrastar */
+    car.querySelectorAll(".vtfv-sl").forEach(sl => {
+      const img = sl.querySelector("img"); let x = 0, y = 0, px = null, py = null;
+      sl.addEventListener("dblclick", () => { if (z) { resetZoom(); return; } z = 2.4; car.classList.add("zoom"); x = y = 0; img.style.transform = `scale(${z})`; });
+      sl.addEventListener("pointerdown", e => { if (!z) return; px = e.clientX; py = e.clientY; try { sl.setPointerCapture(e.pointerId); } catch (_) { /* segue */ } });
+      sl.addEventListener("pointermove", e => { if (!z || px == null) return; x += (e.clientX - px) / z; y += (e.clientY - py) / z; px = e.clientX; py = e.clientY; img.style.transition = "none"; img.style.transform = `scale(${z}) translate(${x}px, ${y}px)`; });
+      sl.addEventListener("pointerup", () => { px = null; img.style.transition = ""; });
+    });
+    let ult = 0;
+    car.addEventListener("touchend", e => { const t = Date.now(); if (t - ult < 300) { const sl = e.target.closest(".vtfv-sl"); if (sl) sl.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })); } ult = t; }, { passive: true });
+    ir(i, false);
+  }
+  document.addEventListener("keydown", tecla);
+  montar();
+  fundo.focus({ preventScroll: true });
+}
+
+/* fotos de uma pendência dentro do card: uma foto grande, ou até três miniaturas + "Ver N fotos".
+   "chave" identifica a pendência; o clique vem como data-vt-ver="chave:posição" e o chamador abre o visualizador. */
+function vtfBloco(ids, chave) {
+  const n = ids ? ids.length : 0; if (!n) return "";
+  const k0 = escapeHtml(chave);
+  const ft = (id, k, extra) => `<button type="button" class="vtfb-ft" data-vt-ver="${k0}:${k}" aria-label="Ampliar foto ${k + 1} de ${n}"><img data-foto="${id}" alt="Foto da pendência">${extra || ""}</button>`;
+  if (n === 1) return `<div class="vtfb um">${ft(ids[0], 0, '<span class="vtfb-lupa">Ampliar</span>')}</div>`;
+  return `<div class="vtfb">${ids.slice(0, 3).map((id, k) => ft(id, k, k === 2 && n > 3 ? `<span class="vtfb-mais">+${n - 3}</span>` : "")).join("")}</div>
+    <button type="button" class="vtfb-ver" data-vt-ver="${k0}:0">${typeof ckIco === "function" ? ckIco("camera", 18) : ""} Ver ${n} fotos</button>`;
 }
 
 /* ---------- para o PDF ---------- */

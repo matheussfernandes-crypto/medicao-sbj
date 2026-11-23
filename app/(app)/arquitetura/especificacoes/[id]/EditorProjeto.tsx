@@ -338,7 +338,7 @@ function NotaGrupo({ projetoId, grupo, titulo, nota }: { projetoId: string; grup
         href={`/imprimir/especificacoes/${projetoId}?grupo=${grupo}`}
         target="_blank"
         rel="noopener"
-        title={mudou ? "Salve antes de gerar o PDF" : "Abre a folha no padrão FG para imprimir ou salvar em PDF"}
+        title={mudou ? "Salve antes de gerar o PDF" : "Abre a folha no padrão SBJ para imprimir ou salvar em PDF"}
       >
         <FileText className="h-4 w-4" /> Gerar PDF
       </a>

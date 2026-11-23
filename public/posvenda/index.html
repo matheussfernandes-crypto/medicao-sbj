@@ -532,22 +532,22 @@ function semPasso(c){
 function equipe(){const e=(S.cfg&&S.cfg.equipe)||[];return e.length?e:["Flávia"]}
 function eu(){try{return localStorage.getItem("pv-eu")||""}catch(e){return ""}}
 function setEu(n){try{localStorage.setItem("pv-eu",n)}catch(e){}}
-function diaRoteiro(){for(let i=1;i<=4;i++){const d=isoDate(addDays(new Date(),i));if(S.ag.some(a=>a.data===d&&pendente(a)&&a.respId))return d}return null}
+function diaRoteiro(){for(let i=1;i<=4;i++){const d=isoDate(addDays(new Date(),i));if(S.ag.some(a=>a.data===d&&pendente(a)&&temResp(a)))return d}return null}
 function msgRoteiro(r,dia,vis){
   const cf=conf();const dd=diffDias(hojeISO(),dia);
   const linhas=vis.map(a=>{const c=chm(a.chId)||{};const u=uni(c.uniId)||{};const e=emp(c.empId)||{};
     const prob=[c.cat,c.amb].filter(Boolean).join(" – ")+(c.desc&&!incompleto(c)?": "+String(c.desc).slice(0,90):"");
     const cli=[(c.cli||u.prop||"").split(" ").slice(0,2).join(" "),fmtTel(c.tel||u.tel)].filter(Boolean).join(" ");
     return `\n*${a.hora||"--:--"}* · ${e.nome||""} · ${uniLabel(u)}${e.endereco?"\n   "+e.endereco:""}\n   ${TIPO[a.tipo]||"Visita"}${prob?" · "+prob:""}${cli?"\n   Cliente: "+cli:""}`}).join("\n");
-  return `Olá, ${r.nome}! Roteiro de ${dd===0?"hoje":dd===1?"amanhã":fmtDia(dia)} (${fmtD(dia)}) – Pós-Venda${cf.construtora?" "+cf.construtora:""}:\n${linhas}\n\nQualquer imprevisto, me avise por aqui. Obrigada!`;
+  return `Olá, ${r.saud||r.nome}! Roteiro de ${dd===0?"hoje":dd===1?"amanhã":fmtDia(dia)} (${fmtD(dia)}) – Pós-Venda${cf.construtora?" "+cf.construtora:""}:\n${linhas}\n\nQualquer imprevisto, me avise por aqui. Obrigada!`;
 }
 function tarefasHoje(){
   const h=hojeISO();const meus=S.hojeMeus&&eu();const filt=c=>!meus||(c&&c.respInt===eu());
   const diaR=diaRoteiro();const rots=[];
   for(const dia of [h,diaR].filter((x,i,a)=>x&&a.indexOf(x)===i)){
-    const por={};S.ag.filter(a=>a.data===dia&&pendente(a)&&a.respId).forEach(a=>(por[a.respId]=por[a.respId]||[]).push(a));
+    const por={};S.ag.filter(a=>a.data===dia&&pendente(a)&&temResp(a)).forEach(a=>{const k=respKey(a);(por[k]=por[k]||[]).push(a)});
     for(const [rid,lista] of Object.entries(por)){const pend=lista.some(precisaResp);if(dia===h&&!pend)continue;
-      rots.push({dia,rid,r:resp(rid)||{nome:"Responsável"},vis:lista.sort((a,b)=>(a.hora||"").localeCompare(b.hora||"")),pend})}
+      rots.push({dia,rid,r:respDe(lista[0])||{nome:"Responsável"},vis:lista.sort((a,b)=>(a.hora||"").localeCompare(b.hora||"")),pend})}
   }
   rots.sort((a,b)=>(b.pend-a.pend)||a.dia.localeCompare(b.dia));
   const clis=S.ag.filter(a=>pendente(a)&&precisaCli(a)&&filt(chm(a.chId))).sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora));
@@ -704,7 +704,7 @@ function vInicio(){
     T.clis.slice(0,S.hjTodos?200:10).map(a=>{const c=chm(a.chId)||{};const r=resp(a.respId);const dd=diffDias(h,a.data);const quando=dd===0?"hoje":dd===1?"amanhã":fmtDia(a.data);
       return `<div class="hj"><div>${tit(c)}<div class="d">Visita ${esc(quando)}${a.hora?" às "+esc(a.hora):""} · ${esc(TIPO[a.tipo]||"Visita")}${quem(a)?" · "+esc(quem(a)):""}${c.respInt?" · "+esc(c.respInt):""}</div></div><div class="acts">${waBtn(a,"cli",true)}</div></div>`}).join(""));
   const sFim=sec("Esses serviços terminaram?",T.fins.length,"Não há mais visitas marcadas. \"Ainda não\" pergunta de novo em 7 dias.",
-    T.fins.slice(0,S.hjTodos?200:10).map(({c,u})=>{const r=u&&resp(u.respId);
+    T.fins.slice(0,S.hjTodos?200:10).map(({c,u})=>{const r=u&&respDe(u);
       return `<div class="hj"><div>${tit(c)}<div class="d">Última visita ${u?esc(fmtD(u.data)):""}${r?" · "+esc(r.nome):""} · ${esc(c.cat||"")}${c.respInt?" · "+esc(c.respInt):""}</div></div><div class="acts"><button class="btn sm pri" data-a="fim-sim" data-id="${esc(c.id)}">Terminou</button><button class="btn sm" data-a="fim-nao" data-id="${esc(c.id)}">Ainda não</button></div></div>`}).join(""));
   const sPasso=sec("Definir o próximo passo",T.passos.length,"Chamados sem visita marcada e sem nada sendo aguardado.",
     T.passos.slice(0,S.hjTodos?200:10).map(c=>{const ida=idadeCh(c);
@@ -727,21 +727,21 @@ function vInicio(){
   </div>`;
 }
 function waBtn(a,q,pend){
-  const c=chm(a.chId)||{};const u=uni(c.uniId)||{};const r=resp(a.respId)||{};
+  const c=chm(a.chId)||{};const u=uni(c.uniId)||{};const r=respDe(a)||{};
   const tel=q==="cli"?(c.tel||u.tel):r.tel;
   const kind=msgKind(a,q);
   const lab=q==="cli"?(kind==="lemb"?"Lembrar cliente":"Confirmar com cliente"):(kind==="lemb"?"Lembrar responsável":"Avisar responsável");
-  if(q==="resp"&&!a.respId)return `<span class="tag">${a.cargo?esc(a.cargo):"Sem responsável"}</span>`;
+  if(q==="resp"&&!temResp(a))return `<span class="tag">${a.cargo?esc(a.cargo):"Sem responsável"}</span>`;
   const enviado=q==="cli"?(a.lembCli||a.confCli):(a.lembResp||a.confResp);
   const cls=pend?"wa":"done";
   return `<a class="btn sm ${cls}" href="${esc(waLink(tel,montarMsg(a,q,kind)))}" target="_blank" rel="noopener" data-a="ag-wa" data-id="${esc(a.id)}" data-q="${q}" data-k="${kind}" title="${tel?"Abre o WhatsApp com a mensagem pronta":"Sem telefone cadastrado: você escolhe o contato no WhatsApp"}">${I_WA}<span>${pend?lab:(q==="cli"?"Cliente avisado":"Responsável avisado")}</span></a>`;
 }
 function msgKind(a,q){const dd=diffDias(hojeISO(),a.data);const conf=q==="cli"?a.confCli:a.confResp;return (dd<=1&&conf)?"lemb":(dd<=1?"lemb":"conf")}
 function montarMsg(a,q,kind){
-  const c=chm(a.chId)||{};const u=uni(c.uniId)||{};const e=emp(c.empId)||{};const r=resp(a.respId)||{};const cf=conf();
+  const c=chm(a.chId)||{};const u=uni(c.uniId)||{};const e=emp(c.empId)||{};const r=respDe(a)||{};const cf=conf();
   const dd=diffDias(hojeISO(),a.data);
   const vars={cliente:(c.cli||u.prop||"").split(" ")[0]||"tudo bem",construtora:cf.construtora||"",tipo:TIPO_MSG[a.tipo]||"visita",dia:fmtDia(a.data),hora:a.hora||"",
-    unidade:uniLabel(u),empreendimento:e.nome||"",endereco:e.endereco||"(endereço não cadastrado)",responsavel:r.nome||"nossa equipe",especialidade:r.esp||"",
+    unidade:uniLabel(u),empreendimento:e.nome||"",endereco:e.endereco||"(endereço não cadastrado)",responsavel:r.saud||r.nome||"nossa equipe",especialidade:r.esp||"",
     telefone_cliente:fmtTel(c.tel||u.tel)||"(sem telefone)",problema:[c.cat,c.amb,c.desc].filter(Boolean).join(" – "),chamado:c.num||"",quando:dd===0?"hoje":dd===1?"amanhã":""};
   const tpl=q==="resp"?cf.resp:(kind==="lemb"?cf.lembCli:cf.confCli);
   return tpl.replace(/\{(\w+)\}/g,(m,k)=>k in vars?vars[k]:m).replace(/ {2,}/g," ").replace(/ ,/g,",").replace(/Pós-Venda \./g,"Pós-Venda.").trim();
@@ -950,6 +950,11 @@ function entender(txt){
       if(it.item.agendamento&&(/\b(agendar|marcar|agendad|marcad|visita|vistoria|vai|vem|volta)\b/.test(f)||!it.temProblema||it.item.categoria===alvo.cat)){r.acao="agendar";r.chamadoId=alvo.id;r.agendamento=it.item.agendamento;return r}
       if(/^\s*(obs|observacao|nota|anotar|anotacao)\b/.test(f)){r.acao="nota";r.chamadoId=alvo.id;r.nota=it.item.descricao.replace(/^(obs|observa[cç][aã]o|nota|anotar|anota[cç][aã]o)\s*[:\-]?\s*/i,"");return r}
       if(incompleto(alvo)&&it.temProblema){r.acao="completar";r.atualizacoes=[{chamadoId:alvo.id,categoria:it.item.categoria,garantiaItem:it.item.garantiaItem,ambiente:it.item.ambiente,descricao:it.item.descricao,cliente:it.item.cliente,unidadeOrigem:it.item.unidadeOrigem}];return r}
+      // Padrão: escrever sobre uma unidade que já tem chamado aberto ACRESCENTA a esse chamado.
+      // Só abre chamado novo quando é claramente outro tipo de problema (e o formulário avisa e deixa trocar).
+      const outroTipo=it.temProblema&&it.item.categoria!=="Outros"&&alvo.cat!=="Outros"&&it.item.categoria!==alvo.cat&&!incompleto(alvo)&&!mNum;
+      if(!outroTipo){r.acao="nota";r.chamadoId=alvo.id;r.nota=it.item.descricao;
+        r.duvidas.push(`Registrado no chamado #${alvo.num}, que já está aberto nesta unidade. Se for outro problema, toque em "Novo chamado".`);return r}
     }
   }else{
     // várias linhas: se a maioria aponta para chamados importados sem descrição, completa esses
@@ -1041,16 +1046,77 @@ const CARGOS_PADRAO=["Pintor","Eletricista","Encanador","Pedreiro","Limpeza","Ge
 function cargosLista(){const l=S.cfg&&Array.isArray(S.cfg.cargos)&&S.cfg.cargos.length?S.cfg.cargos:CARGOS_PADRAO;return l.map(String).filter(Boolean)}
 function optCargo(sel){const l=cargosLista();const extra=sel&&sel!=="__novo"&&!l.some(c=>norm(c)===norm(sel))?[sel]:[];return `<option value="">Escolha o cargo…</option>${[...l,...extra].map(c=>`<option value="${esc(c)}" ${c===sel?"selected":""}>${esc(c)}</option>`).join("")}<option value="__novo">+ Novo cargo</option>`}
 async function ensureCargo(nome){const n=String(nome||"").trim();if(!n)return;const l=cargosLista();if(l.some(c=>norm(c)===norm(n)))return;try{await saveCfg({cargos:[...l,n]})}catch(e){}}
-const quem=a=>{const r=resp(a.respId);return r?r.nome:(a.cargo||"")};
+const quem=a=>{const r=respDe(a);return r?r.nome:(a.cargo||"")};
+/* ===== Terceirizados: empresa do cadastro de Fornecedores (o mesmo do módulo de vistorias) + quem vai ===== */
+function fornGarantir(){if(!S.forn&&!S.fornCarregando){S.fornCarregando=true;fornCarregar()}}
+const fornNome=f=>String((f&&(f.nomeFantasia||f.razaoSocial))||"").trim();
+const fornEsp=f=>f&&Array.isArray(f.specialties)?f.specialties.filter(Boolean).join(", "):"";
+const fornRotulo=f=>fornNome(f)+(fornEsp(f)?" · "+fornEsp(f):"");
+function fornDe(id){return id&&S.forn?S.forn.find(f=>f.id===id)||null:null}
+function fornPorTexto(t){const n=norm(t);if(!n||!S.forn)return null;return S.forn.find(f=>norm(fornRotulo(f))===n)||S.forn.find(f=>norm(fornNome(f))===n)||S.forn.find(f=>norm(f.razaoSocial||"")===n)||null}
+const ehTerc=a=>!!a&&a.tipoResp==="terceiro";
+const respOk=a=>!ehTerc(a)||!!(a.empreiteiroId||String(a.empreiteiroNome||"").trim());
+function checaResp(a){if(respOk(a))return true;toast("Escolha a empresa terceirizada (ou digite o nome para cadastrar).");return false}
+// responsável da visita no formato do cadastro de responsáveis: {id,nome,esp,tel} (+ saud: como chamar a pessoa na mensagem)
+function respDe(a){if(!a)return null;
+  if(ehTerc(a)){const f=fornDe(a.empreiteiroId);const empresa=fornNome(f)||String(a.empreiteiroNome||"").trim()||"Empresa";const pes=String(a.contatoNome||"").trim();
+    return{id:"t:"+(a.empreiteiroId||norm(empresa))+":"+norm(pes),nome:(pes?pes+" · ":"")+empresa+" (terceirizado)",saud:pes||empresa,esp:fornEsp(f),tel:digits(a.contatoTel||(f&&(f.whatsapp||f.telefone))||""),terc:true,empresa}}
+  const r=resp(a.respId);return r?Object.assign({},r,{saud:r.nome,terc:false}):null}
+const temResp=a=>!!a&&(!!a.respId||ehTerc(a)&&!!(a.empreiteiroId||a.empreiteiroNome));
+const respKey=a=>{if(!temResp(a))return "";const r=respDe(a);return r&&r.terc?r.id:(a.respId||"")};
+function fornContatos(f){return (f&&Array.isArray(f.contacts)?f.contacts:[]).filter(c=>c&&c.nome)}
+function tercFields(p,a){const f=fornDe(a.empreiteiroId);const txt=f?fornRotulo(f):String(a.empreiteiroNome||"");
+  const lista=(S.forn||[]).filter(x=>x.status!=="inativo"||x.id===a.empreiteiroId);
+  return `<div class="s6 fgrid" id="${p}-tercbox" ${ehTerc(a)?"":"hidden"} style="grid-template-columns:inherit">
+     <label class="f s6">Empresa terceirizada<input class="in" id="${p}-forn" list="${p}-fornl" value="${esc(txt)}" data-id="${esc(a.empreiteiroId||"")}" data-t="${esc(txt)}" placeholder="${S.forn?"Digite para buscar no cadastro de Fornecedores…":"Carregando empresas…"}" autocomplete="off" data-c="terc-forn" data-p="${p}"><datalist id="${p}-fornl">${lista.map(x=>`<option value="${esc(fornRotulo(x))}"></option>`).join("")}</datalist></label>
+     <div class="s6 fgrid" id="${p}-fornnovo" hidden style="grid-template-columns:inherit">
+       <div class="s6 small muted">Empresa ainda não cadastrada. Ao salvar, ela entra em Cadastros › Fornecedores.</div>
+       <label class="f s3">Especialidade<input class="in" id="${p}-fn-esp" placeholder="Vidraçaria, gesso, impermeabilização…"></label>
+       <label class="f s3">WhatsApp da empresa<input class="in" id="${p}-fn-tel" inputmode="tel"></label>
+     </div>
+     <label class="f s3">Quem vai<input class="in" id="${p}-cnome" list="${p}-cnomel" value="${esc(a.contatoNome||"")}" placeholder="Nome da pessoa" autocomplete="off" data-c="terc-cnome" data-p="${p}"><datalist id="${p}-cnomel">${fornContatos(f).map(c=>`<option value="${esc(c.nome)}"></option>`).join("")}</datalist></label>
+     <label class="f s3">WhatsApp de quem vai<input class="in" id="${p}-ctel" value="${esc(fmtTel(a.contatoTel||""))}" inputmode="tel" placeholder="(48) 99999-9999"></label>
+   </div>`}
+function tercForn(p){const i=$("#"+p+"-forn");if(!i)return null;const v=i.value.trim();if(i.dataset.id&&v===i.dataset.t)return fornDe(i.dataset.id)||{id:i.dataset.id,nomeFantasia:v,_so:true};return fornPorTexto(v)}
+function tercAtualiza(p){const i=$("#"+p+"-forn");if(!i)return;const f=tercForn(p);const nv=$("#"+p+"-fornnovo");const q=norm(i.value);if(nv)nv.hidden=!!f||!q||!S.forn||S.forn.some(x=>norm(fornRotulo(x)).includes(q));
+  const dl=$("#"+p+"-cnomel");if(dl)dl.innerHTML=fornContatos(f).map(c=>`<option value="${esc(c.nome)}"></option>`).join("")}
+function tercContato(p){const f=tercForn(p);const n=norm(val(p+"-cnome"));const t=$("#"+p+"-ctel");if(!f||!n||!t||t.value.trim())return;
+  const c=fornContatos(f).find(x=>norm(x.nome)===n);if(c&&(c.whatsapp||c.telefone))t.value=fmtTel(c.whatsapp||c.telefone)}
+function lerTerc(p){const f=tercForn(p);const txt=val(p+"-forn").trim();
+  return{tipoResp:"terceiro",respId:"",novoResp:false,respNome:"",respEsp:"",respTel:"",cargo:"",empreiteiroId:f?f.id:"",empreiteiroNome:f?(fornNome(f)||txt):txt,
+    empNovaEsp:f?"":val(p+"-fn-esp").trim(),empNovaTel:f?"":digits(val(p+"-fn-tel")),contatoNome:val(p+"-cnome").trim(),contatoTel:digits(val(p+"-ctel"))}}
+// grava a empresa nova (ou o contato novo "quem vai") no cadastro de Fornecedores e devolve o id da empresa
+async function ensureForn(a){
+  if(!S.forn){S.fornCarregando=true;await fornCarregar()}
+  if(S.fornErro||!S.forn)throw new Error("Não consegui carregar o cadastro de Fornecedores.");
+  let f=fornDe(a.empreiteiroId)||(!a.empreiteiroId?fornPorTexto(a.empreiteiroNome):null);
+  if(!f&&a.empreiteiroId)return a.empreiteiroId;
+  const pes=String(a.contatoNome||"").trim(),tel=digits(a.contatoTel||"");let mudou=false;
+  if(!f){const nome=String(a.empreiteiroNome||"").trim();if(!nome)return "";
+    f={id:"sup"+Date.now().toString(36),nomeFantasia:nome,razaoSocial:"",cnpj:"",telefone:fmtTel(a.empNovaTel||"")||"",whatsapp:fmtTel(a.empNovaTel||"")||"",email:"",site:"",endereco:"",status:"ativo",
+      specialties:a.empNovaEsp?[a.empNovaEsp]:[],contacts:[],buildings:[],notes:"Cadastrada pelo Pós-venda ao marcar uma visita."};mudou=true}
+  const cs=Array.isArray(f.contacts)?f.contacts:[];const ci=pes?cs.findIndex(c=>norm(c.nome)===norm(pes)):-1;
+  if(pes&&ci<0){f=Object.assign({},f,{contacts:[...cs,{id:"sc"+Date.now()+Math.random().toString(36).slice(2,6),nome:pes,cargo:"",email:"",telefone:fmtTel(tel)||"",whatsapp:fmtTel(tel)||""}]});mudou=true}
+  else if(ci>=0&&tel&&!cs[ci].whatsapp&&!cs[ci].telefone){const nc=cs.slice();nc[ci]=Object.assign({},cs[ci],{whatsapp:fmtTel(tel)});f=Object.assign({},f,{contacts:nc});mudou=true}
+  if(mudou){const r=await fetch(FORN_API,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({registros:[f],excluidos:[]})});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    S.forn=[...S.forn.filter(x=>x.id!==f.id),f].sort((x,y)=>fornNome(x).localeCompare(fornNome(y),"pt"))}
+  a.empreiteiroId=f.id;a.empreiteiroNome=fornNome(f);return f.id}
+// campos do responsável gravados na visita (agenda): equipe interna usa respId; terceirizado usa empresa + quem vai
+async function camposResp(a,ctx){
+  if(ehTerc(a)){const id=await ensureForn(a);
+    return{tipoResp:"terceiro",respId:"",cargo:"",empreiteiroId:id,empreiteiroNome:String(a.empreiteiroNome||"").trim(),contatoNome:String(a.contatoNome||"").trim(),contatoTel:digits(a.contatoTel||"")}}
+  const respId=a.novoResp===false?(a.respId||""):await ensureResp(a,ctx);
+  if(!respId&&a.cargo)await ensureCargo(a.cargo);
+  return{tipoResp:"interno",respId,cargo:respId?"":(a.cargo||""),empreiteiroId:"",empreiteiroNome:"",contatoNome:"",contatoTel:""}}
+const TERC_VAZIO={tipoResp:"interno",empreiteiroId:"",empreiteiroNome:"",contatoNome:"",contatoTel:""};
 function optResp(sel){return `<option value="">Sem responsável definido</option>${[...S.resp].sort((a,b)=>a.nome.localeCompare(b.nome)).map(r=>`<option value="${esc(r.id)}" ${r.id===sel?"selected":""}>${esc(r.nome)}${r.esp?" · "+esc(r.esp):""}</option>`).join("")}<option value="__novo" ${sel==="__novo"?"selected":""}>+ Novo responsável</option>`}
 function optCh(sel){return `<option value="">Selecione o chamado…</option>${S.ch.filter(c=>c.status!=="resolvido"||c.id===sel).sort((a,b)=>(b.num||0)-(a.num||0)).map(c=>`<option value="${esc(c.id)}" ${c.id===sel?"selected":""}>#${esc(c.num)} · ${esc(chTitulo(c))} · ${esc(c.cat)}</option>`).join("")}`}
-function agFields(p,a){
-  const respSel=a.respId||(a.respNome?"__novo":"");
-  return `<div class="fgrid">
-   <label class="f s2">Data<input class="in" type="date" id="${p}-data" value="${esc(a.data)}"></label>
-   <label class="f s1">Hora<input class="in" type="time" id="${p}-hora" value="${esc(a.hora)}"></label>
-   <label class="f s3">Tipo<select class="in" id="${p}-tipo">${Object.entries(TIPO).map(([k,v])=>`<option value="${k}" ${a.tipo===k?"selected":""}>${v}</option>`).join("")}</select></label>
-   <label class="f s6">Responsável<select class="in" id="${p}-resp" data-c="resp-sel" data-p="${p}">${optResp(respSel)}</select></label>
+function respFields(p,a,rot){
+  const respSel=a.respId||(a.respNome?"__novo":"");const t=ehTerc(a);fornGarantir();
+  return `<div class="f s6"><span>${esc(rot||"Responsável")}</span><div class="seg" role="group" aria-label="Quem atende" style="align-self:flex-start"><button type="button" data-a="tr-seg" data-p="${p}" data-v="interno" aria-pressed="${!t}">Equipe interna</button><button type="button" data-a="tr-seg" data-p="${p}" data-v="terceiro" aria-pressed="${t}">Terceirizado</button></div><input type="hidden" id="${p}-tr" value="${t?"terceiro":"interno"}"></div>
+   <div class="s6 fgrid" id="${p}-intbox" ${t?"hidden":""} style="grid-template-columns:inherit">
+   <label class="f s6">Equipe interna<select class="in" id="${p}-resp" data-c="resp-sel" data-p="${p}">${optResp(respSel)}</select></label>
    <div class="s6 fgrid" id="${p}-respnovo" ${respSel==="__novo"?"":"hidden"} style="grid-template-columns:inherit">
      <label class="f s2">Nome<input class="in" id="${p}-rnome" value="${esc(a.respNome)}"></label>
      <label class="f s2">Especialidade<input class="in" id="${p}-resp-esp" value="${esc(a.respEsp)}" placeholder="Pintor, encanador…"></label>
@@ -1059,14 +1125,28 @@ function agFields(p,a){
    <div class="s6 fgrid" id="${p}-cargobox" ${respSel===""?"":"hidden"} style="grid-template-columns:inherit">
      <label class="f s3">Cargo de quem vai executar<select class="in" id="${p}-cargo" data-c="cargo-sel" data-p="${p}">${optCargo(a.cargo||"")}</select></label>
      <label class="f s3" id="${p}-cargonovo-l" hidden>Novo cargo<input class="in" id="${p}-cargonovo" placeholder="Ex.: Gesseiro"></label>
-   </div></div>`;
+   </div></div>
+   ${tercFields(p,a)}`;
 }
-function lerAg(p){const sel=val(p+"-resp");return{data:val(p+"-data"),hora:val(p+"-hora"),tipo:val(p+"-tipo")||"vistoria",respId:sel==="__novo"?"":sel,novoResp:sel==="__novo",respNome:val(p+"-rnome"),respEsp:val(p+"-resp-esp"),respTel:digits(val(p+"-rtel")),cargo:(sel===""&&$("#"+p+"-cargo"))?(val(p+"-cargo")==="__novo"?val(p+"-cargonovo").trim():val(p+"-cargo")):""}}
-function lerAgD(p){const a=lerAg(p);return{data:a.data,hora:a.hora,tipo:a.tipo,respId:a.respId,respNome:a.novoResp?a.respNome:"",respEsp:a.respEsp,respTel:a.respTel,cargo:a.cargo||""}}
+function agFields(p,a){
+  return `<div class="fgrid">
+   <label class="f s2">Data<input class="in" type="date" id="${p}-data" value="${esc(a.data)}"></label>
+   <label class="f s1">Hora<input class="in" type="time" id="${p}-hora" value="${esc(a.hora)}"></label>
+   <label class="f s3">Tipo<select class="in" id="${p}-tipo">${Object.entries(TIPO).map(([k,v])=>`<option value="${k}" ${a.tipo===k?"selected":""}>${v}</option>`).join("")}</select></label>
+   ${respFields(p,a)}</div>`;
+}
+function lerAg(p){const b=lerAg0(p);return val(p+"-tr")==="terceiro"?Object.assign(b,lerTerc(p)):Object.assign(b,{tipoResp:"interno"})}
+function lerAg0(p){const sel=val(p+"-resp");return{data:val(p+"-data"),hora:val(p+"-hora"),tipo:val(p+"-tipo")||"vistoria",respId:sel==="__novo"?"":sel,novoResp:sel==="__novo",respNome:val(p+"-rnome"),respEsp:val(p+"-resp-esp"),respTel:digits(val(p+"-rtel")),cargo:(sel===""&&$("#"+p+"-cargo"))?(val(p+"-cargo")==="__novo"?val(p+"-cargonovo").trim():val(p+"-cargo")):""}}
+function lerAgD(p){const a=lerAg(p);const d={data:a.data,hora:a.hora,tipo:a.tipo,respId:a.respId,respNome:a.novoResp?a.respNome:"",respEsp:a.respEsp,respTel:a.respTel,cargo:a.cargo||""};
+  return ehTerc(a)?Object.assign(d,{tipoResp:"terceiro",empreiteiroId:a.empreiteiroId,empreiteiroNome:a.empreiteiroNome,empNovaEsp:a.empNovaEsp,empNovaTel:a.empNovaTel,contatoNome:a.contatoNome,contatoTel:a.contatoTel}):d}
 function openReview(d){S.draft=d;renderReview();const el=$("#review");el&&el.scrollIntoView({behavior:"smooth",block:"start"})}
+function abertosDaUnidade(empId,num,bloco){if(!empId||!num)return [];const u=S.uni.find(x=>x.empId===empId&&norm(x.numero)===norm(num)&&norm(x.bloco||"")===norm(bloco||""));return u?S.ch.filter(c=>c.uniId===u.id&&c.status!=="resolvido").sort((a,b)=>(b.num||0)-(a.num||0)):[]}
 function itemForm(it,i,multi){
-  const p="rv"+i;const empSel=it.empId||(it.empNome?"__novo":"");
+  const p="rv"+i;const empSel=it.empId||(it.empNome?"__novo":"");const ab=abertosDaUnidade(it.empId,it.num,it.bloco);
   return `<div ${multi?'class="panel" style="background:var(--surface)"':""}>
+   ${ab.length?`<div class="banner c-warn" style="margin-bottom:10px"><b>Esta unidade já tem ${ab.length===1?"um chamado aberto":ab.length+" chamados abertos"}.</b> Para não duplicar, registre nele:
+     <div class="row" style="margin-top:8px">${ab.map(c=>`<button class="btn sm" data-a="rv-usar" data-i="${i}" data-ch="${esc(c.id)}">#${esc(c.num)} · ${esc(c.cat||"")}${c.desc&&!incompleto(c)?" – "+esc(String(c.desc).slice(0,40)):""}</button>`).join("")}</div>
+     <div class="small" style="margin-top:6px">Se for um problema diferente, siga com "Novo chamado".</div></div>`:""}
    ${multi?`<label class="row" style="gap:8px;cursor:pointer;font-weight:600"><input type="checkbox" id="${p}-inc" ${it.inc?"checked":""}> Chamado ${i+1} de ${S.draft.itens.length}</label>`:""}
    <div class="fgrid">
      <label class="f s3">Empreendimento<select class="in" id="${p}-emp" data-c="rv-emp" data-p="${p}">${optEmp(empSel)}</select></label>
@@ -1165,10 +1245,9 @@ async function ensureResp(a,ctx){
   if(ctx){ctx.resp=ctx.resp||{};ctx.resp[n]=nid}return nid;
 }
 async function registrarFeita(chId,a,ctx){
-  const respId=await ensureResp(a,ctx);const t=nowTs();
-  if(!respId&&a.cargo)await ensureCargo(a.cargo);
-  await dbAdd("ag",{chId,data:a.data,hora:a.hora||"",tipo:a.tipo||"execucao",respId,cargo:respId?"":(a.cargo||""),status:"concluido",confCli:t,lembCli:t,confResp:t,lembResp:t,retroativa:true,criadoEm:t});
-  return respId;
+  const cr=await camposResp(a,ctx);const t=nowTs();
+  await dbAdd("ag",Object.assign({chId,data:a.data,hora:a.hora||"",tipo:a.tipo||"execucao"},cr,{status:"concluido",confCli:t,lembCli:t,confResp:t,lembResp:t,retroativa:true,criadoEm:t}));
+  return cr;
 }
 async function uploadFotos(files){
   const ids=[];if(!S.assets||!files.length)return ids;
@@ -1178,14 +1257,15 @@ async function uploadFotos(files){
 const hist=(k,txt)=>({t:nowTs(),k,txt,por:S.uid||""});
 function tsDoDia(iso){if(!iso||iso===hojeISO())return nowTs();const d=parseD(iso);d.setHours(12,0,0,0);return d.toISOString()}
 async function criarVisita(chId,a,ctx){
-  if(a.data&&a.data<hojeISO()){const rid=await registrarFeita(chId,a,ctx);const r=resp(rid);return `Visita já realizada em ${fmtD(a.data)}${a.hora?" às "+a.hora:""}${r?" com "+r.nome:(a.respNome?" com "+a.respNome:"")} registrada na agenda`}
-  const respId=await ensureResp(a,ctx);
-  if(!respId&&a.cargo)await ensureCargo(a.cargo);
-  await dbAdd("ag",{chId,data:a.data,hora:a.hora||"",tipo:a.tipo||"vistoria",respId,cargo:respId?"":(a.cargo||""),status:"marcado",confCli:"",lembCli:"",confResp:"",lembResp:"",criadoEm:nowTs()});
-  const r=resp(respId);return `${TIPO[a.tipo]||"Visita"} marcada para ${fmtD(a.data)}${a.hora?" às "+a.hora:""}${r?" com "+r.nome:(a.respNome?" com "+a.respNome:(a.cargo?" ("+a.cargo+")":""))}`;
+  if(a.data&&a.data<hojeISO()){const cr=await registrarFeita(chId,a,ctx);const r=respDe(cr);return `Visita já realizada em ${fmtD(a.data)}${a.hora?" às "+a.hora:""}${r?" com "+r.nome:(a.respNome?" com "+a.respNome:"")} registrada na agenda`}
+  const cr=await camposResp(a,ctx);
+  await dbAdd("ag",Object.assign({chId,data:a.data,hora:a.hora||"",tipo:a.tipo||"vistoria"},cr,{status:"marcado",confCli:"",lembCli:"",confResp:"",lembResp:"",criadoEm:nowTs()}));
+  const r=respDe(cr);return `${TIPO[a.tipo]||"Visita"} marcada para ${fmtD(a.data)}${a.hora?" às "+a.hora:""}${r?" com "+r.nome:(a.respNome?" com "+a.respNome:(a.cargo?" ("+a.cargo+")":""))}`;
 }
 async function salvarReview(){
   capturarReview();const d=S.draft;const btn=$("#rv-save");
+  const agsT=[...(d.acao==="novo"?(d.itens||[]).filter(i=>i.inc&&i.agOn).map(i=>i.ag):[]),...(d.acao==="agendar"&&d.ag?[d.ag]:[])];
+  if(agsT.some(g=>!checaResp(g)))return;
   if(d.acao==="completar"){
     const us=d.upd.filter(u=>u.inc);if(!us.length)return toast("Marque pelo menos um chamado.");
     btn.disabled=true;btn.textContent="Salvando…";
@@ -1498,7 +1578,7 @@ function vPreencher(){
   ${lista.length?`<div class="qf">${lista.map(qfRow).join("")}</div>`:`<div class="empty"><b>Tudo preenchido</b>Nenhum chamado aberto sem descrição.</div>`}`;
 }
 function qfRow(c){
-  const u=uni(c.uniId)||{};const inc=incompleto(c);const uv=ultimaVisita(c.id);const r=uv&&resp(uv.respId);const pv=S.ag.filter(a=>a.chId===c.id&&pendente(a)).sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora))[0];
+  const u=uni(c.uniId)||{};const inc=incompleto(c);const uv=ultimaVisita(c.id);const r=uv&&respDe(uv);const pv=S.ag.filter(a=>a.chId===c.id&&pendente(a)).sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora))[0];
   const info=[u.prop,uv?`última visita ${fmtD(uv.data)}${r?" · "+r.nome:""}`:"",pv?`próxima ${fmtD(pv.data)}`:""].filter(Boolean).join(" · ");
   const id=esc(c.id);
   return `<div class="qf-row ${inc?"":"ok"}" id="qf-${id}">
@@ -1555,7 +1635,7 @@ function drawerCh(c){
   if(m==="obra"){const nf=(c.fotos||[]).length;panel=`<div class="panel"><h3>Registro da visita de hoje</h3>
      <label class="f">O que foi visto ou feito<div class="qf-d"><textarea class="in" id="ob-txt" rows="3" placeholder="Fale ou escreva: o que encontrou, o que foi feito, o que falta"></textarea>${S.dict?`<button class="btn" data-a="ob-mic" id="ob-mic" aria-label="Ditar">${I_MIC}</button>`:""}</div></label>
      ${S.assets?`<div class="row"><button class="btn sm" data-a="dr-foto">${I_CLIP}<span>Tirar ou anexar fotos</span></button><span class="small muted">${nf} ${plural(nf,"foto")} no chamado</span></div>`:""}
-     <div class="fgrid"><label class="f s3">Quem foi<select class="in" id="ob-resp">${optResp("").replace(/<option value="__novo".*?<\/option>/,"")}</select></label>
+     <div class="fgrid">${respFields("ob",{respId:"",respNome:"",respEsp:"",respTel:"",cargo:""},"Quem foi")}
      <label class="f s3">Como ficou<select class="in" id="ob-res"><option value="retorno">Precisa de outra visita</option><option value="resolvido">Resolvido</option><option value="aguardando">Aguardando (material, cliente…)</option></select></label></div>
      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="dr-cancel">Cancelar</button><button class="btn pri" data-a="dr-obra-save">Salvar visita</button></div></div>`}
   if(m==="resolver")panel=`<div class="panel"><h3>Marcar como resolvido</h3><label class="f">O que foi feito<textarea class="in" id="dr-sol" placeholder="Ex.: refeito o rejunte do box e testada a vedação"></textarea></label><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="dr-cancel">Cancelar</button><button class="btn pri" data-a="dr-res-save">Resolver</button></div></div>`;
@@ -1575,6 +1655,11 @@ function drawerCh(c){
      <label class="f s6">Descrição<textarea class="in" id="de-desc">${esc(c.desc||"")}</textarea></label>
      ${c.status==="resolvido"?`<label class="f s6">Solução<textarea class="in" id="de-sol">${esc(c.sol||"")}</textarea></label>`:""}
     </div><div class="row" style="justify-content:space-between"><button class="btn danger sm" data-a="dr-del">Excluir chamado</button><span class="row"><button class="btn ghost" data-a="dr-cancel">Cancelar</button><button class="btn pri" data-a="dr-edit-save">Salvar</button></span></div></div>`;
+  if(m==="juntar"){const outros=S.ch.filter(x=>x.id!==c.id&&x.uniId===c.uniId).sort((a,b)=>(a.num||0)-(b.num||0));
+    panel=`<div class="panel"><h3>Juntar outro chamado a este (#${esc(c.num)})</h3>
+     <label class="f">Chamado duplicado<select class="in" id="jn-de">${outros.map(x=>`<option value="${esc(x.id)}">#${esc(x.num)} · ${esc(x.cat||"")} · ${esc(STATUS[x.status]?STATUS[x.status].l:x.status)}${x.desc&&!incompleto(x)?" – "+esc(String(x.desc).slice(0,50)):""}</option>`).join("")}</select></label>
+     <div class="small muted">As visitas, as fotos e o histórico do duplicado passam para este chamado (#${esc(c.num)}), e o duplicado é apagado. Se este estiver sem descrição, ele fica com a descrição do outro.</div>
+     <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="dr-cancel">Cancelar</button><button class="btn pri" data-a="dr-juntar-ok">Juntar</button></div></div>`}
   if(m==="del")panel=`<div class="conf-ovl" data-a="conf-fora"><div class="panel conf" role="alertdialog" aria-modal="true"><h3>Excluir o chamado #${esc(c.num)}?</h3><div class="small muted">O chamado, as visitas e o histórico serão apagados. Não dá para desfazer.</div><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="dr-cancel">Manter</button><button class="btn danger" data-a="dr-del-ok">Excluir de vez</button></div></div></div>`;
   return `<div class="dr-h"><div style="min-width:0"><div class="row"><span class="mono muted">#${esc(c.num)}</span>${statusPill(c.status)}${c.prio&&c.prio!=="normal"?`<span class="small prio-${c.prio}">${PRIO[c.prio]}</span>`:""}</div>
     <h2 style="margin-top:4px">${esc(chTitulo(c))}</h2>
@@ -1587,6 +1672,7 @@ function drawerCh(c){
       <button class="btn sm" data-a="dr-mode" data-m="feita">Visita já feita</button>
       <button class="btn sm" data-a="dr-mode" data-m="nota">Observação</button>
       <button class="btn sm" data-a="dr-mode" data-m="editar">Editar</button>
+      ${S.ch.some(x=>x.id!==c.id&&x.uniId&&x.uniId===c.uniId)?`<button class="btn sm" data-a="dr-mode" data-m="juntar">Juntar duplicado</button>`:""}
       ${tel?`<a class="btn sm wa" href="${esc(waLink(tel,""))}" target="_blank" rel="noopener">${I_WA}<span>Conversa</span></a>`:""}
     </div>
     ${panel}
@@ -1602,12 +1688,12 @@ function drawerCh(c){
     </dl>
     ${(c.fotos||[]).length?`<div><h3 style="margin-bottom:8px">Fotos</h3><div class="photos">${c.fotos.map(id=>`<a href="/api/posvenda/foto/${esc(id)}" target="_blank" rel="noopener"><img src="/api/posvenda/foto/${esc(id)}" alt="Foto do chamado" loading="lazy"></a>`).join("")}</div></div>`:""}
     ${S.assets?`<div><button class="btn sm" data-a="dr-foto">${I_CLIP}<span>Adicionar fotos</span></button></div>`:""}
-    <div><h3 style="margin-bottom:8px">Visitas</h3>${vis.length?`<div class="todo">${vis.map(a=>{const r=resp(a.respId);
-      if(m==="vis-"+a.id){const del=S.visDel===a.id;return `<div class="panel"><h3>Editar visita</h3>${agFields("dv",{data:a.data,hora:a.hora||"",tipo:a.tipo||"vistoria",respId:a.respId||"",cargo:a.cargo||"",respNome:"",respEsp:"",respTel:""})}
+    <div><h3 style="margin-bottom:8px">Visitas</h3>${vis.length?`<div class="todo">${vis.map(a=>{const r=respDe(a);
+      if(m==="vis-"+a.id){const del=S.visDel===a.id;return `<div class="panel"><h3>Editar visita</h3>${agFields("dv",{data:a.data,hora:a.hora||"",tipo:a.tipo||"vistoria",respId:a.respId||"",cargo:a.cargo||"",respNome:"",respEsp:"",respTel:"",tipoResp:a.tipoResp||"",empreiteiroId:a.empreiteiroId||"",empreiteiroNome:a.empreiteiroNome||"",contatoNome:a.contatoNome||"",contatoTel:a.contatoTel||""})}
         <label class="f">Situação<select class="in" id="dv-st"><option value="marcado" ${a.status==="marcado"?"selected":""}>Marcada (realizada automaticamente quando o horário passar)</option><option value="concluido" ${a.status==="concluido"?"selected":""}>Realizada</option><option value="cancelado" ${a.status==="cancelado"?"selected":""}>Cancelada</option></select></label>
         <div class="row" style="justify-content:space-between">${del?`<span class="row"><span class="small">Excluir esta visita de vez?</span><button class="btn danger sm" data-a="dv-del-ok" data-id="${esc(a.id)}">Excluir</button></span>`:`<button class="btn danger sm" data-a="dv-del" data-id="${esc(a.id)}">Excluir visita</button>`}
         <span class="row"><button class="btn ghost" data-a="dr-cancel">Cancelar</button><button class="btn pri" data-a="dv-save" data-id="${esc(a.id)}">Salvar</button></span></div></div>`}
-      return `<div class="todo-i"><div class="h"><b>${esc(fmtDia(a.data))} · ${esc(a.hora||"")}</b><span class="row" style="gap:6px"><span class="pill ${realizada(a)?"c-ok":a.status==="cancelado"?"c-mut":"c-accent"}">${realizada(a)?"Realizada":a.status==="cancelado"?"Cancelada":"Marcada"}</span><button class="btn ghost sm" data-a="dr-mode" data-m="vis-${esc(a.id)}">Editar</button></span></div><div class="small muted">${esc(TIPO[a.tipo]||"Visita")} · ${esc(r?r.nome+(r.esp?" ("+r.esp+")":""):(a.cargo||"sem responsável"))}</div>${pendente(a)?`<div class="row">${waBtn(a,"cli",precisaCli(a))}${waBtn(a,"resp",precisaResp(a))}</div>`:""}</div>`}).join("")}</div>`:`<div class="muted small">Nenhuma visita ainda.</div>`}</div>
+      return `<div class="todo-i"><div class="h"><b>${esc(fmtDia(a.data))} · ${esc(a.hora||"")}</b><span class="row" style="gap:6px"><span class="pill ${realizada(a)?"c-ok":a.status==="cancelado"?"c-mut":"c-accent"}">${realizada(a)?"Realizada":a.status==="cancelado"?"Cancelada":"Marcada"}</span><button class="btn ghost sm" data-a="dr-mode" data-m="vis-${esc(a.id)}">Editar</button></span></div><div class="small muted">${esc(TIPO[a.tipo]||"Visita")} · ${esc(r?r.nome+(r.esp&&!r.terc?" ("+r.esp+")":""):(a.cargo||"sem responsável"))}</div>${pendente(a)?`<div class="row">${waBtn(a,"cli",precisaCli(a))}${waBtn(a,"resp",precisaResp(a))}</div>`:""}</div>`}).join("")}</div>`:`<div class="muted small">Nenhuma visita ainda.</div>`}</div>
     <div><h3 style="margin-bottom:10px">Histórico</h3><div class="tl">${[...(c.hist||[])].reverse().map(h=>`<div class="tl-i"><div>${esc(h.txt)}</div><div class="w">${esc(fmtTs(h.t))}${nome(h.por)?" · "+esc(nome(h.por)):""}</div>${h.origem?`<details><summary>Mensagem original</summary><pre class="raw">${esc(h.origem)}</pre></details>`:""}</div>`).join("")}</div></div>
     ${c.origem?`<details><summary>Mensagem que abriu o chamado</summary><pre class="raw">${esc(c.origem)}</pre></details>`:""}
   </div>`;
@@ -1630,12 +1716,12 @@ function drawerUni(u){
 async function drAction(a){
   const c=chm(S.drawer&&S.drawer.id);if(!c)return;const h=[...(c.hist||[])];
   try{
-    if(a==="dr-ag-save"){const ag=lerAg("dr");if(!ag.data)return toast("Informe a data da visita.");const fut=ag.data>=hojeISO();h.push(hist("visita",await criarVisita(c.id,ag)));await dbUpd("ch",c.id,{hist:h,status:fut&&c.status!=="resolvido"?"agendado":c.status,atualizadoEm:nowTs()});toast(fut?"Visita agendada":"Visita registrada como já realizada")}
-    if(a==="dr-feita-save"){const ag=lerAg("df");if(!ag.data)return toast("Informe a data da visita.");if(ag.data>hojeISO())return toast("Essa data ainda não chegou. Use Agendar visita.");
-      const ctx={resp:{}};const rid=await registrarFeita(c.id,ag,ctx);const r=resp(rid);
+    if(a==="dr-ag-save"){const ag=lerAg("dr");if(!ag.data)return toast("Informe a data da visita.");if(!checaResp(ag))return;const fut=ag.data>=hojeISO();h.push(hist("visita",await criarVisita(c.id,ag)));await dbUpd("ch",c.id,{hist:h,status:fut&&c.status!=="resolvido"?"agendado":c.status,atualizadoEm:nowTs()});toast(fut?"Visita agendada":"Visita registrada como já realizada")}
+    if(a==="dr-feita-save"){const ag=lerAg("df");if(!ag.data)return toast("Informe a data da visita.");if(ag.data>hojeISO())return toast("Essa data ainda não chegou. Use Agendar visita.");if(!checaResp(ag))return;
+      const ctx={resp:{}};const cr=await registrarFeita(c.id,ag,ctx);const rid=cr.respId;const r=respDe(cr);
       h.push(hist("visita",`Visita já realizada em ${fmtD(ag.data)}${ag.hora?" às "+ag.hora:""}${r?" com "+r.nome:(ag.respNome?" com "+ag.respNome:"")} registrada na agenda`));
       await dbUpd("ch",c.id,{hist:h,atualizadoEm:nowTs()});
-      S.feitaRef=Object.assign({},ag,{respId:rid||ag.respId,respNome:rid?"":ag.respNome,data:""});
+      S.feitaRef=Object.assign({},ag,{respId:rid||ag.respId,respNome:rid?"":ag.respNome,data:""},ehTerc(cr)?{empreiteiroId:cr.empreiteiroId,empreiteiroNome:cr.empreiteiroNome,empNovaEsp:"",empNovaTel:""}:{});
       toast(`Visita de ${fmtD(ag.data)} registrada. Pode lançar a próxima.`);renderDrawer();const f=$("#df-data");f&&f.focus();return}
     if(a==="dr-res-save"){const sol=val("dr-sol");if(!sol)return toast("Conte o que foi feito.");h.push(hist("resolvido","Resolvido: "+sol));await dbUpd("ch",c.id,{hist:h,status:"resolvido",sol,resolvidoEm:nowTs(),atualizadoEm:nowTs()});toast(`Chamado #${c.num} resolvido`)}
     if(a==="dr-nota-save"){const n=val("dr-nota");if(!n)return toast("Escreva a observação.");h.push(hist("nota",n));await dbUpd("ch",c.id,{hist:h,atualizadoEm:nowTs()})}
@@ -1652,26 +1738,35 @@ async function drAction(a){
     if(a==="dr-agu-save"){const que=val("agu-que"),obs=val("agu-obs"),ate=val("agu-ate");if(!ate)return toast("Informe a data.");
       const q=que+(obs?": "+obs:"");h.push(hist("nota",`Aguardando ${q} até ${fmtD(ate)}`));
       await dbUpd("ch",c.id,{status:"aguardando",aguardoQue:q,aguardoAte:ate,hist:h,atualizadoEm:nowTs()});toast(`Volta para "Hoje" em ${fmtD(ate)}`)}
-    if(a==="dr-obra-save"){const txt=val("ob-txt"),res=val("ob-res");const rid=val("ob-resp");
-      if(!txt&&res!=="resolvido")return toast("Conte o que foi visto ou feito.");
-      await registrarFeita(c.id,{data:hojeISO(),hora:agoraHM(),tipo:"vistoria",respId:rid,respNome:""},{resp:{}});
-      h.push(hist("visita",`Visita de ${fmtD(hojeISO())}${resp(rid)?" com "+resp(rid).nome:""}: ${txt||"sem observações"}`));
+    if(a==="dr-obra-save"){const txt=val("ob-txt"),res=val("ob-res");const rr=lerAg("ob");
+      if(!txt&&res!=="resolvido")return toast("Conte o que foi visto ou feito.");if(!checaResp(rr))return;
+      const cr=await registrarFeita(c.id,Object.assign(rr,{data:hojeISO(),hora:agoraHM(),tipo:"vistoria"}),{resp:{}});const rob=respDe(cr);
+      h.push(hist("visita",`Visita de ${fmtD(hojeISO())}${rob?" com "+rob.nome:""}: ${txt||"sem observações"}`));
       const up={hist:h,atualizadoEm:nowTs()};
       if(res==="resolvido"){up.status="resolvido";up.resolvidoEm=nowTs();up.sol=txt||c.sol||"Resolvido na visita de "+fmtD(hojeISO())}
       else if(c.status==="agendado"&&!S.ag.some(x=>x.chId===c.id&&pendente(x)))up.status="aberto";
       await dbUpd("ch",c.id,up);
       if(res==="aguardando"){S.drawerMode="aguardar";renderDrawer();toast("Visita salva. Agora diga o que está aguardando.");return}
       toast(res==="resolvido"?`Chamado #${c.num} resolvido`:"Visita registrada")}
+    if(a==="dr-juntar-ok"){const o=chm(val("jn-de"));if(!o)return toast("Escolha o chamado duplicado.");
+      for(const v of S.ag.filter(x=>x.chId===o.id))await dbUpd("ag",v.id,{chId:c.id});
+      const hs=[...h,...(o.hist||[]).map(x=>Object.assign({},x,{txt:`[do #${o.num}] ${x.txt}`}))].sort((x,y)=>String(x.t).localeCompare(String(y.t)));
+      hs.push(hist("edicao",`Chamado #${o.num} juntado a este`));
+      const up={hist:hs,fotos:[...(c.fotos||[]),...(o.fotos||[])],atualizadoEm:nowTs()};
+      if(incompleto(c)&&!incompleto(o)){Object.assign(up,{cat:o.cat,desc:o.desc,amb:o.amb||c.amb||"",garItem:o.garItem||c.garItem||""})}
+      if(String(o.abertoEm||"")<String(c.abertoEm||""))up.abertoEm=o.abertoEm;
+      if(!c.respInt&&o.respInt)up.respInt=o.respInt;
+      if(c.status!=="resolvido"&&S.ag.some(x=>(x.chId===o.id||x.chId===c.id)&&pendente(x)))up.status="agendado";
+      await dbUpd("ch",c.id,up);await dbDel("ch",o.id);toast(`#${o.num} juntado ao #${c.num}`)}
     if(a==="dv-save"||a==="dv-del-ok"){
       const vid=arguments[1];const v=S.M.ag.get(vid);if(!v)return;let txt;
       if(a==="dv-del-ok"){await dbDel("ag",vid);txt=`Visita de ${fmtD(v.data)} excluída`;S.visDel=null}
-      else{const ag=lerAg("dv");if(!ag.data)return toast("Informe a data.");const st=val("dv-st")||"marcado";
-        const respId=ag.novoResp?await ensureResp(ag):ag.respId;
-        if(!respId&&ag.cargo)await ensureCargo(ag.cargo);
-        const up={data:ag.data,hora:ag.hora,tipo:ag.tipo,respId,cargo:respId?"":(ag.cargo||""),status:st};
-        if(ag.data!==v.data||ag.hora!==(v.hora||"")||respId!==v.respId)Object.assign(up,{confCli:"",lembCli:"",confResp:"",lembResp:""});
-        await dbUpd("ag",vid,up);const r=resp(respId);
-        txt=`Visita alterada: ${fmtD(ag.data)}${ag.hora?" às "+ag.hora:""} · ${TIPO[ag.tipo]||"Visita"}${r?" · "+r.nome:(ag.cargo?" · "+ag.cargo:"")}${st==="cancelado"?" · cancelada":st==="concluido"?" · realizada":""}`}
+      else{const ag=lerAg("dv");if(!ag.data)return toast("Informe a data.");if(!checaResp(ag))return;const st=val("dv-st")||"marcado";
+        const cr=await camposResp(ag);
+        const up=Object.assign({data:ag.data,hora:ag.hora,tipo:ag.tipo},cr,{status:st});
+        if(ag.data!==v.data||ag.hora!==(v.hora||"")||respKey(up)!==respKey(v))Object.assign(up,{confCli:"",lembCli:"",confResp:"",lembResp:""});
+        await dbUpd("ag",vid,up);const r=respDe(up);
+        txt=`Visita alterada: ${fmtD(ag.data)}${ag.hora?" às "+ag.hora:""} · ${TIPO[ag.tipo]||"Visita"}${r?" · "+r.nome:(cr.cargo?" · "+cr.cargo:"")}${st==="cancelado"?" · cancelada":st==="concluido"?" · realizada":""}`}
       const outras=S.ag.filter(x=>x.chId===c.id&&x.id!==vid);
       const temPend=outras.some(pendente)||(a==="dv-save"&&val("dv-st")==="marcado"&&val("dv-data")>=hojeISO());
       const st2=c.status==="resolvido"?c.status:(temPend?"agendado":(c.status==="agendado"?"aberto":c.status));
@@ -1729,7 +1824,7 @@ function vAgenda(){
 }
 function evCard(a){
   const c=chm(a.chId)||{};const r=resp(a.respId);const ed=S.edit&&S.edit.kind==="ag-rem"&&S.edit.id===a.id;
-  if(ed)return `<div class="ev"><b>Remarcar</b><input class="in" type="date" id="ar-data" value="${esc(a.data)}"><input class="in" type="time" id="ar-hora" value="${esc(a.hora||"")}"><select class="in" id="ar-resp">${optResp(a.respId).replace(/<option value="__novo".*?<\/option>/,"")}</select><div class="btns"><button class="btn" data-a="ed-cancel">Cancelar</button><button class="btn pri" data-a="ar-save" data-id="${esc(a.id)}">Salvar</button><button class="btn danger" data-a="ag-cancelar" data-id="${esc(a.id)}">Cancelar visita</button></div></div>`;
+  if(ed)return `<div class="ev"><b>Remarcar</b><input class="in" type="date" id="ar-data" value="${esc(a.data)}"><input class="in" type="time" id="ar-hora" value="${esc(a.hora||"")}"><select class="in" id="ar-resp">${ehTerc(a)?`<option value="__terc" selected>${esc((respDe(a)||{}).nome||"Terceirizado")}</option>`:""}${optResp(a.respId).replace(/<option value="__novo".*?<\/option>/,"")}</select><div class="btns"><button class="btn" data-a="ed-cancel">Cancelar</button><button class="btn pri" data-a="ar-save" data-id="${esc(a.id)}">Salvar</button><button class="btn danger" data-a="ag-cancelar" data-id="${esc(a.id)}">Cancelar visita</button></div></div>`;
   return `<div class="ev ${a.status}"><span class="hr">${esc(a.hora||"--:--")} · ${esc(TIPO[a.tipo]||"")}</span>
    <a class="t" data-a="open-ch" data-id="${esc(a.chId)}">${esc(c.id?chTitulo(c):"Chamado removido")}</a>
    <span class="who">${esc(c.cat||"")}${quem(a)?" · "+esc(quem(a)):""}</span>
@@ -1738,8 +1833,8 @@ function evCard(a){
 async function agAction(act,id){
   const a=S.M.ag.get(id);if(!a)return;const c=chm(a.chId);
   try{
-    if(act==="ar-save"){const data=val("ar-data"),hora=val("ar-hora"),respId=val("ar-resp");if(!data)return toast("Informe a data.");
-      const mudouData=data!==a.data||hora!==a.hora;await dbUpd("ag",id,Object.assign({data,hora,respId},respId?{cargo:""}:{},mudouData?{confCli:"",lembCli:"",confResp:"",lembResp:""}:{}));
+    if(act==="ar-save"){const data=val("ar-data"),hora=val("ar-hora"),selR=val("ar-resp");if(!data)return toast("Informe a data.");const manter=selR==="__terc",respId=manter?"":selR;
+      const mudouData=data!==a.data||hora!==a.hora;await dbUpd("ag",id,Object.assign({data,hora},manter?{}:Object.assign({respId},TERC_VAZIO),respId?{cargo:""}:{},mudouData?{confCli:"",lembCli:"",confResp:"",lembResp:""}:{}));
       if(c)await dbUpd("ch",c.id,{hist:[...(c.hist||[]),hist("visita",`Visita remarcada para ${fmtD(data)}${hora?" às "+hora:""}`)],atualizadoEm:nowTs()});
       S.edit=null;renderView(true);toast(mudouData?"Visita remarcada. Avise o cliente e o responsável de novo.":"Visita atualizada")}
     if(act==="ag-cancelar"){await dbUpd("ag",id,{status:"cancelado"});if(c){const ainda=S.ag.some(x=>x.chId===c.id&&x.id!==id&&x.status==="marcado");await dbUpd("ch",c.id,{hist:[...(c.hist||[]),hist("visita",`Visita de ${fmtD(a.data)} cancelada`)],status:c.status==="agendado"&&!ainda?"aberto":c.status,atualizadoEm:nowTs()})}S.edit=null;renderView(true);toast("Visita cancelada")}
@@ -1769,7 +1864,7 @@ function vPainel(){
   // reincidência
   const porUni=contar(S.ch,c=>c.uniId).filter(x=>x[1]>1).slice(0,8);
   // responsáveis
-  const vis=S.ag.filter(a=>a.data>=ini&&a.respId);const porResp=contar(vis,a=>a.respId).slice(0,8);
+  const vis=S.ag.filter(a=>a.data>=ini&&temResp(a));const porResp=contar(vis.filter(a=>!ehTerc(a)),a=>a.respId).slice(0,8);const porTerc=contar(vis.filter(ehTerc),a=>(respDe(a)||{}).empresa).slice(0,8);
   const nomeP={"30":"últimos 30 dias","90":"últimos 90 dias","365":"últimos 12 meses","tudo":"todo o período"}[S.painelPer];
   return `<div class="top"><div><h1>Painel</h1><div class="sub">Onde estão os problemas · ${nomeP}</div></div>
    <div class="seg" role="group" aria-label="Período">${[["30","30 dias"],["90","90 dias"],["365","12 meses"],["tudo","Tudo"]].map(([k,l])=>`<button data-a="pn-per" data-p="${k}" aria-pressed="${S.painelPer===k}">${l}</button>`).join("")}</div></div>
@@ -1800,7 +1895,7 @@ function vPainel(){
   <div class="grid2">
     <div class="card"><div class="card-h"><h2>Unidades reincidentes</h2><span class="small muted">2 ou mais chamados</span></div>
      ${porUni.length?`<div class="list">${porUni.map(([id,n])=>{const u=uni(id);if(!u)return "";const cats=[...new Set(S.ch.filter(c=>c.uniId===id).map(c=>c.cat))];return `<button class="li" data-a="open-uni" data-id="${esc(id)}"><span class="num">${n}×</span><span style="min-width:0"><div class="t">${esc((emp(u.empId)||{}).nome||"")} · ${esc(uniLabel(u))}</div><div class="d">${esc(cats.join(", "))}</div></span><span></span></button>`}).join("")}</div>`:`<div class="muted small">Nenhuma unidade com mais de um chamado.</div>`}</div>
-    <div class="card"><div class="card-h"><h2>Responsáveis mais acionados</h2></div>${barras(porResp.map(([id,n])=>[(resp(id)||{}).nome||"—",n]))}</div>
+    <div class="card"><div class="card-h"><h2>Responsáveis mais acionados</h2></div><div class="small muted" style="margin:0 0 6px;font-weight:600">Equipe interna</div>${barras(porResp.map(([id,n])=>[(resp(id)||{}).nome||"—",n]))}<div class="small muted" style="margin:14px 0 6px;font-weight:600">Terceirizados (por empresa)</div>${barras(porTerc)}</div>
   </div>`;
 }
 
@@ -2125,6 +2220,15 @@ document.addEventListener("click",e=>{
   if(a==="rv-acao"){capturarReview();S.draft.acao=el.dataset.k;if(S.draft.acao==="agendar")S.draft.agOn=true;renderReview();return}
   if(a==="rv-cancel"){S.draft=null;renderReview();return}
   if(a==="rv-merge"){juntarItens();return}
+  if(a==="tr-seg"){const p=el.dataset.p,v=el.dataset.v;const h=$("#"+p+"-tr");if(h)h.value=v;el.parentElement.querySelectorAll("[data-a=tr-seg]").forEach(b=>b.setAttribute("aria-pressed",String(b===el)));
+    const ib=$("#"+p+"-intbox"),tb=$("#"+p+"-tercbox");if(ib)ib.hidden=v==="terceiro";if(tb)tb.hidden=v!=="terceiro";if(v==="terceiro"){tercAtualiza(p);const f=$("#"+p+"-forn");f&&!f.value&&f.focus()}return}
+  if(a==="rv-usar"){capturarReview();const d=S.draft;const k=+el.dataset.i;const it=d.itens[k];const ch=chm(el.dataset.ch);if(!it||!ch)return;if(it.agOn&&!checaResp(it.ag))return;
+    if(d.itens.length===1){d.acao=it.agOn?"agendar":"nota";d.chId=ch.id;d.nota=[it.desc,it.andamento].filter(Boolean).join(" · ");if(it.agOn)d.ag=it.ag;
+      d.duvidas=[`Vai para o chamado #${ch.num}.`];renderReview();return}
+    el.disabled=true;(async()=>{try{const h=[...(ch.hist||[]),hist("nota",[it.desc,it.andamento].filter(Boolean).join(" · ")||"Atualização")];
+      if(it.agOn&&it.ag.data)h.push(hist("visita",await criarVisita(ch.id,it.ag)));
+      await dbUpd("ch",ch.id,{hist:h,atualizadoEm:nowTs(),...(it.agOn&&it.ag.data>=hojeISO()&&ch.status!=="resolvido"?{status:"agendado"}:{})});
+      d.itens.splice(k,1);renderReview();toast(`Registrado no chamado #${ch.num}`)}catch(err){dbErr(err);el.disabled=false}})();return}
   if(a==="rv-feita-rm"){capturarReview();S.draft.itens[+el.dataset.i].feitas.splice(+el.dataset.j,1);renderReview();return}
   if(a==="rv-add"){capturarReview();const b=S.draft.itens[0]||itemVazio("");const n=itemVazio("");Object.assign(n,{empId:b.empId,empNome:b.empNome,num:b.num,bloco:b.bloco,cli:b.cli,tel:b.tel,data:b.data,desc:""});S.draft.itens.push(n);renderReview();const f=$("#rv"+(S.draft.itens.length-1)+"-desc");f&&f.focus();return}
   if(a==="rv-save"){salvarReview();return}
@@ -2141,7 +2245,7 @@ document.addEventListener("click",e=>{
   if(a==="dr-foto"){S.fotoAlvo=S.drawer.id;$("#q-file").click();return}
   if(a==="dv-del"){S.visDel=el.dataset.id;renderDrawer();return}
   if(a==="dv-save"||a==="dv-del-ok"){el.disabled=true;drAction(a,el.dataset.id).finally(()=>{el.disabled=false});return}
-  if(["dr-agu-save","dr-obra-save","dr-feita-save","dr-ag-save","dr-res-save","dr-nota-save","dr-reabrir","dr-edit-save","dr-del-ok"].includes(a)){el.disabled=true;drAction(a).finally(()=>{el.disabled=false});return}
+  if(["dr-juntar-ok","dr-agu-save","dr-obra-save","dr-feita-save","dr-ag-save","dr-res-save","dr-nota-save","dr-reabrir","dr-edit-save","dr-del-ok"].includes(a)){el.disabled=true;drAction(a).finally(()=>{el.disabled=false});return}
   // agenda
   if(a==="ag-prev"){S.agSem--;S.agDir=-1;renderView(true);return}
   if(a==="ag-next"){S.agSem++;S.agDir=1;renderView(true);return}
@@ -2151,7 +2255,7 @@ if(a==="ag-cal-prev"){S.agMes=new Date(S.agMes.getFullYear(),S.agMes.getMonth()-
 if(a==="ag-cal-next"){S.agMes=new Date(S.agMes.getFullYear(),S.agMes.getMonth()+1,1);S.agMesDir=1;renderView(true);return}
 if(a==="ag-cal-dia"){agEscolheData(el.dataset.d);return}
   if(a==="ag-new"){S.edit={kind:"ag-new"};renderView(true);return}
-  if(a==="an-save"){const chId=val("an-ch");const ag=lerAg("an");if(!chId)return toast("Escolha o chamado.");if(!ag.data)return toast("Informe a data.");
+  if(a==="an-save"){const chId=val("an-ch");const ag=lerAg("an");if(!chId)return toast("Escolha o chamado.");if(!ag.data)return toast("Informe a data.");if(!checaResp(ag))return;
     el.disabled=true;(async()=>{try{const c=chm(chId);const txt=await criarVisita(chId,ag);await dbUpd("ch",chId,{hist:[...(c.hist||[]),hist("visita",txt)],status:c.status==="resolvido"||ag.data<hojeISO()?c.status:"agendado",atualizadoEm:nowTs()});S.edit=null;renderView(true);toast("Visita agendada")}catch(err){dbErr(err);el.disabled=false}})();return}
   if(a==="cal-prev"||a==="cal-next"){const b=S.calMes||new Date(new Date().getFullYear(),new Date().getMonth(),1);S.calMes=new Date(b.getFullYear(),b.getMonth()+(a==="cal-next"?1:-1),1);S.calDir=a==="cal-next"?1:-1;renderView(true);return}
   if(a==="cal-hoje"){S.calMes=null;S.calDia=null;S.calDir=null;renderView(true);return}
@@ -2164,7 +2268,7 @@ if(a==="ag-cal-dia"){agEscolheData(el.dataset.d);return}
       else{await dbUpd("ch",c.id,{adiarAte:isoDate(addDays(new Date(),7))});toast("Pergunto de novo em 7 dias")}
     }catch(err){dbErr(err);el.disabled=false}})();return}
   if(a==="ag-wa"){const id=el.dataset.id,q=el.dataset.q,k=el.dataset.k;setTimeout(()=>toast(q==="cli"?"Enviou a mensagem para o cliente?":"Enviou a mensagem para o responsável?",{l:"Sim, enviei",t:20000,fn:()=>marcarAviso(id,q,k)}),400);return}
-  if(a==="rot-wa"){const rid=el.dataset.r,dia=el.dataset.d;const r=resp(rid)||{};setTimeout(()=>toast(`Enviou o roteiro para ${r.nome||"o prestador"}?`,{l:"Sim, enviei",t:20000,fn:async()=>{const t=nowTs();for(const v of S.ag.filter(x=>x.data===dia&&x.respId===rid&&pendente(x))){try{await dbUpd("ag",v.id,{confResp:v.confResp||t,lembResp:t})}catch(e){}}}}),400);return}
+  if(a==="rot-wa"){const rid=el.dataset.r,dia=el.dataset.d;const r=respDe(S.ag.find(x=>x.data===dia&&respKey(x)===rid))||{};setTimeout(()=>toast(`Enviou o roteiro para ${r.saud||r.nome||"o prestador"}?`,{l:"Sim, enviei",t:20000,fn:async()=>{const t=nowTs();for(const v of S.ag.filter(x=>x.data===dia&&respKey(x)===rid&&pendente(x))){try{await dbUpd("ag",v.id,{confResp:v.confResp||t,lembResp:t})}catch(e){}}}}),400);return}
   if(a==="hoje-modo"){openCh(el.dataset.id);S.drawerMode=el.dataset.m;renderDrawer();return}
   if(a==="hj-todos"){S.hjTodos=true;renderView(true);return}
   if(a==="hj-meus"){S.hojeMeus=el.dataset.v==="1";renderView(true);return}
@@ -2234,6 +2338,7 @@ document.addEventListener("click",e=>{const d=$("#chf-cat-d");if(!d)return;if(e.
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-upag],[data-fpag]");if(!b||b.disabled)return;e.stopPropagation();if(b.dataset.upag!==undefined){S.cadUPag=+b.dataset.upag;renderCadUni()}else{S.fornPag=+b.dataset.fpag;renderCadForn()}});
 document.addEventListener("input",e=>{if(e.target.id==="forn-q"){S.fornQ=e.target.value;S.fornPag=0;renderCadForn()}if(e.target.id==="chf-q"){S.chF.q=e.target.value;renderChList()}if(e.target.id==="busca")renderBusca();if(e.target.id==="cad-uq"||e.target.id==="cad-ufin")filtrarUnidades()});
 document.addEventListener("change",e=>{if(e.target.id==="cad-ufin")filtrarUnidades()});
+document.addEventListener("input",e=>{const el=e.target,c=el&&el.dataset&&el.dataset.c;if(c==="terc-forn")tercAtualiza(el.dataset.p);else if(c==="terc-cnome")tercContato(el.dataset.p)});
 // filtra a lista de unidades na tela (sem recarregar a página)
 function filtrarUnidades(){S.cadUq=($("#cad-uq")||{}).value||"";S.cadUfin=($("#cad-ufin")||{}).value||"";S.cadUPag=0;renderCadUni();return;const q=norm(($("#cad-uq")||{}).value||"");const f=($("#cad-ufin")||{}).value||"";let n=0;document.querySelectorAll("tr[data-busca]").forEach(tr=>{const ok=(!q||tr.dataset.busca.includes(q))&&(!f||tr.dataset.fin===f);tr.hidden=!ok;if(ok)n++});const c=$("#cad-ucont");if(c)c.textContent=(q||f)?`${n} de ${document.querySelectorAll("tr[data-busca]").length} unidades`:""}
 document.addEventListener("focusout",e=>{if(e.target.id==="busca")setTimeout(()=>{const b=$("#busca-r");if(b&&!$("#busca-w").contains(document.activeElement))b.hidden=true},200)});
@@ -2261,7 +2366,7 @@ async function init(){
     const b=$("#q-mic");if(b)b.hidden=false;
   }
   if(!db){S.dbState="sem";renderBanner();renderView(true);return}
-  subscribe();renderView(true);
+  subscribe();renderView(true);fornGarantir();
 }
 /* ===== SELETORES NO PADRÃO DA VISTORIAS ===== O select nativo continua no lugar (escondido e com o valor);
    a caixa e a lista são desenhadas aqui, com animação. Escolher uma opção grava no select e avisa "change". */

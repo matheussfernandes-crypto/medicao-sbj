@@ -153,13 +153,19 @@ export function eventoDaVisita(v: Doc, b: Base) {
   const c = b.ch.get(a.chId) || {};
   const u = b.uni.get(c.uniId) || {};
   const e = b.emp.get(c.empId) || {};
-  const r = b.resp.get(a.respId) || {};
+  // terceirizado: "Quem vai · Empresa (terceirizado)"; equipe interna: cadastro de responsáveis
+  const terc = a.tipoResp === "terceiro";
+  const empresa = String(a.empreiteiroNome || "").trim();
+  const pessoa = String(a.contatoNome || "").trim();
+  const r = terc
+    ? { nome: [pessoa, empresa].filter(Boolean).join(" · ") + " (terceirizado)", curto: pessoa ? pessoa + (empresa ? " (" + empresa + ")" : "") : empresa, esp: "" }
+    : b.resp.get(a.respId) || {};
   const unidade = u.numero ? (u.bloco ? `Bl. ${u.bloco} ` : "") + u.numero : "";
   const feita = a.status === "concluido";
   const hora = /^\d{2}:\d{2}$/.test(a.hora || "") ? a.hora : "";
   // título: apto obra quem vai (separados por espaço, sem hífen). A hora não entra aqui: o Google já mostra o horário do evento
   // (senão aparecia duplicado, ex.: "1:30pm 13:30 - 503 ...")
-  const summary = (feita ? "✓ " : "") + [unidade, obraCurta(e.nome), r.nome || a.cargo].filter(Boolean).join(" ");
+  const summary = (feita ? "✓ " : "") + [unidade, obraCurta(e.nome), r.curto || r.nome || a.cargo].filter(Boolean).join(" ");
   const description = [
     TIPO[a.tipo] || "Visita",
     c.num ? `Chamado #${c.num}${c.cat ? " · " + c.cat : ""}` : "",

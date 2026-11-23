@@ -10,14 +10,16 @@ import { createClient } from "@/lib/supabase/client";
 import { converter } from "@/lib/especificacoes/importar";
 import { enviarFoto } from "@/lib/especificacoes/imagem";
 import { fold, GRUPOS } from "@/lib/especificacoes/regras";
+import { rotuloUnidadeSbj, type UnidadeSbj } from "@/lib/especificacoes/unidades";
+import Selecao from "@/components/ui/Selecao";
 import { excluirProjeto, importarLinhas, salvarProjeto } from "../actions";
 import { btnIcone, btnPrim, btnSec, campo, erroCls, rotulo } from "../ui";
 
 export type ProjetoResumo = {
-  id: string; codigo: string | null; titulo: string; cliente: string | null; atualizado_em: string; qtd: Record<string, number>;
+  id: string; codigo: string | null; titulo: string; cliente: string | null; unidade_id: string | null; unidade: string | null; atualizado_em: string; qtd: Record<string, number>;
 };
 
-export default function ListaProjetos({ projetos }: { projetos: ProjetoResumo[] }) {
+export default function ListaProjetos({ projetos, unidades }: { projetos: ProjetoResumo[]; unidades: UnidadeSbj[] }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<ProjetoResumo | null>(null);
@@ -34,6 +36,7 @@ export default function ListaProjetos({ projetos }: { projetos: ProjetoResumo[] 
     try {
       const novo = await salvarProjeto({
         id, codigo: String(fd.get("codigo") ?? ""), titulo: String(fd.get("titulo") ?? ""), cliente: String(fd.get("cliente") ?? ""),
+        unidade_id: String(fd.get("unidade_id") ?? ""),
       });
       setEditando(null);
       if (!id) router.push(`/arquitetura/especificacoes/${novo}`);
@@ -116,7 +119,7 @@ export default function ListaProjetos({ projetos }: { projetos: ProjetoResumo[] 
       {aviso && <div className="rounded-[10px] border border-[#BFE3CC] bg-[#EAF7EF] px-3 py-2 text-sm text-success">{aviso}</div>}
 
       <PainelCadastro titulo="Projetos" rotuloBotao="Novo projeto">
-        <FormProjeto onSalvar={(fd) => gravar(fd)} />
+        <FormProjeto unidades={unidades} onSalvar={(fd) => gravar(fd)} />
       </PainelCadastro>
 
       <div className="card space-y-3">
@@ -129,7 +132,7 @@ export default function ListaProjetos({ projetos }: { projetos: ProjetoResumo[] 
           {visiveis.map((p) =>
             editando?.id === p.id ? (
               <li key={p.id} className="py-3">
-                <FormProjeto inicial={p} onSalvar={(fd) => gravar(fd, p.id)} onCancelar={() => setEditando(null)} />
+                <FormProjeto unidades={unidades} inicial={p} onSalvar={(fd) => gravar(fd, p.id)} onCancelar={() => setEditando(null)} />
               </li>
             ) : (
               <li key={p.id} className="flex items-center gap-2 py-2">
@@ -140,7 +143,7 @@ export default function ListaProjetos({ projetos }: { projetos: ProjetoResumo[] 
                       <span className="font-semibold text-ink-900 group-hover:text-primary">{p.titulo}</span>
                     </div>
                     <div className="text-xs text-ink-500">
-                      {p.cliente || "Sem cliente"} ·{" "}
+                      {p.cliente || "Sem cliente"} · {p.unidade ? <span className="text-primary">{p.unidade}</span> : "sem unidade SBJ"} ·{" "}
                       {GRUPOS.map((g) => `${p.qtd[g.id] ?? 0} ${g.curto.toLowerCase()}`).join(" · ")}
                     </div>
                   </div>
@@ -161,11 +164,30 @@ export default function ListaProjetos({ projetos }: { projetos: ProjetoResumo[] 
   );
 }
 
-function FormProjeto({ inicial, onSalvar, onCancelar }: { inicial?: ProjetoResumo; onSalvar: (fd: FormData) => Promise<void>; onCancelar?: () => void }) {
+function FormProjeto({
+  inicial, unidades, onSalvar, onCancelar,
+}: { inicial?: ProjetoResumo; unidades: UnidadeSbj[]; onSalvar: (fd: FormData) => Promise<void>; onCancelar?: () => void }) {
   const [salvando, setSalvando] = useState(false);
+  const [titulo, setTitulo] = useState(inicial?.titulo ?? "");
+  const atual = unidades.find((u) => u.id === inicial?.unidade_id);
+  const [emp, setEmp] = useState(atual?.empId ?? "");
+  const [uni, setUni] = useState(atual?.id ?? "");
+  const emps = Array.from(new Map(unidades.map((u) => [u.empId, u.empNome])).entries()).filter(([, n]) => n).sort((a, b) => a[1].localeCompare(b[1]));
+  // sugestão pelo nome do projeto: "701 Campeche" -> Ilha do Campeche, unidade 701
+  const sugestao = (() => {
+    if (uni) return null;
+    const f = fold(titulo);
+    const num = f.match(/d{2,4}/)?.[0];
+    if (!num) return null;
+    const e = emps.find(([, n]) => {
+      const palavra = fold(n).split(/s+/).pop() ?? "";
+      return palavra.length > 2 && f.includes(palavra);
+    });
+    return e ? unidades.find((u) => u.empId === e[0] && fold(u.numero) === num) ?? null : null;
+  })();
   return (
     <form
-      className="grid gap-3 sm:grid-cols-[140px_1fr_1fr_auto] sm:items-end"
+      className="grid gap-3 sm:grid-cols-[140px_1fr_1fr] lg:grid-cols-[120px_1fr_1fr_1fr_1fr_auto] sm:items-end"
       onSubmit={async (e) => {
         e.preventDefault();
         setSalvando(true);
@@ -179,12 +201,32 @@ function FormProjeto({ inicial, onSalvar, onCancelar }: { inicial?: ProjetoResum
       </label>
       <label>
         <span className={rotulo}>Unidade / projeto *</span>
-        <input name="titulo" className={campo} placeholder="701 Campeche" required defaultValue={inicial?.titulo ?? ""} />
+        <input name="titulo" className={campo} placeholder="701 Campeche" required value={titulo} onChange={(e) => setTitulo(e.target.value)} />
       </label>
       <label>
         <span className={rotulo}>Cliente</span>
         <input name="cliente" className={campo} defaultValue={inicial?.cliente ?? ""} />
       </label>
+      <input type="hidden" name="unidade_id" value={uni} />
+      <label>
+        <span className={rotulo}>Empreendimento SBJ</span>
+        <Selecao className="w-full" value={emp} onChange={(e) => { setEmp(e.target.value); setUni(""); }}>
+          <option value="">Nenhum</option>
+          {emps.map(([id, n]) => <option key={id} value={id}>{n}</option>)}
+        </Selecao>
+      </label>
+      <label>
+        <span className={rotulo}>Unidade</span>
+        <Selecao className="w-full" value={uni} onChange={(e) => setUni(e.target.value)} disabled={!emp}>
+          <option value="">—</option>
+          {unidades.filter((u) => u.empId === emp).map((u) => <option key={u.id} value={u.id}>{u.numero}{u.bloco ? ` bl. ${u.bloco}` : ""}{u.prop ? ` · ${u.prop}` : ""}</option>)}
+        </Selecao>
+      </label>
+      {sugestao && (
+        <button type="button" className="text-left text-xs text-primary hover:underline sm:col-span-2" onClick={() => { setEmp(sugestao.empId); setUni(sugestao.id); }}>
+          Ligar a {rotuloUnidadeSbj(sugestao)}{sugestao.prop ? ` (${sugestao.prop})` : ""}?
+        </button>
+      )}
       <div className="flex gap-2">
         <button className={btnPrim} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</button>
         {onCancelar && <button type="button" className={btnSec} onClick={onCancelar}>Cancelar</button>}

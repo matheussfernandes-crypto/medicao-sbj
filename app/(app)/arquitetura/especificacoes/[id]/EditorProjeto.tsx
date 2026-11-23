@@ -3,21 +3,24 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, FileText, ListChecks, Pencil, Plus, Trash2, Type } from "lucide-react";
 import { pedirConfirmacao } from "@/components/ui/Confirmacao";
 import Selecao from "@/components/ui/Selecao";
 import {
   AMBIENTES_SUGERIDOS, GRUPOS, VID, descVidro, fold, medidasVidro, refDoModelo, tituloAmbiente, type Grupo, type Vidro,
 } from "@/lib/especificacoes/regras";
-import { excluirItem, moverItem, renomearAmbiente, salvarItem, salvarNota } from "../../actions";
-import { FotoCampo, Janela, Miniatura, SeletorModelo, type Modelo } from "../../comum";
+import { sugestoesDoAmbiente } from "@/lib/especificacoes/texto";
+import { criarItens, excluirAmbiente, excluirItem, moverItem, renomearAmbiente, salvarItem, salvarNota } from "../../actions";
+import { DesenhoVidro, FotoCampo, Janela, Miniatura, SeletorModelo, type Modelo } from "../../comum";
 import { btnIcone, btnPrim, btnSec, campo, erroCls, rotulo } from "../../ui";
+import TextoLivre from "./TextoLivre";
 
 export type Item = {
   id: string; grupo: Grupo; ambiente: string; material: string; referencia: string; medidas: string; qtd: number; img: string; ordem: number; vidro: Vidro | null;
 };
-export type Nota = { grupo: Grupo; obs: string; rev: string };
-type Projeto = { id: string; codigo: string | null; titulo: string; cliente: string | null };
+export type Nota = { grupo: Grupo; obs: string; rev: string; papel: string };
+type Projeto = { id: string; codigo: string | null; titulo: string; cliente: string | null; unidade: string | null };
+type Escolha = { ambiente: string; existente: boolean; itens: { n: string; on: boolean }[] };
 type Rascunho = Omit<Item, "id" | "ordem"> & { id?: string };
 
 export default function EditorProjeto({
@@ -28,6 +31,8 @@ export default function EditorProjeto({
   const [rascunho, setRascunho] = useState<Rascunho | null>(null);
   const [novosAmbientes, setNovosAmbientes] = useState<Record<string, string[]>>({});
   const [novoAmb, setNovoAmb] = useState("");
+  const [escolha, setEscolha] = useState<Escolha | null>(null);
+  const [texto, setTexto] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const g = GRUPOS.find((x) => x.id === grupo)!;
 
@@ -49,14 +54,47 @@ export default function EditorProjeto({
   }, [itens, grupo, novosAmbientes]);
 
   const contagem = (x: Grupo) => itens.filter((i) => i.grupo === x).length;
-  const nota = notas.find((n) => n.grupo === grupo) ?? { grupo, obs: "", rev: "R0" };
+  const nota = notas.find((n) => n.grupo === grupo) ?? { grupo, obs: "", rev: "R0", papel: "a3p" };
 
+  // ambiente novo: abre a lista de itens que costumam existir nele (a pessoa marca o que quiser)
   function adicionarAmbiente() {
     const nome = tituloAmbiente(novoAmb);
     if (!nome) return;
-    if (!ambientes.some(([a]) => fold(a) === fold(nome))) setNovosAmbientes((m) => ({ ...m, [grupo]: [...(m[grupo] ?? []), nome] }));
     setNovoAmb("");
-    novoItem(ambientes.find(([a]) => fold(a) === fold(nome))?.[0] ?? nome);
+    const existente = ambientes.find(([a]) => fold(a) === fold(nome))?.[0];
+    abrirSugestoes(existente ?? nome, !!existente);
+  }
+
+  function abrirSugestoes(ambiente: string, existente: boolean) {
+    const ja = existente ? itens.filter((i) => i.grupo === grupo && fold(i.ambiente) === fold(ambiente)).map((i) => fold(i.material)) : [];
+    const lista = sugestoesDoAmbiente(grupo, ambiente).filter((m) => !ja.includes(fold(m)));
+    setEscolha({ ambiente, existente, itens: lista.map((n) => ({ n, on: true })) });
+  }
+
+  async function gravarEscolha(e: Escolha) {
+    const marcados = e.itens.filter((x) => x.on).map((x) => ({ ambiente: e.ambiente, material: x.n }));
+    try {
+      if (marcados.length) await criarItens(projeto.id, grupo, marcados);
+      else if (!e.existente) setNovosAmbientes((m) => ({ ...m, [grupo]: [...(m[grupo] ?? []), e.ambiente] }));
+      setEscolha(null);
+      router.refresh();
+    } catch (er: any) {
+      setErro(er.message);
+    }
+  }
+
+  async function apagarAmbiente(amb: string, qtd: number) {
+    if (qtd) {
+      const ok = await pedirConfirmacao({ texto: `Remover "${amb}" e os ${qtd} item(ns) dele?`, botao: "Remover" });
+      if (!ok) return;
+      try {
+        await excluirAmbiente(projeto.id, grupo, amb);
+      } catch (e: any) {
+        return setErro(e.message);
+      }
+    }
+    setNovosAmbientes((m) => ({ ...m, [grupo]: (m[grupo] ?? []).filter((a) => a !== amb) }));
+    router.refresh();
   }
 
   function novoItem(ambiente: string) {
@@ -109,6 +147,7 @@ export default function EditorProjeto({
             {projeto.titulo}
           </h1>
           {projeto.cliente && <p className="text-sm text-ink-500">{projeto.cliente}</p>}
+          <p className="text-xs text-ink-400">{projeto.unidade ? `Unidade SBJ: ${projeto.unidade}` : "Sem unidade da SBJ ligada (edite o projeto na lista)"}</p>
         </div>
         <Link href="/arquitetura/catalogo" className={btnSec}>
           <BookOpen className="h-4 w-4" /> Catálogo de modelos
@@ -132,7 +171,7 @@ export default function EditorProjeto({
 
       {erro && <div className={erroCls}>{erro}</div>}
 
-      <NotaGrupo key={grupo + nota.rev + nota.obs} projetoId={projeto.id} grupo={grupo} titulo={g.titulo} nota={nota} />
+      <NotaGrupo key={grupo + nota.rev + nota.obs + nota.papel} projetoId={projeto.id} grupo={grupo} titulo={g.titulo} nota={nota} />
 
       {ambientes.map(([amb, lista]) => (
         <div key={amb} className="card space-y-2">
@@ -143,15 +182,27 @@ export default function EditorProjeto({
                 <Pencil className="h-3.5 w-3.5" />
               </button>
             </div>
-            <button type="button" className={btnSec} onClick={() => novoItem(amb)}>
-              <Plus className="h-4 w-4" /> Item
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={btnSec} onClick={() => abrirSugestoes(amb, true)} title="Itens que costumam existir neste ambiente">
+                <ListChecks className="h-4 w-4" /> Sugeridos
+              </button>
+              <button type="button" className={btnSec} onClick={() => novoItem(amb)}>
+                <Plus className="h-4 w-4" /> Item
+              </button>
+              <button type="button" className={btnIcone} title="Remover ambiente" onClick={() => apagarAmbiente(amb, lista.length)}>
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           </div>
           {!lista.length && <p className="text-sm text-ink-500">Nenhum item ainda.</p>}
           <ul className="divide-y divide-border">
             {lista.map((i, k) => (
               <li key={i.id} className="flex items-start gap-3 py-2">
-                <Miniatura img={i.img} assinadas={assinadas} tam="h-14 w-14" />
+                {grupo === "vidros" && !i.img ? (
+                  <DesenhoVidro material={i.material} vidro={i.vidro ?? {}} tam="h-16 w-24" />
+                ) : (
+                  <Miniatura img={i.img} assinadas={assinadas} tam="h-14 w-14" />
+                )}
                 <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setRascunho({ ...i })}>
                   <div className="text-[11px] font-semibold text-ink-400">
                     {i.material}
@@ -198,7 +249,30 @@ export default function EditorProjeto({
         <button type="button" className={btnPrim} onClick={adicionarAmbiente} disabled={!novoAmb.trim()}>
           <Plus className="h-4 w-4" /> Adicionar ambiente
         </button>
+        <button type="button" className={btnSec} onClick={() => setTexto((x) => !x)}>
+          <Type className="h-4 w-4" /> Adicionar por texto
+        </button>
       </div>
+
+      {texto && (
+        <TextoLivre
+          key={grupo}
+          projetoId={projeto.id}
+          grupo={grupo}
+          ambientes={ambientes.map(([a]) => a)}
+          onFechar={() => setTexto(false)}
+          onGravado={() => {
+            setTexto(false);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {escolha && (
+        <Janela titulo={`${escolha.existente ? "Itens sugeridos" : "Novo ambiente"} · ${escolha.ambiente}`} onFechar={() => setEscolha(null)} largura="max-w-md">
+          <EscolhaItens inicial={escolha} onCancelar={() => setEscolha(null)} onGravar={gravarEscolha} />
+        </Janela>
+      )}
 
       {rascunho && (
         <FormItem
@@ -222,10 +296,11 @@ function NotaGrupo({ projetoId, grupo, titulo, nota }: { projetoId: string; grup
   const router = useRouter();
   const [obs, setObs] = useState(nota.obs);
   const [rev, setRev] = useState(nota.rev);
+  const [papel, setPapel] = useState(nota.papel === "a4p" ? "a4p" : "a3p");
   const [estado, setEstado] = useState<string | null>(null);
-  const mudou = obs !== nota.obs || rev !== nota.rev;
+  const mudou = obs !== nota.obs || rev !== nota.rev || papel !== (nota.papel === "a4p" ? "a4p" : "a3p");
   return (
-    <div className="card grid gap-3 sm:grid-cols-[1fr_110px_auto] sm:items-end">
+    <div className="card grid gap-3 sm:grid-cols-[1fr_90px_150px_auto_auto] sm:items-end">
       <label>
         <span className={rotulo}>Observações da folha · {titulo}</span>
         <textarea className={campo} rows={2} value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Ex.: Atenção: BASE DOCOL em todos os ambientes." />
@@ -234,6 +309,13 @@ function NotaGrupo({ projetoId, grupo, titulo, nota }: { projetoId: string; grup
         <span className={rotulo}>Revisão</span>
         <input className={campo} value={rev} onChange={(e) => setRev(e.target.value.toUpperCase())} placeholder="R0" />
       </label>
+      <label>
+        <span className={rotulo}>Papel do PDF</span>
+        <Selecao className="w-full" value={papel} onChange={(e) => setPapel(e.target.value)}>
+          <option value="a3p">A3 paisagem</option>
+          <option value="a4p">A4 paisagem</option>
+        </Selecao>
+      </label>
       <button
         type="button"
         className={btnSec}
@@ -241,7 +323,7 @@ function NotaGrupo({ projetoId, grupo, titulo, nota }: { projetoId: string; grup
         onClick={async () => {
           setEstado("…");
           try {
-            await salvarNota(projetoId, grupo, { obs, rev });
+            await salvarNota(projetoId, grupo, { obs, rev, papel });
             setEstado(null);
             router.refresh();
           } catch (e: any) {
@@ -251,7 +333,16 @@ function NotaGrupo({ projetoId, grupo, titulo, nota }: { projetoId: string; grup
       >
         {estado === "…" ? "Salvando…" : "Salvar"}
       </button>
-      {estado && estado !== "…" && <p className="text-xs text-danger sm:col-span-3">{estado}</p>}
+      <a
+        className={btnPrim + (mudou ? " pointer-events-none opacity-50" : "")}
+        href={`/imprimir/especificacoes/${projetoId}?grupo=${grupo}`}
+        target="_blank"
+        rel="noopener"
+        title={mudou ? "Salve antes de gerar o PDF" : "Abre a folha no padrão FG para imprimir ou salvar em PDF"}
+      >
+        <FileText className="h-4 w-4" /> Gerar PDF
+      </a>
+      {estado && estado !== "…" && <p className="text-xs text-danger sm:col-span-5">{estado}</p>}
     </div>
   );
 }
@@ -363,10 +454,14 @@ function FormItem({
                 <span className={rotulo}>Observação (entra no fim da descrição)</span>
                 <input className={campo} value={v.obs ?? ""} onChange={(e) => setV({ obs: e.target.value })} />
               </label>
-              <div className="rounded-[10px] bg-surface-subtle p-3 text-sm">
-                <div className={rotulo}>Como sai na folha</div>
-                <div className="text-ink-900">{descVidro(d.material, v)}</div>
-                <div className="whitespace-pre-line text-xs text-ink-500">{medidasVidro(v)}</div>
+              <div className="flex gap-3 rounded-[10px] bg-surface-subtle p-3 text-sm">
+                {!d.img && <DesenhoVidro material={d.material} vidro={v} tam="h-24 w-36" />}
+                <div className="min-w-0">
+                  <div className={rotulo}>Como sai na folha</div>
+                  <div className="text-ink-900">{descVidro(d.material, v)}</div>
+                  <div className="whitespace-pre-line text-xs text-ink-500">{medidasVidro(v)}</div>
+                  {!d.img && <div className="mt-1 text-[11px] text-ink-400">Desenho automático. Envie uma foto abaixo para trocar.</div>}
+                </div>
               </div>
             </>
           ) : (
@@ -402,5 +497,60 @@ function FormItem({
         </div>
       )}
     </Janela>
+  );
+}
+
+function EscolhaItens({ inicial, onCancelar, onGravar }: { inicial: Escolha; onCancelar: () => void; onGravar: (e: Escolha) => Promise<void> }) {
+  const [e, setE] = useState(inicial);
+  const [extra, setExtra] = useState("");
+  const [gravando, setGravando] = useState(false);
+  const marcados = e.itens.filter((x) => x.on).length;
+  function incluir() {
+    const n = extra.trim();
+    if (!n) return;
+    setE({ ...e, itens: [...e.itens, { n: n.charAt(0).toUpperCase() + n.slice(1), on: true }] });
+    setExtra("");
+  }
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-ink-500">
+        {e.itens.length ? "Marque os itens que este ambiente vai ter. Depois é só escolher o modelo de cada um." : "Nenhuma sugestão para este ambiente. Inclua os itens abaixo, se quiser."}
+      </p>
+      {e.itens.length > 1 && (
+        <div className="flex gap-3 text-xs">
+          <button type="button" className="font-semibold text-primary hover:underline" onClick={() => setE({ ...e, itens: e.itens.map((x) => ({ ...x, on: true })) })}>Marcar todos</button>
+          <button type="button" className="font-semibold text-primary hover:underline" onClick={() => setE({ ...e, itens: e.itens.map((x) => ({ ...x, on: false })) })}>Desmarcar todos</button>
+        </div>
+      )}
+      <ul className="space-y-1">
+        {e.itens.map((x, k) => (
+          <li key={k}>
+            <label className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-ink-900 hover:bg-surface-subtle">
+              <input type="checkbox" checked={x.on} onChange={(ev) => setE({ ...e, itens: e.itens.map((y, j) => (j === k ? { ...y, on: ev.target.checked } : y)) })} />
+              {x.n}
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="flex gap-2">
+        <input className={campo} placeholder="Outro item (ex.: Saboneteira)" value={extra} onChange={(ev) => setExtra(ev.target.value)} onKeyDown={(ev) => ev.key === "Enter" && (ev.preventDefault(), incluir())} />
+        <button type="button" className={btnSec} onClick={incluir} disabled={!extra.trim()}>Incluir</button>
+      </div>
+      <div className="flex justify-end gap-2 border-t border-border pt-3">
+        <button type="button" className={btnSec} onClick={onCancelar}>Cancelar</button>
+        <button
+          type="button"
+          className={btnPrim}
+          disabled={gravando || (e.existente && !marcados)}
+          onClick={async () => {
+            setGravando(true);
+            await onGravar(e);
+            setGravando(false);
+          }}
+        >
+          {gravando ? "Gravando…" : marcados ? `Adicionar ${marcados} item(ns)` : "Criar ambiente vazio"}
+        </button>
+      </div>
+    </div>
   );
 }

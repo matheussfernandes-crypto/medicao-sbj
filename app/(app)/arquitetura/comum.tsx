@@ -6,7 +6,8 @@ import { createPortal } from "react-dom";
 import { ImageOff, ImagePlus, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { enviarFoto, urlImg } from "@/lib/especificacoes/imagem";
-import { FAIXAS, fold, type Grupo } from "@/lib/especificacoes/regras";
+import { FAIXAS, fold, type Grupo, type Vidro } from "@/lib/especificacoes/regras";
+import { esquemaVidro } from "@/lib/especificacoes/desenho";
 import { btnIcone, btnSec, campo } from "./ui";
 
 export type Modelo = {
@@ -144,4 +145,10 @@ export function SeletorModelo({
       </ul>
     </div>
   );
+}
+
+/** Desenho automático do vidro/box (quando o item não tem foto). */
+export function DesenhoVidro({ material, vidro, tam = "h-16 w-24" }: { material: string; vidro: Vidro; tam?: string }) {
+  const svg = useMemo(() => esquemaVidro(material, vidro), [material, vidro]);
+  return <div className={`${tam} shrink-0 overflow-hidden rounded-lg border border-border bg-white`} dangerouslySetInnerHTML={{ __html: svg }} />;
 }

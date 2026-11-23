@@ -38,11 +38,11 @@ function limparVidro(v: unknown): Vidro {
 }
 
 // ---------- projetos ----------
-export async function salvarProjeto(dados: { id?: string; codigo?: string; titulo: string; cliente?: string }) {
+export async function salvarProjeto(dados: { id?: string; codigo?: string; titulo: string; cliente?: string; unidade_id?: string | null }) {
   const supabase = await exigirArquitetura();
   const titulo = t(dados.titulo);
   if (!titulo) throw new Error("Informe o nome do projeto (ex.: 701 Campeche).");
-  const linha = { codigo: t(dados.codigo) || null, titulo, cliente: t(dados.cliente) || null, atualizado_em: agora() };
+  const linha = { codigo: t(dados.codigo) || null, titulo, cliente: t(dados.cliente) || null, unidade_id: t(dados.unidade_id) || null, atualizado_em: agora() };
   if (dados.id) {
     const { error } = await supabase.from("esp_projetos").update(linha).eq("id", dados.id);
     if (error) throw new Error(error.message);
@@ -99,6 +99,26 @@ export async function salvarItem(d: DadosItem) {
   revalidatePath(`/arquitetura/especificacoes/${d.projeto_id}`);
 }
 
+/** Vários itens de uma vez (sugestões do ambiente ou texto livre). */
+export async function criarItens(projetoId: string, grupo: Grupo, lista: { ambiente: string; material: string; referencia?: string; medidas?: string; qtd?: number }[]) {
+  const supabase = await exigirArquitetura();
+  if (!ehGrupo(grupo)) throw new Error("Grupo inválido.");
+  const base = Date.now();
+  const linhas = lista
+    .map((it, k) => ({
+      id: novoId("id"), projeto_id: projetoId, grupo, ambiente: tituloAmbiente(t(it.ambiente)), material: t(it.material).toUpperCase(),
+      referencia: t(it.referencia), medidas: t(it.medidas), qtd: Math.max(1, Math.floor(Number(it.qtd) || 1)), img: "", ordem: base + k,
+      vidro: grupo === "vidros" ? {} : null,
+    }))
+    .filter((l) => l.ambiente);
+  if (!linhas.length) throw new Error("Nenhum item para gravar (falta o ambiente?).");
+  const { error } = await supabase.from("esp_itens").insert(linhas);
+  if (error) throw new Error(error.message);
+  await supabase.from("esp_projetos").update({ atualizado_em: agora() }).eq("id", projetoId);
+  revalidatePath(`/arquitetura/especificacoes/${projetoId}`);
+  return linhas.length;
+}
+
 export async function excluirItem(id: string, projetoId: string) {
   const supabase = await exigirArquitetura();
   const { error } = await supabase.from("esp_itens").delete().eq("id", id);
@@ -127,11 +147,11 @@ export async function moverItem(projetoId: string, a: { id: string; ordem: numbe
 }
 
 // ---------- observações e revisão da folha ----------
-export async function salvarNota(projetoId: string, grupo: Grupo, dados: { obs: string; rev: string }) {
+export async function salvarNota(projetoId: string, grupo: Grupo, dados: { obs: string; rev: string; papel?: string }) {
   const supabase = await exigirArquitetura();
   if (!ehGrupo(grupo)) throw new Error("Grupo inválido.");
   const rev = t(dados.rev).toUpperCase() || "R0";
-  const { error } = await supabase.from("esp_notas").upsert({ projeto_id: projetoId, grupo, obs: t(dados.obs), rev }, { onConflict: "projeto_id,grupo" });
+  const { error } = await supabase.from("esp_notas").upsert({ projeto_id: projetoId, grupo, obs: t(dados.obs), rev, papel: dados.papel === "a4p" ? "a4p" : "a3p" }, { onConflict: "projeto_id,grupo" });
   if (error) throw new Error(error.message);
   revalidatePath(`/arquitetura/especificacoes/${projetoId}`);
 }
@@ -191,4 +211,12 @@ export async function importarLinhas(c: { projetos: LinhaProjeto[]; itens: Linha
   revalidatePath("/arquitetura/especificacoes");
   revalidatePath("/arquitetura/catalogo");
   return { projetos: c.projetos.length, itens: c.itens.length, modelos: c.modelos.length };
+}
+
+/** Remove um ambiente inteiro (todos os itens dele no grupo). */
+export async function excluirAmbiente(projetoId: string, grupo: Grupo, ambiente: string) {
+  const supabase = await exigirArquitetura();
+  const { error } = await supabase.from("esp_itens").delete().eq("projeto_id", projetoId).eq("grupo", grupo).eq("ambiente", ambiente);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/arquitetura/especificacoes/${projetoId}`);
 }

@@ -1698,6 +1698,17 @@ function drawerCh(c){
     ${c.origem?`<details><summary>Mensagem que abriu o chamado</summary><pre class="raw">${esc(c.origem)}</pre></details>`:""}
   </div>`;
 }
+// Especificações da arquitetura (Obras › Arquitetura) ligadas a esta unidade: itens por ambiente, com foto, marca e código
+const ESP_UNI={};
+function espUniHtml(uid){
+  const d=ESP_UNI[uid];
+  if(d===undefined){ESP_UNI[uid]=null;fetch("/api/posvenda/especificacoes?unidade="+encodeURIComponent(uid),{credentials:"same-origin"}).then(r=>r.ok?r.json():{projetos:[]}).catch(()=>({projetos:[]})).then(j=>{ESP_UNI[uid]=j;if(S.drawer&&S.drawer.k!=="ch"&&S.drawer.id===uid&&!S.drawerMode)renderDrawer()})}
+  if(!d)return "";
+  if(!d.projetos||!d.projetos.length)return "";
+  return d.projetos.map(p=>`<div class="card" style="padding:10px 14px;margin:10px 0"><div class="row" style="justify-content:space-between;align-items:center"><div><div class="eyebrow">Especificações da arquitetura</div><b>${esc(p.titulo)}</b>${p.cliente?`<span class="small muted"> · ${esc(p.cliente)}</span>`:""}</div>${d.podeEditar?`<a class="btn sm ghost" href="/arquitetura/especificacoes/${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Abrir</a>`:""}</div>
+  ${p.grupos.map(g=>`<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:600">${esc(g.label)} <span class="small muted">(${g.ambientes.reduce((n,a)=>n+a.itens.length,0)})</span> <a class="small" style="margin-left:8px;color:var(--accent)" href="/imprimir/especificacoes/${encodeURIComponent(p.id)}?grupo=${g.id}" target="_blank" rel="noopener">PDF</a></summary>
+    ${g.ambientes.map(a=>`<div style="margin:8px 0 4px;font-weight:600;font-size:13px">${esc(a.nome)}</div>${a.itens.map(i=>`<div style="display:flex;gap:10px;align-items:center;padding:5px 0;border-top:1px solid var(--line,#eee)"><div style="width:52px;height:42px;flex:none;border:1px solid var(--line,#eee);border-radius:6px;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center">${i.img?`<img src="${esc(i.img)}" alt="" loading="lazy" style="max-width:100%;max-height:100%;object-fit:contain">`:(i.desenho||"")}</div><div style="min-width:0;flex:1"><div class="small muted" style="font-weight:600;letter-spacing:.04em">${esc(i.material||"")}${i.qtd>1?` · ${i.qtd} un.`:""}</div><div style="font-size:13px">${esc(i.referencia||"—")}</div>${i.medidas?`<div class="small muted" style="white-space:pre-line">${esc(i.medidas)}</div>`:""}</div></div>`).join("")}`).join("")}</details>`).join("")}</div>`).join("");
+}
 function drawerUni(u){
   if(!u)return `<div class="dr-h"><h2>Unidade não encontrada</h2><button class="btn ghost" data-a="dr-close" aria-label="Fechar">${I_X}</button></div>`;
   const e=emp(u.empId)||{};const chs=S.ch.filter(c=>c.uniId===u.id).sort((a,b)=>(b.num||0)-(a.num||0));
@@ -1710,6 +1721,7 @@ function drawerUni(u){
   <div class="dr-b"><div class="row"><button class="btn pri sm" data-a="uni-novo" data-id="${esc(u.id)}">${I_SPARK}<span>Novo chamado nesta unidade</span></button>${u.tel?`<a class="btn sm wa" href="${esc(waLink(u.tel,""))}" target="_blank" rel="noopener">${I_WA}<span>WhatsApp</span></a>`:""}<button class="btn sm ghost" data-a="cad-edit-uni" data-id="${esc(u.id)}">Editar dados</button></div>
   <dl class="kv"><dt>Proprietário</dt><dd>${esc(u.prop||"—")}</dd><dt>WhatsApp</dt><dd class="mono">${u.tel?`<a href="${esc(waLink(u.tel,""))}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(fmtTel(u.tel))}</a>`:"—"}</dd>
   ${u.contatos&&digits(u.contatos)!==digits(u.tel)?`<dt>Telefones</dt><dd>${esc(u.contatos)}</dd>`:""}${u.email?`<dt>E-mail</dt><dd>${esc(u.email)}</dd>`:""}${u.garagem?`<dt>Garagem</dt><dd>${esc(u.garagem)}</dd>`:""}${u.obs?`<dt>Observações</dt><dd>${esc(u.obs)}</dd>`:""}<dt>Chamados</dt><dd>${chs.length} · ${Object.entries(cats).map(([k,v])=>`${esc(k)} (${v})`).join(", ")||"—"}</dd></dl>
+  ${espUniHtml(u.id)}
   ${Object.values(cats).some(v=>v>1)?`<div class="banner c-warn">Problema recorrente nesta unidade: ${Object.entries(cats).filter(([k,v])=>v>1).map(([k])=>esc(k)).join(", ")}.</div>`:""}
   <div class="card" style="padding:6px 14px">${chs.length?`<div class="list">${chs.map(c=>chRow(c,false)).join("")}</div>`:`<div class="empty" style="margin:10px 0">Nenhum chamado nesta unidade.</div>`}</div></div>`;
 }

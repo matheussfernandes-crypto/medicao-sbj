@@ -26,6 +26,7 @@ import {
   CalendarDays,
   Database,
   DraftingCompass,
+  BookOpen,
 } from "lucide-react";
 
 // Setores do menu (coluna de ícones, no estilo do Sienge). Cada item de navegação pertence a um setor e a um grupo dentro dele.
@@ -79,10 +80,19 @@ export const NAV_ITEMS: NavItem[] = [
     grupo: "Andamento de Obra",
   },
   {
-    label: "Arquitetura",
-    href: "/arquitetura",
+    label: "Especificações",
+    href: "/arquitetura/especificacoes",
     icon: DraftingCompass,
-    description: "Área da arquitetura das obras.",
+    description: "Louças e metais, eletros e vidros de cada projeto.",
+    allowedSetores: ["ADMIN", "ARQUITETO"],
+    secao: "obras",
+    grupo: "Arquitetura",
+  },
+  {
+    label: "Catálogo de modelos",
+    href: "/arquitetura/catalogo",
+    icon: BookOpen,
+    description: "Modelos com faixa, marca, linha e código do fabricante.",
     allowedSetores: ["ADMIN", "ARQUITETO"],
     secao: "obras",
     grupo: "Arquitetura",

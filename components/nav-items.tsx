@@ -25,6 +25,7 @@ import {
   LifeBuoy,
   CalendarDays,
   Database,
+  DraftingCompass,
 } from "lucide-react";
 
 // Setores do menu (coluna de ícones, no estilo do Sienge). Cada item de navegação pertence a um setor e a um grupo dentro dele.
@@ -76,6 +77,15 @@ export const NAV_ITEMS: NavItem[] = [
     extra: "andamento_novo",
     secao: "obras",
     grupo: "Andamento de Obra",
+  },
+  {
+    label: "Arquitetura",
+    href: "/arquitetura",
+    icon: DraftingCompass,
+    description: "Área da arquitetura das obras.",
+    allowedSetores: ["ADMIN", "ARQUITETO"],
+    secao: "obras",
+    grupo: "Arquitetura",
   },
 
   // ---- Medições e Vales (mão de obra própria) ----

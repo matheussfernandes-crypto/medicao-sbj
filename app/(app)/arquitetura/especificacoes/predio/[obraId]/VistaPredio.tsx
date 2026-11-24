@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Building2, FileText, Pencil, Plus, Trees } from "lucide-react";
-import { AMBIENTES_LAZER, GRUPOS, fold, tituloAmbiente, type Grupo, type Vidro } from "@/lib/especificacoes/regras";
+import { AMBIENTES_LAZER, GRUPOS, GRUPOS_ARQ, fold, tituloAmbiente, type Grupo, type Vidro } from "@/lib/especificacoes/regras";
 import { FASE_PREDIO } from "@/lib/especificacoes/predios";
 import { salvarLazer } from "../../../actions";
 import { DesenhoVidro, Miniatura } from "../../../comum";
@@ -74,7 +74,7 @@ export default function VistaPredio({
       {editarLazer && <FormLazer predioId={predio.id} inicial={lazer?.ambientes ?? null} onFechar={() => setEditarLazer(false)} />}
 
       <div className="flex gap-1 overflow-x-auto border-b border-border">
-        {GRUPOS.map((x) => (
+        {GRUPOS_ARQ.map((x) => (
           <button
             key={x.id}
             type="button"

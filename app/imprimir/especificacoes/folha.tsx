@@ -101,25 +101,25 @@ export function cssFolha(a3: boolean) {
   html, body { background: #eef1f4 !important; }
   #intro { display: none !important; }
   .fg { --verde: #1c474f; --verde2: #2c6975; --linha: #dde3e8; --zebra: #f7f9fb; --texto: #1f2733; --suave: #65707d;
-    font-family: Helvetica, Arial, sans-serif; font-size: ${a3 ? "9.5pt" : "8.5pt"}; line-height: 1.4; color: var(--texto); }
+    font-family: Helvetica, Arial, sans-serif; font-size: ${a3 ? "11pt" : "9pt"}; line-height: 1.4; color: var(--texto); }
   @page { size: ${a3 ? "A3" : "A4"} landscape; margin: 10mm; }
   .fg * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .fg .barra { position: sticky; top: 0; z-index: 5; padding: 10px 16px; background: #fff; border-bottom: 1px solid var(--linha); font-size: 13px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; color: #333; }
   .fg .barra button { padding: 8px 18px; background: var(--verde2); color: #fff; border: 0; border-radius: 10px; cursor: pointer; font: 600 13px Helvetica, Arial, sans-serif; }
   .fg .folha { width: ${a3 ? 420 : 297}mm; max-width: 100%; margin: 18px auto; padding: 10mm; background: #fff; }
-  .fg .topo { display: flex; align-items: flex-start; gap: 10px; border-bottom: 2px solid var(--verde); padding-bottom: 3mm; margin-bottom: 5mm; }
-  .fg .logo { width: 15mm; height: 15mm; object-fit: contain; }
+  .fg .topo { display: flex; align-items: center; gap: 6mm; border-bottom: 3px solid var(--verde); padding-bottom: 4mm; margin-bottom: 6mm; }
+  .fg .logo { width: ${a3 ? "28mm" : "20mm"}; height: ${a3 ? "28mm" : "20mm"}; object-fit: contain; }
   .fg .centro { flex: 1; text-align: center; }
-  .fg h1 { font-size: ${a3 ? "16pt" : "13pt"}; font-weight: 700; color: var(--verde); margin: 1mm 0 0; }
-  .fg .sub { font-size: ${a3 ? "9.5pt" : "8.5pt"}; color: #555; margin: 1mm 0 0; }
-  .fg .dir { font-size: 7.5pt; color: #555; text-align: right; line-height: 1.5; }
+  .fg h1 { font-size: ${a3 ? "24pt" : "17pt"}; font-weight: 700; color: var(--verde); margin: 1mm 0 0; }
+  .fg .sub { font-size: ${a3 ? "15pt" : "11pt"}; font-weight: 600; color: #2b3440; margin: 2mm 0 0; }
+  .fg .dir { font-size: ${a3 ? "11pt" : "8.5pt"}; color: #2b3440; text-align: right; line-height: 1.6; white-space: nowrap; }
   .fg .obs { background: #e8f1f3; border-left: 3px solid var(--verde); border-radius: 0 4px 4px 0; padding: 2.5mm 4mm; margin: 0 0 5mm; font-weight: 700; color: var(--verde); }
   .fg .corpo { column-count: 2; column-gap: 10mm; }
   .fg .amb { margin-bottom: 6mm; break-inside: avoid; }
-  .fg h2 { font-size: ${a3 ? "11pt" : "9.5pt"}; font-weight: 700; color: var(--verde); margin: 0 0 1.5mm; break-after: avoid; text-transform: uppercase; letter-spacing: .03em; }
+  .fg h2 { font-size: ${a3 ? "13pt" : "10pt"}; font-weight: 700; color: var(--verde); margin: 0 0 1.5mm; break-after: avoid; text-transform: uppercase; letter-spacing: .03em; }
   .fg table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .fg thead { display: table-header-group; }
-  .fg th { background: var(--verde); color: #fff; text-align: left; font-size: 6.8pt; font-weight: 700; text-transform: uppercase; padding: 1.5mm 2mm; border: 0.4px solid #333; }
+  .fg th { background: var(--verde); color: #fff; text-align: left; font-size: ${a3 ? "8.5pt" : "7pt"}; font-weight: 700; text-transform: uppercase; padding: 1.8mm 2mm; border: 0.4px solid #333; }
   .fg td { padding: 1.8mm 2mm; border: 0.4px solid var(--linha); vertical-align: middle; white-space: pre-line; }
   .fg tbody tr:nth-child(even) td { background: var(--zebra); }
   .fg tr { break-inside: avoid; }
@@ -127,11 +127,11 @@ export function cssFolha(a3: boolean) {
   .fg td.im img, .fg td.im .sem { display: block; margin: 0 auto; width: ${a3 ? "25mm" : "21mm"}; height: ${a3 ? "19mm" : "16mm"}; object-fit: contain; background: #fff; }
   .fg td.im .sem { border: 1px dashed var(--linha); }
   .fg .vid .im { width: 46mm; } .fg .vid td.im img { width: 42mm; height: 30mm; } .fg .vid td.im .esq { display: block; width: 42mm; height: 30mm; margin: 0 auto; }
-  .fg td.mt { font-size: 7.4pt; font-weight: 700; color: var(--verde); }
-  .fg td.md { font-size: 8pt; color: #444; }
+  .fg td.mt { font-size: ${a3 ? "9pt" : "7.6pt"}; font-weight: 700; color: var(--verde); }
+  .fg td.md { font-size: ${a3 ? "9.5pt" : "8pt"}; color: #444; }
   .fg td.qt { font-weight: 700; }
   .fg td.vazio { color: var(--suave); font-style: italic; text-align: center; }
-  .fg .rodape { margin-top: 6mm; padding-top: 2mm; border-top: 1px solid var(--linha); font-size: 7pt; color: var(--suave); display: flex; justify-content: space-between; }
+  .fg .rodape { margin-top: 6mm; padding-top: 2mm; border-top: 1px solid var(--linha); font-size: ${a3 ? "9pt" : "7pt"}; color: var(--suave); display: flex; justify-content: space-between; }
   @media print {
     html, body { background: #fff !important; } .fg .barra { display: none; } .fg .folha { width: auto; margin: 0; padding: 0; }
     .fg .folha.quebra { break-before: page; }

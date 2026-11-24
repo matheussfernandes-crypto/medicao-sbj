@@ -9,7 +9,7 @@ import { pedirConfirmacao } from "@/components/ui/Confirmacao";
 import { createClient } from "@/lib/supabase/client";
 import { converter } from "@/lib/especificacoes/importar";
 import { enviarFoto } from "@/lib/especificacoes/imagem";
-import { AMBIENTES_LAZER, fold, GRUPOS, tituloAmbiente } from "@/lib/especificacoes/regras";
+import { AMBIENTES_LAZER, fold, GRUPOS_ARQ, tituloAmbiente } from "@/lib/especificacoes/regras";
 import { FASE_PREDIO, ordemProjeto, type Predio } from "@/lib/especificacoes/predios";
 import { rotuloUnidadeSbj, type UnidadeSbj } from "@/lib/especificacoes/unidades";
 import Selecao from "@/components/ui/Selecao";
@@ -203,7 +203,7 @@ export default function ListaProjetos({ projetos, unidades, predios }: { projeto
                               {p.cliente || "Sem cliente"} · {p.unidade ? <span className="text-primary">{p.unidade}</span> : "sem unidade SBJ"} ·{" "}
                             </>
                           )}
-                          {GRUPOS.map((g) => `${p.qtd[g.id] ?? 0} ${g.curto.toLowerCase()}`).join(" · ")}
+                          {GRUPOS_ARQ.map((g) => `${p.qtd[g.id] ?? 0} ${g.curto.toLowerCase()}`).join(" · ")}
                         </div>
                       </div>
                       <ChevronRight className="h-4 w-4 shrink-0 text-ink-300 group-hover:text-primary" />

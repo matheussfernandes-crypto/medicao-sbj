@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowLeft, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { pedirConfirmacao } from "@/components/ui/Confirmacao";
 import Selecao from "@/components/ui/Selecao";
-import { FAIXAS, GRUPOS, USOS, fold, type Grupo } from "@/lib/especificacoes/regras";
+import { FAIXAS, GRUPOS, GRUPOS_ARQ, USOS, fold, type Grupo } from "@/lib/especificacoes/regras";
 import { excluirModelo, salvarModelo } from "../actions";
 import { Faixa, FotoCampo, Janela, Miniatura, type Modelo } from "../comum";
 import { btnIcone, btnPrim, btnSec, campo, erroCls, rotulo } from "../ui";
@@ -69,7 +69,7 @@ export default function Catalogo({ modelos, assinadas }: { modelos: Modelo[]; as
       </div>
 
       <div className="flex gap-1 overflow-x-auto border-b border-border">
-        {GRUPOS.map((x) => (
+        {GRUPOS_ARQ.map((x) => (
           <button
             key={x.id}
             type="button"
@@ -185,7 +185,7 @@ function FormModelo({
           <label>
             <span className={rotulo}>Grupo</span>
             <Selecao className="w-full" value={d.grupo ?? "metais"} onChange={(e) => set({ grupo: e.target.value as Grupo })}>
-              {GRUPOS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+              {GRUPOS_ARQ.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
             </Selecao>
           </label>
           <label>

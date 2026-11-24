@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { assinarImagens } from "@/lib/especificacoes/imagem";
-import { ehGrupo } from "@/lib/especificacoes/regras";
+import { ehGrupoArq } from "@/lib/especificacoes/regras";
 import { rotuloUnidadeSbj, unidadeSbj } from "@/lib/especificacoes/unidades";
 import { exigirArquiteturaPagina } from "../../acesso";
 import EditorProjeto, { type Item, type Nota } from "./EditorProjeto";
@@ -34,7 +34,7 @@ export default async function ProjetoPage({ params, searchParams }: { params: { 
       notas={(notas ?? []) as Nota[]}
       modelos={(modelos ?? []) as Modelo[]}
       assinadas={assinadas}
-      grupoInicial={ehGrupo(searchParams.grupo) ? searchParams.grupo : "metais"}
+      grupoInicial={ehGrupoArq(searchParams.grupo) ? searchParams.grupo : "metais"}
     />
     <HistoricoPdfs lista={(pdfs ?? []) as PdfGerado[]} />
     </div>

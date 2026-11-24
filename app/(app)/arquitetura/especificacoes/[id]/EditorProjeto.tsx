@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Building2, FileText, ListChecks, Pencil, Plus, Trash2, Trees, Type } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Building2, ChevronDown, FileText, ListChecks, Pencil, Plus, Trash2, Trees, Type } from "lucide-react";
 import { pedirConfirmacao } from "@/components/ui/Confirmacao";
 import Selecao from "@/components/ui/Selecao";
 import {
-  AMBIENTES_LAZER, AMBIENTES_SUGERIDOS, GRUPOS, VID, descVidro, fold, medidasVidro, refDoModelo, tituloAmbiente, type Grupo, type Vidro,
+  AMBIENTES_LAZER, AMBIENTES_SUGERIDOS, GRUPOS, GRUPOS_ARQ, VID, descVidro, fold, medidasVidro, refDoModelo, tituloAmbiente, type Grupo, type Vidro,
 } from "@/lib/especificacoes/regras";
 import { sugestoesDoAmbiente } from "@/lib/especificacoes/texto";
 import {
@@ -184,8 +184,46 @@ export default function EditorProjeto({
         </div>
       </div>
 
+      {projeto.lazer && (
+        <div className="card space-y-3">
+          <div>
+            <h2 className="flex items-center gap-2 font-semibold text-primaryDark"><Trees className="h-4 w-4 text-success" /> Ambientes de lazer · {projeto.predio}</h2>
+            <p className="text-xs text-ink-500">Clique para acrescentar um ambiente neste prédio, ou crie um novo.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ambientes.map(([a]) => (
+              <span key={a} className="inline-flex items-center rounded-full border border-primary bg-[#e8f1f3] px-3 py-1 text-xs font-semibold text-primaryDark">{a}</span>
+            ))}
+            {faltamLazer.map((a) => (
+              <button key={a} type="button" className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1 text-xs font-semibold text-ink-600 hover:border-primary hover:text-primary" onClick={() => abrirSugestoes(a, false)}>
+                <Plus className="h-3 w-3" /> {a}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="min-w-[220px] max-w-md flex-1">
+              <span className={rotulo}>Novo ambiente de lazer</span>
+              <input
+                className={campo}
+                list="esp-ambientes-lazer"
+                placeholder="Ex.: Espaço Gourmet, Sauna, Quadra"
+                value={novoAmb}
+                onChange={(e) => setNovoAmb(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), adicionarAmbiente())}
+              />
+              <datalist id="esp-ambientes-lazer">
+                {AMBIENTES_LAZER.map((a) => <option key={a} value={a} />)}
+              </datalist>
+            </label>
+            <button type="button" className={btnPrim} onClick={adicionarAmbiente} disabled={!novoAmb.trim()}>
+              <Plus className="h-4 w-4" /> Criar ambiente
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-1 overflow-x-auto border-b border-border">
-        {GRUPOS.map((x) => (
+        {GRUPOS_ARQ.map((x) => (
           <button
             key={x.id}
             type="button"
@@ -262,33 +300,27 @@ export default function EditorProjeto({
       ))}
 
       <div className="card flex flex-wrap items-end gap-2">
-        {faltamLazer.length > 0 && (
-          <div className="flex w-full flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-ink-500">Ambientes de lazer:</span>
-            {faltamLazer.map((a) => (
-              <button key={a} type="button" className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-semibold text-ink-600 hover:border-primary hover:text-primary" onClick={() => abrirSugestoes(a, false)}>
-                <Plus className="h-3 w-3" /> {a}
-              </button>
-            ))}
-          </div>
+        {!projeto.lazer && (
+          <>
+            <label className="min-w-[220px] flex-1">
+              <span className={rotulo}>Novo ambiente</span>
+              <input
+                className={campo}
+                list="esp-ambientes"
+                placeholder="Ex.: BWC Suíte, Cozinha, Lavabo"
+                value={novoAmb}
+                onChange={(e) => setNovoAmb(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), adicionarAmbiente())}
+              />
+              <datalist id="esp-ambientes">
+                {AMBIENTES_SUGERIDOS.map((a) => <option key={a} value={a} />)}
+              </datalist>
+            </label>
+            <button type="button" className={btnPrim} onClick={adicionarAmbiente} disabled={!novoAmb.trim()}>
+              <Plus className="h-4 w-4" /> Adicionar ambiente
+            </button>
+          </>
         )}
-        <label className="min-w-[220px] flex-1">
-          <span className={rotulo}>{projeto.lazer ? "Novo ambiente de lazer" : "Novo ambiente"}</span>
-          <input
-            className={campo}
-            list="esp-ambientes"
-            placeholder={projeto.lazer ? "Ex.: Espaço Gourmet, Sauna, Quadra" : "Ex.: BWC Suíte, Cozinha, Lavabo"}
-            value={novoAmb}
-            onChange={(e) => setNovoAmb(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), adicionarAmbiente())}
-          />
-          <datalist id="esp-ambientes">
-            {(projeto.lazer ? AMBIENTES_LAZER : AMBIENTES_SUGERIDOS).map((a) => <option key={a} value={a} />)}
-          </datalist>
-        </label>
-        <button type="button" className={btnPrim} onClick={adicionarAmbiente} disabled={!novoAmb.trim()}>
-          <Plus className="h-4 w-4" /> Adicionar ambiente
-        </button>
         <button type="button" className={btnSec} onClick={() => setTexto((x) => !x)}>
           <Type className="h-4 w-4" /> Adicionar por texto
         </button>
@@ -339,8 +371,29 @@ function NotaGrupo({ projetoId, grupo, titulo, nota }: { projetoId: string; grup
   const [papel, setPapel] = useState(nota.papel === "a4p" ? "a4p" : "a3p");
   const [estado, setEstado] = useState<string | null>(null);
   const mudou = obs !== nota.obs || rev !== nota.rev || papel !== (nota.papel === "a4p" ? "a4p" : "a3p");
+  const [aberto, setAberto] = useState(false);
   return (
-    <div className="card grid gap-3 sm:grid-cols-[1fr_90px_150px_auto_auto] sm:items-end">
+    <div className="card space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={() => setAberto((a) => !a)} aria-expanded={aberto}>
+          <ChevronDown className={`h-4 w-4 shrink-0 text-ink-400 transition-transform ${aberto ? "rotate-180" : ""}`} />
+          <span className="font-semibold text-primaryDark">Observações da folha</span>
+          <span className="truncate text-xs text-ink-500">
+            Revisão {nota.rev || "R0"} · {nota.papel === "a4p" ? "A4" : "A3"} paisagem{nota.obs ? ` · ${nota.obs}` : ""}
+          </span>
+        </button>
+        <a
+          className={btnPrim + (mudou ? " pointer-events-none opacity-50" : "")}
+          href={`/imprimir/especificacoes/${projetoId}?grupo=${grupo}`}
+          target="_blank"
+          rel="noopener"
+          title={mudou ? "Salve antes de gerar o PDF" : "Abre a folha no padrão SBJ para imprimir ou salvar em PDF"}
+        >
+          <FileText className="h-4 w-4" /> Gerar PDF
+        </a>
+      </div>
+      {aberto && (
+    <div className="grid gap-3 sm:grid-cols-[1fr_90px_150px_auto] sm:items-end">
       <label>
         <span className={rotulo}>Observações da folha · {titulo}</span>
         <textarea className={campo} rows={2} value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Ex.: Atenção: BASE DOCOL em todos os ambientes." />
@@ -373,16 +426,9 @@ function NotaGrupo({ projetoId, grupo, titulo, nota }: { projetoId: string; grup
       >
         {estado === "…" ? "Salvando…" : "Salvar"}
       </button>
-      <a
-        className={btnPrim + (mudou ? " pointer-events-none opacity-50" : "")}
-        href={`/imprimir/especificacoes/${projetoId}?grupo=${grupo}`}
-        target="_blank"
-        rel="noopener"
-        title={mudou ? "Salve antes de gerar o PDF" : "Abre a folha no padrão SBJ para imprimir ou salvar em PDF"}
-      >
-        <FileText className="h-4 w-4" /> Gerar PDF
-      </a>
-      {estado && estado !== "…" && <p className="text-xs text-danger sm:col-span-5">{estado}</p>}
+      {estado && estado !== "…" && <p className="text-xs text-danger sm:col-span-4">{estado}</p>}
+    </div>
+      )}
     </div>
   );
 }

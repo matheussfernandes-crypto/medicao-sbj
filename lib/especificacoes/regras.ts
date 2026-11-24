@@ -9,6 +9,9 @@ export const GRUPOS: { id: Grupo; label: string; curto: string; titulo: string; 
   { id: "vidros", label: "Vidros e box", curto: "Vidros e box", titulo: "RELAÇÃO DE VIDROS E BOX", arq: "DET_VIDROS_E_BOX", medidas: true },
 ];
 export const ehGrupo = (g: unknown): g is Grupo => g === "metais" || g === "eletros" || g === "vidros";
+// grupos que a arquitetura usa nas telas e PDFs (vidros e box não é usado pelo setor; os dados antigos continuam no banco)
+export const GRUPOS_ARQ = GRUPOS.filter((g) => g.id !== "vidros");
+export const ehGrupoArq = (g: unknown): g is Grupo => g === "metais" || g === "eletros";
 
 export const FAIXAS: Record<number, [string, string]> = { 1: ["$", "Essencial"], 2: ["$$", "Intermediária"], 3: ["$$$", "Premium"] };
 export const USOS: Record<string, string> = { b: "Banheiro", c: "Cozinha", s: "Serviço", g: "Qualquer" };

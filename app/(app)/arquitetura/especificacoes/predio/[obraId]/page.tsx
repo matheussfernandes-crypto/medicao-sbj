@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { assinarImagens } from "@/lib/especificacoes/imagem";
-import { ehGrupo } from "@/lib/especificacoes/regras";
+import { ehGrupoArq } from "@/lib/especificacoes/regras";
 import { ordemProjeto } from "@/lib/especificacoes/predios";
 import { exigirArquiteturaPagina } from "../../../acesso";
 import HistoricoPdfs, { type PdfGerado } from "../../HistoricoPdfs";
@@ -32,7 +32,7 @@ export default async function PredioPage({ params, searchParams }: { params: { o
       projetos={((projetos ?? []) as ProjetoPredio[]).sort(ordemProjeto)}
       itens={(itens ?? []) as ItemPredio[]}
       assinadas={assinadas}
-      grupoInicial={ehGrupo(searchParams.grupo) ? searchParams.grupo : "metais"}
+      grupoInicial={ehGrupoArq(searchParams.grupo) ? searchParams.grupo : "metais"}
       abrirLazer={searchParams.lazer === "1"}
     />
     <HistoricoPdfs lista={(pdfs ?? []) as PdfGerado[]} />

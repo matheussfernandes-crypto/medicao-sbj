@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioAtual } from "@/lib/auth/getCurrentUserProfile";
 import { assinarImagens } from "@/lib/especificacoes/imagem";
-import { GRUPOS, ehGrupo, type Grupo } from "@/lib/especificacoes/regras";
+import { GRUPOS, GRUPOS_ARQ, ehGrupoArq, type Grupo } from "@/lib/especificacoes/regras";
 import { ordemProjeto } from "@/lib/especificacoes/predios";
 import BarraImprimir from "../../[id]/BarraImprimir";
 import { FolhaEspecificacao, cssFolha } from "../../folha";
@@ -16,7 +16,7 @@ async function carregar({ params, searchParams }: Props) {
   const user = await getUsuarioAtual();
   if (!user) redirect("/login");
   const supabase = createClient();
-  const grupos: Grupo[] = ehGrupo(searchParams.grupo) ? [searchParams.grupo] : GRUPOS.map((g) => g.id);
+  const grupos: Grupo[] = ehGrupoArq(searchParams.grupo) ? [searchParams.grupo] : GRUPOS_ARQ.map((g) => g.id);
   const [{ data: obra }, { data: projetos }] = await Promise.all([
     supabase.from("cadastro_obras").select("id, nome").eq("id", params.obraId).maybeSingle(),
     supabase.from("esp_projetos").select("id, codigo, titulo, cliente, tipo, ambientes").eq("obra_id", params.obraId),

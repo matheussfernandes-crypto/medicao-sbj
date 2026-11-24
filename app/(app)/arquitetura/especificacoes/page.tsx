@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function EspecificacoesPage() {
   const supabase = await exigirArquiteturaPagina();
   const [{ data: projetos }, { data: itens }, unidades, predios] = await Promise.all([
-    supabase.from("esp_projetos").select("id, codigo, titulo, cliente, unidade_id, obra_id, tipo, atualizado_em").order("codigo", { ascending: false, nullsFirst: false }),
+    supabase.from("esp_projetos").select("id, codigo, titulo, cliente, unidade_id, obra_id, tipo, ambientes, atualizado_em").order("codigo", { ascending: false, nullsFirst: false }),
     supabase.from("esp_itens").select("projeto_id, grupo"),
     listarUnidadesSbj(supabase),
     listarPredios(supabase),

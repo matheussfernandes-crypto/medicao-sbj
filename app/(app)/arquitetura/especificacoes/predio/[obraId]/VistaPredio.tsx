@@ -90,7 +90,7 @@ export default function VistaPredio({
 
       {!projetos.length && (
         <div className="card py-6 text-center text-sm text-ink-500">
-          Nenhuma unidade deste prédio ainda. Cadastre em <Link href="/arquitetura/especificacoes" className="text-primary hover:underline">Especificações › Novo projeto</Link>.
+          Nenhuma área de lazer deste prédio ainda. Use &quot;Cadastrar lazer&quot; acima.
         </div>
       )}
 

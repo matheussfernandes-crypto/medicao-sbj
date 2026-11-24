@@ -3,22 +3,22 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, Building2, ChevronRight, FileText, FileUp, Pencil, Search, Trash2, Trees } from "lucide-react";
+import { BookOpen, Building2, ChevronRight, FileText, FileUp, Pencil, Plus, Search, Trash2, Trees } from "lucide-react";
 import PainelCadastro from "@/components/ui/PainelCadastro";
 import { pedirConfirmacao } from "@/components/ui/Confirmacao";
 import { createClient } from "@/lib/supabase/client";
 import { converter } from "@/lib/especificacoes/importar";
 import { enviarFoto } from "@/lib/especificacoes/imagem";
-import { fold, GRUPOS } from "@/lib/especificacoes/regras";
+import { AMBIENTES_LAZER, fold, GRUPOS, tituloAmbiente } from "@/lib/especificacoes/regras";
 import { FASE_PREDIO, ordemProjeto, type Predio } from "@/lib/especificacoes/predios";
 import { rotuloUnidadeSbj, type UnidadeSbj } from "@/lib/especificacoes/unidades";
 import Selecao from "@/components/ui/Selecao";
-import { excluirProjeto, importarLinhas, salvarProjeto } from "../actions";
+import { excluirProjeto, importarLinhas, salvarLazer, salvarProjeto } from "../actions";
 import { btnIcone, btnPrim, btnSec, campo, erroCls, rotulo } from "../ui";
 
 export type ProjetoResumo = {
   id: string; codigo: string | null; titulo: string; cliente: string | null; unidade_id: string | null; unidade: string | null;
-  obra_id: string | null; tipo: string; atualizado_em: string; qtd: Record<string, number>;
+  obra_id: string | null; tipo: string; ambientes: string[] | null; atualizado_em: string; qtd: Record<string, number>;
 };
 
 export default function ListaProjetos({ projetos, unidades, predios }: { projetos: ProjetoResumo[]; unidades: UnidadeSbj[]; predios: Predio[] }) {
@@ -115,7 +115,7 @@ export default function ListaProjetos({ projetos, unidades, predios }: { projeto
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-primaryDark">Especificações</h1>
-          <p className="text-sm text-ink-500">Louças e metais, eletros e vidros de cada prédio: unidades e lazer.</p>
+          <p className="text-sm text-ink-500">Louças e metais, eletros e vidros das áreas de lazer de cada empreendimento.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/arquitetura/catalogo" className={btnSec}>
@@ -131,8 +131,8 @@ export default function ListaProjetos({ projetos, unidades, predios }: { projeto
       {erro && <div className={erroCls}>{erro}</div>}
       {aviso && <div className="rounded-[10px] border border-[#BFE3CC] bg-[#EAF7EF] px-3 py-2 text-sm text-success">{aviso}</div>}
 
-      <PainelCadastro titulo="Projetos" rotuloBotao="Novo projeto">
-        <FormProjeto unidades={unidades} predios={predios} predioInicial={filtro && filtro !== "fora" ? filtro : ""} onSalvar={(fd) => gravar(fd)} />
+      <PainelCadastro titulo="Áreas de lazer" rotuloBotao="Nova área de lazer">
+        <FormAreaLazer predios={predios} projetos={projetos} predioInicial={filtro && filtro !== "fora" ? filtro : ""} />
       </PainelCadastro>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -181,7 +181,7 @@ export default function ListaProjetos({ projetos, unidades, predios }: { projeto
                 </div>
               )}
             </div>
-            {!lista.length && <p className="py-2 text-sm text-ink-500">Nenhuma unidade deste prédio ainda. Use &quot;Novo projeto&quot; acima.</p>}
+            {!lista.length && <p className="py-2 text-sm text-ink-500">Nenhuma área de lazer deste prédio ainda. Use &quot;Nova área de lazer&quot; acima.</p>}
             <ul className="divide-y divide-border">
               {lista.map((p) =>
                 editando?.id === p.id ? (
@@ -223,6 +223,96 @@ export default function ListaProjetos({ projetos, unidades, predios }: { projeto
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/** Cadastro: empreendimento + áreas de lazer dele (Academia, Salão de Festas… ou uma nova). Abre o lazer do prédio para especificar. */
+function FormAreaLazer({ predios, projetos, predioInicial }: { predios: Predio[]; projetos: ProjetoResumo[]; predioInicial: string }) {
+  const router = useRouter();
+  const [obra, setObra] = useState(predioInicial);
+  const existente = projetos.find((p) => p.tipo === "lazer" && p.obra_id === obra);
+  const jaTem = existente?.ambientes ?? [];
+  const [criadas, setCriadas] = useState<string[]>([]);
+  const [marcados, setMarcados] = useState<string[]>(jaTem);
+  const [nova, setNova] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const opcoes = Array.from(new Map([...AMBIENTES_LAZER, ...jaTem, ...criadas].map((a) => [fold(a), a])).values());
+  const marcado = (a: string) => marcados.some((m) => fold(m) === fold(a));
+
+  function trocarPredio(id: string) {
+    setObra(id);
+    setCriadas([]);
+    setMarcados(projetos.find((p) => p.tipo === "lazer" && p.obra_id === id)?.ambientes ?? []);
+  }
+  function criar() {
+    const nome = tituloAmbiente(nova);
+    if (!nome) return;
+    setNova("");
+    setCriadas((c) => [...c, nome]);
+    if (!marcado(nome)) setMarcados((m) => [...m, nome]);
+  }
+  async function salvar() {
+    setErro(null);
+    setSalvando(true);
+    try {
+      const id = await salvarLazer(obra, opcoes.filter(marcado));
+      router.push(`/arquitetura/especificacoes/${id}`);
+    } catch (e: any) {
+      setErro(e.message);
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      {erro && <div className={erroCls}>{erro}</div>}
+      <label className="block max-w-sm">
+        <span className={rotulo}>Empreendimento *</span>
+        <Selecao className="w-full" value={obra} onChange={(e) => trocarPredio(e.target.value)}>
+          <option value="">Escolha o empreendimento</option>
+          {predios.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+        </Selecao>
+      </label>
+      {obra && (
+        <>
+          <div>
+            <span className={rotulo}>Área de lazer *</span>
+            <div className="flex flex-wrap gap-2">
+              {opcoes.map((a) => (
+                <label key={a} className={`inline-flex cursor-pointer items-center gap-2 rounded-[10px] border px-3 py-1.5 text-sm ${marcado(a) ? "border-primary bg-[#e8f1f3] text-primaryDark" : "border-border text-ink-600"}`}>
+                  <input
+                    type="checkbox"
+                    className="accent-[#1c474f]"
+                    checked={marcado(a)}
+                    onChange={(e) => setMarcados((m) => (e.target.checked ? [...m, a] : m.filter((x) => fold(x) !== fold(a))))}
+                  />
+                  {a}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="min-w-[220px] max-w-sm flex-1">
+              <span className={rotulo}>Nova área de lazer</span>
+              <input
+                className={campo}
+                placeholder="Ex.: Espaço Gourmet, Sauna, Quadra"
+                value={nova}
+                onChange={(e) => setNova(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), criar())}
+              />
+            </label>
+            <button type="button" className={btnSec} onClick={criar} disabled={!nova.trim()}>
+              <Plus className="h-4 w-4" /> Criar
+            </button>
+          </div>
+        </>
+      )}
+      <button type="button" className={btnPrim} onClick={salvar} disabled={salvando || !obra || !opcoes.some(marcado)}>
+        {salvando ? "Salvando…" : existente ? "Salvar e abrir o lazer" : "Salvar"}
+      </button>
     </div>
   );
 }

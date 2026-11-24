@@ -5,6 +5,7 @@ import { rotuloUnidadeSbj, unidadeSbj } from "@/lib/especificacoes/unidades";
 import { exigirArquiteturaPagina } from "../../acesso";
 import EditorProjeto, { type Item, type Nota } from "./EditorProjeto";
 import type { Modelo } from "../../comum";
+import HistoricoPdfs, { type PdfGerado } from "../HistoricoPdfs";
 
 export const dynamic = "force-dynamic";
 
@@ -17,11 +18,13 @@ export default async function ProjetoPage({ params, searchParams }: { params: { 
     supabase.from("esp_modelos").select("id, grupo, material, referencia, medidas, marca, linha, acab, codigo, faixa, uso, valor_ref, img, revisar, ordem").order("ordem"),
   ]);
   if (!projeto) notFound();
-  const [assinadas, uni] = await Promise.all([
+  const [assinadas, uni, { data: pdfs }] = await Promise.all([
     assinarImagens(supabase, [...(itens ?? []), ...(modelos ?? [])].map((x) => x.img)),
     unidadeSbj(supabase, projeto.unidade_id),
+    supabase.from("esp_pdfs").select("id, arquivo, rev, papel, gerado_por_nome, gerado_em").eq("projeto_id", params.id).order("gerado_em", { ascending: false }).limit(200),
   ]);
   return (
+    <div className="space-y-4">
     <EditorProjeto
       projeto={{
         id: projeto.id, codigo: projeto.codigo, titulo: projeto.titulo, cliente: projeto.cliente, unidade: uni ? rotuloUnidadeSbj(uni) : null,
@@ -33,5 +36,7 @@ export default async function ProjetoPage({ params, searchParams }: { params: { 
       assinadas={assinadas}
       grupoInicial={ehGrupo(searchParams.grupo) ? searchParams.grupo : "metais"}
     />
+    <HistoricoPdfs lista={(pdfs ?? []) as PdfGerado[]} />
+    </div>
   );
 }

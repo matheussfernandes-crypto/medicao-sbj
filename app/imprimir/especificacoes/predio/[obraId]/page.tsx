@@ -56,7 +56,7 @@ export default async function ImprimirPredio(props: Props) {
   return (
     <div className="fg">
       <style>{cssFolha(true)}</style>
-      <BarraImprimir arquivo={arquivo} papel="A3 paisagem" />
+      <BarraImprimir arquivo={arquivo} papel="A3 paisagem" registro={{ obra_id: obra.id, grupo: grupos.length === 1 ? grupos[0] : "todos" }} />
       {!folhas.length && (
         <div className="folha">
           <p className="sub">Nenhum item especificado neste prédio{grupos.length === 1 ? " neste grupo" : ""}.</p>

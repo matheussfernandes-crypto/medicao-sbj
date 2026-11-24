@@ -52,7 +52,7 @@ export default async function ImprimirEspecificacao(props: Props) {
   return (
     <div className="fg">
       <style>{cssFolha(a3)}</style>
-      <BarraImprimir arquivo={arquivo} papel={a3 ? "A3 paisagem" : "A4 paisagem"} />
+      <BarraImprimir arquivo={arquivo} papel={a3 ? "A3 paisagem" : "A4 paisagem"} registro={{ projeto_id: projeto.id, grupo, rev }} />
       <FolhaEspecificacao
         grupo={grupo}
         sub={sub}

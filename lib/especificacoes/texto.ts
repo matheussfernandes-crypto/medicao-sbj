@@ -5,6 +5,15 @@ import { GRUPOS, fold, tituloAmbiente, type Grupo } from "./regras";
 const BANHO = ["Torneira", "Cuba", "Registro", "Monocomando", "Chuveiro", "Toalheiro banho", "Toalheiro rosto", "Porta papel higiênico", "Ducha higiênica"];
 // itens que costumam existir em cada tipo de ambiente (vale o primeiro que combinar)
 const PADROES: { grupo: Grupo; re: RegExp; itens: string[] }[] = [
+  // lazer do prédio
+  { grupo: "metais", re: /sal[aã]o de festa|espa[cç]o gourmet|churrasq/, itens: ["Torneira", "Cuba", "Lixeira", "Registro"] },
+  { grupo: "metais", re: /piscina/, itens: ["Ducha", "Torneira"] },
+  { grupo: "eletros", re: /sal[aã]o de festa|espa[cç]o gourmet|churrasq/, itens: ["Geladeira", "Cooktop", "Forno", "Micro-ondas", "Coifa", "TV"] },
+  { grupo: "eletros", re: /academia|fitness/, itens: ["TV", "Bebedouro", "Ar-condicionado"] },
+  { grupo: "eletros", re: /brinquedoteca|kids|jogos/, itens: ["TV"] },
+  { grupo: "vidros", re: /piscina/, itens: ["Guarda-corpo de vidro"] },
+  { grupo: "vidros", re: /hall/, itens: ["Porta de vidro"] },
+  { grupo: "vidros", re: /academia|fitness/, itens: ["Espelho"] },
   { grupo: "metais", re: /lavanderia|servi[cç]o/, itens: ["Tanque", "Torneira", "Registro"] },
   { grupo: "metais", re: /cozinha|gourmet/, itens: ["Torneira", "Cuba", "Lixeira", "Torre de tomadas", "Registro"] },
   { grupo: "metais", re: /lavabo|toalete/, itens: ["Torneira", "Cuba", "Registro", "Monocomando", "Toalheiro rosto", "Porta papel higiênico", "Ducha higiênica"] },

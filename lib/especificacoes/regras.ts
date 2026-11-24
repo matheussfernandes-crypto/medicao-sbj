@@ -20,6 +20,9 @@ export const AMBIENTES_SUGERIDOS = [
 
 export const fold = (s: string | null | undefined) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
+// lazer de cada prédio: lista padrão (a arquitetura pode criar outros ambientes)
+export const AMBIENTES_LAZER = ["Academia", "Salão de Festas", "Hall de Entrada", "Piscina", "Brinquedoteca"];
+
 // "bwc suite master" -> "BWC Suíte Master" (mantém o que a pessoa digitou, só arruma maiúsculas)
 export const tituloAmbiente = (s: string) =>
   (s || "")

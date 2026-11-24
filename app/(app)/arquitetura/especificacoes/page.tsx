@@ -1,16 +1,18 @@
 import { listarUnidadesSbj, rotuloUnidadeSbj } from "@/lib/especificacoes/unidades";
+import { listarPredios } from "@/lib/especificacoes/predios";
 import { exigirArquiteturaPagina } from "../acesso";
 import ListaProjetos, { type ProjetoResumo } from "./ListaProjetos";
 
 export const dynamic = "force-dynamic";
 
-// Obras › Arquitetura › Especificações: lista dos projetos (unidades dos clientes da arquitetura).
+// Obras › Arquitetura › Especificações: projetos separados por prédio (cadastro de obras), cada prédio com seu lazer.
 export default async function EspecificacoesPage() {
   const supabase = await exigirArquiteturaPagina();
-  const [{ data: projetos }, { data: itens }, unidades] = await Promise.all([
-    supabase.from("esp_projetos").select("id, codigo, titulo, cliente, unidade_id, atualizado_em").order("codigo", { ascending: false, nullsFirst: false }),
+  const [{ data: projetos }, { data: itens }, unidades, predios] = await Promise.all([
+    supabase.from("esp_projetos").select("id, codigo, titulo, cliente, unidade_id, obra_id, tipo, atualizado_em").order("codigo", { ascending: false, nullsFirst: false }),
     supabase.from("esp_itens").select("projeto_id, grupo"),
     listarUnidadesSbj(supabase),
+    listarPredios(supabase),
   ]);
   const conta: Record<string, Record<string, number>> = {};
   for (const i of itens ?? []) {
@@ -22,5 +24,5 @@ export default async function EspecificacoesPage() {
     const u = p.unidade_id ? porId.get(p.unidade_id) : null;
     return { ...p, qtd: conta[p.id] ?? {}, unidade: u ? rotuloUnidadeSbj(u) : null };
   });
-  return <ListaProjetos projetos={lista} unidades={unidades} />;
+  return <ListaProjetos projetos={lista} unidades={unidades} predios={predios} />;
 }

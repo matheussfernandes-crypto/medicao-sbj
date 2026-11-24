@@ -38,11 +38,17 @@ function limparVidro(v: unknown): Vidro {
 }
 
 // ---------- projetos ----------
-export async function salvarProjeto(dados: { id?: string; codigo?: string; titulo: string; cliente?: string; unidade_id?: string | null }) {
+export async function salvarProjeto(dados: { id?: string; codigo?: string; titulo: string; cliente?: string; unidade_id?: string | null; obra_id?: string | null }) {
   const supabase = await exigirArquitetura();
   const titulo = t(dados.titulo);
   if (!titulo) throw new Error("Informe o nome do projeto (ex.: 701 Campeche).");
-  const linha = { codigo: t(dados.codigo) || null, titulo, cliente: t(dados.cliente) || null, unidade_id: t(dados.unidade_id) || null, atualizado_em: agora() };
+  // "fora" = projeto que não é de prédio da SBJ (ex.: cliente particular da arquitetura)
+  const obra = t(dados.obra_id);
+  if (!obra) throw new Error('Escolha o prédio (ou "Fora da SBJ").');
+  const linha = {
+    codigo: t(dados.codigo) || null, titulo, cliente: t(dados.cliente) || null, unidade_id: t(dados.unidade_id) || null,
+    obra_id: obra === "fora" ? null : obra, atualizado_em: agora(),
+  };
   if (dados.id) {
     const { error } = await supabase.from("esp_projetos").update(linha).eq("id", dados.id);
     if (error) throw new Error(error.message);
@@ -61,6 +67,49 @@ export async function excluirProjeto(id: string) {
   const { error } = await supabase.from("esp_projetos").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/arquitetura/especificacoes");
+}
+
+// ---------- lazer do prédio ----------
+/** Cria (ou atualiza) o projeto de lazer do prédio com a lista de ambientes escolhida. Devolve o id. */
+export async function salvarLazer(obraId: string, ambientes: string[]) {
+  const supabase = await exigirArquitetura();
+  if (!t(obraId)) throw new Error("Prédio inválido.");
+  const lista = Array.from(new Set(ambientes.map((a) => tituloAmbiente(t(a))).filter(Boolean)));
+  const { data: ja } = await supabase.from("esp_projetos").select("id").eq("obra_id", obraId).eq("tipo", "lazer").maybeSingle();
+  if (ja) {
+    const { error } = await supabase.from("esp_projetos").update({ ambientes: lista, atualizado_em: agora() }).eq("id", ja.id);
+    if (error) throw new Error(error.message);
+    revalidatePath("/arquitetura/especificacoes");
+    return ja.id as string;
+  }
+  const id = novoId("proj");
+  const { error } = await supabase.from("esp_projetos").insert({ id, titulo: "Lazer", tipo: "lazer", obra_id: obraId, ambientes: lista, atualizado_em: agora() });
+  if (error) throw new Error(error.message);
+  revalidatePath("/arquitetura/especificacoes");
+  return id;
+}
+
+/** Mantém a lista de ambientes do lazer igual ao que a pessoa fez na tela (só mexe se o projeto for de lazer). */
+async function ajustarAmbientesLazer(supabase: any, projetoId: string, f: (l: string[]) => string[]) {
+  const { data: p } = await supabase.from("esp_projetos").select("tipo, ambientes").eq("id", projetoId).maybeSingle();
+  if (p?.tipo !== "lazer") return;
+  const nova = Array.from(new Set(f(p.ambientes ?? []).filter(Boolean)));
+  await supabase.from("esp_projetos").update({ ambientes: nova }).eq("id", projetoId);
+}
+
+export async function adicionarAmbienteLazer(projetoId: string, ambiente: string) {
+  const supabase = await exigirArquitetura();
+  const nome = tituloAmbiente(t(ambiente));
+  if (!nome) throw new Error("Informe o ambiente.");
+  await ajustarAmbientesLazer(supabase, projetoId, (l) => (l.some((a) => a.toLowerCase() === nome.toLowerCase()) ? l : [...l, nome]));
+  revalidatePath(`/arquitetura/especificacoes/${projetoId}`);
+}
+
+/** Tira um ambiente sem itens da lista do lazer. */
+export async function removerAmbienteLazer(projetoId: string, ambiente: string) {
+  const supabase = await exigirArquitetura();
+  await ajustarAmbientesLazer(supabase, projetoId, (l) => l.filter((a) => a !== ambiente));
+  revalidatePath(`/arquitetura/especificacoes/${projetoId}`);
 }
 
 // ---------- itens ----------
@@ -126,14 +175,17 @@ export async function excluirItem(id: string, projetoId: string) {
   revalidatePath(`/arquitetura/especificacoes/${projetoId}`);
 }
 
-/** Troca o nome de um ambiente em todos os itens do grupo. */
+/** Troca o nome de um ambiente em todos os itens do grupo (no lazer, em todos os grupos, porque a lista é do prédio). */
 export async function renomearAmbiente(projetoId: string, grupo: Grupo, de: string, para: string) {
   const supabase = await exigirArquitetura();
   const novo = tituloAmbiente(t(para));
   if (!novo) throw new Error("Informe o novo nome do ambiente.");
-  const { error } = await supabase.from("esp_itens").update({ ambiente: novo, atualizado_em: agora() })
-    .eq("projeto_id", projetoId).eq("grupo", grupo).eq("ambiente", de);
+  const { data: p } = await supabase.from("esp_projetos").select("tipo").eq("id", projetoId).maybeSingle();
+  let q = supabase.from("esp_itens").update({ ambiente: novo, atualizado_em: agora() }).eq("projeto_id", projetoId).eq("ambiente", de);
+  if (p?.tipo !== "lazer") q = q.eq("grupo", grupo);
+  const { error } = await q;
   if (error) throw new Error(error.message);
+  await ajustarAmbientesLazer(supabase, projetoId, (l) => l.map((a) => (a === de ? novo : a)));
   revalidatePath(`/arquitetura/especificacoes/${projetoId}`);
 }
 
@@ -218,5 +270,8 @@ export async function excluirAmbiente(projetoId: string, grupo: Grupo, ambiente:
   const supabase = await exigirArquitetura();
   const { error } = await supabase.from("esp_itens").delete().eq("projeto_id", projetoId).eq("grupo", grupo).eq("ambiente", ambiente);
   if (error) throw new Error(error.message);
+  // no lazer o ambiente sai da lista só quando não sobra item dele em nenhum grupo
+  const { count } = await supabase.from("esp_itens").select("id", { count: "exact", head: true }).eq("projeto_id", projetoId).eq("ambiente", ambiente);
+  if (!count) await ajustarAmbientesLazer(supabase, projetoId, (l) => l.filter((a) => a !== ambiente));
   revalidatePath(`/arquitetura/especificacoes/${projetoId}`);
 }

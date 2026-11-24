@@ -3,25 +3,28 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, ChevronRight, FileUp, Pencil, Search, Trash2 } from "lucide-react";
+import { BookOpen, Building2, ChevronRight, FileText, FileUp, Pencil, Search, Trash2, Trees } from "lucide-react";
 import PainelCadastro from "@/components/ui/PainelCadastro";
 import { pedirConfirmacao } from "@/components/ui/Confirmacao";
 import { createClient } from "@/lib/supabase/client";
 import { converter } from "@/lib/especificacoes/importar";
 import { enviarFoto } from "@/lib/especificacoes/imagem";
 import { fold, GRUPOS } from "@/lib/especificacoes/regras";
+import { FASE_PREDIO, ordemProjeto, type Predio } from "@/lib/especificacoes/predios";
 import { rotuloUnidadeSbj, type UnidadeSbj } from "@/lib/especificacoes/unidades";
 import Selecao from "@/components/ui/Selecao";
 import { excluirProjeto, importarLinhas, salvarProjeto } from "../actions";
 import { btnIcone, btnPrim, btnSec, campo, erroCls, rotulo } from "../ui";
 
 export type ProjetoResumo = {
-  id: string; codigo: string | null; titulo: string; cliente: string | null; unidade_id: string | null; unidade: string | null; atualizado_em: string; qtd: Record<string, number>;
+  id: string; codigo: string | null; titulo: string; cliente: string | null; unidade_id: string | null; unidade: string | null;
+  obra_id: string | null; tipo: string; atualizado_em: string; qtd: Record<string, number>;
 };
 
-export default function ListaProjetos({ projetos, unidades }: { projetos: ProjetoResumo[]; unidades: UnidadeSbj[] }) {
+export default function ListaProjetos({ projetos, unidades, predios }: { projetos: ProjetoResumo[]; unidades: UnidadeSbj[]; predios: Predio[] }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
+  const [filtro, setFiltro] = useState("");
   const [editando, setEditando] = useState<ProjetoResumo | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -31,12 +34,22 @@ export default function ListaProjetos({ projetos, unidades }: { projetos: Projet
   const f = fold(busca);
   const visiveis = projetos.filter((p) => !f || fold(`${p.codigo} ${p.titulo} ${p.cliente}`).includes(f));
 
+  // grupos por prédio: os que têm projeto (ou o escolhido no filtro, mesmo vazio, para criar o lazer); "Fora da SBJ" por último
+  const blocos: { predio: Predio | null; lista: ProjetoResumo[] }[] = [];
+  for (const pr of predios) {
+    if (filtro && filtro !== pr.id) continue;
+    const lista = visiveis.filter((p) => p.obra_id === pr.id).sort(ordemProjeto);
+    if (lista.length || filtro === pr.id) blocos.push({ predio: pr, lista });
+  }
+  const fora = visiveis.filter((p) => !p.obra_id || !predios.some((x) => x.id === p.obra_id)).sort(ordemProjeto);
+  if (fora.length && (!filtro || filtro === "fora")) blocos.push({ predio: null, lista: fora });
+
   async function gravar(fd: FormData, id?: string) {
     setErro(null);
     try {
       const novo = await salvarProjeto({
         id, codigo: String(fd.get("codigo") ?? ""), titulo: String(fd.get("titulo") ?? ""), cliente: String(fd.get("cliente") ?? ""),
-        unidade_id: String(fd.get("unidade_id") ?? ""),
+        unidade_id: String(fd.get("unidade_id") ?? ""), obra_id: String(fd.get("obra_id") ?? ""),
       });
       setEditando(null);
       if (!id) router.push(`/arquitetura/especificacoes/${novo}`);
@@ -102,7 +115,7 @@ export default function ListaProjetos({ projetos, unidades }: { projetos: Projet
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-primaryDark">Especificações</h1>
-          <p className="text-sm text-ink-500">Louças e metais, eletros e vidros de cada projeto da arquitetura.</p>
+          <p className="text-sm text-ink-500">Louças e metais, eletros e vidros de cada prédio: unidades e lazer.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/arquitetura/catalogo" className={btnSec}>
@@ -119,75 +132,137 @@ export default function ListaProjetos({ projetos, unidades }: { projetos: Projet
       {aviso && <div className="rounded-[10px] border border-[#BFE3CC] bg-[#EAF7EF] px-3 py-2 text-sm text-success">{aviso}</div>}
 
       <PainelCadastro titulo="Projetos" rotuloBotao="Novo projeto">
-        <FormProjeto unidades={unidades} onSalvar={(fd) => gravar(fd)} />
+        <FormProjeto unidades={unidades} predios={predios} predioInicial={filtro && filtro !== "fora" ? filtro : ""} onSalvar={(fd) => gravar(fd)} />
       </PainelCadastro>
 
-      <div className="card space-y-3">
-        <div className="relative max-w-sm">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="relative w-full max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-ink-400" />
           <input className={campo + " pl-9"} placeholder="Buscar por código, unidade ou cliente" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
-        {!visiveis.length && <p className="py-6 text-center text-sm text-ink-500">Nenhum projeto{busca ? " encontrado" : " cadastrado"}.</p>}
-        <ul className="divide-y divide-border">
-          {visiveis.map((p) =>
-            editando?.id === p.id ? (
-              <li key={p.id} className="py-3">
-                <FormProjeto unidades={unidades} inicial={p} onSalvar={(fd) => gravar(fd, p.id)} onCancelar={() => setEditando(null)} />
-              </li>
-            ) : (
-              <li key={p.id} className="flex items-center gap-2 py-2">
-                <Link href={`/arquitetura/especificacoes/${p.id}`} className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-surface-subtle">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-baseline gap-x-2">
-                      {p.codigo && <span className="text-xs font-semibold text-ink-400">{p.codigo}</span>}
-                      <span className="font-semibold text-ink-900 group-hover:text-primary">{p.titulo}</span>
-                    </div>
-                    <div className="text-xs text-ink-500">
-                      {p.cliente || "Sem cliente"} · {p.unidade ? <span className="text-primary">{p.unidade}</span> : "sem unidade SBJ"} ·{" "}
-                      {GRUPOS.map((g) => `${p.qtd[g.id] ?? 0} ${g.curto.toLowerCase()}`).join(" · ")}
-                    </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-ink-300 group-hover:text-primary" />
-                </Link>
-                <button type="button" className={btnIcone} title="Editar" onClick={() => setEditando(p)}>
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button type="button" className={btnIcone} title="Excluir" onClick={() => apagar(p)}>
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </li>
-            )
-          )}
-        </ul>
+        <Selecao className="w-full sm:w-72" value={filtro} onChange={(e) => setFiltro(e.target.value)}>
+          <option value="">Todos os prédios</option>
+          {predios.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+          <option value="fora">Fora da SBJ</option>
+        </Selecao>
       </div>
+
+      {!blocos.length && <div className="card py-6 text-center text-sm text-ink-500">Nenhum projeto{busca ? " encontrado" : " cadastrado"}.</div>}
+
+      {blocos.map(({ predio, lista }) => {
+        const lazer = lista.find((p) => p.tipo === "lazer");
+        const unid = lista.filter((p) => p.tipo !== "lazer").length;
+        return (
+          <div key={predio?.id ?? "fora"} className="card space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                <div>
+                  <h2 className="font-semibold text-primaryDark">{predio ? predio.nome : "Fora da SBJ"}</h2>
+                  <p className="text-xs text-ink-500">
+                    {predio?.fase ? `${FASE_PREDIO[predio.fase] ?? predio.fase} · ` : ""}
+                    {unid} unidade(s){predio ? ` · ${lazer ? "lazer cadastrado" : "sem lazer"}` : ""}
+                  </p>
+                </div>
+              </div>
+              {predio && (
+                <div className="flex flex-wrap gap-2">
+                  <Link href={lazer ? `/arquitetura/especificacoes/${lazer.id}` : `/arquitetura/especificacoes/predio/${predio.id}?lazer=1`} className={btnSec}>
+                    <Trees className="h-4 w-4" /> {lazer ? "Lazer" : "Cadastrar lazer"}
+                  </Link>
+                  <Link href={`/arquitetura/especificacoes/predio/${predio.id}`} className={btnSec}>
+                    <Building2 className="h-4 w-4" /> Ver prédio
+                  </Link>
+                  {lista.length > 0 && (
+                    <a href={`/imprimir/especificacoes/predio/${predio.id}?grupo=todos`} target="_blank" rel="noopener" className={btnPrim}>
+                      <FileText className="h-4 w-4" /> PDF do prédio
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+            {!lista.length && <p className="py-2 text-sm text-ink-500">Nenhuma unidade deste prédio ainda. Use &quot;Novo projeto&quot; acima.</p>}
+            <ul className="divide-y divide-border">
+              {lista.map((p) =>
+                editando?.id === p.id ? (
+                  <li key={p.id} className="py-3">
+                    <FormProjeto unidades={unidades} predios={predios} inicial={p} onSalvar={(fd) => gravar(fd, p.id)} onCancelar={() => setEditando(null)} />
+                  </li>
+                ) : (
+                  <li key={p.id} className="flex items-center gap-2 py-2">
+                    <Link href={`/arquitetura/especificacoes/${p.id}`} className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-surface-subtle">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline gap-x-2">
+                          {p.codigo && <span className="text-xs font-semibold text-ink-400">{p.codigo}</span>}
+                          <span className="font-semibold text-ink-900 group-hover:text-primary">{p.titulo}</span>
+                          {p.tipo === "lazer" && <span className="rounded bg-[#EAF7EF] px-1.5 text-[11px] font-semibold text-success">Lazer</span>}
+                        </div>
+                        <div className="text-xs text-ink-500">
+                          {p.tipo !== "lazer" && (
+                            <>
+                              {p.cliente || "Sem cliente"} · {p.unidade ? <span className="text-primary">{p.unidade}</span> : "sem unidade SBJ"} ·{" "}
+                            </>
+                          )}
+                          {GRUPOS.map((g) => `${p.qtd[g.id] ?? 0} ${g.curto.toLowerCase()}`).join(" · ")}
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-ink-300 group-hover:text-primary" />
+                    </Link>
+                    {p.tipo !== "lazer" && (
+                      <button type="button" className={btnIcone} title="Editar" onClick={() => setEditando(p)}>
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
+                    <button type="button" className={btnIcone} title="Excluir" onClick={() => apagar(p)}>
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                )
+              )}
+            </ul>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 function FormProjeto({
-  inicial, unidades, onSalvar, onCancelar,
-}: { inicial?: ProjetoResumo; unidades: UnidadeSbj[]; onSalvar: (fd: FormData) => Promise<void>; onCancelar?: () => void }) {
+  inicial, unidades, predios, predioInicial = "", onSalvar, onCancelar,
+}: {
+  inicial?: ProjetoResumo; unidades: UnidadeSbj[]; predios: Predio[]; predioInicial?: string;
+  onSalvar: (fd: FormData) => Promise<void>; onCancelar?: () => void;
+}) {
   const [salvando, setSalvando] = useState(false);
   const [titulo, setTitulo] = useState(inicial?.titulo ?? "");
   const atual = unidades.find((u) => u.id === inicial?.unidade_id);
-  const [emp, setEmp] = useState(atual?.empId ?? "");
+  // prédio: o gravado; senão o da unidade SBJ ligada; senão "fora" para projeto antigo sem prédio
+  const predioDaUnidade = atual ? predios.find((p) => p.empId === atual.empId)?.id : undefined;
+  const [obra, setObra] = useState(inicial ? inicial.obra_id ?? predioDaUnidade ?? "fora" : predioInicial);
   const [uni, setUni] = useState(atual?.id ?? "");
-  const emps = Array.from(new Map(unidades.map((u) => [u.empId, u.empNome])).entries()).filter(([, n]) => n).sort((a, b) => a[1].localeCompare(b[1]));
+  const predio = predios.find((p) => p.id === obra);
+  const unidadesDoPredio = predio?.empId ? unidades.filter((u) => u.empId === predio.empId) : [];
+
   // sugestão pelo nome do projeto: "701 Campeche" -> Ilha do Campeche, unidade 701
   const sugestao = (() => {
-    if (uni) return null;
-    const f = fold(titulo);
-    const num = f.match(/d{2,4}/)?.[0];
-    if (!num) return null;
-    const e = emps.find(([, n]) => {
-      const palavra = fold(n).split(/s+/).pop() ?? "";
-      return palavra.length > 2 && f.includes(palavra);
-    });
-    return e ? unidades.find((u) => u.empId === e[0] && fold(u.numero) === num) ?? null : null;
+    if (obra && (obra === "fora" || uni)) return null;
+    const ft = fold(titulo);
+    const pr = obra
+      ? predio
+      : predios.find((p) => {
+          const palavra = fold(p.nome).split(/\s+/).pop() ?? "";
+          return palavra.length > 2 && ft.includes(palavra);
+        });
+    if (!pr) return null;
+    const num = ft.match(/\d{2,4}/)?.[0];
+    const u = num && pr.empId ? unidades.find((x) => x.empId === pr.empId && fold(x.numero) === num) ?? null : null;
+    if (obra && !u) return null;
+    return { predio: pr, unidade: u };
   })();
+
   return (
     <form
-      className="grid gap-3 sm:grid-cols-[140px_1fr_1fr] lg:grid-cols-[120px_1fr_1fr_1fr_1fr_auto] sm:items-end"
+      className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.3fr_110px_1fr_1fr_1fr_auto] lg:items-end"
       onSubmit={async (e) => {
         e.preventDefault();
         setSalvando(true);
@@ -195,6 +270,16 @@ function FormProjeto({
         setSalvando(false);
       }}
     >
+      <input type="hidden" name="obra_id" value={obra} />
+      <input type="hidden" name="unidade_id" value={uni} />
+      <label>
+        <span className={rotulo}>Prédio *</span>
+        <Selecao className="w-full" value={obra} onChange={(e) => { setObra(e.target.value); setUni(""); }}>
+          <option value="">Escolha o prédio</option>
+          {predios.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+          <option value="fora">Fora da SBJ (cliente particular)</option>
+        </Selecao>
+      </label>
       <label>
         <span className={rotulo}>Código</span>
         <input name="codigo" className={campo} placeholder="2026-012" defaultValue={inicial?.codigo ?? ""} />
@@ -207,30 +292,28 @@ function FormProjeto({
         <span className={rotulo}>Cliente</span>
         <input name="cliente" className={campo} defaultValue={inicial?.cliente ?? ""} />
       </label>
-      <input type="hidden" name="unidade_id" value={uni} />
       <label>
-        <span className={rotulo}>Empreendimento SBJ</span>
-        <Selecao className="w-full" value={emp} onChange={(e) => { setEmp(e.target.value); setUni(""); }}>
-          <option value="">Nenhum</option>
-          {emps.map(([id, n]) => <option key={id} value={id}>{n}</option>)}
-        </Selecao>
-      </label>
-      <label>
-        <span className={rotulo}>Unidade</span>
-        <Selecao className="w-full" value={uni} onChange={(e) => setUni(e.target.value)} disabled={!emp}>
+        <span className={rotulo}>Unidade SBJ</span>
+        <Selecao className="w-full" value={uni} onChange={(e) => setUni(e.target.value)} disabled={!unidadesDoPredio.length}>
           <option value="">—</option>
-          {unidades.filter((u) => u.empId === emp).map((u) => <option key={u.id} value={u.id}>{u.numero}{u.bloco ? ` bl. ${u.bloco}` : ""}{u.prop ? ` · ${u.prop}` : ""}</option>)}
+          {unidadesDoPredio.map((u) => <option key={u.id} value={u.id}>{u.numero}{u.bloco ? ` bl. ${u.bloco}` : ""}{u.prop ? ` · ${u.prop}` : ""}</option>)}
         </Selecao>
       </label>
-      {sugestao && (
-        <button type="button" className="text-left text-xs text-primary hover:underline sm:col-span-2" onClick={() => { setEmp(sugestao.empId); setUni(sugestao.id); }}>
-          Ligar a {rotuloUnidadeSbj(sugestao)}{sugestao.prop ? ` (${sugestao.prop})` : ""}?
-        </button>
-      )}
       <div className="flex gap-2">
-        <button className={btnPrim} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</button>
+        <button className={btnPrim} disabled={salvando || !obra}>{salvando ? "Salvando…" : "Salvar"}</button>
         {onCancelar && <button type="button" className={btnSec} onClick={onCancelar}>Cancelar</button>}
       </div>
+      {sugestao && (
+        <button
+          type="button"
+          className="text-left text-xs text-primary hover:underline sm:col-span-2 lg:col-span-6"
+          onClick={() => { setObra(sugestao.predio.id); setUni(sugestao.unidade?.id ?? ""); }}
+        >
+          {sugestao.unidade
+            ? `Ligar a ${rotuloUnidadeSbj(sugestao.unidade)}${sugestao.unidade.prop ? ` (${sugestao.unidade.prop})` : ""}?`
+            : `É do prédio ${sugestao.predio.nome}?`}
+        </button>
+      )}
     </form>
   );
 }

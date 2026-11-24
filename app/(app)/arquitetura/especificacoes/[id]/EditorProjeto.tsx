@@ -3,14 +3,16 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, FileText, ListChecks, Pencil, Plus, Trash2, Type } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Building2, FileText, ListChecks, Pencil, Plus, Trash2, Trees, Type } from "lucide-react";
 import { pedirConfirmacao } from "@/components/ui/Confirmacao";
 import Selecao from "@/components/ui/Selecao";
 import {
-  AMBIENTES_SUGERIDOS, GRUPOS, VID, descVidro, fold, medidasVidro, refDoModelo, tituloAmbiente, type Grupo, type Vidro,
+  AMBIENTES_LAZER, AMBIENTES_SUGERIDOS, GRUPOS, VID, descVidro, fold, medidasVidro, refDoModelo, tituloAmbiente, type Grupo, type Vidro,
 } from "@/lib/especificacoes/regras";
 import { sugestoesDoAmbiente } from "@/lib/especificacoes/texto";
-import { criarItens, excluirAmbiente, excluirItem, moverItem, renomearAmbiente, salvarItem, salvarNota } from "../../actions";
+import {
+  adicionarAmbienteLazer, criarItens, excluirAmbiente, excluirItem, moverItem, removerAmbienteLazer, renomearAmbiente, salvarItem, salvarNota,
+} from "../../actions";
 import { DesenhoVidro, FotoCampo, Janela, Miniatura, SeletorModelo, type Modelo } from "../../comum";
 import { btnIcone, btnPrim, btnSec, campo, erroCls, rotulo } from "../../ui";
 import TextoLivre from "./TextoLivre";
@@ -19,7 +21,10 @@ export type Item = {
   id: string; grupo: Grupo; ambiente: string; material: string; referencia: string; medidas: string; qtd: number; img: string; ordem: number; vidro: Vidro | null;
 };
 export type Nota = { grupo: Grupo; obs: string; rev: string; papel: string };
-type Projeto = { id: string; codigo: string | null; titulo: string; cliente: string | null; unidade: string | null };
+type Projeto = {
+  id: string; codigo: string | null; titulo: string; cliente: string | null; unidade: string | null;
+  obraId: string | null; predio: string | null; lazer: boolean; ambientesLazer: string[];
+};
 type Escolha = { ambiente: string; existente: boolean; itens: { n: string; on: boolean }[] };
 type Rascunho = Omit<Item, "id" | "ordem"> & { id?: string };
 
@@ -49,9 +54,12 @@ export default function EditorProjeto({
       if (!mapa.has(k)) mapa.set(k, []);
       mapa.get(k)!.push(i);
     }
-    for (const a of novosAmbientes[grupo] ?? []) if (!mapa.has(a)) mapa.set(a, []);
+    // lazer: a lista de ambientes do prédio aparece em todos os grupos, mesmo sem item
+    const extras = [...(projeto.lazer ? projeto.ambientesLazer : []), ...(novosAmbientes[grupo] ?? [])];
+    for (const a of extras) if (!Array.from(mapa.keys()).some((k) => fold(k) === fold(a))) mapa.set(a, []);
     return Array.from(mapa.entries());
-  }, [itens, grupo, novosAmbientes]);
+  }, [itens, grupo, novosAmbientes, projeto.lazer, projeto.ambientesLazer]);
+  const faltamLazer = projeto.lazer ? AMBIENTES_LAZER.filter((a) => !ambientes.some(([k]) => fold(k) === fold(a))) : [];
 
   const contagem = (x: Grupo) => itens.filter((i) => i.grupo === x).length;
   const nota = notas.find((n) => n.grupo === grupo) ?? { grupo, obs: "", rev: "R0", papel: "a3p" };
@@ -74,6 +82,7 @@ export default function EditorProjeto({
   async function gravarEscolha(e: Escolha) {
     const marcados = e.itens.filter((x) => x.on).map((x) => ({ ambiente: e.ambiente, material: x.n }));
     try {
+      if (projeto.lazer && !e.existente) await adicionarAmbienteLazer(projeto.id, e.ambiente);
       if (marcados.length) await criarItens(projeto.id, grupo, marcados);
       else if (!e.existente) setNovosAmbientes((m) => ({ ...m, [grupo]: [...(m[grupo] ?? []), e.ambiente] }));
       setEscolha(null);
@@ -89,6 +98,14 @@ export default function EditorProjeto({
       if (!ok) return;
       try {
         await excluirAmbiente(projeto.id, grupo, amb);
+      } catch (e: any) {
+        return setErro(e.message);
+      }
+    } else if (projeto.lazer) {
+      const ok = await pedirConfirmacao({ texto: `Tirar "${amb}" da lista de lazer deste prédio?`, botao: "Tirar" });
+      if (!ok) return;
+      try {
+        await removerAmbienteLazer(projeto.id, amb);
       } catch (e: any) {
         return setErro(e.message);
       }
@@ -127,7 +144,7 @@ export default function EditorProjeto({
     const para = window.prompt("Novo nome do ambiente:", de);
     if (!para || tituloAmbiente(para) === de) return;
     try {
-      if ((ambientes.find(([a]) => a === de)?.[1].length ?? 0) > 0) await renomearAmbiente(projeto.id, grupo, de, para);
+      if (projeto.lazer || (ambientes.find(([a]) => a === de)?.[1].length ?? 0) > 0) await renomearAmbiente(projeto.id, grupo, de, para);
       setNovosAmbientes((m) => ({ ...m, [grupo]: (m[grupo] ?? []).map((a) => (a === de ? tituloAmbiente(para) : a)) }));
       router.refresh();
     } catch (e: any) {
@@ -142,16 +159,29 @@ export default function EditorProjeto({
           <Link href="/arquitetura/especificacoes" className="inline-flex items-center gap-1 text-xs font-semibold text-ink-500 hover:text-primary">
             <ArrowLeft className="h-3.5 w-3.5" /> Especificações
           </Link>
-          <h1 className="text-lg font-semibold text-primaryDark">
-            {projeto.codigo && <span className="mr-2 text-ink-400">{projeto.codigo}</span>}
-            {projeto.titulo}
+          <h1 className="flex items-center gap-2 text-lg font-semibold text-primaryDark">
+            {projeto.lazer && <Trees className="h-5 w-5 text-success" />}
+            {projeto.codigo && <span className="text-ink-400">{projeto.codigo}</span>}
+            {projeto.lazer ? `Lazer · ${projeto.predio ?? ""}` : projeto.titulo}
           </h1>
           {projeto.cliente && <p className="text-sm text-ink-500">{projeto.cliente}</p>}
-          <p className="text-xs text-ink-400">{projeto.unidade ? `Unidade SBJ: ${projeto.unidade}` : "Sem unidade da SBJ ligada (edite o projeto na lista)"}</p>
+          {!projeto.lazer && (
+            <p className="text-xs text-ink-400">
+              {projeto.predio ? `Prédio: ${projeto.predio}` : "Fora da SBJ"} ·{" "}
+              {projeto.unidade ? `Unidade SBJ: ${projeto.unidade}` : "sem unidade da SBJ ligada (edite o projeto na lista)"}
+            </p>
+          )}
         </div>
-        <Link href="/arquitetura/catalogo" className={btnSec}>
-          <BookOpen className="h-4 w-4" /> Catálogo de modelos
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          {projeto.obraId && (
+            <Link href={`/arquitetura/especificacoes/predio/${projeto.obraId}?grupo=${grupo}`} className={btnSec}>
+              <Building2 className="h-4 w-4" /> Ver prédio
+            </Link>
+          )}
+          <Link href="/arquitetura/catalogo" className={btnSec}>
+            <BookOpen className="h-4 w-4" /> Catálogo de modelos
+          </Link>
+        </div>
       </div>
 
       <div className="flex gap-1 overflow-x-auto border-b border-border">
@@ -232,18 +262,28 @@ export default function EditorProjeto({
       ))}
 
       <div className="card flex flex-wrap items-end gap-2">
+        {faltamLazer.length > 0 && (
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-ink-500">Ambientes de lazer:</span>
+            {faltamLazer.map((a) => (
+              <button key={a} type="button" className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-semibold text-ink-600 hover:border-primary hover:text-primary" onClick={() => abrirSugestoes(a, false)}>
+                <Plus className="h-3 w-3" /> {a}
+              </button>
+            ))}
+          </div>
+        )}
         <label className="min-w-[220px] flex-1">
-          <span className={rotulo}>Novo ambiente</span>
+          <span className={rotulo}>{projeto.lazer ? "Novo ambiente de lazer" : "Novo ambiente"}</span>
           <input
             className={campo}
             list="esp-ambientes"
-            placeholder="Ex.: BWC Suíte, Cozinha, Lavabo"
+            placeholder={projeto.lazer ? "Ex.: Espaço Gourmet, Sauna, Quadra" : "Ex.: BWC Suíte, Cozinha, Lavabo"}
             value={novoAmb}
             onChange={(e) => setNovoAmb(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), adicionarAmbiente())}
           />
           <datalist id="esp-ambientes">
-            {AMBIENTES_SUGERIDOS.map((a) => <option key={a} value={a} />)}
+            {(projeto.lazer ? AMBIENTES_LAZER : AMBIENTES_SUGERIDOS).map((a) => <option key={a} value={a} />)}
           </datalist>
         </label>
         <button type="button" className={btnPrim} onClick={adicionarAmbiente} disabled={!novoAmb.trim()}>

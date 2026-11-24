@@ -120,6 +120,8 @@ export function cssFolha(a3: boolean) {
   .fg table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .fg thead { display: table-header-group; }
   .fg th { background: var(--verde); color: #fff; text-align: left; font-size: ${a3 ? "8.5pt" : "7pt"}; font-weight: 700; text-transform: uppercase; padding: 1.8mm 2mm; border: 0.4px solid #333; }
+  /* o estilo geral das tabelas do site (anima.css: table thead th) deixa o texto escuro; aqui é sempre branco sobre o verde */
+  .fg table thead th, .fg table thead th * { color: #fff !important; background: var(--verde) !important; }
   .fg td { padding: 1.8mm 2mm; border: 0.4px solid var(--linha); vertical-align: middle; white-space: pre-line; }
   .fg tbody tr:nth-child(even) td { background: var(--zebra); }
   .fg tr { break-inside: avoid; }

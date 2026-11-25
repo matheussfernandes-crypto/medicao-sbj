@@ -16,7 +16,7 @@ export default async function HistoricoContratosPage({
   const [{ data: fechamentos }, { data: fechVales }] = await Promise.all([
     supabase
       .from("contrato_fechamentos")
-      .select("id, contrato_id, mes_referencia, valor_bruto, retencao_valor, vales_descontados, valor_liquido, fechado_em, contratos(numero, objeto, obra_id, empresa_id, obras(nome), empresas_terceirizadas(nome))")
+      .select("id, contrato_id, mes_referencia, sequencia, valor_bruto, retencao_valor, vales_descontados, valor_liquido, fechado_em, contratos(numero, objeto, obra_id, empresa_id, obras(nome), empresas_terceirizadas(nome))")
       .order("mes_referencia", { ascending: false }),
     supabase
       .from("contrato_fechamentos_vale")
@@ -36,7 +36,7 @@ export default async function HistoricoContratosPage({
     .sort((a, b) => (a.mes_referencia < b.mes_referencia ? 1 : a.mes_referencia > b.mes_referencia ? -1 : (a.contratos?.numero ?? 0) - (b.contratos?.numero ?? 0)));
   const filtrada = lista
     .filter((f) => (!obra || f.contratos?.obra_id === obra) && (!empresa || f.contratos?.empresa_id === empresa))
-    .sort((a, b) => (a.mes_referencia < b.mes_referencia ? 1 : a.mes_referencia > b.mes_referencia ? -1 : (a.contratos?.numero ?? 0) - (b.contratos?.numero ?? 0)));
+    .sort((a, b) => (a.mes_referencia < b.mes_referencia ? 1 : a.mes_referencia > b.mes_referencia ? -1 : (a.contratos?.numero ?? 0) - (b.contratos?.numero ?? 0) || (b.sequencia ?? 1) - (a.sequencia ?? 1)));
 
   return (
     <div className="space-y-5">
@@ -87,7 +87,7 @@ export default async function HistoricoContratosPage({
               d: { data: f.fechado_em ? new Date(f.fechado_em).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }) : "" },
               linha: (
                 <tr key={f.id} className="border-b">
-                  <td className="py-2 pr-3 whitespace-nowrap">{mesLabel(f.mes_referencia)}</td>
+                  <td className="py-2 pr-3 whitespace-nowrap">{mesLabel(f.mes_referencia)}{Number(f.sequencia) > 1 && <span className="block text-[10px] text-amber-700">complementar {f.sequencia}</span>}</td>
                   <td className="py-2 pr-3">{f.contratos?.obras?.nome}</td>
                   <td className="py-2 pr-3 whitespace-nowrap">
                     <Link href={`/contratos/${f.contrato_id}`} className="text-primary hover:underline">Nº {String(f.contratos?.numero ?? "").padStart(2, "0")}</Link>
@@ -100,7 +100,7 @@ export default async function HistoricoContratosPage({
                   <td className="py-2 pr-3 text-right font-semibold">{brl(f.valor_liquido)}</td>
                   <td className="py-2 pr-3 whitespace-nowrap text-xs text-ink-500">{dataHoraBR(f.fechado_em)}</td>
                   <td className="py-2 text-right">
-                    <a href={`/contratos/fechamento/pdf?contrato=${f.contrato_id}&mes=${f.mes_referencia}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary font-semibold hover:underline">
+                    <a href={`/contratos/fechamento/pdf?contrato=${f.contrato_id}&mes=${f.mes_referencia}&seq=${f.sequencia ?? 1}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary font-semibold hover:underline">
                       <FileDown className="w-3.5 h-3.5" /> PDF
                     </a>
                   </td>

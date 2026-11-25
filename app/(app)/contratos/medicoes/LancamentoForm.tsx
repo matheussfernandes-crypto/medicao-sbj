@@ -63,6 +63,7 @@ export default function LancamentoForm({
   const [fotos, setFotos] = useState<File[]>([]);
   const [confirmando, setConfirmando] = useState(false);
   const [msg, setMsg] = useState<{ erro?: string; ok?: string } | null>(null);
+  const [avisoMesFechado, setAvisoMesFechado] = useState<string | null>(null);
   const [pendente, start] = useTransition();
 
   // Solicitação de aditivo
@@ -90,9 +91,11 @@ export default function LancamentoForm({
     setLinhas((ls) => ls.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
   }
 
-  function enviar() {
+  function enviar(confirmarMesFechado = false) {
     setMsg(null);
+    setAvisoMesFechado(null);
     const fd = new FormData();
+    if (confirmarMesFechado) fd.set("confirmarMesFechado", "1");
     fd.set("contratoId", contrato.id);
     if (edicao) fd.set("lancamentoId", edicao.id);
     fd.set("tipo", aba);
@@ -103,6 +106,7 @@ export default function LancamentoForm({
     else fd.set("itens", JSON.stringify(calc.map((c) => ({ itemId: c.itemId, modo: c.modo, valor: parseNum(c.valor) }))));
     start(async () => {
       const r = await salvarLancamento(fd);
+      if (r.avisoMesFechado) { setAvisoMesFechado(r.erro ?? ""); setConfirmando(false); return; }
       if (r.erro) { setMsg(r); setConfirmando(false); return; }
       if (fotos.length && r.id) {
         const e = await enviarArquivos(fotos, { contratoId: contrato.id, tipo: "FOTO", lancamentoId: r.id });
@@ -187,7 +191,7 @@ export default function LancamentoForm({
         <div className="space-y-3">
           <div className="flex flex-wrap gap-3 text-xs">
             <label className="flex flex-col gap-1">Data<DataCampo value={data} onChange={setData} /></label>
-            <label className="flex flex-col gap-1">Mês de referência<MesCampo value={mes} onChange={setMes} /></label>
+            <label className="flex flex-col gap-1">Mês de referência<MesCampo value={mes} onChange={(v) => { setMes(v); setAvisoMesFechado(null); }} /></label>
             {ehVale && (
               <label className="flex flex-col gap-1">Valor do vale (R$)
                 <input inputMode="decimal" value={valorVale} onChange={(e) => setValorVale(e.target.value)} className="border rounded px-2 py-2 text-sm w-40" />
@@ -350,7 +354,7 @@ export default function LancamentoForm({
                 <span>
                   {edicao ? "Salvar" : "Enviar"} {ABAS.find((a) => a.id === aba)?.label.replace("Nova ", "").toLowerCase()} de <b>{brl(valorEnvio)}</b> para o contrato <b>{contrato.numero}</b> – <b>{contrato.obra_nome}</b> ({mesLabel(mes)})?
                 </span>
-                <button type="button" disabled={pendente} onClick={enviar} className="bg-primary text-white rounded px-3 py-1 font-semibold disabled:opacity-50">
+                <button type="button" disabled={pendente} onClick={() => enviar()} className="bg-primary text-white rounded px-3 py-1 font-semibold disabled:opacity-50">
                   {pendente ? "Enviando…" : "Confirmar"}
                 </button>
                 <button type="button" onClick={() => setConfirmando(false)} className="text-xs underline">Voltar</button>
@@ -360,6 +364,20 @@ export default function LancamentoForm({
         </div>
       )}
 
+      {avisoMesFechado && (
+        <div className="border border-amber-300 bg-amber-50 rounded-lg p-3 text-sm space-y-2">
+          <p className="flex items-center gap-2 font-semibold text-amber-800"><AlertTriangle className="w-4 h-4" /> Mês {mesLabel(mes)} já fechado</p>
+          <p className="text-amber-800">{avisoMesFechado}</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={pendente} onClick={() => enviar(true)} className="bg-primary text-white rounded px-3 py-1 text-xs font-semibold disabled:opacity-50">
+              {pendente ? "Enviando…" : `OK, lançar em ${mesLabel(mes)} mesmo assim`}
+            </button>
+            <button type="button" onClick={() => setAvisoMesFechado(null)} className="bg-white border border-amber-400 rounded px-3 py-1 text-xs font-semibold">
+              Trocar o mês de referência
+            </button>
+          </div>
+        </div>
+      )}
       {msg?.erro && <p className="text-sm text-danger bg-red-50 border border-red-200 rounded px-3 py-2">{msg.erro}</p>}
       {msg?.ok && <p className="text-sm text-success bg-green-50 border border-green-200 rounded px-3 py-2">{msg.ok}</p>}
     </div>

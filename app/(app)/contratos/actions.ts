@@ -18,7 +18,7 @@ import {
 import { calcularBoletim } from "@/lib/contratos/boletim";
 import { calcularFechamentoVale } from "@/lib/contratos/fechamentoVale";
 
-export type Resultado = { erro?: string; ok?: string; id?: string };
+export type Resultado = { erro?: string; ok?: string; id?: string; avisoMesFechado?: boolean };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -510,8 +510,12 @@ export async function salvarLancamento(fd: FormData): Promise<Resultado> {
   const contrato = await contratoInfo(p.supabase, contratoId);
   if (!contrato) return { erro: "Contrato não encontrado." };
   if (contrato.status !== "ATIVO") return { erro: "Este contrato não está ativo." };
-  if (await mesFechado(p.supabase, contratoId, mes)) {
-    return { erro: `O mês ${mesLabel(mes)} já foi fechado neste contrato. Use outro mês de referência.` };
+  // Mês já fechado: avisa e só segue se o usuário confirmar. A nova medição vai para um boletim complementar.
+  if (fd.get("confirmarMesFechado") !== "1" && (await mesFechado(p.supabase, contratoId, mes))) {
+    return {
+      avisoMesFechado: true,
+      erro: `O mês ${mesLabel(mes)} já foi fechado neste contrato. Se lançar mesmo assim, este lançamento entra num boletim complementar de ${mesLabel(mes)} (o fechamento já feito não muda).`,
+    };
   }
   if (tipo === "VALE" && (await valeFechado(p.supabase, contratoId, mes))) {
     return { erro: `Os vales de ${mesLabel(mes)} já foram fechados neste contrato. Reabra o fechamento de vales ou use outro mês.` };
@@ -778,9 +782,7 @@ export async function aprovarLancamentoContrato(fd: FormData): Promise<Resultado
     .single();
   if (!l) return { erro: "Lançamento não encontrado." };
   if (l.status !== "PENDENTE") return { erro: "Este lançamento já foi decidido." };
-  if (await mesFechado(p.supabase, l.contrato_id, l.mes_referencia)) {
-    return { erro: `O mês ${mesLabel(l.mes_referencia)} já foi fechado. Reabra o fechamento para aprovar.` };
-  }
+  // Mês já fechado não bloqueia: o pendente ainda não está em nenhum fechamento e entra no boletim complementar.
   if (l.tipo === "VALE" && (await valeFechado(p.supabase, l.contrato_id, l.mes_referencia))) {
     return { erro: `Os vales de ${mesLabel(l.mes_referencia)} já foram fechados. Reabra o fechamento de vales para aprovar.` };
   }
@@ -897,8 +899,8 @@ export async function reabrirLancamentoContrato(fd: FormData): Promise<Resultado
   const id = txt(fd, "id");
   const { data: l } = await p.supabase.from("contrato_lancamentos").select("contrato_id, mes_referencia, fechamento_id, fechamento_vale_id").eq("id", id).single();
   if (!l) return { erro: "Lançamento não encontrado." };
-  if (l.fechamento_id || (await mesFechado(p.supabase, l.contrato_id, l.mes_referencia))) {
-    return { erro: "O mês deste lançamento já foi fechado. Reabra o fechamento primeiro." };
+  if (l.fechamento_id) {
+    return { erro: "Este lançamento já está num fechamento. Reabra o fechamento primeiro." };
   }
   if (l.fechamento_vale_id) return { erro: "Este vale já está num fechamento de vales. Reabra o fechamento de vales primeiro." };
   const { count } = await p.supabase.from("contrato_vale_descontos").select("id", { count: "exact", head: true }).eq("vale_id", id);
@@ -919,14 +921,16 @@ export async function fecharMesContrato(fd: FormData): Promise<Resultado> {
   if (!p?.ehAdmin) return { erro: "Apenas o ADM pode fechar o mês." };
   const contratoId = txt(fd, "contratoId");
   const mes = txt(fd, "mes");
-  const b = await calcularBoletim(p.supabase, contratoId, mes);
+  // Sempre fecha o que está em aberto: no 1º fechamento é o mês todo; depois, só as medições complementares.
+  const b = await calcularBoletim(p.supabase, contratoId, mes, { aberto: true });
   if (!b) return { erro: "Contrato não encontrado." };
-  if (b.fechamento) return { erro: "Este mês já está fechado." };
   if (b.pendentesNoMes > 0) return { erro: `Há ${b.pendentesNoMes} lançamento(s) pendente(s) neste mês. Aprove ou rejeite antes de fechar.` };
-  if (!b.medicoes.length && !b.valesMedicao.length) return { erro: "Não há medições aprovadas neste mês." };
+  if (!b.medicoes.length && !b.valesMedicao.length) {
+    return { erro: b.fechamentosDoMes.length ? "Não há medição nova aprovada para um boletim complementar neste mês." : "Não há medições aprovadas neste mês." };
+  }
 
   const { data: f, error } = await p.supabase.from("contrato_fechamentos").insert({
-    contrato_id: contratoId, mes_referencia: mes,
+    contrato_id: contratoId, mes_referencia: mes, sequencia: b.sequencia,
     valor_bruto: b.bruto, retencao_valor: b.retido, vales_descontados: b.valesDescontados, valor_liquido: b.liquido,
     fechado_por: p.userId,
   }).select("id").single();
@@ -938,7 +942,11 @@ export async function fecharMesContrato(fd: FormData): Promise<Resultado> {
   if (ids.length) await p.supabase.from("contrato_lancamentos").update({ fechamento_id: f.id }).in("id", ids);
 
   revalidarTudo(contratoId);
-  return { ok: `Mês ${mesLabel(mes)} fechado. Líquido a pagar: ${brl(b.liquido)}.` };
+  return {
+    ok: b.sequencia > 1
+      ? `Boletim complementar ${b.sequencia} de ${mesLabel(mes)} fechado. Líquido a pagar: ${brl(b.liquido)}.`
+      : `Mês ${mesLabel(mes)} fechado. Líquido a pagar: ${brl(b.liquido)}.`,
+  };
 }
 
 export async function reabrirMesContrato(fd: FormData): Promise<Resultado> {
@@ -946,14 +954,18 @@ export async function reabrirMesContrato(fd: FormData): Promise<Resultado> {
   if (!p?.ehAdmin) return { erro: "Apenas o ADM pode reabrir o mês." };
   const contratoId = txt(fd, "contratoId");
   const mes = txt(fd, "mes");
-  const { data: f } = await p.supabase.from("contrato_fechamentos").select("id").eq("contrato_id", contratoId).eq("mes_referencia", mes).maybeSingle();
-  if (!f) return { erro: "Este mês não está fechado." };
+  const { data: doMes } = await p.supabase.from("contrato_fechamentos").select("id, sequencia").eq("contrato_id", contratoId).eq("mes_referencia", mes).order("sequencia");
+  if (!doMes?.length) return { erro: "Este mês não está fechado." };
+  const seq = Number(txt(fd, "seq")) || Number(doMes[doMes.length - 1].sequencia);
+  const f = doMes.find((x: any) => Number(x.sequencia) === seq);
+  if (!f) return { erro: "Fechamento não encontrado." };
+  if (doMes.some((x: any) => Number(x.sequencia) > seq)) return { erro: "Existe boletim complementar depois deste no mesmo mês. Reabra o mais recente primeiro." };
   const { data: posterior } = await p.supabase.from("contrato_fechamentos").select("mes_referencia").eq("contrato_id", contratoId).gt("mes_referencia", mes).limit(1);
   if (posterior?.length) return { erro: `Existe fechamento posterior (${mesLabel(posterior[0].mes_referencia)}). Reabra os meses mais recentes primeiro.` };
   await p.supabase.from("contrato_lancamentos").update({ fechamento_id: null }).eq("fechamento_id", f.id);
   await p.supabase.from("contrato_fechamentos").delete().eq("id", f.id);
   revalidarTudo(contratoId);
-  return { ok: `Mês ${mesLabel(mes)} reaberto.` };
+  return { ok: seq > 1 ? `Boletim complementar ${seq} de ${mesLabel(mes)} reaberto.` : `Mês ${mesLabel(mes)} reaberto.` };
 }
 
 // ─── Fechamento de vales do mês (ADM) ───────────────────────────────────────

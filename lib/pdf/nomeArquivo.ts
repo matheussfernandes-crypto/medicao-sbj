@@ -44,14 +44,18 @@ export function nomeMedicaoContrato(o: { numero: number; objeto: string; obra: s
  * Nº na sequência do contrato: contam os fechamentos (medição e vale) anteriores; no mesmo mês o vale vem antes.
  * Se o documento ainda não foi fechado, recebe o próximo número.
  */
-export async function numeroDocumentoContrato(supabase: any, contratoId: string, mes: string, tipo: "MEDICAO" | "VALE") {
-  const [{ count: meds }, { count: vales }] = await Promise.all([
+export async function numeroDocumentoContrato(supabase: any, contratoId: string, mes: string, tipo: "MEDICAO" | "VALE", sequencia = 1) {
+  const [{ count: meds }, { count: vales }, { count: mesmoMes }] = await Promise.all([
     supabase.from("contrato_fechamentos").select("id", { count: "exact", head: true }).eq("contrato_id", contratoId).lt("mes_referencia", mes),
     tipo === "MEDICAO"
       ? supabase.from("contrato_fechamentos_vale").select("id", { count: "exact", head: true }).eq("contrato_id", contratoId).lte("mes_referencia", mes)
       : supabase.from("contrato_fechamentos_vale").select("id", { count: "exact", head: true }).eq("contrato_id", contratoId).lt("mes_referencia", mes),
+    // boletins complementares: contam os fechamentos anteriores do mesmo mês
+    tipo === "MEDICAO" && sequencia > 1
+      ? supabase.from("contrato_fechamentos").select("id", { count: "exact", head: true }).eq("contrato_id", contratoId).eq("mes_referencia", mes).lt("sequencia", sequencia)
+      : Promise.resolve({ count: 0 }),
   ]);
-  return (meds ?? 0) + (vales ?? 0) + 1;
+  return (meds ?? 0) + (vales ?? 0) + (mesmoMes ?? 0) + 1;
 }
 
 export function nomeObra(o: { tipo: "MED" | "VALE"; obra: string; mes: string; previa?: boolean }) {

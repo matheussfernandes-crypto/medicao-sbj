@@ -47,6 +47,12 @@ export type Boletim = {
   contrato: any;
   mes: string;
   fechamento: any | null;
+  /** 1 = boletim normal do mês; 2, 3… = boletim complementar (medição lançada depois do mês fechado). */
+  sequencia: number;
+  /** Fechamentos já feitos neste mês (em ordem). */
+  fechamentosDoMes: any[];
+  /** Medições do mês (aprovadas ou pendentes) que ainda não entraram em nenhum fechamento. */
+  lancamentosEmAberto: number;
   linhas: LinhaBoletim[];
   /** Só o que foi medido no mês: uma linha por item de cada medição aprovada (para o PDF). */
   itensMedidos: ItemMedido[];
@@ -78,7 +84,7 @@ export async function calcularBoletim(
   supabase: Perfil["supabase"],
   contratoId: string,
   mes: string,
-  opts: { previaLancamentoId?: string } = {}
+  opts: { previaLancamentoId?: string; seq?: number; aberto?: boolean } = {}
 ): Promise<Boletim | null> {
   const { data: contrato } = await supabase
     .from("contratos")
@@ -87,13 +93,13 @@ export async function calcularBoletim(
     .single();
   if (!contrato) return null;
 
-  const [{ data: itens }, { data: lancsDb }, { data: fechamento }, { data: retHist }] = await Promise.all([
+  const [{ data: itens }, { data: lancsDb }, { data: fechsMesDb }, { data: retHist }] = await Promise.all([
     supabase.from("contrato_itens").select("id, codigo, descricao, unidade, quantidade, valor_unitario, ordem").eq("contrato_id", contratoId),
     supabase
       .from("contrato_lancamentos")
       .select("id, numero, tipo, data, mes_referencia, status, valor_bruto, retencao_aplicada, retencao_pct, retencao_valor, retencao_dispensa_motivo, valor_vale, valor_liquido, observacao, criado_por, aprovado_por, fechamento_id, contrato_lancamento_itens(item_id, quantidade_medida, quantidade_aprovada, valor_unitario, motivo_glosa)")
       .eq("contrato_id", contratoId),
-    supabase.from("contrato_fechamentos").select("*").eq("contrato_id", contratoId).eq("mes_referencia", mes).maybeSingle(),
+    supabase.from("contrato_fechamentos").select("*").eq("contrato_id", contratoId).eq("mes_referencia", mes).order("sequencia"),
     supabase.from("contrato_retencoes").select("vigente_desde, percent").eq("contrato_id", contratoId),
   ]);
 
@@ -118,6 +124,25 @@ export async function calcularBoletim(
     };
   });
 
+  // Qual boletim do mês: um fechamento já feito (seq) ou o que está em aberto (medições ainda sem fechamento).
+  const fechamentosDoMes = (fechsMesDb ?? []) as any[];
+  const seqDe = new Map<string, number>(fechamentosDoMes.map((f) => [f.id, Number(f.sequencia ?? 1)]));
+  const abertosNoMes = (lancs ?? []).filter(
+    (l: any) => l.mes_referencia === mes && l.tipo !== "VALE" && (l.status === "APROVADO" || l.status === "PENDENTE") && !l.fechamento_id
+  );
+  let fechamento: any | null = null;
+  if (opts.seq) fechamento = fechamentosDoMes.find((f) => Number(f.sequencia) === Number(opts.seq)) ?? null;
+  else if (!opts.aberto && !opts.previaLancamentoId && fechamentosDoMes.length && !abertosNoMes.length) {
+    fechamento = fechamentosDoMes[fechamentosDoMes.length - 1];
+  }
+  const sequencia = fechamento ? Number(fechamento.sequencia ?? 1) : fechamentosDoMes.length + 1;
+  /** Lançamento do mês que entra neste boletim. */
+  const desteBoletim = (l: any) =>
+    l.mes_referencia === mes && (fechamento ? l.fechamento_id === fechamento.id : !l.fechamento_id);
+  /** Medido antes deste boletim: meses anteriores ou fechamentos anteriores do mesmo mês. */
+  const anteriorAoBoletim = (l: any) =>
+    l.mes_referencia < mes || (l.mes_referencia === mes && !!l.fechamento_id && (seqDe.get(l.fechamento_id) ?? 0) < sequencia);
+
   const aprovados = (lancs ?? []).filter((l: any) => l.status === "APROVADO");
   const comItens = aprovados.filter((l: any) => l.tipo !== "VALE");
 
@@ -129,8 +154,8 @@ export async function calcularBoletim(
           if (li.item_id !== i.id) continue;
           const q = Number(li.quantidade_aprovada ?? li.quantidade_medida);
           const v = q * Number(li.valor_unitario);
-          if (l.mes_referencia < mes) { anterior += q; vAnterior += v; }
-          else if (l.mes_referencia === mes) {
+          if (anteriorAoBoletim(l)) { anterior += q; vAnterior += v; }
+          else if (desteBoletim(l)) {
             atual += q; vAtual += v;
             if (l.tipo === "VALE_MEDICAO" && q > 0) antecipado = true;
           }
@@ -161,8 +186,8 @@ export async function calcularBoletim(
     })
     .sort((a: any, b: any) => a._ordem - b._ordem || compararCodigo(a.codigo, b.codigo));
 
-  const medicoes = aprovados.filter((l: any) => l.tipo === "MEDICAO" && l.mes_referencia === mes);
-  const valesMedicao = aprovados.filter((l: any) => l.tipo === "VALE_MEDICAO" && l.mes_referencia === mes);
+  const medicoes = aprovados.filter((l: any) => l.tipo === "MEDICAO" && desteBoletim(l));
+  const valesMedicao = aprovados.filter((l: any) => l.tipo === "VALE_MEDICAO" && desteBoletim(l));
   const pendentesNoMes = (lancs ?? []).filter((l: any) => l.status === "PENDENTE" && l.mes_referencia === mes).length;
 
   const ordemItem = new Map<string, any>((itens ?? []).map((i: any) => [i.id, i]));
@@ -263,6 +288,9 @@ export async function calcularBoletim(
     contrato,
     mes,
     fechamento: fechamento ?? null,
+    sequencia,
+    fechamentosDoMes,
+    lancamentosEmAberto: abertosNoMes.length,
     linhas,
     itensMedidos,
     medicoes,

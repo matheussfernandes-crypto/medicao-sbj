@@ -22,7 +22,8 @@ export async function GET(request: NextRequest) {
   }
 
   const previa = searchParams.get("previa") || undefined;
-  const b = await calcularBoletim(supabase, contratoId, mes, { previaLancamentoId: previa });
+  const seq = Number(searchParams.get("seq")) || undefined;
+  const b = await calcularBoletim(supabase, contratoId, mes, { previaLancamentoId: previa, seq });
   if (!b) return NextResponse.json({ erro: "Contrato não encontrado." }, { status: 404 });
 
   const buffer = await renderToBuffer(
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     })
   );
   const nome = nomeMedicaoContrato({
-    numero: await numeroDocumentoContrato(supabase, contratoId, mes, "MEDICAO"),
+    numero: await numeroDocumentoContrato(supabase, contratoId, mes, "MEDICAO", b.sequencia),
     objeto: b.contrato.objeto,
     obra: b.contrato.obras?.nome,
     mes,

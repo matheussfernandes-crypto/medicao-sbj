@@ -15,7 +15,7 @@ import SecaoRecolhivel from "@/components/contratos/SecaoRecolhivel";
 export default async function FechamentoContratosPage({
   searchParams,
 }: {
-  searchParams: { contrato?: string; mes?: string };
+  searchParams: { contrato?: string; mes?: string; seq?: string };
 }) {
   const { supabase } = await exigirPerfil(["ADMIN"]);
   const { data: contratos } = await supabase
@@ -24,11 +24,12 @@ export default async function FechamentoContratosPage({
     .order("numero");
   const contratoId = searchParams.contrato || "";
   const mes = searchParams.mes || mesAtual();
+  const seqPedida = Number(searchParams.seq) || undefined;
 
   const [b, { data: historico }, fv, { data: historicoVale }] = contratoId
     ? await Promise.all([
-        calcularBoletim(supabase, contratoId, mes),
-        supabase.from("contrato_fechamentos").select("*").eq("contrato_id", contratoId).order("mes_referencia", { ascending: false }),
+        calcularBoletim(supabase, contratoId, mes, { seq: seqPedida }),
+        supabase.from("contrato_fechamentos").select("*").eq("contrato_id", contratoId).order("mes_referencia", { ascending: false }).order("sequencia", { ascending: false }),
         calcularFechamentoVale(supabase, contratoId, mes),
         supabase.from("contrato_fechamentos_vale").select("*").eq("contrato_id", contratoId).order("mes_referencia", { ascending: false }),
       ])
@@ -61,8 +62,30 @@ export default async function FechamentoContratosPage({
               <p className="text-lg font-bold">{b.contrato.obras?.nome}</p>
             </div>
             <p className="text-sm">Contrato <b>Nº {b.contrato.numero}</b> · {b.contrato.empresas_terceirizadas?.nome} · {b.contrato.objeto}</p>
-            <p className="ml-auto text-sm">Boletim de <b>{mesLabel(mes)}</b> {b.fechamento ? <span className="badge badge-aprovado ml-2">FECHADO</span> : <span className="badge badge-pendente ml-2">ABERTO</span>}</p>
+            <p className="ml-auto text-sm">Boletim {b.sequencia > 1 ? <>complementar <b>{b.sequencia}</b> </> : ""}de <b>{mesLabel(mes)}</b> {b.fechamento ? <span className="badge badge-aprovado ml-2">FECHADO</span> : <span className="badge badge-pendente ml-2">ABERTO</span>}</p>
           </div>
+
+          {(b.fechamentosDoMes.length > 1 || (b.fechamentosDoMes.length > 0 && (b.lancamentosEmAberto > 0 || !b.fechamento))) && (
+            <div className="card !p-3 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-ink-500">Boletins de {mesLabel(mes)}:</span>
+              {b.fechamentosDoMes.map((f: any) => {
+                const s = Number(f.sequencia ?? 1);
+                const ativo = b.fechamento?.id === f.id;
+                return (
+                  <Link key={f.id} href={`/contratos/fechamento?contrato=${contratoId}&mes=${mes}&seq=${s}`}
+                    className={`rounded-lg border px-3 py-1 ${ativo ? "bg-primary text-white border-primary" : "hover:bg-surface-subtle"}`}>
+                    {s === 1 ? "1º boletim" : `Complementar ${s}`} · fechado · {brl(f.valor_liquido)}
+                  </Link>
+                );
+              })}
+              {(b.lancamentosEmAberto > 0 || !b.fechamento) && (
+                <Link href={`/contratos/fechamento?contrato=${contratoId}&mes=${mes}&seq=${b.fechamentosDoMes.length + 1}`}
+                  className={`rounded-lg border px-3 py-1 ${!b.fechamento ? "bg-primary text-white border-primary" : "border-amber-300 bg-amber-50 text-amber-800"}`}>
+                  Complementar {b.fechamentosDoMes.length + 1} · em aberto{b.lancamentosEmAberto ? ` (${b.lancamentosEmAberto} lançamento(s))` : ""}
+                </Link>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <div className="stat-tile"><span className="stat-label">Bruto medido no mês</span><span className="stat-value text-xl">{brl(b.bruto)}</span></div>
@@ -154,23 +177,32 @@ export default async function FechamentoContratosPage({
           </div>
 
           <div className="card flex flex-wrap items-center gap-3">
-            <a href={`/contratos/fechamento/pdf?contrato=${contratoId}&mes=${mes}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-primary text-primary rounded-lg px-4 py-2 text-sm font-semibold">
+            <a href={`/contratos/fechamento/pdf?contrato=${contratoId}&mes=${mes}&seq=${b.sequencia}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-primary text-primary rounded-lg px-4 py-2 text-sm font-semibold">
               <FileDown className="w-4 h-4" /> {b.fechamento ? "Boletim em PDF" : "Ver PDF antes de fechar"}
             </a>
             {!b.fechamento ? (
-              <FormAcao action={fecharMesContrato} reset={false} confirmar={`Fechar ${mesLabel(mes)}? Líquido a pagar ${brl(b.liquido)}. Depois de fechado, o mês fica travado para novos lançamentos.`} className="flex flex-wrap items-center gap-2">
-                <input type="hidden" name="contratoId" value={contratoId} />
-                <input type="hidden" name="mes" value={mes} />
-                <button className="bg-primary text-white rounded-lg px-5 py-2 text-sm font-semibold">Fechar mês</button>
-              </FormAcao>
+              b.sequencia > 1 && !b.medicoes.length && !b.valesMedicao.length ? (
+                <span className="text-sm text-ink-500">Nenhuma medição nova aprovada depois do fechamento de {mesLabel(mes)}.</span>
+              ) : (
+                <FormAcao action={fecharMesContrato} reset={false} confirmar={b.sequencia > 1
+                  ? `Fechar o boletim complementar ${b.sequencia} de ${mesLabel(mes)}? Líquido a pagar ${brl(b.liquido)} (só o medido depois do fechamento anterior).`
+                  : `Fechar ${mesLabel(mes)}? Líquido a pagar ${brl(b.liquido)}. Medições lançadas depois entram num boletim complementar.`} className="flex flex-wrap items-center gap-2">
+                  <input type="hidden" name="contratoId" value={contratoId} />
+                  <input type="hidden" name="mes" value={mes} />
+                  <button className="bg-primary text-white rounded-lg px-5 py-2 text-sm font-semibold">{b.sequencia > 1 ? "Fechar boletim complementar" : "Fechar mês"}</button>
+                </FormAcao>
+              )
             ) : (
               <>
                 <span className="text-sm text-ink-500">Fechado em {dataHoraBR(b.fechamento.fechado_em)}</span>
-                <FormAcao action={reabrirMesContrato} reset={false} confirmar="Reabrir este mês? Os descontos de vale deste fechamento serão desfeitos." className="flex items-center">
-                  <input type="hidden" name="contratoId" value={contratoId} />
-                  <input type="hidden" name="mes" value={mes} />
-                  <button className="text-sm text-danger underline">Reabrir mês</button>
-                </FormAcao>
+                {b.sequencia === b.fechamentosDoMes.length && (
+                  <FormAcao action={reabrirMesContrato} reset={false} confirmar={b.sequencia > 1 ? "Reabrir este boletim complementar? Os descontos de vale dele serão desfeitos." : "Reabrir este mês? Os descontos de vale deste fechamento serão desfeitos."} className="flex items-center">
+                    <input type="hidden" name="contratoId" value={contratoId} />
+                    <input type="hidden" name="mes" value={mes} />
+                    <input type="hidden" name="seq" value={b.sequencia} />
+                    <button className="text-sm text-danger underline">{b.sequencia > 1 ? "Reabrir complementar" : "Reabrir mês"}</button>
+                  </FormAcao>
+                )}
               </>
             )}
           </div>
@@ -244,12 +276,12 @@ export default async function FechamentoContratosPage({
 }>
                   {(historico ?? []).map((f: any) => (
                     <tr key={f.id} className="border-b">
-                      <td className="py-2"><Link href={`/contratos/fechamento?contrato=${contratoId}&mes=${f.mes_referencia}`} className="text-primary hover:underline">{mesLabel(f.mes_referencia)}</Link></td>
+                      <td className="py-2"><Link href={`/contratos/fechamento?contrato=${contratoId}&mes=${f.mes_referencia}&seq=${f.sequencia ?? 1}`} className="text-primary hover:underline">{mesLabel(f.mes_referencia)}{Number(f.sequencia) > 1 ? ` · complementar ${f.sequencia}` : ""}</Link></td>
                       <td className="py-2 text-right">{brl(f.valor_bruto)}</td>
                       <td className="py-2 text-right">{brl(f.retencao_valor)}</td>
                       <td className="py-2 text-right">{brl(f.vales_descontados)}</td>
                       <td className="py-2 text-right font-semibold">{brl(f.valor_liquido)}</td>
-                      <td className="py-2 text-right"><a href={`/contratos/fechamento/pdf?contrato=${contratoId}&mes=${f.mes_referencia}`} target="_blank" rel="noreferrer" className="text-xs text-primary underline">PDF</a></td>
+                      <td className="py-2 text-right"><a href={`/contratos/fechamento/pdf?contrato=${contratoId}&mes=${f.mes_referencia}&seq=${f.sequencia ?? 1}`} target="_blank" rel="noreferrer" className="text-xs text-primary underline">PDF</a></td>
                     </tr>
                   ))}
                 </TabelaPaginada>

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Building2, ChevronDown, FileText, ListChecks, Pencil, Plus, Trash2, Trees, Type } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Building2, ChevronDown, FileStack, FileText, ListChecks, Pencil, Plus, Trash2, Trees, Type } from "lucide-react";
 import { pedirConfirmacao } from "@/components/ui/Confirmacao";
 import Selecao from "@/components/ui/Selecao";
 import {
@@ -41,6 +41,7 @@ export default function EditorProjeto({
   const [novoAmb, setNovoAmb] = useState("");
   const [escolha, setEscolha] = useState<Escolha | null>(null);
   const [texto, setTexto] = useState(false);
+  const [juntar, setJuntar] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const g = GRUPOS.find((x) => x.id === grupo)!;
 
@@ -188,6 +189,9 @@ export default function EditorProjeto({
               <Building2 className="h-4 w-4" /> Ver prédio
             </Link>
           )}
+          <button type="button" className={btnSec} onClick={() => setJuntar(true)} title="Um PDF só, com capa de índice e uma página por lista">
+            <FileStack className="h-4 w-4" /> PDF com várias listas
+          </button>
           <Link href="/arquitetura/catalogo" className={btnSec}>
             <BookOpen className="h-4 w-4" /> Catálogo de modelos
           </Link>
@@ -360,6 +364,12 @@ export default function EditorProjeto({
             router.refresh();
           }}
         />
+      )}
+
+      {juntar && (
+        <Janela titulo="PDF com várias listas" onFechar={() => setJuntar(false)} largura="max-w-md">
+          <EscolhaListas projetoId={projeto.id} contagem={contagem} onFechar={() => setJuntar(false)} />
+        </Janela>
       )}
 
       {escolha && (
@@ -623,6 +633,32 @@ function FormItem({
         </div>
       )}
     </Janela>
+  );
+}
+
+function EscolhaListas({ projetoId, contagem, onFechar }: { projetoId: string; contagem: (g: Grupo) => number; onFechar: () => void }) {
+  const [marcados, setMarcados] = useState<Grupo[]>(GRUPOS_ARQ.filter((g) => contagem(g.id) > 0).map((g) => g.id));
+  const href = `/imprimir/especificacoes/${projetoId}/juntar?grupos=${marcados.join(",")}`;
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-ink-500">Marque as listas. O PDF sai em A3 paisagem, com uma capa de índice e cada lista começando numa página nova.</p>
+      <ul className="space-y-1">
+        {GRUPOS_ARQ.map((g) => (
+          <li key={g.id}>
+            <label className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-ink-900 hover:bg-surface-subtle">
+              <input type="checkbox" checked={marcados.includes(g.id)} onChange={(e) => setMarcados((m) => (e.target.checked ? GRUPOS_ARQ.map((x) => x.id).filter((x) => x === g.id || m.includes(x)) : m.filter((x) => x !== g.id)))} />
+              {g.label} <span className="text-xs text-ink-400">{contagem(g.id)} {contagem(g.id) === 1 ? "item" : "itens"}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="flex justify-end gap-2 border-t border-border pt-3">
+        <button type="button" className={btnSec} onClick={onFechar}>Cancelar</button>
+        <a className={btnPrim + (marcados.length ? "" : " pointer-events-none opacity-50")} href={href} target="_blank" rel="noopener" onClick={onFechar}>
+          <FileText className="h-4 w-4" /> Gerar PDF
+        </a>
+      </div>
+    </div>
   );
 }
 

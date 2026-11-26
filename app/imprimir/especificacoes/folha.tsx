@@ -130,6 +130,58 @@ export function FolhaEspecificacao({
   );
 }
 
+/** Capa do PDF único com várias listas: identificação do projeto e índice (cada lista começa numa página nova). */
+export function CapaIndice({ sub, linhas, rodape }: { sub: string; linhas: { lista: string; ambientes: number; itens: number; rev: string }[]; rodape: string }) {
+  const hoje = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  return (
+    <div className="folha capa">
+      <div className="topo">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="logo" src="/logo-pdf.png" alt="SBJ" />
+        <div className="centro">
+          <h1>Especificações</h1>
+          <p className="sub">{sub}</p>
+        </div>
+        <div className="dir">
+          <div>SBJ Construtora e Incorporadora</div>
+          <div>Emitido em: {hoje}</div>
+        </div>
+      </div>
+      <h2>Índice</h2>
+      {!linhas.length && <p className="sub">Nenhuma lista com itens neste projeto.</p>}
+      {linhas.length > 0 && (
+        <table className="indice">
+          <thead>
+            <tr>
+              <th className="qt">Nº</th>
+              <th>Lista</th>
+              <th className="qt2">Ambientes</th>
+              <th className="qt2">Itens</th>
+              <th className="qt2">Revisão</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((l, k) => (
+              <tr key={l.lista}>
+                <td className="qt">{k + 1}</td>
+                <td className="mt">{l.lista.toUpperCase()}</td>
+                <td className="qt2">{l.ambientes}</td>
+                <td className="qt2">{l.itens}</td>
+                <td className="qt2">{l.rev}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <p className="nota-capa">Cada lista começa numa página nova, na ordem do índice.</p>
+      <div className="rodape">
+        <span>SBJ Construtora e Incorporadora · Especificações</span>
+        <span>{rodape}</span>
+      </div>
+    </div>
+  );
+}
+
 // mesmas cores e estrutura dos PDFs da SBJ (lib/pdf): faixa verde-escura #1c474f, cabeçalho de tabela verde, linhas zebradas
 export function cssFolha(a3: boolean) {
   return `
@@ -152,6 +204,9 @@ export function cssFolha(a3: boolean) {
   .fg .resumo { margin-top: 4mm; width: ${a3 ? "50%" : "65%"}; break-inside: avoid; }
   .fg .resumo .aviso { margin: 3mm 0 0; }
   .fg .vid .md { width: 42mm; }
+  .fg .capa .indice { width: 60%; margin-top: 2mm; }
+  .fg .capa .indice td { font-size: 13pt; padding: 3mm; }
+  .fg .capa .nota-capa { color: var(--suave); margin-top: 4mm; }
   .fg .qt2 { width: 32mm; text-align: center; font-weight: 700; }
   .fg .obs { background: #e8f1f3; border-left: 3px solid var(--verde); border-radius: 0 4px 4px 0; padding: 2.5mm 4mm; margin: 0 0 5mm; font-weight: 700; color: var(--verde); }
   .fg .corpo { column-count: 2; column-gap: 10mm; }

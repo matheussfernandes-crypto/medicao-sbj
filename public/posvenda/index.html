@@ -188,6 +188,29 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 tr.click{cursor:pointer} tr.click:hover td{background:var(--surface-2)}
 
 /* agenda */
+.agm{border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.agm-w{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-bottom:1px solid var(--line)}
+.agm-w span{text-align:center;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:9px 0}
+.agm-g{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(122px,auto)}
+.agm-g.desliza-dir{animation:agDirDir .34s cubic-bezier(.22,1,.36,1) both}.agm-g.desliza-esq{animation:agDirEsq .34s cubic-bezier(.22,1,.36,1) both}.agm-g.desliza-fade{animation:agFade .3s ease both}
+.agm-c{position:relative;min-width:0;padding:4px 4px 6px;display:flex;flex-direction:column;gap:1px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.agm-c:nth-child(7n){border-right:0}.agm-c:nth-last-child(-n+7){border-bottom:0}
+.agm-c.fora{background:var(--bg)}.agm-c.fora .agm-n{color:var(--muted);font-weight:500}
+.agm-n{align-self:center;min-width:26px;height:26px;padding:0 7px;margin-bottom:3px;border:0;border-radius:13px;background:none;font:inherit;font-size:12px;font-weight:600;color:var(--fg);cursor:pointer;transition:background .15s}
+.agm-n:hover{background:var(--surface-2)}
+.agm-c.hoje .agm-n{background:var(--accent);color:#fff}
+.agm-ev{display:flex;align-items:center;gap:6px;width:100%;min-width:0;padding:2px 6px;border:0;border-radius:6px;background:none;font:inherit;font-size:12px;color:var(--fg);text-align:left;cursor:pointer;transition:background .15s}
+.agm-ev span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.agm-ev i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.agm-ev:hover{background:var(--surface-2)}
+.agm-ev.feita{color:var(--muted)}.agm-ev.feita i{background:none;box-shadow:inset 0 0 0 1.5px var(--muted);opacity:.7}
+.agm-mais{align-self:flex-start;padding:2px 6px;border:0;border-radius:6px;background:none;font:inherit;font-size:12px;font-weight:600;color:var(--fg);cursor:pointer}
+.agm-mais:hover{background:var(--surface-2)}
+.agm-pop{position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:max(100%,270px);z-index:30;display:flex;flex-direction:column;gap:2px;padding:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);animation:agFade .2s ease both}
+.agm-pop.esq{left:0;transform:none}.agm-pop.dir{left:auto;right:0;transform:none}
+.agm-pop-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;font-size:13px}
+.agm-pop .agm-ev span{white-space:normal}
+@media (max-width:700px){.agm-g{grid-auto-rows:minmax(86px,auto)}.agm-ev{font-size:10.5px;gap:3px;padding:1px 3px}.agm-ev i{width:6px;height:6px}.agm-mais{font-size:10.5px;padding:1px 3px}}
 .week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
 .day{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);min-height:160px;display:flex;flex-direction:column}
 .day.today{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
@@ -476,7 +499,7 @@ const I_X=ICON('<path d="M6 6l12 12M18 6L6 18"/>');
 const S={emp:[],uni:[],resp:[],ch:[],ag:[],cfg:{},M:{emp:new Map,uni:new Map,resp:new Map,ch:new Map,ag:new Map},
   loaded:{},view:"inicio",db:null,dict:null,assets:null,dl:null,user:null,uid:null,
   dbState:"conectando",qFiles:[],qBusy:false,qCtl:null,draft:null,drawer:null,drawerMode:null,edit:null,
-  chF:{q:"",col:{st:["aberto","agendado","aguardando"]},sort:null},agSem:0,painelPer:"90",cadTab:"uni",cadEmp:"",rep:{mes:"",emp:""},repResumo:{},names:{},pending:false};
+  chF:{q:"",col:{st:["aberto","agendado","aguardando"]},sort:null},agSem:0,agModo:(()=>{try{return localStorage.getItem("pv-ag-modo")||"mes"}catch(e){return "mes"}})(),agMesOff:0,agMais:null,painelPer:"90",cadTab:"uni",cadEmp:"",rep:{mes:"",emp:""},repResumo:{},names:{},pending:false};
 
 /* ================= utilidades ================= */
 const $=s=>document.querySelector(s);
@@ -710,19 +733,20 @@ function vInicio(){
     T.passos.slice(0,S.hjTodos?200:10).map(c=>{const ida=idadeCh(c);
       const motivo=c.status==="aguardando"&&c.aguardoAte?`Aguardava ${c.aguardoQue||""} até ${fmtD(c.aguardoAte)}`:`${c.cat||""}${incompleto(c)?" · sem descrição":""} · aberto há ${ida} ${plural(ida,"dia")}`;
       return `<div class="hj"><div>${tit(c)}<div class="d">${c.prio==="urgente"?`<b class="prio-urgente">Urgente</b> · `:""}${esc(motivo)}${c.respInt?" · "+esc(c.respInt):""}</div></div><div class="acts"><button class="btn sm pri" data-a="hoje-modo" data-m="agendar" data-id="${esc(c.id)}">Agendar</button><button class="btn sm" data-a="hoje-modo" data-m="aguardar" data-id="${esc(c.id)}">Aguardando…</button></div></div>`}).join(""));
-  const mais=[T.clis,T.fins.map(x=>x.c),T.passos].some(l=>l.length>10)&&!S.hjTodos?`<button class="btn ghost sm" data-a="hj-todos" style="margin-top:10px">Mostrar tudo</button>`:"";
+  const mais=[T.fins.map(x=>x.c),T.passos].some(l=>l.length>10)&&!S.hjTodos?`<button class="btn ghost sm" data-a="hj-todos" style="margin-top:10px">Mostrar tudo</button>`:"";
   const aguard=S.ch.filter(aguardandoAtivo).sort((a,b)=>a.aguardoAte.localeCompare(b.aguardoAte));
   return `
   ${S.ch.some(incompleto)?`<div class="banner c-info row" style="justify-content:space-between"><span><b>${S.ch.filter(incompleto).length} chamados abertos sem descrição.</b> Preencha todos numa tela só.</span><button class="btn pri sm" data-a="go" data-v="preencher">Preencher agora</button></div>`:""}
   <div class="grid-main">
     <div class="card"><div class="card-h"><div><h2>Hoje</h2><div class="small muted">${T.total?`${T.total} ${plural(T.total,"coisa","coisas")} para resolver`:"Tudo em dia"}</div></div>
       ${eu()?`<div class="seg" role="group" aria-label="Mostrar"><button data-a="hj-meus" data-v="0" aria-pressed="${!S.hojeMeus}">Todos</button><button data-a="hj-meus" data-v="1" aria-pressed="${!!S.hojeMeus}">Só os meus</button></div>`:""}</div>
-      ${T.total||T.rots.length?`${sRot}${sCli}${sFim}${sPasso}${mais}`:`<div class="hj-ok"><b>✓ Tudo em dia.</b> Nada pendente para hoje.</div>`}
+      ${T.total-T.clis.length>0||T.rots.length?`${sRot}${sPasso}${sFim}${mais}`:(T.clis.length?`<div class="hj-ok"><b>✓ Nenhum chamado sem próximo passo.</b> Falta só avisar os clientes (ao lado).</div>`:`<div class="hj-ok"><b>✓ Tudo em dia.</b> Nada pendente para hoje.</div>`)}
     </div>
     <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
       ${calMes()}
       ${aguard.length?`<div class="card"><div class="card-h"><h2>Aguardando</h2><span class="small muted">voltam para "Hoje" na data</span></div>
         <div class="list">${aguard.map(c=>`<button class="li" data-a="open-ch" data-id="${esc(c.id)}"><span class="num mono">${esc(fmtD(c.aguardoAte).slice(0,5))}</span><span style="min-width:0"><div class="t">${esc(chTitulo(c))}</div><div class="d">${esc(c.aguardoQue||"")}</div></span><span></span></button>`).join("")}</div></div>`:""}
+      ${T.clis.length?`<div class="card hj-cli">${sCli}${T.clis.length>10&&!S.hjTodos?`<button class="btn ghost sm" data-a="hj-todos" style="margin-top:10px">Mostrar tudo</button>`:""}</div>`:""}
     </div>
   </div>`;
 }
@@ -1820,6 +1844,7 @@ function agEscolheData(v){
   S.agSem=diff;S.agPick=false;renderView(true);
 }
 function vAgenda(){
+  if(S.agModo==="mes")return vAgendaMes();
   const dirAg=S.agDir;S.agDir=null;
   const base=addDays(new Date(),S.agSem*7);const ini=addDays(base,-((base.getDay()+6)%7));
   const dias=[...Array(7)].map((_,i)=>isoDate(addDays(ini,i)));const h=hojeISO();
@@ -1827,12 +1852,46 @@ function vAgenda(){
   const diasVis=dias.filter(d=>{const w=parseD(d).getDay();return (w!==0&&w!==6)||d===h||S.ag.some(a=>a.data===d&&a.status!=="cancelado")});
   const fimLabel=parseD(dias[6]).toLocaleDateString("pt-BR",{day:"2-digit",month:"short"});
   return `<div class="top"><div><h1>Agenda</h1><div class="sub">${parseD(dias[0]).toLocaleDateString("pt-BR",{day:"2-digit",month:"short"})} a ${fimLabel}</div></div>
-   <div class="row"><button class="btn" data-a="ag-prev" aria-label="Semana anterior">‹</button><span class="ag-pick-w"><button class="btn${S.agPick?" pri":""}" data-a="ag-pick" aria-expanded="${S.agPick?"true":"false"}">Hoje</button>${S.agPick?agCalendario(dias):""}</span><button class="btn" data-a="ag-next" aria-label="Próxima semana">›</button>${gAgBotao()}<button class="btn pri" data-a="ag-new">Novo evento</button></div></div>
+   <div class="row">${agModoSeg()}<button class="btn" data-a="ag-prev" aria-label="Semana anterior">‹</button><span class="ag-pick-w"><button class="btn${S.agPick?" pri":""}" data-a="ag-pick" aria-expanded="${S.agPick?"true":"false"}">Hoje</button>${S.agPick?agCalendario(dias):""}</span><button class="btn" data-a="ag-next" aria-label="Próxima semana">›</button>${gAgBotao()}<button class="btn pri" data-a="ag-new">Novo evento</button></div></div>
   ${gAgPainel()}
   ${nova?`<div class="panel"><h3>Novo evento</h3><label class="f">Chamado<select class="in" id="an-ch">${optCh(S.edit.chId||"")}</select></label>${agFields("an",{data:h,hora:"",tipo:"vistoria",respId:"",respNome:"",respEsp:"",respTel:""})}<div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="ed-cancel">Cancelar</button><button class="btn pri" data-a="an-save">Agendar</button></div></div>`:""}
   <div class="week ${dirAg===1?"desliza-dir":dirAg===-1?"desliza-esq":dirAg===0?"desliza-fade":""}" style="--dias:${diasVis.length}">${diasVis.map(d=>{const evs=S.ag.filter(a=>a.data===d&&a.status!=="cancelado").sort((a,b)=>(a.hora||"").localeCompare(b.hora||""));
     const dd=parseD(d);return `<div class="day ${d===h?"today":""}"><div class="day-h"><b>${dd.toLocaleDateString("pt-BR",{weekday:"short"}).replace(".","")}</b><span class="mono small muted">${pad(dd.getDate())}/${pad(dd.getMonth()+1)}</span></div>
     <div class="day-b">${evs.map(evCard).join("")||`<span class="small muted" style="padding:2px">—</span>`}</div></div>`}).join("")}</div>`;
+}
+function agModoSeg(){return `<div class="seg" role="group" aria-label="Visualização"><button data-a="ag-modo" data-v="semana" aria-pressed="${S.agModo!=="mes"}">Semana</button><button data-a="ag-modo" data-v="mes" aria-pressed="${S.agModo==="mes"}">Mês</button></div>`}
+function agEvCurto(a){const c=chm(a.chId)||{};const e=emp(c.empId)||{};const q=quem(a);
+  return [a.hora||"",c.id?uniLabel(uni(c.uniId)):"Chamado removido",e.nome?e.nome.replace(/^Ilhas? (de |do |dos |da |das )?/i,""):"",q?q.split(" ")[0]:""].filter(Boolean).join(" ")}
+function agEvLinha(a){const c=chm(a.chId)||{};const f=realizada(a);
+  const tip=[(a.hora||"--:--")+" · "+(TIPO[a.tipo]||"Visita"),c.id?chTitulo(c):"Chamado removido",c.cat||"",quem(a),f?"realizada":"marcada"].filter(Boolean).join(" · ");
+  return `<button type="button" class="agm-ev${f?" feita":""}" data-a="open-ch" data-id="${esc(a.chId)}" title="${esc(tip)}"><i></i><span>${f?"✓ ":""}${esc(agEvCurto(a))}</span></button>`}
+function vAgendaMes(){
+  const dir=S.agDir;S.agDir=null;
+  const agora=new Date();const base=new Date(agora.getFullYear(),agora.getMonth()+(S.agMesOff||0),1);
+  const ini=addDays(base,-base.getDay());
+  const nDias=new Date(base.getFullYear(),base.getMonth()+1,0).getDate();
+  const nCel=Math.ceil((base.getDay()+nDias)/7)*7;const h=hojeISO();
+  const porDia={};S.ag.forEach(a=>{if(a.status!=="cancelado")(porDia[a.data]=porDia[a.data]||[]).push(a)});
+  Object.values(porDia).forEach(l=>l.sort((a,b)=>(a.hora||"").localeCompare(b.hora||"")));
+  const nomeMes=base.toLocaleDateString("pt-BR",{month:"long"});
+  const nova=S.edit&&S.edit.kind==="ag-new";
+  let cel="";
+  for(let k=0;k<nCel;k++){
+    const d=addDays(ini,k),iso=isoDate(d),l=porDia[iso]||[],fora=d.getMonth()!==base.getMonth();
+    const num=d.getDate()===1?d.getDate()+" "+d.toLocaleDateString("pt-BR",{month:"short"}).replace(".",""):String(d.getDate());
+    const cabe=l.length<=3?l:l.slice(0,2);const resto=l.length-cabe.length;
+    const col=k%7;const lado=col===0?" esq":col===6?" dir":"";
+    cel+=`<div class="agm-c${fora?" fora":""}${iso===h?" hoje":""}"><button type="button" class="agm-n" data-a="agm-dia" data-d="${iso}" title="Ver a semana">${esc(num)}</button>
+      ${cabe.map(agEvLinha).join("")}${resto?`<button type="button" class="agm-mais" data-a="agm-mais" data-d="${iso}">Mais ${resto}</button>`:""}
+      ${S.agMais===iso?`<div class="agm-pop${lado}" role="dialog" aria-label="Visitas do dia"><div class="agm-pop-h"><b>${esc(fmtDia(iso))}</b><button type="button" class="btn ghost sm" data-a="agm-fecha" aria-label="Fechar">✕</button></div>${l.map(agEvLinha).join("")}</div>`:""}</div>`;
+  }
+  return `<div class="top"><div><h1>Agenda</h1><div class="sub">${esc(nomeMes.charAt(0).toUpperCase()+nomeMes.slice(1))} de ${base.getFullYear()}</div></div>
+   <div class="row">${agModoSeg()}<button class="btn" data-a="ag-prev" aria-label="Mês anterior">‹</button><button class="btn${S.agMesOff?" pri":""}" data-a="agm-hoje">Hoje</button><button class="btn" data-a="ag-next" aria-label="Próximo mês">›</button>${gAgBotao()}<button class="btn pri" data-a="ag-new">Novo evento</button></div></div>
+  ${gAgPainel()}
+  ${nova?`<div class="panel"><h3>Novo evento</h3><label class="f">Chamado<select class="in" id="an-ch">${optCh(S.edit.chId||"")}</select></label>${agFields("an",{data:h,hora:"",tipo:"vistoria",respId:"",respNome:"",respEsp:"",respTel:""})}<div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="ed-cancel">Cancelar</button><button class="btn pri" data-a="an-save">Agendar</button></div></div>`:""}
+  <div class="agm"><div class="agm-w">${["dom","seg","ter","qua","qui","sex","sáb"].map(x=>`<span>${x}</span>`).join("")}</div>
+   <div class="agm-g ${dir===1?"desliza-dir":dir===-1?"desliza-esq":dir===0?"desliza-fade":""}">${cel}</div></div>
+  <div class="leg" style="margin-top:8px"><span><i style="background:var(--accent);border-radius:50%"></i>marcada</span><span><i style="border:1.5px solid var(--muted);border-radius:50%;opacity:.7"></i>realizada</span><span class="muted">Clique no número do dia para ver a semana com os botões de aviso e remarcação.</span></div>`;
 }
 function evCard(a){
   const c=chm(a.chId)||{};const r=resp(a.respId);const ed=S.edit&&S.edit.kind==="ag-rem"&&S.edit.id===a.id;
@@ -2259,8 +2318,16 @@ document.addEventListener("click",e=>{
   if(a==="dv-save"||a==="dv-del-ok"){el.disabled=true;drAction(a,el.dataset.id).finally(()=>{el.disabled=false});return}
   if(["dr-juntar-ok","dr-agu-save","dr-obra-save","dr-feita-save","dr-ag-save","dr-res-save","dr-nota-save","dr-reabrir","dr-edit-save","dr-del-ok"].includes(a)){el.disabled=true;drAction(a).finally(()=>{el.disabled=false});return}
   // agenda
-  if(a==="ag-prev"){S.agSem--;S.agDir=-1;renderView(true);return}
-  if(a==="ag-next"){S.agSem++;S.agDir=1;renderView(true);return}
+  if(a==="ag-modo"){const v=el.dataset.v==="mes"?"mes":"semana";if(v===S.agModo)return;
+    if(v==="mes"){const b=addDays(new Date(),S.agSem*7),n=new Date();S.agMesOff=(b.getFullYear()-n.getFullYear())*12+b.getMonth()-n.getMonth()}
+    else{const n=new Date();const alvo=S.agMesOff?new Date(n.getFullYear(),n.getMonth()+S.agMesOff,1):n;const seg=d=>addDays(d,-((d.getDay()+6)%7));S.agSem=Math.round((seg(alvo)-seg(n))/(7*86400000))}
+    S.agModo=v;S.agMais=null;S.agPick=false;S.agDir=0;try{localStorage.setItem("pv-ag-modo",v)}catch(e){}renderView(true);return}
+  if(a==="ag-prev"){if(S.agModo==="mes"){S.agMesOff--;S.agMais=null}else S.agSem--;S.agDir=-1;renderView(true);return}
+  if(a==="ag-next"){if(S.agModo==="mes"){S.agMesOff++;S.agMais=null}else S.agSem++;S.agDir=1;renderView(true);return}
+  if(a==="agm-hoje"){S.agMesOff=0;S.agMais=null;S.agDir=0;renderView(true);return}
+  if(a==="agm-mais"){S.agMais=el.dataset.d;renderView(true);return}
+  if(a==="agm-fecha"){S.agMais=null;renderView(true);return}
+  if(a==="agm-dia"){S.agModo="semana";S.agMais=null;try{localStorage.setItem("pv-ag-modo","semana")}catch(e){}agEscolheData(el.dataset.d);return}
   if(a==="ag-pick"){if(!S.agPick){const b=addDays(new Date(),S.agSem*7);S.agMes=new Date(b.getFullYear(),b.getMonth(),1);S.agCalNovo=true}S.agPick=!S.agPick;renderView(true);return}
 if(a==="ag-hoje"){S.agSem=0;S.agDir=0;S.agPick=false;renderView(true);return}
 if(a==="ag-cal-prev"){S.agMes=new Date(S.agMes.getFullYear(),S.agMes.getMonth()-1,1);S.agMesDir=-1;renderView(true);return}
@@ -2580,6 +2647,12 @@ async function init(){
   new MutationObserver(agendar).observe(document.body,{childList:true,subtree:true});
   agendar();
 })();
+/* "Mais N" da agenda (mês) fecha ao clicar fora */
+document.addEventListener("click",function(e){
+  if(!S.agMais)return;const t=e.target;
+  if(t.closest&&(t.closest(".agm-pop")||t.closest('[data-a="agm-mais"]')))return;
+  S.agMais=null;renderView(true);
+},true);
 /* calendário da agenda fecha ao clicar fora dele */
 document.addEventListener("click",function(e){
   if(!S.agPick)return;

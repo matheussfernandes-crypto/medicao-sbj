@@ -19,7 +19,7 @@ export const ehInterior = (g: unknown): g is GrupoInterior => g === "cortinas" |
 /** a lista tem coluna de quantidade? (revestimentos não tem) */
 export const temQtd = (g: Grupo) => GRUPOS.find((x) => x.id === g)?.qtd !== false;
 // listas de interiores já liberadas nas telas (as outras entram quando ficarem prontas)
-const INTERIORES_PRONTOS: Grupo[] = ["cortinas", "revestimentos"];
+const INTERIORES_PRONTOS: Grupo[] = ["cortinas", "revestimentos", "tapetes"];
 // grupos que a arquitetura usa nas telas e PDFs (vidros e box não é usado pelo setor; os dados antigos continuam no banco)
 export const GRUPOS_ARQ = GRUPOS.filter((g) => g.id !== "vidros" && (!g.interior || INTERIORES_PRONTOS.includes(g.id)));
 export const ehGrupoArq = (g: unknown): g is Grupo => GRUPOS_ARQ.some((x) => x.id === g);

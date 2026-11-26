@@ -5,7 +5,7 @@
 import { useMemo } from "react";
 import Selecao from "@/components/ui/Selecao";
 import {
-  CORT, REV, calcParede, fmtM, gerarInterior, type Cortina, type Desconto, type Parede, type TipoDesconto,
+  CORT, REV, TAP, calcParede, fmtM, gerarInterior, tapeteUmaMedida, type Cortina, type Desconto, type Parede, type Tapete, type TipoDesconto,
 } from "@/lib/especificacoes/interiores";
 import { desenhoInterior } from "@/lib/especificacoes/desenhoInteriores";
 import type { GrupoInterior } from "@/lib/especificacoes/regras";
@@ -248,6 +248,53 @@ export function CamposParede({ valor, onChange }: { valor: Campos; onChange: (v:
   );
 }
 
+// ---------- 3. tapetes ----------
+export function CamposTapete({ valor, onChange }: { valor: Campos; onChange: (v: Campos) => void }) {
+  const t = valor as Tapete;
+  const set = (x: Partial<Tapete>) => onChange({ ...t, ...x });
+  const um = tapeteUmaMedida(t.formato), org = t.formato === "Orgânico";
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label>
+          <span className={rotulo}>Formato *</span>
+          <Selecao className="w-full" value={t.formato ?? ""} onChange={(e) => set({ formato: e.target.value || undefined })}>
+            <option value="">—</option>
+            {TAP.formatos.map((f) => <option key={f} value={f}>{f}</option>)}
+          </Selecao>
+        </label>
+        <label>
+          <span className={rotulo}>{t.formato === "Redondo" ? "Diâmetro *" : t.formato === "Quadrado" ? "Lado *" : org ? "Maior largura *" : "Largura *"}</span>
+          <input className={campo} inputMode="decimal" placeholder="em metros, ex.: 2,50" value={t.larg ?? ""} onChange={(e) => set({ larg: e.target.value })} />
+        </label>
+        {!um && (
+          <label>
+            <span className={rotulo}>{org ? "Maior comprimento *" : "Comprimento *"}</span>
+            <input className={campo} inputMode="decimal" placeholder="em metros, ex.: 3,00" value={t.comp ?? ""} onChange={(e) => set({ comp: e.target.value })} />
+          </label>
+        )}
+      </div>
+      <p className="-mt-1 text-[11px] text-ink-400">
+        {org ? "Orgânico: informe só a medida geral (maior largura e maior comprimento). " : ""}Medidas em metros; acima de 30 vira centímetros (250 vira 2,50).
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label>
+          <span className={rotulo}>Material</span>
+          <input className={campo} placeholder="Ex.: lã, sisal, algodão" value={t.material ?? ""} onChange={(e) => set({ material: e.target.value })} />
+        </label>
+        <label>
+          <span className={rotulo}>Cor</span>
+          <input className={campo} placeholder="Ex.: cru, cinza, terracota" value={t.cor ?? ""} onChange={(e) => set({ cor: e.target.value })} />
+        </label>
+      </div>
+      <label className="block">
+        <span className={rotulo}>Observação (entra no fim do texto)</span>
+        <input className={campo} value={t.obs ?? ""} onChange={(e) => set({ obs: e.target.value })} />
+      </label>
+    </div>
+  );
+}
+
 /** campos herdados por "+ Outra parede com este produto" */
 export const herdarParede = (c: unknown): Campos => {
   const p = (c ?? {}) as Parede;
@@ -258,5 +305,6 @@ export const herdarParede = (c: unknown): Campos => {
 export function CamposInterior({ grupo, valor, onChange }: { grupo: GrupoInterior; valor: Campos; onChange: (v: Campos) => void }) {
   if (grupo === "cortinas") return <CamposCortina valor={valor} onChange={onChange} />;
   if (grupo === "revestimentos") return <CamposParede valor={valor} onChange={onChange} />;
+  if (grupo === "tapetes") return <CamposTapete valor={valor} onChange={onChange} />;
   return null;
 }

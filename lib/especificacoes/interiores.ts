@@ -249,6 +249,60 @@ export function resumoRevestimentos(lista: unknown[]) {
 }
 
 // =====================================================================
+// 3. TAPETES
+// =====================================================================
+export const TAP = { formatos: ["Retangular", "Quadrado", "Redondo", "Oval", "Orgânico", "Passadeira"] };
+export type Tapete = { formato?: string; larg?: string; comp?: string; material?: string; cor?: string; obs?: string };
+
+/** redondo: só o diâmetro; quadrado: só um lado; o resto pede largura e comprimento */
+export const tapeteUmaMedida = (f?: string) => f === "Redondo" || f === "Quadrado";
+
+export function medidasTapeteNum(t: Tapete) {
+  const l = lerMetros(t.larg);
+  const c = tapeteUmaMedida(t.formato) ? l : lerMetros(t.comp);
+  return { l, c };
+}
+
+export function faltaTapete(t: Tapete): string[] {
+  const m = medidasTapeteNum(t), f: string[] = [];
+  if (!t.formato) f.push("formato");
+  if (!m.l) f.push(t.formato === "Redondo" ? "diâmetro" : t.formato === "Quadrado" ? "lado" : "largura");
+  if (!tapeteUmaMedida(t.formato) && !m.c) f.push("comprimento");
+  return f;
+}
+
+export function textoTapete(t: Tapete): string {
+  const m = medidasTapeteNum(t), fm = minusc(t.formato || "");
+  let s = "Tapete" + (fm && fm !== "orgânico" ? ` ${fm}` : "");
+  if (t.formato === "Redondo") s += m.l ? ` de ${fmtM(m.l)} m de diâmetro` : "";
+  else if (t.formato === "Orgânico") s = `Tapete orgânico${m.l && m.c ? `, medida geral de ${fmtM(m.l)} x ${fmtM(m.c)} m` : ""}`;
+  else if (m.l && m.c) s += ` de ${fmtM(m.l)} x ${fmtM(m.c)} m`;
+  else if (m.l) s += ` com ${fmtM(m.l)} m de largura`;
+  const p = [s + "."];
+  if ((t.material || "").trim()) p.push(`Material: ${minusc(t.material!)}.`);
+  if ((t.cor || "").trim()) p.push(`Cor: ${minusc(t.cor!)}.`);
+  if ((t.obs || "").trim()) p.push(frase(t.obs!));
+  return p.join(" ");
+}
+
+export function medidasTapete(t: Tapete): string {
+  const m = medidasTapeteNum(t);
+  if (t.formato === "Redondo") return m.l ? `Diâmetro: ${fmtM(m.l)} m` : "";
+  if (t.formato === "Orgânico") return m.l && m.c ? `Medida geral: ${fmtM(m.l)} x ${fmtM(m.c)} m` : "";
+  const l: string[] = [];
+  if (m.l) l.push(`Largura: ${fmtM(m.l)} m`);
+  if (m.c) l.push(`Comprimento: ${fmtM(m.c)} m`);
+  return l.join("\n");
+}
+
+export function limparTapete(x: unknown): Tapete {
+  const d = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
+  const s = (k: string) => (typeof d[k] === "string" && (d[k] as string).trim() ? (d[k] as string).slice(0, 300) : undefined);
+  const formato = TAP.formatos.find((f) => f === d.formato);
+  return { formato, larg: s("larg"), comp: tapeteUmaMedida(formato) ? undefined : s("comp"), material: s("material"), cor: s("cor"), obs: s("obs") };
+}
+
+// =====================================================================
 // Ponto único: a partir do grupo e dos campos, o que vai para o banco e para a folha.
 // =====================================================================
 export type Gerado = { campos: Record<string, unknown>; material: string; referencia: string; medidas: string; falta: string[] };
@@ -262,6 +316,10 @@ export function gerarInterior(grupo: GrupoInterior, bruto: unknown): Gerado {
     case "revestimentos": {
       const p = limparParede(bruto);
       return { campos: p, material: (p.material || "Revestimento").toUpperCase(), referencia: textoParede(p), medidas: medidasParede(p), falta: faltaParede(p) };
+    }
+    case "tapetes": {
+      const t = limparTapete(bruto);
+      return { campos: t, material: "TAPETE", referencia: textoTapete(t), medidas: medidasTapete(t), falta: faltaTapete(t) };
     }
     default:
       return { campos: {}, material: "", referencia: "", medidas: "", falta: ["campos"] };

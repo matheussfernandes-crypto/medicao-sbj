@@ -1,7 +1,9 @@
 // Desenhos automáticos (SVG) das listas de interiores, montados só pelos campos do item.
 // Devolvem o texto do SVG; só entram números, cores das tabelas e textos curtos escapados.
 import { fold, type GrupoInterior } from "./regras";
-import { calcParede, corDaPalavra, fmtCm, fmtM, limparCortina, limparParede, medidasCortinaNum, type Cortina, type Parede } from "./interiores";
+import {
+  calcParede, corDaPalavra, fmtCm, fmtM, limparCortina, limparParede, limparTapete, medidasCortinaNum, medidasTapeteNum, type Cortina, type Parede, type Tapete,
+} from "./interiores";
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const VERM = "#c0392b";
@@ -174,9 +176,57 @@ export function desenhoParede(p: Parede): string {
   return svg(g, 240, 160);
 }
 
+// ---------- 3. tapetes (vista de cima) ----------
+// o comprimento fica na horizontal (passadeiras e tapetes compridos cabem melhor); franjas nas pontas do comprimento
+export function desenhoTapete(t: Tapete): string {
+  const { l, c } = medidasTapeteNum(t);
+  const f = t.formato || "Retangular";
+  const { W, H } = caixa(c, l, 170, 100, f === "Passadeira" ? 0.3 : 0.7);
+  const X = 22 + (170 - W) / 2, Y = 14 + (100 - H) / 2;
+  const cor = corDaPalavra(t.cor, "#cdbfa8"), borda = tom(cor, -0.22), clara = tom(cor, 0.25);
+  let g = "";
+  if (f === "Redondo" || f === "Oval") {
+    g += `<ellipse cx="${r1(X + W / 2)}" cy="${r1(Y + H / 2)}" rx="${r1(W / 2)}" ry="${r1(H / 2)}" fill="${cor}" stroke="${borda}" stroke-width="1.2"/>`;
+    g += `<ellipse cx="${r1(X + W / 2)}" cy="${r1(Y + H / 2)}" rx="${r1(Math.max(1, W / 2 - 6))}" ry="${r1(Math.max(1, H / 2 - 6))}" fill="none" stroke="${clara}" stroke-width="1.4"/>`;
+  } else if (f === "Orgânico") {
+    // forma irregular dentro do quadro pontilhado da medida geral
+    const cx = X + W / 2, cy = Y + H / 2, rx = W / 2, ry = H / 2;
+    const pts = [[-0.2, -1.05], [0.55, -0.95], [1.05, -0.45], [0.62, 0.05], [1.02, 0.62], [0.4, 1.05], [-0.35, 0.8], [-1.05, 0.62], [-0.72, -0.02], [-1.0, -0.72]].map(([a, b]) => [cx + a * rx, cy + b * ry]);
+    // curva suave passando pelos pontos médios (cada ponto vira controle)
+    let path = `M${r1((pts[0][0] + pts[1][0]) / 2)},${r1((pts[0][1] + pts[1][1]) / 2)}`;
+    for (let i = 1; i <= pts.length; i++) {
+      const p = pts[i % pts.length], n = pts[(i + 1) % pts.length];
+      path += ` Q${r1(p[0])},${r1(p[1])} ${r1((p[0] + n[0]) / 2)},${r1((p[1] + n[1]) / 2)}`;
+    }
+    g += `<rect x="${r1(X)}" y="${r1(Y)}" width="${r1(W)}" height="${r1(H)}" fill="none" stroke="#8a9096" stroke-width=".8" stroke-dasharray="2 2"/>`;
+    g += `<path d="${path} Z" fill="${cor}" stroke="${borda}" stroke-width="1.2"/>`;
+  } else {
+    // retangular, quadrado, passadeira: franjas nas pontas e borda interna
+    const fr = Math.min(6, W * 0.06);
+    for (const x0 of [X, X + W])
+      for (let y = Y + 2; y < Y + H - 1; y += 3) g += `<line x1="${r1(x0)}" y1="${r1(y)}" x2="${r1(x0 + (x0 === X ? -fr : fr))}" y2="${r1(y)}" stroke="${borda}" stroke-width=".7"/>`;
+    g += `<rect x="${r1(X)}" y="${r1(Y)}" width="${r1(W)}" height="${r1(H)}" fill="${cor}" stroke="${borda}" stroke-width="1.2"/>`;
+    const b = Math.min(6, W * 0.08, H * 0.12);
+    g += `<rect x="${r1(X + b)}" y="${r1(Y + b)}" width="${r1(Math.max(1, W - 2 * b))}" height="${r1(Math.max(1, H - 2 * b))}" fill="none" stroke="${clara}" stroke-width="1.4"/>`;
+  }
+  if (f === "Redondo") {
+    if (l) g += cotaH(X, X + W, Y + H + 10, `Ø ${fmtM(l)}`);
+  } else if (f === "Orgânico") {
+    if (l && c) {
+      g += cotaH(X, X + W, Y + H + 10, fmtM(c)) + cotaV(X + W + 10, Y, Y + H, fmtM(l));
+      g += `<text x="${r1(X + W / 2)}" y="${r1(Y - 4)}" text-anchor="middle" font-size="6.5" font-family="Arial" fill="#6b7277">medida geral</text>`;
+    }
+  } else {
+    if (c) g += cotaH(X, X + W, Y + H + 10, fmtM(c));
+    if (l) g += cotaV(X + W + (f === "Oval" ? 10 : 14), Y, Y + H, fmtM(l));
+  }
+  return svg(g, 240, 160);
+}
+
 /** desenho automático do item de uma lista de interiores (campos já gravados) */
 export function desenhoInterior(grupo: GrupoInterior, campos: unknown): string {
   if (grupo === "cortinas") return desenhoCortina(limparCortina(campos));
   if (grupo === "revestimentos") return desenhoParede(limparParede(campos));
+  if (grupo === "tapetes") return desenhoTapete(limparTapete(campos));
   return "";
 }

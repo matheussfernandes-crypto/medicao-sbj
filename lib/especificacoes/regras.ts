@@ -1,17 +1,30 @@
 // Regras do módulo Especificações (vindas da Torre de Controle FG, codigo-fonte/especificacoes.js).
 // Arquivo sem dependências do Next: usado pelas telas, pelas ações do servidor e pela importação.
 
-export type Grupo = "metais" | "eletros" | "vidros";
+export type Grupo = "metais" | "eletros" | "vidros" | "cortinas" | "revestimentos" | "tapetes";
+/** listas de interiores: os campos ficam em esp_itens.campos; referência, medidas e desenho saem de lib/especificacoes/interiores */
+export type GrupoInterior = "cortinas" | "revestimentos" | "tapetes";
 
-export const GRUPOS: { id: Grupo; label: string; curto: string; titulo: string; arq: string; medidas: boolean }[] = [
+export const GRUPOS: { id: Grupo; label: string; curto: string; titulo: string; arq: string; medidas: boolean; qtd?: boolean; interior?: boolean }[] = [
   { id: "metais", label: "Louças e metais", curto: "Louças e metais", titulo: "RELAÇÃO DE LOUÇAS E METAIS", arq: "DET_LOUCAS_E_METAIS", medidas: false },
   { id: "eletros", label: "Eletrodomésticos e eletrônicos", curto: "Eletros", titulo: "RELAÇÃO ELETRODOMÉSTICOS E ELETRÔNICOS", arq: "DET_ELETRODOMESTICOS", medidas: true },
   { id: "vidros", label: "Vidros e box", curto: "Vidros e box", titulo: "RELAÇÃO DE VIDROS E BOX", arq: "DET_VIDROS_E_BOX", medidas: true },
+  { id: "cortinas", label: "Cortinas e persianas", curto: "Cortinas", titulo: "RELAÇÃO DE CORTINAS E PERSIANAS", arq: "DET_CORTINAS_E_PERSIANAS", medidas: true, interior: true },
+  { id: "revestimentos", label: "Revestimentos de parede", curto: "Revestimentos", titulo: "RELAÇÃO DE REVESTIMENTOS DE PAREDE", arq: "DET_REVESTIMENTOS", medidas: true, qtd: false, interior: true },
+  { id: "tapetes", label: "Tapetes", curto: "Tapetes", titulo: "RELAÇÃO DE TAPETES", arq: "DET_TAPETES", medidas: true, interior: true },
 ];
-export const ehGrupo = (g: unknown): g is Grupo => g === "metais" || g === "eletros" || g === "vidros";
+const TODOS_GRUPOS: Grupo[] = ["metais", "eletros", "vidros", "cortinas", "revestimentos", "tapetes"];
+export const ehGrupo = (g: unknown): g is Grupo => TODOS_GRUPOS.includes(g as Grupo);
+export const ehInterior = (g: unknown): g is GrupoInterior => g === "cortinas" || g === "revestimentos" || g === "tapetes";
+/** a lista tem coluna de quantidade? (revestimentos não tem) */
+export const temQtd = (g: Grupo) => GRUPOS.find((x) => x.id === g)?.qtd !== false;
+// listas de interiores já liberadas nas telas (as outras entram quando ficarem prontas)
+const INTERIORES_PRONTOS: Grupo[] = ["cortinas"];
 // grupos que a arquitetura usa nas telas e PDFs (vidros e box não é usado pelo setor; os dados antigos continuam no banco)
-export const GRUPOS_ARQ = GRUPOS.filter((g) => g.id !== "vidros");
-export const ehGrupoArq = (g: unknown): g is Grupo => g === "metais" || g === "eletros";
+export const GRUPOS_ARQ = GRUPOS.filter((g) => g.id !== "vidros" && (!g.interior || INTERIORES_PRONTOS.includes(g.id)));
+export const ehGrupoArq = (g: unknown): g is Grupo => GRUPOS_ARQ.some((x) => x.id === g);
+/** grupos com catálogo de modelos (as listas de interiores não têm) */
+export const GRUPOS_CATALOGO = GRUPOS_ARQ.filter((g) => !g.interior);
 
 export const FAIXAS: Record<number, [string, string]> = { 1: ["$", "Essencial"], 2: ["$$", "Intermediária"], 3: ["$$$", "Premium"] };
 export const USOS: Record<string, string> = { b: "Banheiro", c: "Cozinha", s: "Serviço", g: "Qualquer" };

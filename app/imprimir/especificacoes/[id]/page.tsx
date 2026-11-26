@@ -18,7 +18,7 @@ async function carregar({ params, searchParams }: Props) {
   const grupo: Grupo = ehGrupoArq(searchParams.grupo) ? searchParams.grupo : "metais";
   const [{ data: projeto }, { data: itens }, { data: nota }] = await Promise.all([
     supabase.from("esp_projetos").select("id, codigo, titulo, cliente, tipo, ambientes, obra:cadastro_obras(nome)").eq("id", params.id).maybeSingle(),
-    supabase.from("esp_itens").select("id, ambiente, material, referencia, medidas, qtd, img, ordem, vidro").eq("projeto_id", params.id).eq("grupo", grupo).order("ordem"),
+    supabase.from("esp_itens").select("id, ambiente, material, referencia, medidas, qtd, img, ordem, vidro, campos").eq("projeto_id", params.id).eq("grupo", grupo).order("ordem"),
     supabase.from("esp_notas").select("obs, rev, papel").eq("projeto_id", params.id).eq("grupo", grupo).maybeSingle(),
   ]);
   if (!projeto) return null;

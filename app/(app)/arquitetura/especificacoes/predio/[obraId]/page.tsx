@@ -18,7 +18,7 @@ export default async function PredioPage({ params, searchParams }: { params: { o
   if (!obra) notFound();
   const ids = (projetos ?? []).map((p) => p.id);
   const { data: itens } = ids.length
-    ? await supabase.from("esp_itens").select("id, projeto_id, grupo, ambiente, material, referencia, medidas, qtd, img, ordem, vidro").in("projeto_id", ids).order("ordem")
+    ? await supabase.from("esp_itens").select("id, projeto_id, grupo, ambiente, material, referencia, medidas, qtd, img, ordem, vidro, campos").in("projeto_id", ids).order("ordem")
     : { data: [] as ItemPredio[] };
   const assinadas = await assinarImagens(supabase, (itens ?? []).map((i) => i.img));
   // histórico: PDFs do prédio inteiro e das unidades/lazer dele

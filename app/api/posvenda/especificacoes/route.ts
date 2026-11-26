@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { erro, exigirPosvenda } from "@/lib/posvenda/server";
 import { assinarImagens, urlImg } from "@/lib/especificacoes/imagem";
 import { esquemaVidro } from "@/lib/especificacoes/desenho";
-import { GRUPOS, descVidro, fold, medidasVidro, type Vidro } from "@/lib/especificacoes/regras";
+import { GRUPOS, descVidro, ehInterior, fold, medidasVidro, type Vidro } from "@/lib/especificacoes/regras";
+import { desenhoInterior } from "@/lib/especificacoes/desenhoInteriores";
 
 // Pós-venda: especificações da arquitetura (louças e metais, eletros, vidros) ligadas a uma unidade.
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
   if (!projetos?.length) return NextResponse.json({ projetos: [] });
   const ids = projetos.map((p) => p.id);
   const [{ data: itens }, { data: perfil }] = await Promise.all([
-    supabase.from("esp_itens").select("projeto_id, grupo, ambiente, material, referencia, medidas, qtd, img, ordem, vidro").in("projeto_id", ids).order("ordem"),
+    supabase.from("esp_itens").select("projeto_id, grupo, ambiente, material, referencia, medidas, qtd, img, ordem, vidro, campos").in("projeto_id", ids).order("ordem"),
     supabase.from("perfis").select("setor").eq("id", user.id).maybeSingle(),
   ]);
   const assinadas = await assinarImagens(supabase, (itens ?? []).map((i) => i.img));
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
           medidas: g.id === "vidros" ? medidasVidro(v) : i.medidas,
           qtd: i.qtd,
           img: src ? (src.startsWith("/") ? origem + src : src) : "",
-          desenho: !src && g.id === "vidros" ? esquemaVidro(i.material, v) : "",
+          desenho: src ? "" : g.id === "vidros" ? esquemaVidro(i.material, v) : ehInterior(g.id) ? desenhoInterior(g.id, i.campos ?? {}) : "",
         });
       }
       return { id: g.id, label: g.label, ambientes: Array.from(amb.values()) };

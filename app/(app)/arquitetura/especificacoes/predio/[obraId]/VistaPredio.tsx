@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Building2, FileText, Pencil, Plus, Trees } from "lucide-react";
-import { AMBIENTES_LAZER, GRUPOS, GRUPOS_ARQ, fold, tituloAmbiente, type Grupo, type Vidro } from "@/lib/especificacoes/regras";
+import { AMBIENTES_LAZER, GRUPOS, GRUPOS_ARQ, ehInterior, fold, temQtd, tituloAmbiente, type Grupo, type Vidro } from "@/lib/especificacoes/regras";
+import { DesenhoInterior } from "../../[id]/FormInteriores";
 import { FASE_PREDIO } from "@/lib/especificacoes/predios";
 import { salvarLazer } from "../../../actions";
 import { DesenhoVidro, Miniatura } from "../../../comum";
@@ -13,6 +14,7 @@ import { btnPrim, btnSec, campo, erroCls, rotulo } from "../../../ui";
 export type ProjetoPredio = { id: string; codigo: string | null; titulo: string; cliente: string | null; tipo: string; ambientes: string[] | null };
 export type ItemPredio = {
   id: string; projeto_id: string; grupo: Grupo; ambiente: string; material: string; referencia: string; medidas: string; qtd: number; img: string; ordem: number; vidro: Vidro | null;
+  campos?: Record<string, unknown> | null;
 };
 
 export default function VistaPredio({
@@ -126,13 +128,15 @@ export default function VistaPredio({
                       <li key={i.id} className="flex items-center gap-3 px-3 py-2">
                         {grupo === "vidros" && !i.img ? (
                           <DesenhoVidro material={i.material} vidro={i.vidro ?? {}} tam="h-10 w-14" />
+                        ) : ehInterior(grupo) && !i.img ? (
+                          <DesenhoInterior grupo={grupo} campos={i.campos ?? {}} tam="h-10 w-14" />
                         ) : (
                           <Miniatura img={i.img} assinadas={assinadas} tam="h-10 w-10" />
                         )}
                         <div className="min-w-0 flex-1">
                           <div className="text-[11px] font-semibold text-ink-400">
                             {i.material}
-                            {i.qtd > 1 && <span className="ml-2 rounded bg-surface-subtle px-1.5 text-primaryDark">{i.qtd} un.</span>}
+                            {i.qtd > 1 && temQtd(grupo) && <span className="ml-2 rounded bg-surface-subtle px-1.5 text-primaryDark">{i.qtd} un.</span>}
                           </div>
                           <div className={`text-sm ${i.referencia ? "text-ink-900" : "italic text-ink-400"}`}>{i.referencia || "Falta definir o modelo"}</div>
                           {g.medidas && i.medidas && <div className="whitespace-pre-line text-xs text-ink-500">{i.medidas}</div>}

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowLeft, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { pedirConfirmacao } from "@/components/ui/Confirmacao";
 import Selecao from "@/components/ui/Selecao";
-import { FAIXAS, GRUPOS, GRUPOS_ARQ, USOS, fold, type Grupo } from "@/lib/especificacoes/regras";
+import { FAIXAS, GRUPOS, GRUPOS_CATALOGO as GRUPOS_ARQ, USOS, fold, type Grupo } from "@/lib/especificacoes/regras";
 import { excluirModelo, salvarModelo } from "../actions";
 import { Faixa, FotoCampo, Janela, Miniatura, type Modelo } from "../comum";
 import { btnIcone, btnPrim, btnSec, campo, erroCls, rotulo } from "../ui";

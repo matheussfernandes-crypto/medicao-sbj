@@ -7,8 +7,10 @@ import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Building2, ChevronDown, FileTe
 import { pedirConfirmacao } from "@/components/ui/Confirmacao";
 import Selecao from "@/components/ui/Selecao";
 import {
-  AMBIENTES_LAZER, AMBIENTES_SUGERIDOS, GRUPOS, GRUPOS_ARQ, VID, descVidro, fold, medidasVidro, refDoModelo, tituloAmbiente, type Grupo, type Vidro,
+  AMBIENTES_LAZER, AMBIENTES_SUGERIDOS, GRUPOS, GRUPOS_ARQ, VID, descVidro, ehInterior, fold, medidasVidro, refDoModelo, temQtd, tituloAmbiente, type Grupo, type Vidro,
 } from "@/lib/especificacoes/regras";
+import { gerarInterior } from "@/lib/especificacoes/interiores";
+import { CamposInterior, DesenhoInterior, FaltaPreencher, PreviaInterior } from "./FormInteriores";
 import { sugestoesDoAmbiente } from "@/lib/especificacoes/texto";
 import {
   adicionarAmbienteLazer, criarItens, excluirAmbiente, excluirItem, moverItem, removerAmbienteLazer, renomearAmbiente, salvarItem, salvarNota,
@@ -19,6 +21,7 @@ import TextoLivre from "./TextoLivre";
 
 export type Item = {
   id: string; grupo: Grupo; ambiente: string; material: string; referencia: string; medidas: string; qtd: number; img: string; ordem: number; vidro: Vidro | null;
+  campos: Record<string, unknown> | null;
 };
 export type Nota = { grupo: Grupo; obs: string; rev: string; papel: string };
 type Projeto = {
@@ -115,7 +118,7 @@ export default function EditorProjeto({
   }
 
   function novoItem(ambiente: string) {
-    setRascunho({ grupo, ambiente, material: grupo === "vidros" ? "BOX DE BANHO" : "", referencia: "", medidas: "", qtd: 1, img: "", vidro: grupo === "vidros" ? {} : null });
+    setRascunho({ grupo, ambiente, material: grupo === "vidros" ? "BOX DE BANHO" : "", referencia: "", medidas: "", qtd: 1, img: "", vidro: grupo === "vidros" ? {} : null, campos: ehInterior(grupo) ? {} : null });
   }
 
   async function apagar(i: Item) {
@@ -251,9 +254,11 @@ export default function EditorProjeto({
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className={btnSec} onClick={() => abrirSugestoes(amb, true)} title="Itens que costumam existir neste ambiente">
-                <ListChecks className="h-4 w-4" /> Sugeridos
-              </button>
+              {!ehInterior(grupo) && (
+                <button type="button" className={btnSec} onClick={() => abrirSugestoes(amb, true)} title="Itens que costumam existir neste ambiente">
+                  <ListChecks className="h-4 w-4" /> Sugeridos
+                </button>
+              )}
               <button type="button" className={btnSec} onClick={() => novoItem(amb)}>
                 <Plus className="h-4 w-4" /> Item
               </button>
@@ -268,16 +273,19 @@ export default function EditorProjeto({
               <li key={i.id} className="flex items-start gap-3 py-2">
                 {grupo === "vidros" && !i.img ? (
                   <DesenhoVidro material={i.material} vidro={i.vidro ?? {}} tam="h-16 w-24" />
+                ) : ehInterior(grupo) && !i.img ? (
+                  <DesenhoInterior grupo={grupo} campos={i.campos ?? {}} tam="h-20 w-28" />
                 ) : (
                   <Miniatura img={i.img} assinadas={assinadas} tam="h-14 w-14" />
                 )}
                 <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setRascunho({ ...i })}>
                   <div className="text-[11px] font-semibold text-ink-400">
                     {i.material}
-                    {i.qtd > 1 && <span className="ml-2 rounded bg-surface-subtle px-1.5 text-primaryDark">{i.qtd} un.</span>}
+                    {i.qtd > 1 && temQtd(grupo) && <span className="ml-2 rounded bg-surface-subtle px-1.5 text-primaryDark">{i.qtd} un.</span>}
                   </div>
                   <div className={`text-sm ${i.referencia ? "text-ink-900" : "italic text-ink-400"}`}>{i.referencia || "Falta definir o modelo"}</div>
                   {g.medidas && i.medidas && <div className="whitespace-pre-line text-xs text-ink-500">{i.medidas}</div>}
+                  {ehInterior(grupo) && <FaltaPreencher falta={gerarInterior(grupo, i.campos ?? {}).falta} />}
                 </button>
                 <div className="flex shrink-0 items-center">
                   <button type="button" className={btnIcone} title="Subir" disabled={k === 0} onClick={() => mover(lista, k, -1)}>
@@ -321,12 +329,14 @@ export default function EditorProjeto({
             </button>
           </>
         )}
-        <button type="button" className={btnSec} onClick={() => setTexto((x) => !x)}>
-          <Type className="h-4 w-4" /> Adicionar por texto
-        </button>
+        {!ehInterior(grupo) && (
+          <button type="button" className={btnSec} onClick={() => setTexto((x) => !x)}>
+            <Type className="h-4 w-4" /> Adicionar por texto
+          </button>
+        )}
       </div>
 
-      {texto && (
+      {texto && !ehInterior(grupo) && (
         <TextoLivre
           key={grupo}
           projetoId={projeto.id}
@@ -445,6 +455,7 @@ function FormItem({
   const [erro, setErro] = useState<string | null>(null);
   const g = GRUPOS.find((x) => x.id === d.grupo)!;
   const vidros = d.grupo === "vidros";
+  const interior = ehInterior(d.grupo) ? d.grupo : null;
   const v = d.vidro ?? {};
   const setV = (p: Partial<Vidro>) => setD((x) => ({ ...x, vidro: { ...(x.vidro ?? {}), ...p } }));
   const materiais = useMemo(
@@ -488,7 +499,7 @@ function FormItem({
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_90px]">
+          <div className={`grid gap-3 ${interior ? (temQtd(d.grupo) ? "sm:grid-cols-[1fr_90px]" : "") : "sm:grid-cols-[1fr_1fr_90px]"}`}>
             <label>
               <span className={rotulo}>Ambiente *</span>
               <input className={campo} list="esp-amb-form" value={d.ambiente} onChange={(e) => setD({ ...d, ambiente: e.target.value })} />
@@ -496,6 +507,7 @@ function FormItem({
                 {Array.from(new Set([...ambientes, ...AMBIENTES_SUGERIDOS])).map((a) => <option key={a} value={a} />)}
               </datalist>
             </label>
+            {!interior && (
             <label>
               <span className={rotulo}>{vidros ? "Tipo *" : "Item *"}</span>
               <input className={campo} list="esp-mat-form" value={d.material} placeholder={vidros ? "BOX DE BANHO" : "TORNEIRA"} onChange={(e) => setD({ ...d, material: e.target.value.toUpperCase() })} />
@@ -503,13 +515,21 @@ function FormItem({
                 {materiais.map((m) => <option key={m} value={m} />)}
               </datalist>
             </label>
+            )}
+            {temQtd(d.grupo) && (
             <label>
               <span className={rotulo}>Qtd.</span>
               <input className={campo} type="number" min={1} value={d.qtd} onChange={(e) => setD({ ...d, qtd: Math.max(1, parseInt(e.target.value, 10) || 1) })} />
             </label>
+            )}
           </div>
 
-          {vidros ? (
+          {interior ? (
+            <>
+              <CamposInterior grupo={interior} valor={d.campos ?? {}} onChange={(campos) => setD((x) => ({ ...x, campos }))} />
+              <PreviaInterior grupo={interior} campos={d.campos ?? {}} comImagem={!!d.img} />
+            </>
+          ) : vidros ? (
             <>
               <div className="grid gap-3 sm:grid-cols-3">
                 <label>
@@ -571,7 +591,7 @@ function FormItem({
           )}
 
           <div>
-            <span className={rotulo}>Foto</span>
+            <span className={rotulo}>{interior ? "Imagem (substitui o desenho automático)" : "Foto"}</span>
             <FotoCampo valor={d.img} onChange={(img) => setD({ ...d, img })} assinadas={assinadas} />
           </div>
 

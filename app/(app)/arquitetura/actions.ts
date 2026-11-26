@@ -3,7 +3,8 @@
 // Ações do módulo Obras › Arquitetura › Especificações. Só ADMIN e ARQUITETO gravam (o banco confere de novo pela RLS).
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { ehGrupo, tituloAmbiente, CAMPOS_VIDRO, descVidro, medidasVidro, type Grupo, type Vidro } from "@/lib/especificacoes/regras";
+import { ehGrupo, ehInterior, temQtd, tituloAmbiente, CAMPOS_VIDRO, descVidro, medidasVidro, type Grupo, type Vidro } from "@/lib/especificacoes/regras";
+import { gerarInterior } from "@/lib/especificacoes/interiores";
 import type { LinhaItem, LinhaModelo, LinhaNota, LinhaProjeto } from "@/lib/especificacoes/importar";
 
 async function exigirArquitetura() {
@@ -115,7 +116,7 @@ export async function removerAmbienteLazer(projetoId: string, ambiente: string) 
 // ---------- itens ----------
 export type DadosItem = {
   id?: string; projeto_id: string; grupo: Grupo; ambiente: string; material: string; referencia: string;
-  medidas?: string; qtd?: number; img?: string; vidro?: Vidro | null; ordem?: number;
+  medidas?: string; qtd?: number; img?: string; vidro?: Vidro | null; campos?: Record<string, unknown> | null; ordem?: number;
 };
 
 export async function salvarItem(d: DadosItem) {
@@ -123,11 +124,17 @@ export async function salvarItem(d: DadosItem) {
   if (!ehGrupo(d.grupo)) throw new Error("Grupo inválido.");
   const ambiente = tituloAmbiente(t(d.ambiente));
   if (!ambiente) throw new Error("Informe o ambiente.");
-  const material = t(d.material).toUpperCase();
-  if (!material) throw new Error("Informe o item (ex.: TORNEIRA).");
+  let material = t(d.material).toUpperCase();
   let referencia = t(d.referencia);
   let medidas = t(d.medidas);
   let vidro: Vidro | null = null;
+  let campos: Record<string, unknown> | null = null;
+  if (ehInterior(d.grupo)) {
+    // listas de interiores: tipo, texto e medidas saem sempre dos campos (nada digitado à mão vai para a folha)
+    const g = gerarInterior(d.grupo, d.campos);
+    ({ campos, material, referencia, medidas } = g);
+  }
+  if (!material) throw new Error("Informe o item (ex.: TORNEIRA).");
   if (d.grupo === "vidros") {
     vidro = limparVidro(d.vidro);
     referencia = descVidro(material, vidro);
@@ -135,7 +142,7 @@ export async function salvarItem(d: DadosItem) {
   }
   const linha = {
     projeto_id: d.projeto_id, grupo: d.grupo, ambiente, material, referencia, medidas,
-    qtd: Math.max(1, Math.floor(Number(d.qtd) || 1)), img: imgValida(d.img), vidro, atualizado_em: agora(),
+    qtd: temQtd(d.grupo) ? Math.max(1, Math.floor(Number(d.qtd) || 1)) : 1, img: imgValida(d.img), vidro, campos, atualizado_em: agora(),
   };
   if (d.id) {
     const { error } = await supabase.from("esp_itens").update(linha).eq("id", d.id);
@@ -158,6 +165,7 @@ export async function criarItens(projetoId: string, grupo: Grupo, lista: { ambie
       id: novoId("id"), projeto_id: projetoId, grupo, ambiente: tituloAmbiente(t(it.ambiente)), material: t(it.material).toUpperCase(),
       referencia: t(it.referencia), medidas: t(it.medidas), qtd: Math.max(1, Math.floor(Number(it.qtd) || 1)), img: "", ordem: base + k,
       vidro: grupo === "vidros" ? {} : null,
+      campos: ehInterior(grupo) ? {} : null,
     }))
     .filter((l) => l.ambiente);
   if (!linhas.length) throw new Error("Nenhum item para gravar (falta o ambiente?).");

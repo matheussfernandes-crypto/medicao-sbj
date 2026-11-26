@@ -25,7 +25,7 @@ async function carregar({ params, searchParams }: Props) {
   const ids = (projetos ?? []).map((p) => p.id);
   const [{ data: itens }, { data: notas }] = ids.length
     ? await Promise.all([
-        supabase.from("esp_itens").select("id, projeto_id, grupo, ambiente, material, referencia, medidas, qtd, img, ordem, vidro").in("projeto_id", ids).in("grupo", grupos).order("ordem"),
+        supabase.from("esp_itens").select("id, projeto_id, grupo, ambiente, material, referencia, medidas, qtd, img, ordem, vidro, campos").in("projeto_id", ids).in("grupo", grupos).order("ordem"),
         supabase.from("esp_notas").select("projeto_id, grupo, obs, rev").in("projeto_id", ids),
       ])
     : [{ data: [] as any[] }, { data: [] as any[] }];

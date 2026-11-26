@@ -2,9 +2,10 @@
 // Usada pela folha de um projeto e pelo PDF do prédio inteiro (uma folha por unidade/lazer e grupo).
 import { urlImg } from "@/lib/especificacoes/imagem";
 import { esquemaVidro } from "@/lib/especificacoes/desenho";
-import { GRUPOS, descVidro, fold, medidasVidro, type Grupo, type Vidro } from "@/lib/especificacoes/regras";
+import { GRUPOS, descVidro, ehInterior, fold, medidasVidro, temQtd, type Grupo, type Vidro } from "@/lib/especificacoes/regras";
+import { desenhoInterior } from "@/lib/especificacoes/desenhoInteriores";
 
-export type ItemFolha = { id: string; ambiente: string; material: string; referencia: string; medidas: string; qtd: number; img: string; vidro: unknown };
+export type ItemFolha = { id: string; ambiente: string; material: string; referencia: string; medidas: string; qtd: number; img: string; vidro: unknown; campos?: unknown };
 
 export function FolhaEspecificacao({
   grupo, titulo, sub, rev, obs, itens, assinadas, ambientesVazios = [], rodape, quebra = false,
@@ -14,6 +15,10 @@ export function FolhaEspecificacao({
 }) {
   const g = GRUPOS.find((x) => x.id === grupo)!;
   const vidros = grupo === "vidros";
+  // listas de interiores: coluna "Desenho" maior, desenho automático quando não há imagem; revestimentos sem quantidade
+  const interior = ehInterior(grupo);
+  const qtd = temQtd(grupo);
+  const ncol = 3 + (g.medidas ? 1 : 0) + (qtd ? 1 : 0);
   const ambientes = new Map<string, { nome: string; itens: ItemFolha[] }>();
   for (const i of itens) {
     const k = fold(i.ambiente).trim() || "-";
@@ -24,7 +29,7 @@ export function FolhaEspecificacao({
   const hoje = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
   return (
-    <div className={`folha${vidros ? " vid" : ""}${quebra ? " quebra" : ""}`}>
+    <div className={`folha${vidros || interior ? " vid" : ""}${quebra ? " quebra" : ""}`}>
       <div className="topo">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="logo" src="/logo-pdf.png" alt="SBJ" />
@@ -47,17 +52,17 @@ export function FolhaEspecificacao({
             <table>
               <thead>
                 <tr>
-                  <th className="im">Imagem</th>
+                  <th className="im">{interior ? "Desenho" : "Imagem"}</th>
                   <th className="mt">Material</th>
                   <th>{vidros ? "Descrição" : "Referência"}</th>
                   {g.medidas && <th className="md">Medidas</th>}
-                  <th className="qt">Qtd.</th>
+                  {qtd && <th className="qt">Qtd.</th>}
                 </tr>
               </thead>
               <tbody>
                 {!a.itens.length && (
                   <tr>
-                    <td colSpan={g.medidas ? 5 : 4} className="vazio">A definir.</td>
+                    <td colSpan={ncol} className="vazio">A definir.</td>
                   </tr>
                 )}
                 {a.itens.map((i) => {
@@ -71,6 +76,8 @@ export function FolhaEspecificacao({
                           <img src={src} alt="" />
                         ) : vidros ? (
                           <span className="esq" dangerouslySetInnerHTML={{ __html: esquemaVidro(i.material, v) }} />
+                        ) : interior ? (
+                          <span className="esq" dangerouslySetInnerHTML={{ __html: desenhoInterior(grupo, i.campos ?? {}) }} />
                         ) : (
                           <span className="sem" />
                         )}
@@ -78,7 +85,7 @@ export function FolhaEspecificacao({
                       <td className="mt">{(i.material || "").toUpperCase()}</td>
                       <td className="rf">{vidros ? descVidro(i.material, v) : i.referencia}</td>
                       {g.medidas && <td className="md">{vidros ? medidasVidro(v) : i.medidas}</td>}
-                      <td className="qt">{i.qtd || 1}</td>
+                      {qtd && <td className="qt">{i.qtd || 1}</td>}
                     </tr>
                   );
                 })}

@@ -132,6 +132,123 @@ export function limparCortina(x: unknown): Cortina {
 }
 
 // =====================================================================
+// 2. REVESTIMENTOS DE PAREDE (papel de parede, granilha e outros)
+// =====================================================================
+export const REV = {
+  materiais: ["Papel de parede", "Granilha", "Revestimento"],
+  descontos: ["Porta", "Janela", "Móvel", "Outro"] as TipoDesconto[],
+  /** atalhos com medida pronta (móvel e outro entram sem medida: a arquitetura informa) */
+  padrao: { Porta: ["0,80", "2,10"], Janela: ["1,20", "1,00"] } as Partial<Record<TipoDesconto, [string, string]>>,
+};
+export type TipoDesconto = "Porta" | "Janela" | "Móvel" | "Outro";
+export type Desconto = { tipo: TipoDesconto; larg?: string; alt?: string; esq?: string; chao?: string };
+export type Parede = {
+  material?: string; parede?: string; larg?: string; altura?: string; rodape?: string; produto?: string; obs?: string; descontos?: Desconto[];
+};
+
+/** Rodapé: número ≥ 1 é lido em centímetros (10 → 0,10 m); abaixo de 1, em metros (0,15). */
+export function lerRodape(v: unknown): number {
+  const n = parseFloat(String(v ?? "").replace(/\s+/g, "").replace(/c?m$/i, "").replace(",", "."));
+  if (!isFinite(n) || n <= 0) return 0;
+  return Math.round((n >= 1 ? n / 100 : n) * 1000) / 1000;
+}
+
+/** posição (distância da lateral, altura do chão): como as medidas, mas aceita 0 */
+function lerPosicao(v: unknown): number {
+  const n = parseFloat(String(v ?? "").replace(/\s+/g, "").replace(/m$/i, "").replace(",", "."));
+  if (!isFinite(n) || n <= 0) return 0;
+  return Math.round((n > 30 ? n / 100 : n) * 100) / 100;
+}
+
+export type DescontoCalc = { tipo: TipoDesconto; w: number; h: number; x: number; y: number; area: number; noChao: boolean; fora: boolean; posAuto: boolean };
+
+/** Cálculo da parede. Não calcula sobra, rolos nem tiras: isso é da loja. */
+export function calcParede(p: Parede) {
+  const L = lerMetros(p.larg), H = lerMetros(p.altura), rod = lerRodape(p.rodape);
+  const lista = (p.descontos ?? []).map((d) => {
+    const w = lerMetros(d.larg), h = lerMetros(d.alt);
+    const temChao = String(d.chao ?? "").trim() !== "";
+    // altura a partir do chão: informada, ou janela a 1 m (só para o desenho e para saber se encosta no chão), o resto no chão
+    const y = temChao ? lerPosicao(d.chao) : d.tipo === "Janela" ? 1 : 0;
+    const temEsq = String(d.esq ?? "").trim() !== "";
+    const x = temEsq ? lerPosicao(d.esq) : -1;
+    return { tipo: d.tipo, w, h, x, y, area: Math.round(w * h * 10000) / 10000, noChao: y <= 0.001, fora: false, posAuto: !temEsq } as DescontoCalc;
+  });
+  // sem distância da lateral: distribui na parede, com o mesmo espaço entre elas
+  const autos = lista.filter((d) => d.posAuto);
+  const livres = L - autos.reduce((s, d) => s + d.w, 0);
+  const gap = autos.length ? Math.max(0, livres / (autos.length + 1)) : 0;
+  let cur = gap;
+  for (const d of autos) { d.x = cur; cur += d.w + gap; }
+  for (const d of lista) d.fora = !!L && !!H && (d.x + d.w > L + 0.001 || d.y + d.h > H + 0.001 || (d.posAuto && livres < -0.001));
+  const bruta = L * H;
+  const aberturas = lista.reduce((s, d) => s + d.area, 0);
+  const largChao = lista.filter((d) => d.noChao).reduce((s, d) => s + d.w, 0);
+  const faixaRodape = Math.max(0, L - largChao) * rod;
+  const descontos = aberturas + faixaRodape;
+  const liquida = Math.max(0, bruta - descontos);
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  return { L, H, rod, lista, bruta: r2(bruta), aberturas: r2(aberturas), faixaRodape: r2(faixaRodape), descontos: r2(descontos), liquida: r2(liquida), fora: lista.some((d) => d.fora) };
+}
+
+export function faltaParede(p: Parede): string[] {
+  const c = calcParede(p), f: string[] = [];
+  if (!p.material) f.push("material");
+  if (!c.L) f.push("largura");
+  if (!c.H) f.push("altura");
+  c.lista.forEach((d, k) => { if (!d.w || !d.h) f.push(`medida do desconto ${k + 1} (${d.tipo.toLowerCase()})`); });
+  return f;
+}
+
+/** Referência (PDF): só a identificação. "Material - Nome da parede. Produto. Observação." */
+export function textoParede(p: Parede): string {
+  const nome = (p.parede || "").trim();
+  const ini = [(p.material || "").trim(), nome ? nome.charAt(0).toUpperCase() + nome.slice(1) : ""].filter(Boolean).join(" - ");
+  return [frase(ini), frase(p.produto || ""), frase(p.obs || "")].filter(Boolean).join(" ");
+}
+
+export function medidasParede(p: Parede): string {
+  const c = calcParede(p), l: string[] = [];
+  if (c.L) l.push(`Largura: ${fmtM(c.L)} m`);
+  if (c.H) l.push(`Altura: ${fmtM(c.H)} m`);
+  if (c.rod) l.push(`Rodapé: ${fmtM(c.rod)} m`);
+  if (c.L && c.H) {
+    l.push(`Descontos: ${fmtM(c.descontos)} m²`);
+    l.push(`Área líquida: ${fmtM(c.liquida)} m²`);
+  }
+  return l.join("\n");
+}
+
+export function limparParede(x: unknown): Parede {
+  const d = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
+  const s = (o: Record<string, unknown>, k: string) => (typeof o[k] === "string" && (o[k] as string).trim() ? (o[k] as string).slice(0, 300) : undefined);
+  const descontos = Array.isArray(d.descontos)
+    ? (d.descontos as unknown[]).slice(0, 30).map((y) => {
+        const o = (y && typeof y === "object" ? y : {}) as Record<string, unknown>;
+        const tipo = REV.descontos.find((t) => t === o.tipo) ?? "Outro";
+        return { tipo, larg: s(o, "larg"), alt: s(o, "alt"), esq: s(o, "esq"), chao: s(o, "chao") } as Desconto;
+      })
+    : undefined;
+  return {
+    material: REV.materiais.find((m) => m === d.material), parede: s(d, "parede"), larg: s(d, "larg"), altura: s(d, "altura"),
+    rodape: s(d, "rodape"), produto: s(d, "produto"), obs: s(d, "obs"), descontos: descontos?.length ? descontos : undefined,
+  };
+}
+
+/** Resumo por material (fim da folha): nº de paredes e área líquida somada. */
+export function resumoRevestimentos(lista: unknown[]) {
+  const m = new Map<string, { material: string; paredes: number; area: number }>();
+  for (const x of lista) {
+    const p = limparParede(x), c = calcParede(p), k = p.material || "Revestimento";
+    if (!m.has(k)) m.set(k, { material: k, paredes: 0, area: 0 });
+    const r = m.get(k)!;
+    r.paredes++;
+    r.area = Math.round((r.area + c.liquida) * 100) / 100;
+  }
+  return Array.from(m.values());
+}
+
+// =====================================================================
 // Ponto único: a partir do grupo e dos campos, o que vai para o banco e para a folha.
 // =====================================================================
 export type Gerado = { campos: Record<string, unknown>; material: string; referencia: string; medidas: string; falta: string[] };
@@ -141,6 +258,10 @@ export function gerarInterior(grupo: GrupoInterior, bruto: unknown): Gerado {
     case "cortinas": {
       const c = limparCortina(bruto);
       return { campos: c, material: (c.tipo || "Cortina").toUpperCase(), referencia: textoCortina(c), medidas: medidasCortina(c), falta: faltaCortina(c) };
+    }
+    case "revestimentos": {
+      const p = limparParede(bruto);
+      return { campos: p, material: (p.material || "Revestimento").toUpperCase(), referencia: textoParede(p), medidas: medidasParede(p), falta: faltaParede(p) };
     }
     default:
       return { campos: {}, material: "", referencia: "", medidas: "", falta: ["campos"] };

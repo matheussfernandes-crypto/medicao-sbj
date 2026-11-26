@@ -1,7 +1,7 @@
 // Desenhos automáticos (SVG) das listas de interiores, montados só pelos campos do item.
 // Devolvem o texto do SVG; só entram números, cores das tabelas e textos curtos escapados.
 import { fold, type GrupoInterior } from "./regras";
-import { corDaPalavra, fmtCm, fmtM, limparCortina, medidasCortinaNum, type Cortina } from "./interiores";
+import { calcParede, corDaPalavra, fmtCm, fmtM, limparCortina, limparParede, medidasCortinaNum, type Cortina, type Parede } from "./interiores";
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const VERM = "#c0392b";
@@ -129,8 +129,54 @@ export function desenhoCortina(c: Cortina): string {
   return svg(g, 240, 160);
 }
 
+// ---------- 2. revestimentos (vista frontal da parede) ----------
+const COR_DESC: Record<string, { fill: string; stroke: string; letra: string }> = {
+  Porta: { fill: "#e9dcc3", stroke: "#a88f66", letra: "P" },
+  Janela: { fill: "#cfe4f3", stroke: "#6f9bbd", letra: "J" },
+  "Móvel": { fill: "#ffffff", stroke: "#7d7f82", letra: "M" },
+  Outro: { fill: "#ffffff", stroke: "#7d7f82", letra: "" },
+};
+export function desenhoParede(p: Parede): string {
+  const c = calcParede(p);
+  const { W, H } = caixa(c.L, c.H, 170, 96, 0.55);
+  const X = 18 + (170 - W) / 2, Y = 12 + (96 - H) / 2, kx = c.L ? W / c.L : 0, ky = c.H ? H / c.H : 0;
+  const base = Y + H;
+  const corParede = p.material === "Granilha" ? "#e4ddd2" : p.material === "Papel de parede" ? "#efe6da" : "#e9e6e1";
+  let g = `<defs><pattern id="hach" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#9a9c9f" stroke-width="1"/></pattern></defs>`;
+  g += `<rect x="${r1(X)}" y="${r1(Y)}" width="${r1(W)}" height="${r1(H)}" fill="${corParede}"/>`;
+  if (p.material === "Papel de parede") for (let x = X + 10; x < X + W; x += 10) g += `<line x1="${r1(x)}" y1="${r1(Y)}" x2="${r1(x)}" y2="${r1(base)}" stroke="#ffffff" stroke-width=".6" opacity=".7"/>`;
+  if (p.material === "Granilha") for (let i = 0; i < Math.min(140, Math.round((W * H) / 40)); i++) {
+    // sequência que espalha os pontos por igual (sem formar linhas)
+    const px = X + ((i * 0.7548776662) % 1) * W, py = Y + ((i * 0.5698402910 + 0.5) % 1) * H;
+    g += `<circle cx="${r1(px)}" cy="${r1(py)}" r=".7" fill="#a79f93"/>`;
+  }
+  // rodapé: faixa na base
+  if (c.rod && ky) g += `<rect x="${r1(X)}" y="${r1(base - Math.max(1.5, c.rod * ky))}" width="${r1(W)}" height="${r1(Math.max(1.5, c.rod * ky))}" fill="#b9b4ac"/>`;
+  // descontos
+  if (kx && ky)
+    for (const d of c.lista) {
+      if (!d.w || !d.h) continue;
+      const s = COR_DESC[d.tipo], x = X + d.x * kx, w = d.w * kx, h = d.h * ky, y = base - (d.y + d.h) * ky;
+      const traco = d.tipo === "Outro" ? ` stroke-dasharray="3 2"` : "";
+      g += `<rect x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(h)}" fill="${d.tipo === "Móvel" ? "url(#hach)" : s.fill}" stroke="${d.fora ? VERM : s.stroke}" stroke-width="1"${traco}/>`;
+      if (d.tipo === "Porta") g += `<circle cx="${r1(x + w * 0.8)}" cy="${r1(y + h * 0.55)}" r="1.4" fill="${s.stroke}"/>`;
+      if (d.tipo === "Janela") g += `<line x1="${r1(x + w / 2)}" y1="${r1(y)}" x2="${r1(x + w / 2)}" y2="${r1(y + h)}" stroke="${s.stroke}" stroke-width=".7"/><line x1="${r1(x)}" y1="${r1(y + h / 2)}" x2="${r1(x + w)}" y2="${r1(y + h / 2)}" stroke="${s.stroke}" stroke-width=".7"/>`;
+      if (s.letra) g += `<text x="${r1(x + w / 2)}" y="${r1(y + h / 2 + (d.tipo === "Janela" ? -2 : 3))}" text-anchor="middle" font-size="${h > 14 ? 8 : 6}" font-family="Arial" font-weight="bold" fill="#3b3f44"${d.tipo === "Móvel" ? ' stroke="#fff" stroke-width="2" paint-order="stroke"' : ""}>${s.letra}</text>`;
+      g += `<text x="${r1(x + w / 2)}" y="${r1(Math.max(y - 2, Y + 6))}" text-anchor="middle" font-size="5.5" font-family="Arial" fill="${VERM}" stroke="#fff" stroke-width="1.6" paint-order="stroke">${fmtM(d.w)} x ${fmtM(d.h)}</text>`;
+    }
+  // contorno (vermelho se algum desconto passa da parede)
+  g += `<rect x="${r1(X)}" y="${r1(Y)}" width="${r1(W)}" height="${r1(H)}" fill="none" stroke="${c.fora ? VERM : "#5c6166"}" stroke-width="${c.fora ? 1.8 : 1.1}"/>`;
+  if (c.L) g += cotaH(X, X + W, base + 9, fmtM(c.L), 8);
+  if (c.H) g += cotaV(X + W + 9, Y, base, fmtM(c.H), 8);
+  const ty = base + 30;
+  if (c.L && c.H) g += `<text x="${r1(X + W / 2)}" y="${r1(ty)}" text-anchor="middle" font-size="9" font-family="Arial" font-weight="bold" fill="#1f2733">${fmtM(c.liquida)} m² líquidos</text>`;
+  if (c.fora) g += `<text x="${r1(X + W / 2)}" y="${r1(ty + 10)}" text-anchor="middle" font-size="7" font-family="Arial" font-weight="bold" fill="${VERM}">algum desconto passa da parede</text>`;
+  return svg(g, 240, 160);
+}
+
 /** desenho automático do item de uma lista de interiores (campos já gravados) */
 export function desenhoInterior(grupo: GrupoInterior, campos: unknown): string {
   if (grupo === "cortinas") return desenhoCortina(limparCortina(campos));
+  if (grupo === "revestimentos") return desenhoParede(limparParede(campos));
   return "";
 }

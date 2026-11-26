@@ -4,7 +4,9 @@
 // O texto da folha, as medidas e o desenho são recalculados a cada campo, só dentro do formulário.
 import { useMemo } from "react";
 import Selecao from "@/components/ui/Selecao";
-import { CORT, gerarInterior, type Cortina } from "@/lib/especificacoes/interiores";
+import {
+  CORT, REV, calcParede, fmtM, gerarInterior, type Cortina, type Desconto, type Parede, type TipoDesconto,
+} from "@/lib/especificacoes/interiores";
 import { desenhoInterior } from "@/lib/especificacoes/desenhoInteriores";
 import type { GrupoInterior } from "@/lib/especificacoes/regras";
 import { campo, rotulo } from "../../ui";
@@ -150,8 +152,111 @@ export function CamposCortina({ valor, onChange }: { valor: Campos; onChange: (v
   );
 }
 
+// ---------- 2. revestimentos de parede ----------
+export function CamposParede({ valor, onChange }: { valor: Campos; onChange: (v: Campos) => void }) {
+  const p = valor as Parede;
+  const set = (x: Partial<Parede>) => onChange({ ...p, ...x });
+  const lista = p.descontos ?? [];
+  const setDesc = (k: number, x: Partial<Desconto>) => set({ descontos: lista.map((d, j) => (j === k ? { ...d, ...x } : d)) });
+  const novoDesc = (tipo: TipoDesconto) => {
+    const m = REV.padrao[tipo];
+    set({ descontos: [...lista, { tipo, larg: m?.[0], alt: m?.[1] }] });
+  };
+  const calc = useMemo(() => calcParede(p), [p]);
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label>
+          <span className={rotulo}>Material *</span>
+          <Selecao className="w-full" value={p.material ?? ""} onChange={(e) => set({ material: e.target.value || undefined })}>
+            <option value="">—</option>
+            {REV.materiais.map((m) => <option key={m} value={m}>{m}</option>)}
+          </Selecao>
+        </label>
+        <label>
+          <span className={rotulo}>Nome da parede</span>
+          <input className={campo} placeholder="Ex.: cabeceira, parede da TV" value={p.parede ?? ""} onChange={(e) => set({ parede: e.target.value })} />
+        </label>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label>
+          <span className={rotulo}>Largura *</span>
+          <input className={campo} inputMode="decimal" placeholder="em metros, ex.: 3,20" value={p.larg ?? ""} onChange={(e) => set({ larg: e.target.value })} />
+        </label>
+        <label>
+          <span className={rotulo}>Altura *</span>
+          <input className={campo} inputMode="decimal" placeholder="em metros, ex.: 2,70" value={p.altura ?? ""} onChange={(e) => set({ altura: e.target.value })} />
+        </label>
+        <label>
+          <span className={rotulo}>Altura do rodapé</span>
+          <input className={campo} inputMode="decimal" placeholder="10 (cm) ou 0,10 (m)" value={p.rodape ?? ""} onChange={(e) => set({ rodape: e.target.value })} />
+        </label>
+      </div>
+      <p className="-mt-1 text-[11px] text-ink-400">Largura e altura em metros (acima de 30 vira centímetros). No rodapé, 1 ou mais é lido em centímetros; abaixo de 1, em metros.</p>
+      <label className="block">
+        <span className={rotulo}>Produto (marca, coleção, código)</span>
+        <input className={campo} value={p.produto ?? ""} onChange={(e) => set({ produto: e.target.value })} />
+      </label>
+
+      <div className="rounded-[10px] border border-border p-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <span className={rotulo + " mb-0"}>Descontos (aberturas e móveis)</span>
+          <div className="flex flex-wrap gap-1.5">
+            {REV.descontos.map((t) => (
+              <button key={t} type="button" className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-ink-700 hover:border-primary hover:text-primary" onClick={() => novoDesc(t)}>
+                + {t}
+              </button>
+            ))}
+          </div>
+        </div>
+        {!lista.length && <p className="text-xs text-ink-400">Nenhum desconto. Use os botões acima para portas, janelas e móveis.</p>}
+        <div className="space-y-2">
+          {lista.map((d, k) => (
+            <div key={k} className={`grid grid-cols-2 items-end gap-2 rounded-lg p-2 sm:grid-cols-[110px_1fr_1fr_1fr_1fr_auto] ${calc.lista[k]?.fora ? "bg-[#FDECEA]" : "bg-surface-subtle"}`}>
+              <label>
+                <span className={rotulo}>Tipo</span>
+                <Selecao className="w-full" value={d.tipo} onChange={(e) => setDesc(k, { tipo: e.target.value as TipoDesconto })}>
+                  {REV.descontos.map((t) => <option key={t} value={t}>{t}</option>)}
+                </Selecao>
+              </label>
+              {([["larg", "Largura"], ["alt", "Altura"], ["esq", "Da lateral esq."], ["chao", "Do chão"]] as [keyof Desconto, string][]).map(([c, r]) => (
+                <label key={c}>
+                  <span className={rotulo}>{r}{c === "esq" || c === "chao" ? " (opc.)" : ""}</span>
+                  <input className={campo} inputMode="decimal" value={String(d[c] ?? "")} placeholder={c === "chao" && d.tipo === "Janela" ? "1,00" : c === "chao" ? "0" : ""} onChange={(e) => setDesc(k, { [c]: e.target.value } as Partial<Desconto>)} />
+                </label>
+              ))}
+              <button type="button" className="h-9 rounded-lg px-2 text-xs font-semibold text-ink-500 hover:text-[#B3261E]" onClick={() => set({ descontos: lista.filter((_, j) => j !== k) })} title="Tirar desconto">
+                Tirar
+              </button>
+            </div>
+          ))}
+        </div>
+        {calc.L > 0 && calc.H > 0 && (
+          <p className="mt-2 text-xs text-ink-500">
+            Bruta {fmtM(calc.bruta)} m² − aberturas {fmtM(calc.aberturas)} m² − faixa do rodapé {fmtM(calc.faixaRodape)} m² = <b className="text-ink-900">{fmtM(calc.liquida)} m² líquidos</b>
+          </p>
+        )}
+        {calc.fora && <p className="mt-1 text-xs font-semibold text-[#B3261E]">Algum desconto passa da parede. Confira as medidas e as posições.</p>}
+      </div>
+
+      <label className="block">
+        <span className={rotulo}>Observação</span>
+        <input className={campo} value={p.obs ?? ""} onChange={(e) => set({ obs: e.target.value })} />
+      </label>
+      <p className="text-[11px] text-ink-400">Sobra, rolos e tiras não são calculados aqui: ficam com a loja.</p>
+    </div>
+  );
+}
+
+/** campos herdados por "+ Outra parede com este produto" */
+export const herdarParede = (c: unknown): Campos => {
+  const p = (c ?? {}) as Parede;
+  return { material: p.material, produto: p.produto, rodape: p.rodape, altura: p.altura };
+};
+
 /** campos da lista certa para o grupo */
 export function CamposInterior({ grupo, valor, onChange }: { grupo: GrupoInterior; valor: Campos; onChange: (v: Campos) => void }) {
   if (grupo === "cortinas") return <CamposCortina valor={valor} onChange={onChange} />;
+  if (grupo === "revestimentos") return <CamposParede valor={valor} onChange={onChange} />;
   return null;
 }

@@ -10,7 +10,7 @@ import {
   AMBIENTES_LAZER, AMBIENTES_SUGERIDOS, GRUPOS, GRUPOS_ARQ, VID, descVidro, ehInterior, fold, medidasVidro, refDoModelo, temQtd, tituloAmbiente, type Grupo, type Vidro,
 } from "@/lib/especificacoes/regras";
 import { gerarInterior } from "@/lib/especificacoes/interiores";
-import { CamposInterior, DesenhoInterior, FaltaPreencher, PreviaInterior } from "./FormInteriores";
+import { CamposInterior, DesenhoInterior, FaltaPreencher, PreviaInterior, herdarParede } from "./FormInteriores";
 import { sugestoesDoAmbiente } from "@/lib/especificacoes/texto";
 import {
   adicionarAmbienteLazer, criarItens, excluirAmbiente, excluirItem, moverItem, removerAmbienteLazer, renomearAmbiente, salvarItem, salvarNota,
@@ -119,6 +119,13 @@ export default function EditorProjeto({
 
   function novoItem(ambiente: string) {
     setRascunho({ grupo, ambiente, material: grupo === "vidros" ? "BOX DE BANHO" : "", referencia: "", medidas: "", qtd: 1, img: "", vidro: grupo === "vidros" ? {} : null, campos: ehInterior(grupo) ? {} : null });
+  }
+
+  // "+ Outra parede com este produto": mesmo ambiente, herda material, produto, rodapé e altura
+  function outraParede(de: { ambiente: string; material: string; campos: Record<string, unknown> | null }) {
+    const novo: Rascunho = { grupo: "revestimentos", ambiente: de.ambiente, material: de.material, referencia: "", medidas: "", qtd: 1, img: "", vidro: null, campos: herdarParede(de.campos) };
+    setRascunho(null);
+    setTimeout(() => setRascunho(novo), 0); // reabre o formulário do zero
   }
 
   async function apagar(i: Item) {
@@ -287,6 +294,11 @@ export default function EditorProjeto({
                   {g.medidas && i.medidas && <div className="whitespace-pre-line text-xs text-ink-500">{i.medidas}</div>}
                   {ehInterior(grupo) && <FaltaPreencher falta={gerarInterior(grupo, i.campos ?? {}).falta} />}
                 </button>
+                {grupo === "revestimentos" && (
+                  <button type="button" className="shrink-0 self-center whitespace-nowrap rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-ink-600 hover:border-primary hover:text-primary" onClick={() => outraParede(i)} title="Nova parede no mesmo ambiente, com o mesmo material, produto, rodapé e altura">
+                    + Outra parede com este produto
+                  </button>
+                )}
                 <div className="flex shrink-0 items-center">
                   <button type="button" className={btnIcone} title="Subir" disabled={k === 0} onClick={() => mover(lista, k, -1)}>
                     <ArrowUp className="h-4 w-4" />
@@ -368,6 +380,10 @@ export default function EditorProjeto({
             setRascunho(null);
             router.refresh();
           }}
+          onOutra={(d) => {
+            router.refresh();
+            outraParede(d);
+          }}
         />
       )}
     </div>
@@ -444,10 +460,10 @@ function NotaGrupo({ projetoId, grupo, titulo, nota }: { projetoId: string; grup
 }
 
 function FormItem({
-  projetoId, inicial, modelos, assinadas, ambientes, onFechar, onSalvo,
+  projetoId, inicial, modelos, assinadas, ambientes, onFechar, onSalvo, onOutra,
 }: {
   projetoId: string; inicial: Rascunho; modelos: Modelo[]; assinadas: Record<string, string>; ambientes: string[];
-  onFechar: () => void; onSalvo: () => void;
+  onFechar: () => void; onSalvo: () => void; onOutra?: (d: Rascunho) => void;
 }) {
   const [d, setD] = useState<Rascunho>(inicial);
   const [escolhendo, setEscolhendo] = useState(false);
@@ -468,12 +484,13 @@ function FormItem({
     setEscolhendo(false);
   }
 
-  async function salvar() {
+  async function salvar(eOutra = false) {
     setErro(null);
     setSalvando(true);
     try {
       await salvarItem({ ...d, projeto_id: projetoId });
-      onSalvo();
+      if (eOutra && onOutra) onOutra(d);
+      else onSalvo();
     } catch (e: any) {
       setErro(e.message);
       setSalvando(false);
@@ -598,7 +615,10 @@ function FormItem({
           {erro && <div className={erroCls}>{erro}</div>}
           <div className="flex justify-end gap-2 border-t border-border pt-3">
             <button type="button" className={btnSec} onClick={onFechar}>Cancelar</button>
-            <button type="button" className={btnPrim} onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</button>
+            {d.grupo === "revestimentos" && onOutra && (
+              <button type="button" className={btnSec} onClick={() => salvar(true)} disabled={salvando}>Salvar e + outra parede com este produto</button>
+            )}
+            <button type="button" className={btnPrim} onClick={() => salvar()} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</button>
           </div>
         </div>
       )}

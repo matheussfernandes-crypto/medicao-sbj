@@ -4,6 +4,9 @@ import { urlImg } from "@/lib/especificacoes/imagem";
 import { esquemaVidro } from "@/lib/especificacoes/desenho";
 import { GRUPOS, descVidro, ehInterior, fold, medidasVidro, temQtd, type Grupo, type Vidro } from "@/lib/especificacoes/regras";
 import { desenhoInterior } from "@/lib/especificacoes/desenhoInteriores";
+import { fmtM, resumoRevestimentos } from "@/lib/especificacoes/interiores";
+
+const AVISO_LOJISTA = "Atenção ao lojista: cotar a sobra necessária.";
 
 export type ItemFolha = { id: string; ambiente: string; material: string; referencia: string; medidas: string; qtd: number; img: string; vidro: unknown; campos?: unknown };
 
@@ -43,6 +46,7 @@ export function FolhaEspecificacao({
           <div>Emitido em: {hoje}</div>
         </div>
       </div>
+      {grupo === "revestimentos" && itens.length > 0 && <div className="aviso">{AVISO_LOJISTA}</div>}
       {obs && <div className="obs">{obs}</div>}
       {!ambientes.size && <p className="sub">Nenhum item especificado neste grupo.</p>}
       <div className="corpo">
@@ -94,6 +98,30 @@ export function FolhaEspecificacao({
           </section>
         ))}
       </div>
+      {grupo === "revestimentos" && itens.length > 0 && (
+        <section className="resumo">
+          <h2>Resumo por material</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th className="qt2">Paredes</th>
+                <th className="qt2">Área líquida</th>
+              </tr>
+            </thead>
+            <tbody>
+              {resumoRevestimentos(itens.map((i) => i.campos)).map((r) => (
+                <tr key={r.material}>
+                  <td className="mt">{r.material.toUpperCase()}</td>
+                  <td className="qt2">{r.paredes}</td>
+                  <td className="qt2">{fmtM(r.area)} m²</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="aviso">{AVISO_LOJISTA}</div>
+        </section>
+      )}
       <div className="rodape">
         <span>SBJ Construtora e Incorporadora · Especificação de {g.label.toLowerCase()}</span>
         <span>{rodape}</span>
@@ -120,6 +148,11 @@ export function cssFolha(a3: boolean) {
   .fg h1 { font-size: ${a3 ? "24pt" : "17pt"}; font-weight: 700; color: var(--verde); margin: 1mm 0 0; }
   .fg .sub { font-size: ${a3 ? "15pt" : "11pt"}; font-weight: 600; color: #2b3440; margin: 2mm 0 0; }
   .fg .dir { font-size: ${a3 ? "11pt" : "8.5pt"}; color: #2b3440; text-align: right; line-height: 1.6; white-space: nowrap; }
+  .fg .aviso { background: #fdecea; border-left: 3px solid #c0392b; border-radius: 0 4px 4px 0; padding: 2.5mm 4mm; margin: 0 0 5mm; font-weight: 700; color: #b3261e; }
+  .fg .resumo { margin-top: 4mm; width: ${a3 ? "50%" : "65%"}; break-inside: avoid; }
+  .fg .resumo .aviso { margin: 3mm 0 0; }
+  .fg .vid .md { width: 42mm; }
+  .fg .qt2 { width: 32mm; text-align: center; font-weight: 700; }
   .fg .obs { background: #e8f1f3; border-left: 3px solid var(--verde); border-radius: 0 4px 4px 0; padding: 2.5mm 4mm; margin: 0 0 5mm; font-weight: 700; color: var(--verde); }
   .fg .corpo { column-count: 2; column-gap: 10mm; }
   .fg .amb { margin-bottom: 6mm; break-inside: avoid; }

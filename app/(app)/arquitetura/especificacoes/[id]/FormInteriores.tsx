@@ -5,7 +5,7 @@
 import { useMemo } from "react";
 import Selecao from "@/components/ui/Selecao";
 import {
-  CORT, REV, TAP, calcParede, fmtM, gerarInterior, tapeteUmaMedida, type Cortina, type Desconto, type Parede, type Tapete, type TipoDesconto,
+  CORT, REV, TAP, calcParede, cortinaTemDetalhes, fmtM, gerarInterior, tapeteUmaMedida, type Cortina, type Desconto, type Parede, type Tapete, type TipoDesconto,
 } from "@/lib/especificacoes/interiores";
 import { desenhoInterior } from "@/lib/especificacoes/desenhoInteriores";
 import type { GrupoInterior } from "@/lib/especificacoes/regras";
@@ -126,6 +126,7 @@ export function CamposCortina({ valor, onChange }: { valor: Campos; onChange: (v
         <Marca on={!!c.motorizada} set={(v) => set({ motorizada: v || undefined })}>Motorizada</Marca>
       </div>
 
+      {cortinaTemDetalhes(c.tipo) && (
       <div className="rounded-[10px] border border-border p-3">
         <div className={rotulo}>Detalhes</div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -143,6 +144,7 @@ export function CamposCortina({ valor, onChange }: { valor: Campos; onChange: (v
           <input className={campo} value={c.outroDetalhe ?? ""} onChange={(e) => set({ outroDetalhe: e.target.value })} />
         </label>
       </div>
+      )}
 
       <label className="block">
         <span className={rotulo}>Observação (entra no fim do texto)</span>

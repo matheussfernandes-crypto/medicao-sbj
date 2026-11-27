@@ -123,8 +123,12 @@ export default function EditorProjeto({
   }
 
   // "+ Outra parede com este produto": mesmo ambiente, herda material, produto, rodapé e altura
-  function outraParede(de: { ambiente: string; material: string; campos: Record<string, unknown> | null }) {
-    const novo: Rascunho = { grupo: "revestimentos", ambiente: de.ambiente, material: de.material, referencia: "", medidas: "", qtd: 1, img: "", vidro: null, campos: herdarParede(de.campos) };
+  // Cortinas e tapetes: "+ outra peça neste ambiente" abre o formulário vazio no mesmo ambiente.
+  function outraParede(de: { grupo?: Grupo; ambiente: string; material: string; campos: Record<string, unknown> | null }) {
+    const parede = (de.grupo ?? "revestimentos") === "revestimentos";
+    const novo: Rascunho = parede
+      ? { grupo: "revestimentos", ambiente: de.ambiente, material: de.material, referencia: "", medidas: "", qtd: 1, img: "", vidro: null, campos: herdarParede(de.campos) }
+      : { grupo: de.grupo!, ambiente: de.ambiente, material: "", referencia: "", medidas: "", qtd: 1, img: "", vidro: null, campos: {} };
     setRascunho(null);
     setTimeout(() => setRascunho(novo), 0); // reabre o formulário do zero
   }
@@ -625,8 +629,10 @@ function FormItem({
           {erro && <div className={erroCls}>{erro}</div>}
           <div className="flex justify-end gap-2 border-t border-border pt-3">
             <button type="button" className={btnSec} onClick={onFechar}>Cancelar</button>
-            {d.grupo === "revestimentos" && onOutra && (
-              <button type="button" className={btnSec} onClick={() => salvar(true)} disabled={salvando}>Salvar e + outra parede com este produto</button>
+            {interior && onOutra && (
+              <button type="button" className={btnSec} onClick={() => salvar(true)} disabled={salvando}>
+                {interior === "revestimentos" ? "Salvar e + outra parede com este produto" : "Salvar e + outra peça neste ambiente"}
+              </button>
             )}
             <button type="button" className={btnPrim} onClick={() => salvar()} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</button>
           </div>

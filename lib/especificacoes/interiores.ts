@@ -50,6 +50,9 @@ export const CORT = {
   acabamentos: ["Soutache", "Barra arrastão", "Franja", "Passamanaria", "Bordado", "Vivo"],
   xales: [["sem", "Sem xale"], ["direito", "Lado direito"], ["esquerdo", "Lado esquerdo"], ["dois", "Dois lados"]] as [Xale, string][],
 };
+/** Persianas e afins não têm cabeçalho/prega nem acabamentos de tecido: os "Detalhes" somem para eles. */
+export const CORT_SEM_DETALHES = ["Persiana", "Rolô", "Romana", "Double vision"];
+export const cortinaTemDetalhes = (tipo?: string) => !CORT_SEM_DETALHES.includes(tipo || "");
 export type Xale = "sem" | "direito" | "esquerdo" | "dois";
 export type Cortina = {
   tipo?: string; emL?: boolean; larg1?: string; larg2?: string; altura?: string; tecido?: string; cor?: string;
@@ -96,7 +99,7 @@ export function textoCortina(c: Cortina): string {
   const bt = (c.barra || "").trim();
   if (bt || m.barra) p.push(`Barra: ${[bt ? minusc(bt) : "", m.barra ? `${fmtCm(m.barra)} cm de altura` : ""].filter(Boolean).join(", ")}.`);
   const det = [...(c.detalhes ?? []).map(minusc), ...((c.outroDetalhe || "").trim() ? [minusc(c.outroDetalhe!)] : [])];
-  if (det.length) p.push(`Detalhes: ${det.join(", ")}.`);
+  if (det.length && cortinaTemDetalhes(c.tipo)) p.push(`Detalhes: ${det.join(", ")}.`);
   if (c.motorizada) p.push("Motorizada.");
   if ((c.obs || "").trim()) p.push(frase(c.obs!));
   return p.join(" ");
@@ -123,10 +126,11 @@ export function limparCortina(x: unknown): Cortina {
   const validos = [...CORT.cabecalho, ...CORT.acabamentos];
   const xale = ["sem", "direito", "esquerdo", "dois"].includes(d.xale as string) ? (d.xale as Xale) : undefined;
   const tipo = CORT.tipos.find((t) => t === d.tipo);
+  const comDet = cortinaTemDetalhes(tipo);
   return {
     tipo, emL: b("emL"), larg1: s("larg1"), larg2: d.emL === true ? s("larg2") : undefined, altura: s("altura"), tecido: s("tecido"), cor: s("cor"),
-    barra: s("barra"), barraAlt: s("barraAlt"), detalhes: Array.isArray(d.detalhes) ? validos.filter((v) => (d.detalhes as unknown[]).includes(v)) : undefined,
-    outroDetalhe: s("outroDetalhe"), xale, xaleMed: xale && xale !== "sem" ? s("xaleMed") : undefined,
+    barra: s("barra"), barraAlt: s("barraAlt"), detalhes: comDet && Array.isArray(d.detalhes) ? validos.filter((v) => (d.detalhes as unknown[]).includes(v)) : undefined,
+    outroDetalhe: comDet ? s("outroDetalhe") : undefined, xale, xaleMed: xale && xale !== "sem" ? s("xaleMed") : undefined,
     pingente: b("pingente"), gesso: b("gesso"), motorizada: b("motorizada"), obs: s("obs"),
   };
 }

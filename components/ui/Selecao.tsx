@@ -107,8 +107,8 @@ export default function Selecao({
   }
 
   // posição do menu (abre para cima se não couber embaixo)
-  useLayoutEffect(() => {
-    if (!aberto || !btn.current) return;
+  function posicionar() {
+    if (!btn.current) return;
     const r = btn.current.getBoundingClientRect();
     const alt = Math.min(menu.current?.offsetHeight ?? 300, 340);
     const abaixo = window.innerHeight - r.bottom;
@@ -122,6 +122,10 @@ export default function Selecao({
       maxH: Math.max(160, Math.min(340, (cima ? r.top : abaixo) - 14)),
       cima,
     });
+  }
+  useLayoutEffect(() => {
+    if (aberto) posicionar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto, visiveis.length]);
 
   useEffect(() => {
@@ -130,16 +134,22 @@ export default function Selecao({
       const t = e.target as Node;
       if (!menu.current?.contains(t) && !btn.current?.contains(t)) fechar();
     };
+    // no celular, digitar na busca abre o teclado: a tela encolhe e a página rola.
+    // Enquanto a busca estiver em uso, isso só reposiciona o menu (antes fechava e não dava para escolher).
+    const digitando = () => !!menu.current && menu.current.contains(document.activeElement);
     const rolar = (e: Event) => {
-      if (!menu.current?.contains(e.target as Node)) fechar();
+      if (menu.current?.contains(e.target as Node)) return;
+      if (digitando()) posicionar();
+      else fechar();
     };
+    const redimensionar = () => (digitando() ? posicionar() : fechar());
     document.addEventListener("mousedown", fora, true);
     window.addEventListener("scroll", rolar, true);
-    window.addEventListener("resize", fechar);
+    window.addEventListener("resize", redimensionar);
     return () => {
       document.removeEventListener("mousedown", fora, true);
       window.removeEventListener("scroll", rolar, true);
-      window.removeEventListener("resize", fechar);
+      window.removeEventListener("resize", redimensionar);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto]);
@@ -168,6 +178,8 @@ export default function Selecao({
   }
 
   const comBusca = opcoes.length > 10;
+  // tela de toque: a busca não ganha foco sozinha (senão o teclado sobe e cobre a lista); quem quiser buscar toca nela
+  const focarBusca = typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches;
   let grupoAnterior: string | undefined;
 
   return (
@@ -204,7 +216,7 @@ export default function Selecao({
           >
             {comBusca && (
               <input
-                autoFocus
+                autoFocus={focarBusca}
                 type="search"
                 value={busca}
                 onChange={(e) => {
